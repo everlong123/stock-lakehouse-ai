@@ -1,0 +1,107 @@
+services:
+  mysql:
+    image: mysql:8.4
+    container_name: stock-lakehouse-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: "123456"
+      MYSQL_DATABASE: stock_lakehouse
+    ports:
+      # Host 3307 avoids colliding with a local MySQL already bound to 3306.
+      - "3307:3306"
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-p123456"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  minio:
+    image: quay.io/minio/minio:latest
+    container_name: stock-lakehouse-minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+
+  adminer:
+    image: adminer:4
+    container_name: stock-lakehouse-adminer
+    restart: unless-stopped
+    ports:
+      - "8081:8080"
+    depends_on:
+      - mysql
+
+  # ── Apache Kafka (Real-time Streaming) ──────────────────────────────────────
+  kafka:
+    image: apache/kafka:3.8.0
+    container_name: stock-lakehouse-kafka
+    restart: unless-stopped
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: controller,broker
+      KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093,EXTERNAL://:9094
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,EXTERNAL://localhost:9094
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+    ports:
+      - "9092:9092"
+      - "9094:9094"
+    volumes:
+      - kafka_data:/bitnami/kafka
+    healthcheck:
+      test: ["CMD-SHELL", "kafka-topics.sh --bootstrap-server localhost:9092 --list"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # ── Kafka UI ────────────────────────────────────────────────────────────────
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: stock-lakehouse-kafka-ui
+    restart: unless-stopped
+    environment:
+      KAFKA_CLUSTERS_0_NAME: local
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
+      KAFKA_CLUSTERS_0_ZOOKEEPER: ""
+    ports:
+      - "8090:8080"
+    depends_on:
+      - kafka
+
+  # ── Apache Iceberg REST Catalog ────────────────────────────────────────────
+  iceberg-rest:
+    image: tabulario/iceberg-rest:0.9.0
+    container_name: stock-lakehouse-iceberg-rest
+    restart: unless-stopped
+    environment:
+      CATALOG_sqlite__catalog__uri: "sqlite:///var/lib/iceberg/iceberg_rest.db"
+      CATALOG_s3__endpoint: "http://minio:9000"
+      CATALOG_s3__access-key__id: "minioadmin"
+      CATALOG_s3__secret-access-key: "minioadmin"
+      CATALOG_s3__region: "us-east-1"
+      CATALOG_properties: "--unauthenticated"
+    ports:
+      - "8181:8181"
+    volumes:
+      - iceberg_rest_data:/var/lib/iceberg
+    depends_on:
+      - minio
+
+volumes:
+  mysql_data:
+  minio_data:
+  iceberg_rest_data:
+  kafka_data:

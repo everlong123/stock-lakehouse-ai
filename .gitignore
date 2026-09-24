@@ -1,0 +1,64 @@
+# Environment and secrets
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+
+# Python
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+*.egg-info/
+dist/
+build/
+.ipynb_checkpoints/
+
+# Node
+node_modules/
+frontend/dist/
+frontend/.vite/
+*.tsbuildinfo
+npm-debug.log*
+
+# Data artifacts (keep sample)
+backend/data/bronze/**
+backend/data/silver/**
+backend/data/gold/**
+backend/data/models/**
+backend/data/backtests/**
+!backend/data/bronze/.gitkeep
+!backend/data/silver/.gitkeep
+!backend/data/gold/.gitkeep
+!backend/data/models/.gitkeep
+!backend/data/backtests/.gitkeep
+!backend/data/sample/
+!backend/data/sample/**
+
+# Logs
+backend/logs/*.log
+backend/logs/*.log.*
+*.log
+
+# IDE
+.idea/
+.vscode/
+*.swp
+.DS_Store
+Thumbs.db
+
+# Spark
+spark-warehouse/
+metastore_db/
+
+# OS
+desktop.ini
