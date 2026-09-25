@@ -90,7 +90,8 @@ class Settings(BaseSettings):
     # Crawler settings
     crawl_enabled: bool = True
     crawl_interval_seconds: int = 300  # 5 minutes
-    crawl_symbols: str = "AAPL,GOOGL,MSFT,AMZN,TSLA"  # Comma-separated
+    # 25 stocks across 9 sectors: Banking, Securities, Real Estate, Tech, Retail, Steel, Oil & Gas, Power, FMCG
+    crawl_symbols: str = "VCB,TCB,MBB,ACB,BID,SSI,VND,VHM,VRE,KDH,FPT,CMG,MWG,PNVN,HPG,GAS,PLX,POW,VNM,SAB,MSN"
 
     # ── Apache Iceberg ────────────────────────────────────────────────────────
     use_iceberg: bool = False  # Set True to use Iceberg instead of raw Parquet

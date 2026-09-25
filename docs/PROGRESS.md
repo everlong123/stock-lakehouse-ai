@@ -1,7 +1,8 @@
 # Stock Lakehouse Platform - Progress Tracker
 
 **Ngày cập nhật:** 25/09/2026  
-**Trạng thái:** Development
+**Trạng thái:** Development  
+**Repository:** https://github.com/everlong123/stock-lakehouse-ai
 
 ---
 
@@ -27,6 +28,34 @@
 - Không tự động đặt lệnh mua/bán
 - Không cam kết lợi nhuận
 - Backtesting chỉ đánh giá hiệu suất lịch sử giả định
+
+---
+
+## Cấu trúc Project
+
+```
+stock-lakehouse-ai/
+├── backend/              # FastAPI backend
+│   ├── app/             # API routes, models
+│   ├── scripts/         # Data generation, pipelines
+│   └── requirements.txt
+├── frontend/            # React + Vite frontend
+├── dagster/             # Dagster orchestration
+├── docs/                # Documentation
+├── docker-compose.yml   # Docker infrastructure
+├── .env                 # Environment variables
+└── README.md
+```
+
+## Data Sources
+
+| Source | Mô tả | Trạng thái |
+|--------|--------|------------|
+| **Sample Data** | Mock data để test nhanh | ✅ Sẵn sàng |
+| **yfinance** | Yahoo Finance API (quốc tế) | ✅ Có sẵn |
+| **VN Stock Providers** | cafef, SSI, VCBS (Việt Nam) | 🔜 Cần cấu hình |
+
+> **Lưu ý:** `generate_sample_data.py` chỉ dùng để **test hệ thống**. Data thật sẽ lấy từ yfinance hoặc các provider Việt Nam.
 
 ---
 
@@ -181,14 +210,14 @@ npm run dev
 |--------|------------|---------|
 | Dagster Orchestration | ⚠️ Cần local setup | Không có public Docker image |
 
-### 📋 TODO
+### 📋 TODO - Next Steps
 
-- [ ] Setup và chạy Dagster local
-- [ ] Test Kafka producer/consumer
+- [ ] Cấu hình data source (yfinance hoặc VN providers)
 - [ ] Tạo bucket trên MinIO cho Iceberg
-- [ ] Chạy end-to-end test
+- [ ] Test Kafka producer/consumer
+- [ ] Chạy end-to-end pipeline với data thật
+- [ ] Setup Dagster local
 - [ ] Viết unit tests
-- [ ] Performance optimization
 
 ---
 
@@ -253,12 +282,13 @@ npm run dev
 ## TODO
 
 ### High Priority
-- [ ] Dagster local setup
-- [ ] End-to-end test pipeline
+- [ ] Cấu hình data source thật (yfinance/VN providers)
+- [ ] End-to-end test pipeline với data thật
 - [ ] MinIO bucket setup cho Iceberg
 
 ### Medium Priority
 - [ ] Kafka streaming test
+- [ ] Setup Dagster local
 - [ ] Viết unit tests
 - [ ] Performance optimization cho LSTM
 
@@ -387,7 +417,10 @@ USE_ICEBERG=false
 ICEBERG_CATALOG_URI=http://localhost:8181
 
 # Data Source
-DATA_SOURCE=sample  # sample hoặc yfinance
+# - sample: Mock data (chỉ để test nhanh)
+# - yfinance: Yahoo Finance API (data quốc tế: AAPL, MSFT...)
+# - vnstock/vninvest: Vietnamese stock providers
+DATA_SOURCE=sample
 
 # AI Agent (optional)
 OPENAI_API_KEY=sk-...
@@ -404,9 +437,10 @@ USE_SPARK=false
 | Vấn đề | Cách xử lý |
 |--------|-------------|
 | MySQL disconnected | Kiểm tra Docker container đang chạy |
-| Không có market data | Chạy `generate_sample_data.py` rồi `run_pipeline.py` |
+| Không có market data | Đổi `DATA_SOURCE=yfinance` trong .env, chạy `run_pipeline.py` |
+| Sample data chỉ test | Dùng yfinance hoặc VN providers để lấy data thật |
 | LSTM chậm | Giảm epochs, USE_SPARK=false |
-| yfinance empty | Đổi DATA_SOURCE=sample |
+| VN stock data trống | Cấu hình VN provider credentials |
 | Kafka không healthy | Đợi ~30s cho Kafka khởi động |
 
 ---

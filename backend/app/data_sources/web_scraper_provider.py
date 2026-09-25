@@ -17,6 +17,21 @@ from app.data_sources.base import StockDataProvider
 
 logger = get_logger(__name__)
 
+# Vietnamese stock suffix mapping for Yahoo Finance
+VN_SYMBOLS = {
+    "VCB", "TCB", "MBB", "ACB", "BID", "SSI", "VND", "VHM", "VRE", "KDH",
+    "FPT", "CMG", "MWG", "PNVN", "HPG", "GAS", "PLX", "POW", "VNM", "SAB", "MSN",
+    "VIC", "VPB", "CTG", "PNJ", "HDB", "STB", "TPB", "MSB", "SHB", "LPB", "EIB", "OCB",
+    "IMP", "PLD", "PDR", "NVL", "BCM", "SBT", "DHG", "IMP", "KDC", "REE", "PC1", "HDG"
+}
+
+def get_yahoo_symbol(symbol: str) -> str:
+    """Convert VN ticker to Yahoo Finance format (add .VN suffix)."""
+    symbol = symbol.upper()
+    if symbol in VN_SYMBOLS:
+        return f"{symbol}.VN"
+    return symbol
+
 
 class StockScraperProvider(StockDataProvider):
     """Scrape stock data from public websites - no API required."""
@@ -75,7 +90,9 @@ class StockScraperProvider(StockDataProvider):
         start_ts = int(start.timestamp())
         end_ts = int(end.timestamp())
         
-        url = f"https://query1.finance.yahoo.com/v8/finance/chart/{symbol}"
+        # Add .VN suffix for Vietnamese stocks
+        yahoo_symbol = get_yahoo_symbol(symbol)
+        url = f"https://query1.finance.yahoo.com/v8/finance/chart/{yahoo_symbol}"
         params = {
             "period1": start_ts,
             "period2": end_ts,

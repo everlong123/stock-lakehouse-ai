@@ -11,13 +11,19 @@ from app.core.exceptions import NotFoundError
 from app.forecasting.arima import ARIMAForecastModel
 from app.forecasting.base import BaseForecastModel
 from app.forecasting.linear_regression import LinearRegressionForecastModel
-from app.forecasting.lstm import LSTMForecastModel
 
 MODEL_CLASSES: dict[str, type[BaseForecastModel]] = {
     "linear_regression": LinearRegressionForecastModel,
     "arima": ARIMAForecastModel,
-    "lstm": LSTMForecastModel,
 }
+
+def _lazy_load_lstm():
+    """Lazy load LSTM model to avoid PyTorch DLL issues on Windows."""
+    try:
+        from app.forecasting.lstm import LSTMForecastModel
+        return LSTMForecastModel
+    except OSError:
+        return None
 
 
 def model_directory(symbol: str, model_name: str) -> Path:
@@ -41,6 +47,11 @@ def load_registry_record(symbol: str, model_name: str) -> dict[str, Any]:
 
 
 def load_model(symbol: str, model_name: str) -> BaseForecastModel:
+    if model_name == "lstm":
+        lstm_cls = _lazy_load_lstm()
+        if lstm_cls is None:
+            raise NotFoundError("LSTM model unavailable due to PyTorch initialization error on Windows.")
+        MODEL_CLASSES["lstm"] = lstm_cls
     if model_name not in MODEL_CLASSES:
         raise NotFoundError(f"Unknown model: {model_name}")
     directory = model_directory(symbol, model_name)
@@ -58,5 +69,8 @@ def list_trained_models(symbol: str) -> list[dict[str, Any]]:
     for child in root.iterdir():
         registry = child / "registry.json"
         if registry.exists():
-            records.append(json.loads(registry.read_text(encoding="utf-8")))
+            try:
+                records.append(json.loads(registry.read_text(encoding="utf-8")))
+            except Exception:
+                pass
     return records
