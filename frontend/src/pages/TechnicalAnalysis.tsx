@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { fetchIndicators } from "@/api/indicators";
+import { fetchSymbols } from "@/api/stocks";
 import { errorMessage } from "@/api/client";
 import { IndicatorChart } from "@/components/charts/IndicatorChart";
 import { PriceChart } from "@/components/charts/PriceChart";
@@ -12,8 +13,34 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { useMarket } from "@/hooks/useMarket";
 
+const DEFAULT_SYMBOLS = [
+  "VCB", "TCB", "MBB", "ACB", "BID", "SSI", "VND", "VHM", "VRE", "KDH",
+  "FPT", "CMG", "MWG", "HPG", "GAS", "PLX", "POW", "VNM", "SAB", "MSN",
+  "VIC", "VPB", "CTG", "TPB", "SHB", "STB", "PNJ", "HDB", "LPB", "MSB",
+  "OCB", "REE", "NVL", "PDR", "BCM", "SBT", "IMP", "KDC", "PC1", "HDG",
+  "DRC", "DXG", "IDJ", "ITA", "JVC", "LSG", "MSH", "NSC", "PVT", "MBC",
+  "DIG", "FCN", "HCM", "CTC", "SMT", "KSC", "VGC", "BVH", "C22", "C32",
+];
+
 export function TechnicalAnalysisPage() {
-  const { symbol } = useMarket();
+  const { symbol: ctxSymbol, setSymbol } = useMarket();
+  const [localSymbol, setLocalSymbol] = useState(ctxSymbol);
+
+  const symbolsQuery = useQuery({
+    queryKey: ["symbols"],
+    queryFn: fetchSymbols,
+    staleTime: 5 * 60 * 1000,
+  });
+  const availableSymbols = symbolsQuery.data?.symbols?.length
+    ? symbolsQuery.data.symbols
+    : DEFAULT_SYMBOLS;
+
+  const handleSymbolChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const val = e.target.value;
+    setLocalSymbol(val);
+    setSymbol(val);
+  };
+
   const [sma, setSma] = useState(true);
   const [ema, setEma] = useState(true);
   const [rsiOn, setRsiOn] = useState(true);
@@ -21,8 +48,8 @@ export function TechnicalAnalysisPage() {
   const [bb, setBb] = useState(true);
   const [rsiPeriod, setRsiPeriod] = useState(14);
   const query = useQuery({
-    queryKey: ["indicators", symbol, sma, ema, rsiOn, macdOn, bb, rsiPeriod],
-    queryFn: () => fetchIndicators(symbol, { sma, ema, rsi: rsiOn, macd: macdOn, bollinger: bb, rsi_period: rsiPeriod }),
+    queryKey: ["indicators", localSymbol || ctxSymbol, sma, ema, rsiOn, macdOn, bb, rsiPeriod],
+    queryFn: () => fetchIndicators(localSymbol || ctxSymbol, { sma, ema, rsi: rsiOn, macd: macdOn, bollinger: bb, rsi_period: rsiPeriod }),
     retry: 1,
   });
 
@@ -37,6 +64,20 @@ export function TechnicalAnalysisPage() {
   return (
     <div className="space-y-4">
       <PageTitle title="Technical Analysis" subtitle="Mô tả chỉ báo lịch sử, không phải lệnh đầu tư." />
+      <div className="flex flex-wrap items-center gap-3 text-sm">
+        <label className="flex items-center gap-2">
+          <span>Symbol:</span>
+          <select
+            value={localSymbol || ctxSymbol}
+            onChange={handleSymbolChange}
+            className="rounded border border-border bg-background px-2 py-1 text-foreground"
+          >
+            {availableSymbols.map((s) => (
+              <option key={s} value={s}>{s}</option>
+            ))}
+          </select>
+        </label>
+      </div>
       <div className="grid gap-3 rounded-lg border border-border bg-card p-4 md:grid-cols-5">
         <Checkbox label="SMA" checked={sma} onChange={(e) => setSma(e.target.checked)} />
         <Checkbox label="EMA" checked={ema} onChange={(e) => setEma(e.target.checked)} />

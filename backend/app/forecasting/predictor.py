@@ -12,6 +12,59 @@ from app.forecasting.model_registry import load_model, load_registry_record, mod
 from app.lakehouse.gold import GoldLayer
 
 
+FORECAST_DISCLAIMER = """
+⚠️ CẢNH BÁO QUAN TRỌNG - CHỈ Mang Tính Tham khảo
+
+1. DỰ BÁO GIÁ CỔ PHIẾU CÓ ĐỘ KHÔNG CHẮC CHẮN CAO
+   - Kết quả dự báo chỉ phản ánh xu hướng quá khứ, không phải dự đoán chắc chắn về giá tương lai.
+   - Thị trường chứng khoán bị ảnh hưởng bởi nhiều yếu tố không thể dự đoán (tin tức, tâm lý nhà đầu tư, biến động vĩ mô).
+
+2. KHÔNG PHẢI KHUYẾN NGHỊ ĐẦU TƯ
+   - Hệ thống này được xây dựng cho mục đích NGHIÊN CỨU HỌC THUẬT.
+   - Tuyệt đối KHÔNG sử dụng kết quả dự báo để quyết định mua/bán thực tế.
+
+3. VỀ ĐỘ CHÍNH XÁC CỦA MÔ HÌNH
+   - MAE/RMSE/MAPE chỉ đo lỗi trên dữ liệu LỊCH SỬ, không phản ánh hiệu suất tương lai.
+   - Các mô hình đơn giản (Linear Regression, ARIMA) có giới hạn trong việc nắm bắt động thái thị trường phức tạp.
+   - LSTM cũng chỉ là mô hình thống kê, không có "trí tuệ" về thị trường.
+
+4. BACKTEST KHÔNG ĐẢM BẢO LỢI NHUẬN THỰC
+   - Hiệu suất quá khứ trong backtest KHÔNG đảm bảo lợi nhuận trong tương lai.
+   - Backtest không tính đến chi phí giao dịch thực tế, slippage, và điều kiện thị trường khác nhau.
+
+5. NGUỒN GỐC DỮ LIỆU
+   - Dữ liệu được lấy từ các nguồn công khai, có thể có độ trễ hoặc sai sót.
+   - Không có bảo đảm về tính chính xác hoàn toàn của dữ liệu.
+
+Người dùng tự chịu trách nhiệm về mọi quyết định đầu tư của mình.
+"""
+
+
+RISK_ASSESSMENT_DISCLAIMER = """
+⚠️ ĐÁNH GIÁ RỦI RO - CHỈ Mang Tính tham khảo
+
+Chỉ báo rủi ro (VaR, drawdown, Sharpe ratio) được tính toán từ dữ liệu lịch sử
+với các giả định về phân phối lợi nhuận. Trong thực tế:
+- Phân phối lợi nhuận thị trường thường có "đuôi béo" (fat tails), dẫn đến đánh giá rủi ro thấp hơn thực tế.
+- Sự kiện "thiên nga đen" có thể gây ra tổn thất lớn hơn nhiều so với dự đoán.
+- Correlation giữa các tài sản thay đổi trong thời kỳ khủng hoảng.
+
+Đây là công cụ phân tích, không phải tư vấn tài chính chuyên nghiệp.
+"""
+
+
+GENERAL_DISCLAIMER = """
+📚 MỤC ĐÍCH SỬ DỤNG
+
+Hệ thống Stock Lakehouse AI được phát triển cho mục đích:
+- Nghiên cứu học thuật về tài chính định lượng
+- Học tập về xây dựng hệ thống dữ liệu (Lakehouse architecture)
+- Demo các kỹ thuật ML/AI trong lĩnh vực chứng khoán
+
+Mọi nội dung mang tính THAM KHẢO, KHÔNG phải lời khuyên đầu tư.
+"""
+
+
 def predict_symbol(symbol: str, model_name: str, horizon: int = 5) -> dict[str, Any]:
     """Generate a next-close prediction series from the latest trained model."""
     model = load_model(symbol, model_name)
@@ -86,5 +139,5 @@ def predict_symbol(symbol: str, model_name: str, horizon: int = 5) -> dict[str, 
         },
         "parameters": registry.get("parameters"),
         "predictions": points,
-        "disclaimer": "Forecasts are experimental research outputs, not investment advice.",
+        "disclaimer": FORECAST_DISCLAIMER,
     }

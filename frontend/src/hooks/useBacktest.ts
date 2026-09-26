@@ -1,9 +1,7 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { fetchBacktestHistory, runBacktest } from "@/api/backtesting";
-import { useMarket } from "@/hooks/useMarket";
 
-export function useBacktest() {
-  const { symbol } = useMarket();
+export function useBacktest(symbol: string) {
   const history = useQuery({
     queryKey: ["backtest-history", symbol],
     queryFn: () => fetchBacktestHistory(symbol),

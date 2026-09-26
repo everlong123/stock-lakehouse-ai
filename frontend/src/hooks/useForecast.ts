@@ -1,9 +1,7 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { compareModels, predictModel, trainModel } from "@/api/forecasting";
-import { useMarket } from "@/hooks/useMarket";
 
-export function useForecast(modelName: string) {
-  const { symbol } = useMarket();
+export function useForecast(symbol: string, modelName: string) {
   const compareQuery = useQuery({
     queryKey: ["forecast-compare", symbol],
     queryFn: () => compareModels(symbol),

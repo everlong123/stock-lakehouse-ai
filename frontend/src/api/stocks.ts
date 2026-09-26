@@ -17,3 +17,8 @@ export function csvUrl(symbol: string, interval: string): string {
   const base = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000/api/v1";
   return `${base}/stocks/${symbol}/csv?interval=${interval}`;
 }
+
+export async function fetchSymbols(): Promise<{ symbols: string[] }> {
+  const { data } = await api.get<ApiEnvelope<{ symbols: string[] }>>("/stocks/symbols");
+  return data.data;
+}

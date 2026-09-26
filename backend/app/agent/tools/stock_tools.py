@@ -7,6 +7,7 @@ from typing import Any
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.core.constants import SUPPORTED_SYMBOLS
+from app.forecasting.predictor import FORECAST_DISCLAIMER, RISK_ASSESSMENT_DISCLAIMER, GENERAL_DISCLAIMER
 from app.services.backtest_service import BacktestService
 from app.services.forecasting_service import ForecastingService
 from app.services.indicator_service import IndicatorService
@@ -167,6 +168,16 @@ def run_backtest(symbol: str, strategy: str = "ma_crossover", initial_capital: f
             "initial_capital": initial_capital,
         }
     )
+
+    # Build comprehensive disclaimer
+    disclaimer = f"""
+{result.get('disclaimer', '')}
+
+{RISK_ASSESSMENT_DISCLAIMER}
+
+{GENERAL_DISCLAIMER}
+"""
+
     payload = BacktestOutput(
         symbol=symbol,
         strategy=strategy,
@@ -175,7 +186,7 @@ def run_backtest(symbol: str, strategy: str = "ma_crossover", initial_capital: f
         sharpe_ratio=result["sharpe_ratio"],
         maximum_drawdown=result["maximum_drawdown"],
         number_of_trades=result["number_of_trades"],
-        disclaimer=result["disclaimer"],
+        disclaimer=disclaimer,
     )
     return payload.model_dump()
 

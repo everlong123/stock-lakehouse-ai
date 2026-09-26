@@ -6,10 +6,17 @@ from fastapi import APIRouter, Depends, Query
 from fastapi.responses import StreamingResponse
 
 from app.api.dependencies import get_market_service
+from app.core.config import settings
 from app.schemas.common import ok
 from app.services.market_service import MarketService
 
 router = APIRouter(prefix="/stocks", tags=["stocks"])
+
+
+@router.get("/symbols")
+def get_symbols() -> dict:
+    symbols = [s.strip().upper() for s in settings.crawl_symbols.split(",") if s.strip()]
+    return ok({"symbols": symbols})
 
 
 @router.get("/{symbol}")

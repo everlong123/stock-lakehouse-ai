@@ -6,7 +6,6 @@ from datetime import datetime, timezone
 
 from app.core.logging_config import get_logger
 from app.pipelines.feature_pipeline import build_gold_layer
-from app.pipelines.ingestion import ingest_symbol
 from app.pipelines.quality import assert_quality_passed, build_quality_report
 from app.pipelines.transformation import transform_to_silver
 
@@ -22,7 +21,6 @@ def run_symbol_pipeline(
 ) -> dict:
     """Run the full medallion pipeline for one symbol. Tasks are idempotent on rerun."""
     started = datetime.now(timezone.utc)
-    ingest_meta = ingest_symbol(symbol, interval=interval, start=start, end=end, source_name=source_name)
     silver_meta = transform_to_silver(symbol)
     quality = build_quality_report(symbol)
     assert_quality_passed(quality)
@@ -37,7 +35,6 @@ def run_symbol_pipeline(
         "records_processed": gold_meta.get("records", 0),
         "error_count": silver_meta.get("quality", {}).get("error_count", 0),
         "message": "Pipeline completed.",
-        "ingest": ingest_meta,
         "silver": silver_meta,
         "quality": quality,
         "gold": gold_meta,

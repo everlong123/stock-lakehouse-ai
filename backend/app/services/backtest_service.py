@@ -8,6 +8,7 @@ from typing import Any
 from sqlalchemy.orm import Session
 
 from app.backtesting.engine import BacktestEngine
+from app.backtesting.walk_forward import WalkForwardValidator
 from app.core.logging_config import get_logger
 from app.database.repositories.backtest_repository import BacktestRepository
 from app.database.session import check_database_connection
@@ -101,3 +102,39 @@ def _parse(value) -> datetime | None:
     import pandas as pd
 
     return pd.to_datetime(value, utc=True).to_pydatetime().replace(tzinfo=None)
+
+
+class WalkForwardService:
+    """Service for walk-forward validation."""
+
+    def run(
+        self,
+        payload: dict[str, Any],
+        db: Session | None = None,
+    ) -> dict[str, Any]:
+        """Run walk-forward validation."""
+        validator = WalkForwardValidator(
+            train_period_days=payload.get("train_period_days", 180),
+            test_period_days=payload.get("test_period_days", 30),
+            step_days=payload.get("step_days", 20),
+        )
+
+        result = validator.run(
+            symbol=payload["symbol"],
+            strategy_name=payload.get("strategy", "ma_crossover"),
+            start_date=payload.get("start_date"),
+            end_date=payload.get("end_date"),
+            initial_capital=payload.get("initial_capital", 10000),
+            transaction_fee=payload.get("transaction_fee", 0.001),
+            slippage=payload.get("slippage", 0.0005),
+            parameters=payload.get("parameters"),
+        )
+
+        # Save result
+        LocalStorageBackend().write_json(
+            "backtests",
+            f"{result['symbol']}_{result['strategy']}_walkforward_latest.json",
+            result,
+        )
+
+        return result

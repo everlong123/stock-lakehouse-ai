@@ -1,5 +1,7 @@
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { compareModels } from "@/api/forecasting";
+import { fetchSymbols } from "@/api/stocks";
 import { errorMessage } from "@/api/client";
 import { ForecastChart } from "@/components/charts/ForecastChart";
 import { EmptyState } from "@/components/common/EmptyState";
@@ -15,7 +17,17 @@ import { MODELS } from "@/utils/constants";
 import { formatNumber } from "@/utils/format";
 import { toast } from "sonner";
 
+const DEFAULT_SYMBOLS = [
+  "VCB", "TCB", "MBB", "ACB", "BID", "SSI", "VND", "VHM", "VRE", "KDH",
+  "FPT", "CMG", "MWG", "HPG", "GAS", "PLX", "POW", "VNM", "SAB", "MSN",
+  "VIC", "VPB", "CTG", "TPB", "SHB", "STB", "PNJ", "HDB", "LPB", "MSB",
+  "OCB", "REE", "NVL", "PDR", "BCM", "SBT", "IMP", "KDC", "PC1", "HDG",
+  "DRC", "DXG", "IDJ", "ITA", "JVC", "LSG", "MSH", "NSC", "PVT", "MBC",
+  "DIG", "FCN", "HCM", "CTC", "SMT", "KSC", "VGC", "BVH", "C22", "C32",
+];
+
 export function ForecastingPage() {
+  const [symbol, setSymbol] = useState("VCB");
   const [model, setModel] = useState("linear_regression");
   const [horizon, setHorizon] = useState(5);
   const [epochs, setEpochs] = useState(8);
@@ -23,7 +35,18 @@ export function ForecastingPage() {
   const [layers, setLayers] = useState(2);
   const [seq, setSeq] = useState(60);
   const [compare, setCompare] = useState<ModelMetrics[] | null>(null);
-  const { symbol, train, predict } = useForecast(model);
+
+  // Symbol selector
+  const symbolsQuery = useQuery({
+    queryKey: ["symbols"],
+    queryFn: fetchSymbols,
+    staleTime: 5 * 60 * 1000,
+  });
+  const availableSymbols = symbolsQuery.data?.symbols?.length
+    ? symbolsQuery.data.symbols
+    : DEFAULT_SYMBOLS;
+
+  const { train, predict } = useForecast(symbol, model);
   const predictions = ((predict.data?.predictions || train.data?.predictions) as ForecastPoint[] | undefined) ?? [];
   const metrics = (predict.data?.metrics || train.data) as Record<string, number> | undefined;
 
@@ -65,6 +88,20 @@ export function ForecastingPage() {
         title="Forecasting"
         subtitle="So sánh Linear Regression, ARIMA và LSTM trên hold-out chronological. Không khẳng định mô hình nào chắc chắn tốt nhất."
       />
+      <div className="flex flex-wrap items-center gap-3 text-sm">
+        <label className="flex items-center gap-2">
+          <span>Symbol:</span>
+          <select
+            value={symbol}
+            onChange={(e) => setSymbol(e.target.value)}
+            className="rounded border border-border bg-background px-2 py-1 text-foreground"
+          >
+            {availableSymbols.map((s) => (
+              <option key={s} value={s}>{s}</option>
+            ))}
+          </select>
+        </label>
+      </div>
       <div className="grid gap-3 rounded-lg border border-border bg-card p-4 md:grid-cols-4">
         <label className="text-sm">
           Model

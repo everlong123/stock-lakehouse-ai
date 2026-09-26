@@ -27,10 +27,10 @@ pytest==8.3.3
 ruff==0.6.9
 black==24.8.0
 email-validator==2.2.0
-# ── Dagster Orchestration ─────────────────────────────────────────────────────
-dagster==1.9.2
-dagster-graphql==1.9.2
-dagster-postgres==1.9.2
+# ── Dagster Orchestration (requires Python 3.12+) ─────────────────────────────
+# dagster==1.9.2
+# dagster-graphql==1.9.2
+# dagster-postgres==1.9.2
 # ── Apache Iceberg (Modern Table Format) ─────────────────────────────────────
 pyiceberg==0.7.0
 # ── Optional: for REST catalog ─────────────────────────────────────────────────

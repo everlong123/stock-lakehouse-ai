@@ -10,7 +10,7 @@ interface MarketSelection {
 const MarketContext = createContext<MarketSelection | null>(null);
 
 export function MarketProvider({ children }: { children: ReactNode }) {
-  const [symbol, setSymbol] = useState("AAPL");
+  const [symbol, setSymbol] = useState("VCB");
   const [interval, setInterval] = useState("1d");
   const value = useMemo(() => ({ symbol, interval, setSymbol, setInterval }), [symbol, interval]);
   return <MarketContext.Provider value={value}>{children}</MarketContext.Provider>;

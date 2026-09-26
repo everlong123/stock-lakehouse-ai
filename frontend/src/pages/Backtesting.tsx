@@ -1,5 +1,7 @@
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { fetchSymbols } from "@/api/stocks";
 import { errorMessage } from "@/api/client";
 import { EquityCurve } from "@/components/charts/EquityCurve";
 import { EmptyState } from "@/components/common/EmptyState";
@@ -14,9 +16,30 @@ import { STRATEGIES } from "@/utils/constants";
 import { formatNumber, formatPercent, formatPrice, shortDate } from "@/utils/format";
 import { toast } from "sonner";
 
+const DEFAULT_SYMBOLS = [
+  "VCB", "TCB", "MBB", "ACB", "BID", "SSI", "VND", "VHM", "VRE", "KDH",
+  "FPT", "CMG", "MWG", "HPG", "GAS", "PLX", "POW", "VNM", "SAB", "MSN",
+  "VIC", "VPB", "CTG", "TPB", "SHB", "STB", "PNJ", "HDB", "LPB", "MSB",
+  "OCB", "REE", "NVL", "PDR", "BCM", "SBT", "IMP", "KDC", "PC1", "HDG",
+  "DRC", "DXG", "IDJ", "ITA", "JVC", "LSG", "MSH", "NSC", "PVT", "MBC",
+  "DIG", "FCN", "HCM", "CTC", "SMT", "KSC", "VGC", "BVH", "C22", "C32",
+];
+
 export function BacktestingPage() {
-  const { run } = useBacktest();
+  const [symbol, setSymbol] = useState("VCB");
   const [strategy, setStrategy] = useState("ma_crossover");
+
+  // Symbol selector
+  const symbolsQuery = useQuery({
+    queryKey: ["symbols"],
+    queryFn: fetchSymbols,
+    staleTime: 5 * 60 * 1000,
+  });
+  const availableSymbols = symbolsQuery.data?.symbols?.length
+    ? symbolsQuery.data.symbols
+    : DEFAULT_SYMBOLS;
+
+  const { run } = useBacktest(symbol);
   const [capital, setCapital] = useState(10000);
   const [fee, setFee] = useState(0.001);
   const [slip, setSlip] = useState(0.0005);
@@ -53,6 +76,20 @@ export function BacktestingPage() {
         title="Backtesting"
         subtitle="Đánh giá hiệu suất lịch sử giả định. Không chứng minh chiến lược sẽ sinh lời trong tương lai."
       />
+      <div className="flex flex-wrap items-center gap-3 text-sm">
+        <label className="flex items-center gap-2">
+          <span>Symbol:</span>
+          <select
+            value={symbol}
+            onChange={(e) => setSymbol(e.target.value)}
+            className="rounded border border-border bg-background px-2 py-1 text-foreground"
+          >
+            {availableSymbols.map((s) => (
+              <option key={s} value={s}>{s}</option>
+            ))}
+          </select>
+        </label>
+      </div>
       <div className="grid gap-3 rounded-lg border border-border bg-card p-4 md:grid-cols-4">
         <label className="text-sm">
           Strategy

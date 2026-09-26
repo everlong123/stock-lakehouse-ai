@@ -84,7 +84,8 @@ class StockScraperProvider(StockDataProvider):
     def _fetch_yahoo_finance(self, symbol: str, start: datetime | None, end: datetime | None) -> pd.DataFrame:
         """Fetch from Yahoo Finance using their public endpoint."""
         end = end or datetime.now(timezone.utc)
-        start = start or end.replace(year=end.year - 2)
+        # Default to 10+ years of history for ML training
+        start = start or end.replace(year=end.year - 12)
         
         # Convert to Unix timestamps
         start_ts = int(start.timestamp())
