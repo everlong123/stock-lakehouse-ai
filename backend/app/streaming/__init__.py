@@ -18,6 +18,13 @@ from app.streaming.kafka_consumer import (
     get_kafka_consumer,
     start_consumer,
 )
+from app.streaming.finnhub_websocket import (
+    FINNHUB_WS_URL,
+    FinnhubWebSocketClient,
+    StreamMessage,
+    build_default_client,
+)
+from app.streaming.stream_publisher import StreamPublisher
 
 __all__ = [
     # Producer
@@ -36,4 +43,10 @@ __all__ = [
     "get_kafka_consumer",
     "start_consumer",
     "DEFAULT_GROUP_ID",
+    # WebSocket → Kafka
+    "FinnhubWebSocketClient",
+    "StreamMessage",
+    "StreamPublisher",
+    "build_default_client",
+    "FINNHUB_WS_URL",
 ]

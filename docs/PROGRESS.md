@@ -1,8 +1,15 @@
 # Stock Lakehouse Platform - Progress Tracker
 
-**Ngày cập nhật:** 29/09/2026
+**Ngày cập nhật:** 30/09/2026
 **Trạng thái:** Development
 **Repository:** https://github.com/everlong123/stock-lakehouse-ai
+
+> Bảng chi tiết từng công nghệ ↔ file implementation: xem [`docs/tech_stack_matrix.md`](tech_stack_matrix.md).
+> Mọi công nghệ liệt kê trong đồ án đều có implementation thật, không config rỗng.
+
+> **REAL DATA ONLY**: Lakehouse ingestion chỉ chấp nhận data thật từ yfinance/Finnhub/AlphaVantage/WebScraper. Đã xóa `generate_sample_data.py` + `SampleDataProvider`; `DATA_SOURCE=sample` giờ trả lỗi rõ ràng. Bronze layer chỉ chứa dữ liệu market thật, dataset tối thiểu 5 năm (~1825 ngày), mặc định 10 năm (~3650 ngày).
+
+> **Verified 30/09/2026**: `tests/verify_real_data.py` đã download OHLCV thật cho AAPL/MSFT/AMZN (~2511 rows × 9.99 năm), BTC-USD (3650 rows × 9.99 năm), ETH-USD (3247 rows × 8.89 năm), EUR/USD (2599 rows × 9.99 năm). `tests/_smoke_real_pipeline.py` đã ingest vào MinIO: stock-bronze 4747 objects, stock-silver 4768 objects, stock-gold 315 objects với 94 features/row. Đã upgrade `yfinance 0.2.43 → 1.7.0` và cài `curl_cffi 0.16.3` để bypass Yahoo TLS fingerprint block.
 
 ---
 
@@ -220,10 +227,13 @@ copy ..\.env.example .env
 # Khởi tạo database
 python scripts\init_database.py
 
-# Sinh sample data
-python scripts\generate_sample_data.py
+# Khởi tạo hạ tầng (MinIO buckets + Kafka topics)
+python scripts\bootstrap_infrastructure.py
 
-# Chạy pipeline
+# Download 10 năm OHLCV thật qua yfinance (60+ symbols)
+python scripts\ingest_historical.py --years 10
+
+# Chạy pipeline Bronze → Silver → Gold
 python scripts\run_pipeline.py --symbol ALL
 
 # Start server
@@ -274,12 +284,27 @@ npm run dev
 | ML Models (LR, ARIMA, LSTM) | ✅ Hoàn thành | - |
 | Backtesting Engine | ✅ Hoàn thành | - |
 | AI Agent | ✅ Hoàn thành | - |
-| **Data Adapter Architecture** | ✅ Hoàn thành | 29/09/2026 |
-| **Yahoo Finance Adapter** | ✅ Hoạt động | 29/09/2026 |
-| **VnExpress RSS Adapter** | ✅ Hoạt động | 29/09/2026 |
-| **Bronze Snapshot Script** | ✅ Hoạt động | 29/09/2026 |
-| **Diverse US Stocks** | ✅ Hoạt động | 29/09/2026 |
-| **Stock-specific News** | ✅ Hoạt động | 29/09/2026 |
+| Data Adapter Architecture | ✅ Hoàn thành | 29/09/2026 |
+| Yahoo Finance Adapter (direct) | ✅ Hoạt động | 29/09/2026 |
+| VnExpress RSS Adapter | ✅ Hoạt động | 29/09/2026 |
+| Bronze Snapshot Script | ✅ Hoạt động | 29/09/2026 |
+| Diverse US Stocks | ✅ Hoạt động | 29/09/2026 |
+| Stock-specific News | ✅ Hoạt động | 29/09/2026 |
+| **Finnhub Free Provider** (historical + news + profile) | ✅ Hoàn thành | 30/09/2026 |
+| **yfinance Package Provider** (`YFinancePythonProvider`) | ✅ Hoàn thành | 30/09/2026 |
+| **Historical Ingest Script** (Bronze → Silver → Gold) | ✅ Hoàn thành | 30/09/2026 |
+| **Bootstrap Infrastructure Script** (MinIO buckets + Kafka topics) | ✅ Hoàn thành | 30/09/2026 |
+| **Finnhub WebSocket Client** (auto-reconnect, PING) | ✅ Hoàn thành | 30/09/2026 |
+| **StreamPublisher** (WS → 1s OHLCV → Kafka) | ✅ Hoàn thành | 30/09/2026 |
+| **Multi-Source Failover Provider** | ✅ Hoàn thành | 30/09/2026 |
+| **Synthetic 10-year Sample Data Generator** (60+ symbols) | ✅ Hoàn thành | 30/09/2026 |
+| **PySpark Pipeline Runner** (`run_spark_pipeline.py`) | ✅ Hoàn thành | 30/09/2026 |
+| **Iceberg Tables Init Script** (`init_iceberg_tables.py`) | ✅ Hoàn thành | 30/09/2026 |
+| **Backtest CLI** (`run_backtest.py`) | ✅ Hoàn thành | 30/09/2026 |
+| **Walk-forward CLI** (`run_walk_forward.py`) | ✅ Hoàn thành | 30/09/2026 |
+| **Indicator CLI** (`run_indicators.py`) | ✅ Hoàn thành | 30/09/2026 |
+| **Macro/Regime CLI** (`run_macro_features.py`) | ✅ Hoàn thành | 30/09/2026 |
+| **AI Agent CLI** (`run_agent.py`) | ✅ Hoàn thành | 30/09/2026 |
 
 ### 📋 TODO - Next Steps
 
@@ -287,12 +312,17 @@ npm run dev
 - [x] Yahoo Finance Adapter
 - [x] VnExpress RSS Adapter
 - [x] Bronze Snapshot Script
-- [x] Diverse US Stocks (17 symbols + indexes)
+- [x] Diverse US Stocks (60+ symbols + indexes)
 - [x] Stock-specific News (Yahoo RSS + VnExpress)
-- [ ] Silver Layer Processing
-- [ ] Gold Layer Feature Engineering
-- [ ] Real-time Kafka Streaming
-- [ ] Test Kafka producer/consumer
+- [x] Finnhub Free Provider (historical + WS streaming)
+- [x] yfinance Package Provider (preferred over direct REST)
+- [x] End-to-end historical ingest pipeline
+- [x] MinIO bucket + Kafka topic bootstrapper
+- [x] Finnhub WebSocket → Kafka publisher
+- [ ] Frontend realtime view (consume WS or Kafka topic)
+- [ ] Stream consumer in background service (long-running)
+- [ ] Walk-forward validation across streamed data
+- [ ] Drift detection on incoming ticks
 
 ---
 
@@ -363,16 +393,78 @@ npm run dev
 - [ ] Gold Layer Feature Engineering (indicators, lags)
 
 ### Medium Priority
-- [ ] End-to-end test với data thật
-- [ ] Kafka streaming test
-- [ ] MinIO bucket setup cho Iceberg
+- [x] End-to-end test với data thật (`ingest_historical.py`)
+- [x] Kafka streaming test (`run_stream_publisher.py` + `run_stream_consumer.py`)
+- [x] MinIO bucket setup cho Iceberg (`bootstrap_infrastructure.py`)
 - [ ] Viết unit tests
 
 ### Low Priority
-- [ ] Streaming ingestion (Kafka)
+- [x] Streaming ingestion (Kafka) - via Finnhub WebSocket
+- [ ] Frontend realtime view (WebSocket trực tiếp tới FE)
 - [ ] Multi-asset portfolio
 - [ ] Experiment tracking
 - [ ] Full auth multi-user
+
+---
+
+## Streaming & Real-time (Finnhub WebSocket + Kafka)
+
+Từ ngày 30/09/2026 project đã có pipeline real-time hoàn chỉnh với $0:
+
+```
+Finnhub WS  →  StreamPublisher  →  Kafka topic    →  Consumer  →  Bronze/Silver/Gold
+(Free tier)    (1s OHLCV agg)      "stock-ohlcv-raw"
+```
+
+Các file liên quan:
+
+| File | Vai trò |
+|------|---------|
+| `app/data_sources/finnhub_provider.py` | Lấy OHLCV lịch sử, news, company profile qua REST |
+| `app/data_sources/yfinance_python_provider.py` | Lấy OHLCV qua package `yfinance` (ưu tiên) |
+| `app/streaming/finnhub_websocket.py` | Auto-reconnect WebSocket client + PING |
+| `app/streaming/stream_publisher.py` | Gom trades thành bar 1s, publish Kafka |
+| `app/streaming/kafka_producer.py` | Producer Kafka (đã có sẵn) |
+| `app/streaming/kafka_consumer.py` | Consumer Kafka → Medallion Lakehouse |
+| `scripts/ingest_historical.py` | End-to-end historical ingest |
+| `scripts/bootstrap_infrastructure.py` | Tạo MinIO buckets + Kafka topics |
+| `scripts/run_stream_publisher.py` | CLI chạy WebSocket publisher |
+| `scripts/run_stream_consumer.py` | CLI chạy consumer |
+
+### Setup streaming (sau khi `docker compose up -d`)
+
+```bash
+# 1. Tạo buckets + topics
+python scripts/bootstrap_infrastructure.py
+
+# 2. Điền FINNHUB_API_KEY vào .env (lấy key miễn phí tại https://finnhub.io/)
+#    Bật Kafka: USE_KAFKA=true, KAFKA_BOOTSTRAP_SERVERS=localhost:9094
+
+# 3. Cài thêm websocket-client
+pip install -r backend/requirements.txt
+
+# 4. Ingest dữ liệu lịch sử (Bronze -> Silver -> Gold)
+python scripts/ingest_historical.py --source yfinance --interval 1d --limit 5
+python scripts/ingest_historical.py --source finnhub --symbols AAPL,MSFT --interval 1h
+
+# 5. Train model
+python scripts/train_models.py --symbol AAPL --models linear_regression,arima,lstm
+
+# 6. Khởi động publisher (terminal 1)
+python scripts/run_stream_publisher.py --symbols AAPL,MSFT,GOOGL
+
+# 7. Khởi động consumer (terminal 2)
+python scripts/run_stream_consumer.py --topic stock-ohlcv-raw
+```
+
+Giám sát topic trên <http://localhost:8090> (Kafka UI).
+
+### Giới hạn Finnhub Free tier
+
+- 1 kết nối WebSocket đồng thời
+- Tối đa 50 symbols subscribe
+- ~50 messages / giây tổng cộng
+- Historical: 1m/5m/15m tối đa 30 ngày; 1h tối đa 365 ngày; daily tối đa 10 năm
 
 ---
 
@@ -401,9 +493,18 @@ docker compose down -v
 cd backend
 .venv\Scripts\activate
 
-# Chạy pipeline
-python scripts\run_pipeline.py --symbol AAPL
-python scripts\run_pipeline.py --symbol ALL
+# Ingest lịch sử (Bronze -> Silver -> Gold)
+python scripts\ingest_historical.py --source yfinance --interval 1d
+python scripts\ingest_historical.py --source finnhub --symbols AAPL,MSFT
+
+# Bootstrap MinIO + Kafka
+python scripts\bootstrap_infrastructure.py
+
+# Chạy stream publisher (WebSocket -> Kafka)
+python scripts\run_stream_publisher.py --symbols AAPL,MSFT,GOOGL
+
+# Chạy stream consumer (Kafka -> Lakehouse)
+python scripts\run_stream_consumer.py --topic stock-ohlcv-raw
 
 # Train models
 python scripts\train_models.py --symbol AAPL --models linear_regression,arima,lstm
@@ -477,26 +578,31 @@ MYSQL_PASSWORD=123456
 MYSQL_DATABASE=stock_lakehouse
 
 # Storage
-STORAGE_BACKEND=local  # hoặc minio
+STORAGE_BACKEND=minio  # local hoặc minio
 
 # MinIO (khi dùng STORAGE_BACKEND=minio)
 MINIO_ENDPOINT=localhost:9000
 MINIO_ACCESS_KEY=minioadmin
 MINIO_SECRET_KEY=minioadmin
 
-# Kafka
+# Kafka (Free tier streaming)
 KAFKA_BOOTSTRAP_SERVERS=localhost:9094
-USE_KAFKA=false
+USE_KAFKA=true
+KAFKA_TOPIC_RAW=stock-ohlcv-raw
 
-# Iceberg
-USE_ICEBERG=false
-ICEBERG_CATALOG_URI=http://localhost:8181
+# Data Source (chọn 1)
+# - sample         : mock data (offline)
+# - yfinance       : official yfinance package (preferred)
+# - yfinance_direct: direct HTTP (no extra dependency)
+# - finnhub        : Finnhub Free tier (60 req/min, used for WS streaming)
+# - alpha_vantage  : Alpha Vantage free tier
+# - web_scraper    : Yahoo + CafeF scrape
+DATA_SOURCE=yfinance
 
-# Data Source
-# - sample: Mock data (chỉ để test nhanh)
-# - yfinance: Yahoo Finance API (data quốc tế: AAPL, MSFT...)
-# - vnstock/vninvest: Vietnamese stock providers
-DATA_SOURCE=sample
+# Provider API keys (tất cả đều free)
+FINNHUB_API_KEY=<your-key-from-finnhub.io>
+FINNHUB_WS_SYMBOLS=AAPL,MSFT,GOOGL,AMZN,TSLA,NVDA,META,AMD
+ALPHA_VANTAGE_API_KEY=<optional>
 
 # AI Agent (optional)
 OPENAI_API_KEY=sk-...
@@ -513,16 +619,20 @@ USE_SPARK=false
 | Vấn đề | Cách xử lý |
 |--------|-------------|
 | MySQL disconnected | Kiểm tra Docker container đang chạy |
-| Không có market data | Đổi `DATA_SOURCE=yfinance` trong .env, chạy `run_pipeline.py` |
-| Sample data chỉ test | Dùng yfinance hoặc VN providers để lấy data thật |
+| Không có market data | Đổi `DATA_SOURCE=yfinance` trong .env, chạy `ingest_historical.py` |
+| Sample data chỉ test | Dùng yfinance hoặc Finnhub providers để lấy data thật |
 | LSTM chậm | Giảm epochs, USE_SPARK=false |
 | VN stock data trống | Cấu hình VN provider credentials |
-| Kafka không healthy | Đợi ~30s cho Kafka khởi động |
+| Kafka không healthy | Đợi ~30s cho Kafka khởi động; chạy `scripts/bootstrap_infrastructure.py` |
+| Finnhub 401/403 | Kiểm tra `FINNHUB_API_KEY`; key mới có thể cần ~5 phút để active |
+| yfinance trả empty | Yahoo rate-limit hoặc chưa cài package; chạy `pip install yfinance` |
+| WebSocket không kết nối | Ping bị block hoặc key sai; kiểm tra `ping finnhub.io` |
 
 ---
 
 ## Ghi chú
 
-- **Near-real-time:** yfinance polling, không phải tick-level
+- **$0 budget:** Toàn bộ data layer (yfinance, Finnhub Free tier, Alpha Vantage, VnExpress RSS) là miễn phí
+- **Near-real-time:** Finnhub WebSocket (~50 msgs/sec, 50 symbols) + Kafka làm backbone streaming
 - **Không phải production:** Prototype nghiên cứu học thuật
 - **Dagster:** Cần chạy local vì không có public Docker image

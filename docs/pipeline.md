@@ -72,7 +72,7 @@ curl -X POST http://localhost:3000/api/v1/lakehouse/run
 ### Chạy local:
 
 ```bat
-python scripts\generate_sample_data.py
+python scripts\ingest_historical.py --years 10
 python scripts\run_pipeline.py --symbol ALL
 ```
 
@@ -81,7 +81,7 @@ python scripts\run_pipeline.py --symbol ALL
 `POST /api/v1/pipeline/run`
 
 ```json
-{ "symbol": "AAPL", "interval": "1d", "source": "sample" }
+{ "symbol": "AAPL", "interval": "1d", "source": "yfinance" }
 ```
 
 ### Quality report:

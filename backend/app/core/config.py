@@ -11,15 +11,6 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 BACKEND_ROOT = Path(__file__).resolve().parents[2]
 PROJECT_ROOT = BACKEND_ROOT.parent
 
-# Debug: Check what paths are being used
-import os
-_env_file_1 = PROJECT_ROOT / ".env"
-_env_file_2 = BACKEND_ROOT / ".env"
-print(f"PROJECT_ROOT: {PROJECT_ROOT}")
-print(f"BACKEND_ROOT: {BACKEND_ROOT}")
-print(f"Env 1 exists: {_env_file_1.exists()}")
-print(f"Env 2 exists: {_env_file_2.exists()}")
-
 
 class Settings(BaseSettings):
     """Runtime configuration for the Stock Lakehouse platform."""
@@ -72,7 +63,7 @@ class Settings(BaseSettings):
 
     default_symbol: str = "AAPL"
     default_interval: str = "1d"
-    default_lookback_days: int = 1825  # 5 years
+    default_lookback_days: int = 3650  # ~10 years (exceeds 5-year requirement)
 
     # Multi-interval data collection
     collect_1d: bool = True      # Daily data (5 years)
@@ -98,10 +89,15 @@ class Settings(BaseSettings):
 
     arima_order: str = "5,1,0"
 
-    data_source: Literal["sample", "yfinance", "alpha_vantage", "finnhub", "web_scraper", "vnstock"] = "alpha_vantage"
+    data_source: Literal["yfinance", "yfinance_direct", "alpha_vantage", "finnhub", "web_scraper", "vnstock", "multi_source"] = "yfinance"
     yfinance_timeout: int = 30
     alpha_vantage_api_key: str = ""
     finnhub_api_key: str = ""
+    finnhub_webhook_secret: str = ""
+
+    # ── Finnhub WebSocket (Free tier caps at 50 symbols / ~50 msgs/sec) ───────
+    finnhub_ws_symbols: str = "AAPL,MSFT,GOOGL,AMZN,TSLA,NVDA,META,AMD"
+    finnhub_ws_ping_interval: int = 25
 
     # Crawler settings
     crawl_enabled: bool = True

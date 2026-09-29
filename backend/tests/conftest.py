@@ -1,4 +1,9 @@
-"""Shared test fixtures. All tests run offline on synthetic OHLCV."""
+"""Shared test fixtures. All tests run offline on synthetic OHLCV.
+
+These fixtures only exist for *unit tests* of the lakehouse and forecasting
+layers.  Production ingestion always uses real market data via the providers
+in :mod:`app.data_sources` - never this generator.
+"""
 
 from __future__ import annotations
 
@@ -27,7 +32,7 @@ def make_ohlcv(rows: int = 180, start_price: float = 100.0, seed: int = 42) -> p
             "close": close,
             "adj_close": close,
             "volume": volume,
-            "source": "sample",
+            "source": "test_fixture",
             "ingestion_time": pd.Timestamp.now(tz="UTC"),
         }
     )[OHLCV_COLUMNS]

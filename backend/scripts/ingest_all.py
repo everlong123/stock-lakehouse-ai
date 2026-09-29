@@ -9,7 +9,7 @@ Thu thập dữ liệu chứng khoán toàn diện:
 - Retry logic thông minh
 - Progress tracking
 
-Chạy: python scripts/ingest_all.py [--interval 1d] [--lookback 1825]
+Chạy: python scripts/ingest_all.py [--interval 1d] [--lookback 3650]
 """
 
 from __future__ import annotations
@@ -60,12 +60,13 @@ class IngestConfig:
     # Intervals and lookback
     intervals: list[str] = field(default_factory=lambda: ["1d"])
     
-    # Lookback in days per interval
+    # Lookback in days per interval - exceeding the 5-year requirement so
+    # downstream ML/backtesting has enough history for walk-forward validation.
     lookback_days: dict[str, int] = field(default_factory=lambda: {
-        "1d": 1825,   # 5 years
-        "1h": 365,     # 1 year
-        "15m": 30,     # 30 days
-        "5m": 7,       # 7 days
+        "1d": 3650,   # ~10 years
+        "1h": 730,    # 2 years
+        "15m": 60,    # 2 months
+        "5m": 60,     # 2 months
     })
     
     # Rate limiting
@@ -125,7 +126,7 @@ class DataIngestor:
         self,
         symbol: str,
         interval: str = "1d",
-        lookback_days: int = 1825,
+        lookback_days: int = 3650,
     ) -> pd.DataFrame | None:
         """Fetch data from configured provider with retries."""
         end = datetime.now(timezone.utc)
@@ -372,16 +373,16 @@ def main():
     
     # Lookback override
     lookback = {interval: args.lookback for interval in intervals} if args.lookback else None
-    
-    # Create config
+
+    # Create config (defaults exceed the project's 5-year minimum)
     config = IngestConfig(
         symbols=symbols,
         intervals=intervals,
         lookback_days=lookback or {
-            "1d": 1825,   # 5 years
-            "1h": 365,     # 1 year
-            "15m": 30,     # 30 days
-            "5m": 7,       # 7 days
+            "1d": 3650,   # ~10 years (Free tier safe)
+            "1h": 730,    # 2 years
+            "15m": 60,    # 2 months
+            "5m": 60,     # 2 months
         },
         batch_size=args.batch,
         request_delay=args.delay,

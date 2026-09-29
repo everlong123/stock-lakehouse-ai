@@ -15,7 +15,8 @@ pyarrow>=18.0.0
 scikit-learn>=1.5.0
 statsmodels>=0.14.0
 torch>=2.4.0
-yfinance>=0.2.40
+yfinance>=1.0.0
+curl_cffi>=0.15  # Required by yfinance>=1.0 to bypass Yahoo TLS fingerprint block
 minio>=7.2.0
 plotly>=5.24.0
 httpx>=0.27.0
@@ -30,3 +31,5 @@ email-validator>=2.2.0
 # pyiceberg>=0.7.0  # Uncomment if using Iceberg
 kafka-python>=2.0.2
 # confluent-kafka>=2.6.0  # Uncomment if using Confluent Cloud
+# WebSocket client used by app.streaming.finnhub_websocket (Finnhub real-time trades)
+websocket-client>=1.6.0

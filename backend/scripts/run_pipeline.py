@@ -21,7 +21,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Run the stock lakehouse pipeline.")
     parser.add_argument("--symbol", default="ALL", help="Ticker or ALL")
     parser.add_argument("--interval", default="1d")
-    parser.add_argument("--source", default=None, help="sample or yfinance")
+    parser.add_argument("--source", default=None, help="Real-data provider: yfinance, yfinance_direct, finnhub, alpha_vantage, web_scraper, multi_source")
     args = parser.parse_args()
     symbols = SUPPORTED_SYMBOLS if args.symbol.upper() == "ALL" else [args.symbol.upper()]
     for symbol in symbols:

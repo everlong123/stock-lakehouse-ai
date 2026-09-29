@@ -29,7 +29,8 @@ cd backend
 py -3.11 -m venv .venv
 .venv\Scripts\activate
 pip install -r requirements.txt
-python scripts\generate_sample_data.py
+python scripts\bootstrap_infrastructure.py    # MinIO buckets + Kafka topics
+python scripts\ingest_historical.py --years 10 # REAL 10-year history via yfinance
 python scripts\init_database.py
 uvicorn app.main:app --reload
 ```
@@ -156,7 +157,7 @@ Mỗi nguồn dữ liệu được đóng gói trong adapter riêng:
 ```bash
 # .env
 STORAGE_BACKEND=minio      # local hoặc minio
-DATA_SOURCE=sample         # sample hoặc yfinance
+DATA_SOURCE=yfinance         # Real-data provider: yfinance (default), yfinance_direct, finnhub, alpha_vantage, web_scraper, multi_source
 USE_SPARK=false
 USE_KAFKA=false
 OPENAI_API_KEY=sk-...     # optional

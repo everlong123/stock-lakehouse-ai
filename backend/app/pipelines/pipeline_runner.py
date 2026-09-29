@@ -21,7 +21,7 @@ def run_symbol_pipeline(
 ) -> dict:
     """Run the full medallion pipeline for one symbol. Tasks are idempotent on rerun."""
     started = datetime.now(timezone.utc)
-    silver_meta = transform_to_silver(symbol)
+    silver_meta = transform_to_silver(symbol, interval=interval, start=start, end=end, source_name=source_name)
     quality = build_quality_report(symbol)
     assert_quality_passed(quality)
     gold_meta = build_gold_layer(symbol)
@@ -29,15 +29,21 @@ def run_symbol_pipeline(
     result = {
         "pipeline_name": "stock_lakehouse_pipeline",
         "symbol": symbol.upper(),
+        "source": source_name or "auto",
         "status": "success",
         "start_time": started,
         "end_time": finished,
         "records_processed": gold_meta.get("records", 0),
         "error_count": silver_meta.get("quality", {}).get("error_count", 0),
-        "message": "Pipeline completed.",
+        "message": "Pipeline completed with REAL market data.",
         "silver": silver_meta,
         "quality": quality,
         "gold": gold_meta,
     }
-    logger.info("Pipeline finished for %s in %s seconds", symbol, (finished - started).total_seconds())
+    logger.info(
+        "Pipeline finished for %s via %s in %s seconds",
+        symbol,
+        source_name or "default",
+        (finished - started).total_seconds(),
+    )
     return result
