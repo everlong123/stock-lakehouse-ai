@@ -1,0 +1,62 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: 210 20% 98%;
+  --foreground: 222 47% 11%;
+  --card: 0 0% 100%;
+  --card-foreground: 222 47% 11%;
+  --muted: 210 20% 94%;
+  --muted-foreground: 215 16% 40%;
+  --border: 214 20% 88%;
+  --accent: 199 89% 42%;
+  --accent-foreground: 0 0% 100%;
+  --primary: 199 89% 42%;
+  --primary-foreground: 0 0% 100%;
+  --up: 160 84% 32%;
+  --down: 0 72% 51%;
+}
+
+.dark {
+  --background: 222 47% 6%;
+  --foreground: 210 20% 92%;
+  --card: 222 41% 9%;
+  --card-foreground: 210 20% 92%;
+  --muted: 217 33% 14%;
+  --muted-foreground: 215 16% 65%;
+  --border: 217 24% 16%;
+  --accent: 199 89% 48%;
+  --accent-foreground: 222 47% 6%;
+  --primary: 199 89% 48%;
+  --primary-foreground: 222 47% 6%;
+  --up: 160 84% 42%;
+  --down: 0 84% 62%;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  background: hsl(var(--background));
+  color: hsl(var(--foreground));
+  font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted-foreground) / 0.35);
+  border-radius: 999px;
+}

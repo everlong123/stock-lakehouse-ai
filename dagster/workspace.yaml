@@ -1,0 +1,5 @@
+# Dagster workspace definition - tells daemon where to find code locations
+load_from:
+  - python_file:
+      module_name: dagster_definitions
+      python_file: dagster_definitions.py
