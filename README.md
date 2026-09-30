@@ -58,13 +58,10 @@ jupyter lab
 stock-lakehouse-ai/
 ├── backend/              # FastAPI backend
 │   ├── app/             # API routes, models, lakehouse
-│   ├── adapters/        # Data source adapters
 │   ├── scripts/         # Pipelines, ingestion, training
 │   └── requirements.txt
 ├── frontend/            # React + Vite frontend
-├── notebooks/           # Jupyter notebooks (PySpark, EDA)
-├── dagster/             # Dagster orchestration (local)
-├── dags/                # Airflow DAGs
+├── notebooks/           # Jupyter notebooks (EDA, demo)
 ├── docs/                # Documentation
 ├── docker-compose.yml   # Docker infrastructure
 └── README.md
@@ -150,10 +147,10 @@ Gold layer hiện có **94 features** mỗi symbol (technical + advanced + macro
 | Frontend | React 18, Vite, TailwindCSS |
 | Database | MySQL 8 |
 | Storage | MinIO (S3-compatible) |
-| Orchestration | Dagster (local) hoặc Airflow |
+| Orchestration | Cron-based scheduler (`scripts/schedule_batch.py`) |
 | ML | PyTorch, scikit-learn, statsmodels |
 | Streaming | Kafka + WebSocket |
-| Lakehouse format | Parquet (default) hoặc Apache Iceberg |
+| Lakehouse format | Parquet (default) hoặc Apache Iceberg (opt-in) |
 
 ---
 
@@ -165,10 +162,10 @@ Gold layer hiện có **94 features** mỗi symbol (technical + advanced + macro
 | API | http://localhost:8000 | - |
 | Swagger | http://localhost:8000/docs | - |
 | MinIO Console | http://localhost:9001 | minioadmin / minioadmin |
+| Adminer (MySQL UI) | http://localhost:8081 | root / 123456 |
 | JupyterLab | http://localhost:8888 | Token from terminal |
-| Kafka UI | http://localhost:8080 | - |
-| Airflow | http://localhost:8081 | admin / admin |
-| Spark Master UI | http://localhost:8082 | - |
+| Kafka UI | http://localhost:8090 | - |
+| Spark Master UI | http://localhost:8080 | - |
 
 ---
 

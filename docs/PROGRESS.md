@@ -49,7 +49,6 @@ stock-lakehouse-ai/
 │   ├── scripts/         # Data generation, pipelines
 │   └── requirements.txt
 ├── frontend/            # React + Vite frontend
-├── dagster/             # Dagster orchestration
 ├── docs/                # Documentation
 ├── docker-compose.yml   # Docker infrastructure
 ├── .env                 # Environment variables
@@ -66,10 +65,23 @@ Mỗi nguồn dữ liệu được đóng gói trong một adapter class riêng 
 - **Bronze snapshot:** Lưu raw data để đảm bảo đồ án chạy được kể cả khi endpoint chết
 
 ```
-backend/adapters/
-├── base.py              # BaseDataAdapter, Factory, MultiSourceAdapter
-├── __init__.py
-└── (thêm adapter mới ở đây)
+backend/app/data_sources/
+    ├── base.py                # BaseDataProvider + provider contracts
+    ├── factory.py             # ProviderFactory, MultiSourceProvider
+    ├── yfinance_python_provider.py   # primary (no key, real OHLCV)
+    ├── yfinance_provider.py   # legacy thin wrapper
+    ├── finnhub_provider.py    # free tier + WS
+    ├── alpha_vantage_provider.py     # free tier REST
+    ├── ssi_vn_provider.py     # HOSE/HNX via SSI iBoard
+    ├── web_scraper_provider.py       # Vietstock / VnExpress fallback
+    ├── market_index_provider.py
+    ├── macro_provider.py
+    ├── fundamental_provider.py
+    ├── enhanced_fundamental_provider.py
+    ├── news_sentiment_provider.py
+    ├── enhanced_news_sentiment_provider.py
+    ├── orderbook_provider.py
+    └── multi_source.py        # failover chain
 ```
 
 | Source | Adapter | Trạng thái | Ghi chú |

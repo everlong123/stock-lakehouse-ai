@@ -1,73 +1,38 @@
 # Pipeline
 
-## Dagster Orchestration (Primary)
+## Manual Pipeline (Primary)
 
-Project sử dụng **Dagster** thay vì manual runner hoặc Airflow:
-
-```
-dagster/
-├── __init__.py              # Package marker
-├── workspace.yaml           # Workspace definition
-└── dagster_definitions.py  # Ops, Jobs, Schedules, Assets
-```
-
-### Các thành phần chính:
-
-| Component | Mô tả |
-|-----------|-------|
-| **Ops** | 4 atomic steps: `ingest_bronze`, `transform_silver`, `validate_quality`, `build_gold` |
-| **Job** | `stock_lakehouse_job` - compose 4 ops thành pipeline |
-| **Schedules** | `daily_lakehouse_pipeline` (6 PM ET, weekdays), `hourly_bronze_refresh` |
-| **Assets** | Declarative data outputs với lineage tracking |
-
-### Chạy với Docker:
-
-```bash
-docker compose up -d dagster-webserver dagster-daemon postgres
-
-# UI: http://localhost:3000
-```
-
-### Chạy local (development):
-
-```bash
-# Cài đặt dagster
-pip install dagster==1.9.2 dagster-graphql==1.9.2
-
-# Chạy webserver
-dagster dev -m dagster.dagster_definitions -p 3000
-# Hoặc
-DAGSTER_BACKEND_PATH=$(pwd)/backend dagster dev -m dagster.dagster_definitions -p 3000
-```
-
-### Manual trigger via API:
-
-```bash
-curl -X POST http://localhost:3000/api/v1/lakehouse/run
-```
-
-### Tại sao Dagster thay vì Airflow?
-
-| Tiêu chí | Airflow | Dagster |
-|----------|---------|---------|
-| DAG authoring | YAML + Python | Pure Python |
-| Data awareness | Limited | Native (assets, lineage) |
-| Testing | Harder | dagster-test utilities |
-| UI | Good | Modern asset graph |
-| Learning curve | Higher | Lower (Python-first) |
-
----
-
-## Manual Pipeline (Fallback)
+Pipeline chính của đồ án là batch processing chạy qua các script trong `backend/scripts/`, theo luồng Medallion (Bronze -> Silver -> Gold).
 
 ### Luồng:
 
-1. collect_data
-2. validate_data
-3. store_bronze
-4. transform_silver
-5. data_quality_check (critical fail → không build Gold)
-6. build_gold
+1. collect_data (yfinance, finnhub, alpha_vantage, ssi_vn, multi_source failover)
+2. validate_data (provider-side + silver-side checks)
+3. store_bronze (MinIO `stock-bronze/`)
+4. transform_silver (cleaning, partition by symbol/year/month)
+5. data_quality_check (critical fail -> không build Gold)
+6. build_gold (94 technical + macro + regime + candlestick features)
+
+### Chạy local:
+
+```bat
+python scripts\ingest_historical.py --years 10
+python scripts\run_pipeline.py --symbol ALL
+```
+
+### API:
+
+`POST /api/v1/pipeline/run`
+
+```json
+{ "symbol": "AAPL", "interval": "1d", "source": "yfinance" }
+```
+
+### Quality report:
+
+record_count, duplicate_count, missing_count, invalid_ohlc_count, invalid_volume_count, min_timestamp, max_timestamp, quality_status
+
+### Idempotent: rerun không nhân bản business key `(symbol, timestamp)`.
 
 ### Chạy local:
 
@@ -132,7 +97,7 @@ Bronze     Dashboard
 ```bash
 docker compose up -d kafka kafka-ui
 
-# Kafka UI: http://localhost:8080
+# Kafka UI: http://localhost:8090
 # Kafka port:  localhost:9094
 ```
 

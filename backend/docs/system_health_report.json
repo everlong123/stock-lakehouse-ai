@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-30T19:00:47.265344+00:00",
+  "generated_at": "2026-09-30T19:27:49.052915+00:00",
   "summary": {
     "pass": 28,
     "warn": 0,
@@ -55,7 +55,7 @@
     {
       "category": "Forecasting (LR)",
       "status": "PASS",
-      "detail": "MAE=0.00 RMSE=0.00 MAPE=0.00%"
+      "detail": "MAE=675.67 RMSE=1048.86 MAPE=1.10%"
     },
     {
       "category": "Backtesting (MA)",
@@ -115,7 +115,7 @@
     {
       "category": "Kafka consumer (inspect)",
       "status": "PASS",
-      "detail": "received 1 messages"
+      "detail": "received 2 messages"
     },
     {
       "category": "TCP MinIO API",

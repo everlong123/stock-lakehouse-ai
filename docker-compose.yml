@@ -145,85 +145,6 @@ services:
     depends_on:
       - minio
 
-  # ── Apache Airflow (Orchestration) ──────────────────────────────────────────
-  airflow-webserver:
-    image: apache/airflow:2.8.0
-    container_name: stock-lakehouse-airflow
-    restart: unless-stopped
-    environment:
-      AIRFLOW__CORE__EXECUTOR: LocalExecutor
-      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
-      AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: "true"
-      AIRFLOW__CORE__LOAD_EXAMPLES: "false"
-      AIRFLOW__API__AUTH_AUTHENTSICATION: "false"
-      _AIRFLOW_DB_MIGRATE: "true"
-      AWS_ACCESS_KEY_ID: minioadmin
-      AWS_SECRET_ACCESS_KEY: minioadmin
-      AWS_DEFAULT_REGION: us-east-1
-    ports:
-      - "8090:8080"
-    volumes:
-      - ./dags:/opt/airflow/dags
-      - airflow_logs:/opt/airflow/logs
-      - spark_workspace:/workspace
-    depends_on:
-      postgres:
-        condition: service_healthy
-    command: webserver
-    user: root
-
-  # ── Airflow Scheduler ────────────────────────────────────────────────────────
-  airflow-scheduler:
-    image: apache/airflow:2.8.0
-    container_name: stock-lakehouse-airflow-scheduler
-    restart: unless-stopped
-    environment:
-      AIRFLOW__CORE__EXECUTOR: LocalExecutor
-      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
-      AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: "true"
-      AIRFLOW__CORE__LOAD_EXAMPLES: "false"
-      AIRFLOW__API__AUTH_AUTHENTSICATION: "false"
-      _AIRFLOW_DB_MIGRATE: "true"
-      AWS_ACCESS_KEY_ID: minioadmin
-      AWS_SECRET_ACCESS_KEY: minioadmin
-      AWS_DEFAULT_REGION: us-east-1
-    volumes:
-      - ./dags:/opt/airflow/dags
-      - airflow_logs:/opt/airflow/logs
-      - spark_workspace:/workspace
-    depends_on:
-      postgres:
-        condition: service_healthy
-    command: scheduler
-    user: root
-
-  # ── PostgreSQL (Airflow Metadata) ───────────────────────────────────────────
-  postgres:
-    image: postgres:13
-    container_name: stock-lakehouse-postgres
-    restart: unless-stopped
-    environment:
-      POSTGRES_USER: airflow
-      POSTGRES_PASSWORD: airflow
-      POSTGRES_DB: airflow
-    ports:
-      - "5433:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U airflow"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  # ── DuckDB (Fast Analytics Query) ───────────────────────────────────────────
-  duckdb:
-    image: duckdb/duckdb:latest
-    container_name: stock-lakehouse-duckdb
-    restart: unless-stopped
-    stdin_open: true
-    tty: true
-
 # ── Volumes ─────────────────────────────────────────────────────────────────────
 volumes:
   mysql_data:
@@ -231,7 +152,4 @@ volumes:
   iceberg_rest_data:
   kafka_data:
   spark_workspace:
-  airflow_dags:
-  airflow_logs:
-  airflow_plugins:
-  postgres_data:
+

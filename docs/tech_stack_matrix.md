@@ -106,8 +106,6 @@ Python chịu trách nhiệm implementation.
 
 | Component       | File                                                  | Vai trò |
 |-----------------|-------------------------------------------------------|---------|
-| **Dagster**     | `dagster/dagster_definitions.py`                      | Pipeline as DAG (run trên local, vì image không public). |
-| **Airflow**     | `dags/*.py`, `docker-compose.yml` (Airflow services)  | Optional orchestration via `apache/airflow:2.8.0`. |
 | **Schedule**    | `backend/scripts/schedule_batch.py`                   | Cron-like batch scheduling. |
 
 ## Data Scale
