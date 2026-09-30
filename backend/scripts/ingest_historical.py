@@ -264,7 +264,7 @@ def run(args: argparse.Namespace) -> dict[str, dict[str, int]]:
         }
         success += 1
         logger.info(
-            "✓ %s bronze=%d silver=%d gold=%d",
+            "[OK] %s bronze=%d silver=%d gold=%d",
             symbol,
             bronze_records,
             silver_records,

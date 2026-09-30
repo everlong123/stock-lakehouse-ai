@@ -13,55 +13,55 @@ from app.lakehouse.gold import GoldLayer
 
 
 FORECAST_DISCLAIMER = """
-⚠️ CẢNH BÁO QUAN TRỌNG - CHỈ Mang Tính Tham khảo
+CANH BAO QUAN TRONG - CHI Mang Tinh Tham Khao
 
-1. DỰ BÁO GIÁ CỔ PHIẾU CÓ ĐỘ KHÔNG CHẮC CHẮN CAO
-   - Kết quả dự báo chỉ phản ánh xu hướng quá khứ, không phải dự đoán chắc chắn về giá tương lai.
-   - Thị trường chứng khoán bị ảnh hưởng bởi nhiều yếu tố không thể dự đoán (tin tức, tâm lý nhà đầu tư, biến động vĩ mô).
+1. DU BAO GIA CO PHIEU CO DO KHONG CHAC CHAN CAO
+   - Ket qua du bao chi phan anh xu huong qua khu, khong phai du doan chan chan ve gia tuong lai.
+   - Thi truong chung khoan bi anh huong boi nhieu yeu to khong the du doan (tin tuc, tam ly nha dau tu, bien dong vi mo).
 
-2. KHÔNG PHẢI KHUYẾN NGHỊ ĐẦU TƯ
-   - Hệ thống này được xây dựng cho mục đích NGHIÊN CỨU HỌC THUẬT.
-   - Tuyệt đối KHÔNG sử dụng kết quả dự báo để quyết định mua/bán thực tế.
+2. KHONG PHAI KHUYEN NGHI DAU TU
+   - He thong nay duoc xay dung cho muc dich NGHIEN CUU HOC THUAT.
+   - Tuyet doi KHONG su dung ket qua du bao de quyet dinh mua/ban thuc te.
 
-3. VỀ ĐỘ CHÍNH XÁC CỦA MÔ HÌNH
-   - MAE/RMSE/MAPE chỉ đo lỗi trên dữ liệu LỊCH SỬ, không phản ánh hiệu suất tương lai.
-   - Các mô hình đơn giản (Linear Regression, ARIMA) có giới hạn trong việc nắm bắt động thái thị trường phức tạp.
-   - LSTM cũng chỉ là mô hình thống kê, không có "trí tuệ" về thị trường.
+3. VE DO CHINH XAC CUA MO HINH
+   - MAE/RMSE/MAPE chi do loi tren du lieu LICH SU, khong phan anh hieu suat tuong lai.
+   - Cac mo hinh don gian (Linear Regression, ARIMA) co gioi han trong viec nam bat dong thai thi truong phuc tap.
+   - LSTM cung chi la mo hinh thong ke, khong co "tri tue" ve thi truong.
 
-4. BACKTEST KHÔNG ĐẢM BẢO LỢI NHUẬN THỰC
-   - Hiệu suất quá khứ trong backtest KHÔNG đảm bảo lợi nhuận trong tương lai.
-   - Backtest không tính đến chi phí giao dịch thực tế, slippage, và điều kiện thị trường khác nhau.
+4. BACKTEST KHONG DAM BAO LOI NHUAN THUC
+   - Hieu suat qua khu trong backtest KHONG dam bao loi nhuan trong tuong lai.
+   - Backtest khong tinh den chi phi giao dich thuc te, slippage, va dieu kien thi truong khac nhau.
 
-5. NGUỒN GỐC DỮ LIỆU
-   - Dữ liệu được lấy từ các nguồn công khai, có thể có độ trễ hoặc sai sót.
-   - Không có bảo đảm về tính chính xác hoàn toàn của dữ liệu.
+5. NGUON GOC DU LIEU
+   - Du lieu duoc lay tu cac nguon cong khai, co the co do tre hoac sai sot.
+   - Khong co bao dam ve tinh chinh xac hoan toan cua du lieu.
 
-Người dùng tự chịu trách nhiệm về mọi quyết định đầu tư của mình.
+Nguoi dung tu chiu trach nhiem ve moi quyet dinh dau tu cua minh.
 """
 
 
 RISK_ASSESSMENT_DISCLAIMER = """
-⚠️ ĐÁNH GIÁ RỦI RO - CHỈ Mang Tính tham khảo
+DANH GIA RUI RO - CHI Mang Tinh Tham Khao
 
-Chỉ báo rủi ro (VaR, drawdown, Sharpe ratio) được tính toán từ dữ liệu lịch sử
-với các giả định về phân phối lợi nhuận. Trong thực tế:
-- Phân phối lợi nhuận thị trường thường có "đuôi béo" (fat tails), dẫn đến đánh giá rủi ro thấp hơn thực tế.
-- Sự kiện "thiên nga đen" có thể gây ra tổn thất lớn hơn nhiều so với dự đoán.
-- Correlation giữa các tài sản thay đổi trong thời kỳ khủng hoảng.
+Chi bao rui ro (VaR, drawdown, Sharpe ratio) duoc tinh toan tu du lieu lich su
+voi cac gia dinh ve phan phoi loi nhuan. Trong thuc te:
+- Phan phoi loi nhuan thi truong thuong co "duoi beo" (fat tails), dan den danh gia rui ro thap hon thuc te.
+- Su kien "thien nga den" co the gay ra ton that lon hon nhieu so voi du doan.
+- Correlation giua cac tai san thay doi trong thoi ky khu hoang.
 
-Đây là công cụ phân tích, không phải tư vấn tài chính chuyên nghiệp.
+Day la cong cu phan tich, khong phai tu van tai chinh chuyen nghiep.
 """
 
 
 GENERAL_DISCLAIMER = """
-📚 MỤC ĐÍCH SỬ DỤNG
+MUC DICH SU DUNG
 
-Hệ thống Stock Lakehouse AI được phát triển cho mục đích:
-- Nghiên cứu học thuật về tài chính định lượng
-- Học tập về xây dựng hệ thống dữ liệu (Lakehouse architecture)
-- Demo các kỹ thuật ML/AI trong lĩnh vực chứng khoán
+He thong Stock Lakehouse AI duoc phat trien cho muc dich:
+- Nghien cuu hoc thuat ve tai chinh dinh luong
+- Hoc tap ve xay dung he thong du lieu (Lakehouse architecture)
+- Demo cac ky thuat ML/AI trong linh vuc chung khoan
 
-Mọi nội dung mang tính THAM KHẢO, KHÔNG phải lời khuyên đầu tư.
+Moi noi dung mang tinh THAM KHAO, KHONG phai loi khuyen dau tu.
 """
 
 

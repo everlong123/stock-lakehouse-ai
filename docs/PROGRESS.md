@@ -72,10 +72,10 @@ backend/adapters/
 
 | Source | Adapter | Trạng thái | Ghi chú |
 |--------|---------|------------|---------|
-| **Yahoo Finance** | `YahooFinanceDirectAdapter` | ✅ Hoạt động | US stocks, indexes, crypto |
-| **VnExpress RSS** | `VnExpressRSSAdapter` | ✅ Hoạt động | Tin tức kinh doanh VN |
-| **VN stocks** | ❌ | ❌ Không có API free | Tất cả API bị chặn |
-| **FPT, VNM** | ✅ Yahoo RSS News | ✅ Hoạt động | Filtered keyword search |
+| **Yahoo Finance** | `YahooFinanceDirectAdapter` | Hoạt động | US stocks, indexes, crypto |
+| **VnExpress RSS** | `VnExpressRSSAdapter` | Hoạt động | Tin tức kinh doanh VN |
+| **VN stocks** | Chưa có | Không có API free | Tất cả API bị chặn |
+| **FPT, VNM** | `Yahoo RSS News` (filtered) | Hoạt động | Filtered keyword search |
 
 ### Supported Symbols
 
@@ -268,45 +268,44 @@ npm run dev
 
 ## Tiến độ thực hiện
 
-### ✅ Đã hoàn thành
+### Da hoan thanh
 
-| Module | Trạng thái | Ngày hoàn thành |
+| Module | Trang thai | Ngay hoan thanh |
 |--------|------------|-----------------|
-| Docker Infrastructure | ✅ Hoàn thành | 25/09/2026 |
-| MySQL Setup | ✅ Hoàn thành | 25/09/2026 |
-| MinIO Setup | ✅ Hoàn thành | 25/09/2026 |
-| Kafka + Kafka UI | ✅ Hoàn thành | 25/09/2026 |
-| Iceberg REST Catalog | ✅ Hoàn thành | 25/09/2026 |
-| Lakehouse Architecture | ✅ Hoàn thành | - |
-| Medallion Pipeline | ✅ Hoàn thành | - |
-| FastAPI Backend | ✅ Hoàn thành | - |
-| React Frontend | ✅ Hoàn thành | - |
-| ML Models (LR, ARIMA, LSTM) | ✅ Hoàn thành | - |
-| Backtesting Engine | ✅ Hoàn thành | - |
-| AI Agent | ✅ Hoàn thành | - |
-| Data Adapter Architecture | ✅ Hoàn thành | 29/09/2026 |
-| Yahoo Finance Adapter (direct) | ✅ Hoạt động | 29/09/2026 |
-| VnExpress RSS Adapter | ✅ Hoạt động | 29/09/2026 |
-| Bronze Snapshot Script | ✅ Hoạt động | 29/09/2026 |
-| Diverse US Stocks | ✅ Hoạt động | 29/09/2026 |
-| Stock-specific News | ✅ Hoạt động | 29/09/2026 |
-| **Finnhub Free Provider** (historical + news + profile) | ✅ Hoàn thành | 30/09/2026 |
-| **yfinance Package Provider** (`YFinancePythonProvider`) | ✅ Hoàn thành | 30/09/2026 |
-| **Historical Ingest Script** (Bronze → Silver → Gold) | ✅ Hoàn thành | 30/09/2026 |
-| **Bootstrap Infrastructure Script** (MinIO buckets + Kafka topics) | ✅ Hoàn thành | 30/09/2026 |
-| **Finnhub WebSocket Client** (auto-reconnect, PING) | ✅ Hoàn thành | 30/09/2026 |
-| **StreamPublisher** (WS → 1s OHLCV → Kafka) | ✅ Hoàn thành | 30/09/2026 |
-| **Multi-Source Failover Provider** | ✅ Hoàn thành | 30/09/2026 |
-| **Synthetic 10-year Sample Data Generator** (60+ symbols) | ✅ Hoàn thành | 30/09/2026 |
-| **PySpark Pipeline Runner** (`run_spark_pipeline.py`) | ✅ Hoàn thành | 30/09/2026 |
-| **Iceberg Tables Init Script** (`init_iceberg_tables.py`) | ✅ Hoàn thành | 30/09/2026 |
-| **Backtest CLI** (`run_backtest.py`) | ✅ Hoàn thành | 30/09/2026 |
-| **Walk-forward CLI** (`run_walk_forward.py`) | ✅ Hoàn thành | 30/09/2026 |
-| **Indicator CLI** (`run_indicators.py`) | ✅ Hoàn thành | 30/09/2026 |
-| **Macro/Regime CLI** (`run_macro_features.py`) | ✅ Hoàn thành | 30/09/2026 |
-| **AI Agent CLI** (`run_agent.py`) | ✅ Hoàn thành | 30/09/2026 |
+| Docker Infrastructure | Hoan thanh | 25/09/2026 |
+| MySQL Setup | Hoan thanh | 25/09/2026 |
+| MinIO Setup | Hoan thanh | 25/09/2026 |
+| Kafka + Kafka UI | Hoan thanh | 25/09/2026 |
+| Iceberg REST Catalog | Hoan thanh | 25/09/2026 |
+| Lakehouse Architecture | Hoan thanh | - |
+| Medallion Pipeline | Hoan thanh | - |
+| FastAPI Backend | Hoan thanh | - |
+| React Frontend | Hoan thanh | - |
+| ML Models (LR, ARIMA, LSTM) | Hoan thanh | - |
+| Backtesting Engine | Hoan thanh | - |
+| AI Agent | Hoan thanh | - |
+| Data Adapter Architecture | Hoan thanh | 29/09/2026 |
+| Yahoo Finance Adapter (direct) | Hoat dong | 29/09/2026 |
+| VnExpress RSS Adapter | Hoat dong | 29/09/2026 |
+| Bronze Snapshot Script | Hoat dong | 29/09/2026 |
+| Diverse US Stocks | Hoat dong | 29/09/2026 |
+| Stock-specific News | Hoat dong | 29/09/2026 |
+| **Finnhub Free Provider** (historical + news + profile) | Hoan thanh | 30/09/2026 |
+| **yfinance Package Provider** (`YFinancePythonProvider`) | Hoan thanh | 30/09/2026 |
+| **Historical Ingest Script** (Bronze -> Silver -> Gold) | Hoan thanh | 30/09/2026 |
+| **Bootstrap Infrastructure Script** (MinIO buckets + Kafka topics) | Hoan thanh | 30/09/2026 |
+| **Finnhub WebSocket Client** (auto-reconnect, PING) | Hoan thanh | 30/09/2026 |
+| **StreamPublisher** (WS -> 1s OHLCV -> Kafka) | Hoan thanh | 30/09/2026 |
+| **Multi-Source Failover Provider** | Hoan thanh | 30/09/2026 |
+| **PySpark Pipeline Runner** (`run_spark_pipeline.py`) | Hoan thanh | 30/09/2026 |
+| **Iceberg Tables Init Script** (`init_iceberg_tables.py`) | Hoan thanh | 30/09/2026 |
+| **Backtest CLI** (`run_backtest.py`) | Hoan thanh | 30/09/2026 |
+| **Walk-forward CLI** (`run_walk_forward.py`) | Hoan thanh | 30/09/2026 |
+| **Indicator CLI** (`run_indicators.py`) | Hoan thanh | 30/09/2026 |
+| **Macro/Regime CLI** (`run_macro_features.py`) | Hoan thanh | 30/09/2026 |
+| **AI Agent CLI** (`run_agent.py`) | Hoan thanh | 30/09/2026 |
 
-### 📋 TODO - Next Steps
+### TODO - Next Steps
 
 - [x] Data Adapter Architecture (Adapter Pattern)
 - [x] Yahoo Finance Adapter

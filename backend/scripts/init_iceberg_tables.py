@@ -46,12 +46,12 @@ def main(argv: list[str] | None = None) -> None:
     if args.layer == "all":
         tables = manager.create_all_tables()
         for layer, table in tables.items():
-            logger.info("✓ %s table ready: %s", layer, table.identifier)
+            logger.info("[OK] %s table ready: %s", layer, table.identifier)
         return
 
     method = getattr(manager, f"create_{args.layer}_table")
     table = method()
-    logger.info("✓ %s table ready: %s", args.layer, table.identifier)
+    logger.info("[OK] %s table ready: %s", args.layer, table.identifier)
 
 
 if __name__ == "__main__":

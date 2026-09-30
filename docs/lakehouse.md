@@ -15,12 +15,12 @@ ICEBERG_CATALOG_URI=http://localhost:8181
 
 | Tính năng | Raw Parquet | Apache Iceberg |
 |------------|-------------|----------------|
-| Time travel | ❌ | ✅ Query historical versions |
-| Schema evolution | ⚠️ Manual | ✅ Safe, atomic |
-| ACID writes | ❌ Partial | ✅ Full atomicity |
-| Partition pruning | Manual filter | ✅ Automatic hidden partitions |
-| Concurrent writes | ❌ Lock issues | ✅ Snapshot isolation |
-| Metadata tracking | `_lineage.json` | ✅ Built-in history |
+| Time travel | Khong | Query historical versions |
+| Schema evolution | Manual | Safe, atomic |
+| ACID writes | Partial | Full atomicity |
+| Partition pruning | Manual filter | Automatic hidden partitions |
+| Concurrent writes | Lock issues | Snapshot isolation |
+| Metadata tracking | `_lineage.json` | Built-in history |
 
 **Containers:**
 ```bash

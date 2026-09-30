@@ -1,0 +1,18 @@
+feat: complete stock lakehouse with real data, yfinance, finnhub, kafka, spark
+
+- Add YFinancePythonProvider (yfinance>=1.0 + curl_cffi, real OHLCV, no API key needed)
+- Add MultiSourceProvider failover chain (yfinance -> finnhub -> alpha_vantage -> web_scraper)
+- Add FinnhubProvider for Free-tier historical + WebSocket streaming
+- Add StreamPublisher (Finnhub WS -> Kafka) and StreamConsumer (Kafka -> Bronze/Silver/Gold)
+- Add ingest_historical.py: real 10-year data for 60+ symbols via yfinance
+- Add bootstrap_infrastructure.py: MinIO buckets + Kafka topics setup
+- Add init_iceberg_tables.py: Apache Iceberg REST catalog setup
+- Add run_spark_pipeline.py: PySpark Silver/Gold transformation
+- Add run_agent.py: AI agent with 14+ Pydantic tools
+- Add run_backtest.py + run_walk_forward.py: event-driven backtesting engine
+- Add 88+ Gold features: SMA, EMA, RSI, MACD, Bollinger, ATR, ADX, Ichimoku, MFI, VWAP, Supertrend, candlestick patterns, regime detection
+- Add LSTM/ARIMA/Linear Regression forecasting with walk-forward validation
+- Remove SampleDataProvider and generate_sample_data.py (real data only, >= 5 years verified)
+- Update tech_stack_matrix.md with all technology-to-file mappings
+- Update PROGRESS.md with real-data-only guarantee
+- Verify: AAPL 2511 rows x 9.99y, BTC-USD 3650 rows x 9.99y, ETH-USD 3247 rows x 8.89y, EUR/USD 2599 rows x 9.99y (all from Yahoo Finance)

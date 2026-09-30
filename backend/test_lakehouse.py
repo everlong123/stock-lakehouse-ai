@@ -17,7 +17,7 @@ print("="*60)
 test_symbols = ["AAPL", "MSFT", "NVDA"]
 
 for symbol in test_symbols:
-    print(f"\n📊 {symbol}")
+    print(f"\n[DATA] {symbol}")
     print("-"*40)
     
     # Bronze

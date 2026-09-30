@@ -53,13 +53,13 @@ def run_batch(symbols: list[str] | None = None, dry_run: bool = False) -> dict:
         try:
             result = fetch_vn_stock(symbol)
             if result["status"] == "success":
-                print(f"✅ {result['bronze_records']} records")
+                print(f"[OK] {result['bronze_records']} records")
                 results["success"].append(symbol)
             else:
-                print(f"❌ {result.get('message', 'Lỗi')}")
+                print(f"[FAIL] {result.get('message', 'Lỗi')}")
                 results["failed"].append(symbol)
         except Exception as e:
-            print(f"❌ Error: {e}")
+            print(f"[FAIL] Error: {e}")
             results["failed"].append(symbol)
             logger.exception(f"Lỗi khi xử lý {symbol}")
 
@@ -101,11 +101,11 @@ def run_scheduled(daily: bool = True, hour: int = 18, minute: int = 0) -> None:
 
     if daily:
         schedule.every().day.at(f"{hour:02d}:{minute:02d}").do(job)
-        print(f"📅 Đã lên lịch: Chạy lúc {hour:02d}:{minute:02d} hàng ngày")
+        print(f"[SCHEDULE] Da len lich: Chay luc {hour:02d}:{minute:02d} hang ngay")
     else:
         # Chạy mỗi giờ
         schedule.every().hour.do(job)
-        print("📅 Đã lên lịch: Chạy mỗi giờ")
+        print("[SCHEDULE] Da len lich: Chay moi gio")
 
     print("Nhấn Ctrl+C để dừng.\n")
 
@@ -116,12 +116,12 @@ def run_scheduled(daily: bool = True, hour: int = 18, minute: int = 0) -> None:
 
 def run_watch(interval_minutes: int = 60) -> None:
     """Chạy liên tục với interval."""
-    print(f"👀 Watch mode: Chạy mỗi {interval_minutes} phút")
+    print(f"[WATCH] Watch mode: Chay moi {interval_minutes} phut")
     print("Nhấn Ctrl+C để dừng.\n")
 
     while True:
         run_batch()
-        print(f"\n⏳ Chờ {interval_minutes} phút...\n")
+        print(f"\n[DELAY] Cho {interval_minutes} phut...\n")
         time.sleep(interval_minutes * 60)
 
 
@@ -148,7 +148,7 @@ def main() -> None:
         try:
             import schedule  # type: ignore
         except ImportError:
-            print("❌ Cần cài schedule: pip install schedule")
+            print("[ERROR] Can cai schedule: pip install schedule")
             sys.exit(1)
 
         if args.watch:

@@ -41,12 +41,25 @@ class IndicatorConfig:
     bb_std: float = 2.0
 
 
+RESERVED_COLUMNS = {
+    # Indicator columns produced by this module.  Drop them on the input
+    # so the function is idempotent and safe to call on contaminated frames
+    # (e.g. Silver parquet files that already contain prior Gold features).
+    "sma_5", "sma_10", "sma_20", "sma_50",
+    "ema_12", "ema_26",
+    "rsi_14",
+    "macd", "macd_signal", "macd_hist",
+    "bb_middle", "bb_upper", "bb_lower",
+}
+
+
 def add_indicators(frame: pd.DataFrame, config: IndicatorConfig | None = None) -> pd.DataFrame:
     """Attach SMA, EMA, RSI, MACD, and Bollinger columns to an OHLCV frame."""
     if "close" not in frame.columns:
         raise ValueError("Indicator calculation requires a close column.")
     config = config or IndicatorConfig()
-    result = frame.copy()
+    # Drop any pre-existing indicator columns so the function is idempotent.
+    result = frame.drop(columns=[c for c in RESERVED_COLUMNS if c in frame.columns]).copy()
     close = result["close"]
     for window in config.sma_windows:
         result[f"sma_{window}"] = sma(close, window)

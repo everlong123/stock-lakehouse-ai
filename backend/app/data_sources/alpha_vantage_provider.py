@@ -53,16 +53,21 @@ class AlphaVantageProvider(StockDataProvider):
             raise DataValidationError(f"Unsupported interval: {interval}")
         
         # Alpha Vantage only supports Daily (1d) and intraday (60min, 15min, 5min)
-        alpha_function = "TIME_SERIES_DAILY_ADJUSTED" if interval == "1d" else f"TIME_SERIES_INTRADAY&interval={interval}"
-        
+        # Note: TIME_SERIES_DAILY_ADJUSTED is a premium endpoint.  Free tier uses
+        # TIME_SERIES_DAILY which returns the same OHLCV columns minus "adjusted close".
+        alpha_function = "TIME_SERIES_DAILY" if interval == "1d" else f"TIME_SERIES_INTRADAY&interval={interval}"
+
         end = end or datetime.now(timezone.utc)
         start = start or datetime.now(timezone.utc) - timedelta(days=settings.default_lookback_days)
-        
+
         params = {
-            "function": "TIME_SERIES_DAILY_ADJUSTED" if interval == "1d" else f"TIME_SERIES_INTRADAY&interval={interval}",
+            "function": "TIME_SERIES_DAILY" if interval == "1d" else f"TIME_SERIES_INTRADAY&interval={interval}",
             "symbol": symbol,
             "apikey": self.api_key,
-            "outputsize": "full",
+            # NOTE: outputsize=full is premium-only on TIME_SERIES_DAILY.  The
+            # default (compact) returns the latest 100 daily bars on the free
+            # tier, which is enough for short-term backtests and demo runs.
+            # For >5 year backtests prefer the yfinance / Finnhub providers.
         }
         
         try:
@@ -88,6 +93,8 @@ class AlphaVantageProvider(StockDataProvider):
         
         for date_str, values in time_series.items():
             dt = datetime.fromisoformat(date_str)
+            if dt.tzinfo is None:
+                dt = dt.replace(tzinfo=timezone.utc)
             if dt >= end:
                 continue
             if dt <= start:

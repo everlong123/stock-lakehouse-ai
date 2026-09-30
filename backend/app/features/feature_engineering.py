@@ -16,6 +16,25 @@ from app.features.price_features import add_price_features
 from app.features.target_features import add_target_features
 from app.features.technical_features import add_technical_features
 
+# Columns that are *not* derived features - everything else is considered a
+# prior derived feature and is dropped before we re-derive them.  This makes
+# build_gold_features idempotent and tolerant of contaminated Silver inputs
+# (e.g. parquet files that already contain prior Gold features).
+_BASE_INPUT_COLUMNS = (
+    "symbol",
+    "timestamp",
+    "open",
+    "high",
+    "low",
+    "close",
+    "adj_close",
+    "volume",
+    "source",
+    "ingestion_time",
+    "year",
+    "month",
+)
+
 
 def build_gold_features(frame: pd.DataFrame, include_macro: bool = True) -> pd.DataFrame:
     """
@@ -33,10 +52,14 @@ def build_gold_features(frame: pd.DataFrame, include_macro: bool = True) -> pd.D
     if missing:
         raise DataValidationError(f"Feature engineering missing columns: {sorted(missing)}")
 
+    # Strip any pre-existing derived columns so the pipeline is idempotent.
+    keep = [c for c in _BASE_INPUT_COLUMNS if c in frame.columns]
+    working_input = frame.loc[:, keep].copy()
+
     parts: list[pd.DataFrame] = []
     macro_builder = MacroFeatureBuilder() if include_macro else None
 
-    for symbol, group in frame.groupby("symbol", sort=True):
+    for symbol, group in working_input.groupby("symbol", sort=True):
         ordered = group.sort_values("timestamp").copy().reset_index(drop=True)
 
         # Core features (basic technical indicators)

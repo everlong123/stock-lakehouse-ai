@@ -388,7 +388,7 @@ class WalkForwardValidator:
     @staticmethod
     def _build_disclaimer() -> str:
         return """
-⚠️ WALK-FORWARD VALIDATION - PHƯƠNG PHÁP ĐÁNH GIÁ
+WALK-FORWARD VALIDATION - PHƯƠNG PHÁP ĐÁNH GIÁ
 
 Walk-forward validation là phương pháp nghiêm ngặt hơn simple backtest:
 - Mỗi window có train period (huấn luyện) và test period (kiểm tra)
