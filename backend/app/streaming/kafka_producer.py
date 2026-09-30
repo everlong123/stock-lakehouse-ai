@@ -147,7 +147,7 @@ class StockKafkaProducer:
     def producer(self) -> _KafkaProducer:
         """Lazy initialization of Kafka producer."""
         if self._producer is None:
-            self._producer = _KafkaProducer(
+            common_kwargs = dict(
                 bootstrap_servers=self.bootstrap_servers
                     if isinstance(self.bootstrap_servers, list)
                     else [self.bootstrap_servers],
@@ -156,9 +156,31 @@ class StockKafkaProducer:
                 retries=self._retries,
                 compression_type=self._compression,
                 linger_ms=self._linger_ms,
-                # Enable exactly-once semantics (idempotent producer)
-                enable_idempotence=True,
             )
+            # ``enable_idempotence`` was added in kafka-python 2.5+. Older
+            # clients (such as the 2.0.2 wheel pinned here) raise
+            # ``Unrecognized configs`` and refuse to start. Probe the client
+            # version and only enable exactly-once when supported.
+            import kafka as _kafka_pkg
+
+            try:
+                client_major = int(_kafka_pkg.__version__.split(".")[0])
+            except Exception:  # pragma: no cover - defensive
+                client_major = 0
+
+            if client_major >= 2 and _kafka_pkg.__version__ >= "2.5":
+                common_kwargs["enable_idempotence"] = True
+
+            try:
+                self._producer = _KafkaProducer(**common_kwargs)
+            except Exception as exc:  # pragma: no cover - defensive
+                logger.warning(
+                    "Kafka producer init with full kwargs failed (%s); "
+                    "retrying with minimal config.",
+                    exc,
+                )
+                common_kwargs.pop("enable_idempotence", None)
+                self._producer = _KafkaProducer(**common_kwargs)
             logger.info("Kafka producer initialized: %s", self.bootstrap_servers)
         return self._producer
 

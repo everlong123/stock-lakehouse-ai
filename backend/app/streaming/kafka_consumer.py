@@ -155,6 +155,12 @@ class StockKafkaConsumer:
                 auto_commit_interval_ms=self.auto_commit_interval_ms,
                 value_deserializer=lambda v: v,  # We handle deserialization
                 max_poll_records=self.max_poll_records,
+                # Single-broker Kafka is slow to do the first group join,
+                # so keep these tight enough that the consumer can actually
+                # start polling within a few seconds.
+                session_timeout_ms=10000,
+                heartbeat_interval_ms=3000,
+                request_timeout_ms=30000,
             )
             logger.info(
                 "Kafka consumer initialized: servers=%s, topics=%s, group=%s",
@@ -202,14 +208,33 @@ class StockKafkaConsumer:
                 time.sleep(1)  # Back off on error
 
     def _process_message(self, msg) -> None:
-        """Process a single Kafka message."""
+        """Process a single Kafka message.
+
+        Supports two on-the-wire formats produced by ``StockKafkaProducer``:
+
+        * Single-bar payload - ``{"symbol": "...", "open": ..., ...}`` (one bar
+          per message, default for ``send_ohlcv``)
+        * Batch payload - ``{"symbol": "...", "bars": [...]}`` (one message
+          with multiple bars, used by ``send_ohlcv_stream``)
+
+        Both formats are normalised to a ``pandas.DataFrame`` and routed to
+        :meth:`_process_ohlcv`.
+        """
         try:
             # Deserialize
             data = deserialize_ohlcv(msg.value)
             symbol = data.get("symbol", "UNKNOWN").upper()
 
-            # Convert to DataFrame
-            df = dict_to_dataframe([data])
+            # Batch format: {symbol, bars: [...]}
+            bars = data.get("bars")
+            if isinstance(bars, list) and bars:
+                df = dict_to_dataframe(bars)
+                count = len(df)
+            else:
+                # Single bar format: {symbol, open, ...}
+                df = dict_to_dataframe([data])
+                count = len(df)
+
             if df.empty:
                 return
 
@@ -217,10 +242,9 @@ class StockKafkaConsumer:
             self._process_ohlcv(symbol, df)
 
             logger.debug(
-                "Processed %s @ %s (partition=%d, offset=%d)",
+                "Processed %s (%d bars) @ offset=%d",
                 symbol,
-                data.get("timestamp"),
-                msg.partition,
+                count,
                 msg.offset,
             )
 

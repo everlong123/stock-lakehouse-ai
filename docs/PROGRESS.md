@@ -309,6 +309,10 @@ npm run dev
 | **SSI iBoard VN Provider** (`ssi_vn_provider.py`) | Hoan thanh | 30/09/2026 |
 | **VN Ingestion CLI** (`ingest_vn.py` - 53 symbols w/ quality report) | Hoan thanh | 30/09/2026 |
 | **VN Data Quality Report** (`docs/vn_data_quality.md`) | Hoan thanh | 30/09/2026 |
+| **System Health Audit Script** (`tests/_system_audit.py` + `docs/system_health.md`) | Hoan thanh | 01/10/2026 |
+| **Route Ordering Fix** (`/data/stocks/supported` 502 → 200) | Hoan thanh | 01/10/2026 |
+| **Kafka Producer Compat Fix** (`enable_idempotence` kafka-python <2.5) | Hoan thanh | 01/10/2026 |
+| **Kafka Consumer Batch Format Support** (`{"symbol","bars":[...]}`) | Hoan thanh | 01/10/2026 |
 
 ### TODO - Next Steps
 

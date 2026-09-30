@@ -13,15 +13,24 @@ router = APIRouter(prefix="/data", tags=["data"])
 # US Stock Data
 # =====================
 
-@router.get("/stocks/{symbol}")
-def get_stock(symbol: str) -> dict:
-    """Get US stock OHLCV data."""
-    service = get_ingestion_service()
-    frame = service.stock_provider.get_historical_data(symbol.upper())
+# Static routes must come BEFORE the /{symbol} catch-all.
+@router.get("/stocks/supported")
+def get_supported_stocks() -> dict:
+    """Get list of supported US stocks."""
     return ok({
-        "symbol": symbol.upper(),
-        "count": len(frame),
-        "data": frame.to_dict("records") if not frame.empty else [],
+        "symbols": SUPPORTED_SYMBOLS,
+        "count": len(SUPPORTED_SYMBOLS),
+    })
+
+
+@router.post("/stocks/ingest")
+def ingest_stocks(symbols: list[str] | None = None) -> dict:
+    """Ingest US stock data."""
+    service = get_ingestion_service()
+    results = service.ingest_us_stocks(symbols)
+    return ok({
+        "results": results,
+        "total": sum(r for r in results.values() if isinstance(r, int) and r > 0),
     })
 
 
@@ -41,23 +50,15 @@ def get_stock_latest(symbol: str) -> dict:
     })
 
 
-@router.get("/stocks/supported")
-def get_supported_stocks() -> dict:
-    """Get list of supported US stocks."""
-    return ok({
-        "symbols": SUPPORTED_SYMBOLS,
-        "count": len(SUPPORTED_SYMBOLS),
-    })
-
-
-@router.post("/stocks/ingest")
-def ingest_stocks(symbols: list[str] | None = None) -> dict:
-    """Ingest US stock data."""
+@router.get("/stocks/{symbol}")
+def get_stock(symbol: str) -> dict:
+    """Get US stock OHLCV data."""
     service = get_ingestion_service()
-    results = service.ingest_us_stocks(symbols)
+    frame = service.stock_provider.get_historical_data(symbol.upper())
     return ok({
-        "results": results,
-        "total": sum(r for r in results.values() if isinstance(r, int) and r > 0),
+        "symbol": symbol.upper(),
+        "count": len(frame),
+        "data": frame.to_dict("records") if not frame.empty else [],
     })
 
 

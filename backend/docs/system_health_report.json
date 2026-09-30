@@ -1,0 +1,151 @@
+{
+  "generated_at": "2026-09-30T19:00:47.265344+00:00",
+  "summary": {
+    "pass": 28,
+    "warn": 0,
+    "fail": 0,
+    "total": 28
+  },
+  "checks": [
+    {
+      "category": "Storage backend",
+      "status": "PASS",
+      "detail": "backend=minio class=MinioStorageBackend"
+    },
+    {
+      "category": "Storage health",
+      "status": "PASS",
+      "detail": "{'backend': 'minio', 'available': True}"
+    },
+    {
+      "category": "Bronze layer",
+      "status": "PASS",
+      "detail": "symbols=108 rows=219958 columns=12"
+    },
+    {
+      "category": "Silver layer",
+      "status": "PASS",
+      "detail": "symbols=108 rows=193508 columns=37"
+    },
+    {
+      "category": "Gold layer",
+      "status": "PASS",
+      "detail": "symbols=108 rows=192618 columns=94"
+    },
+    {
+      "category": "Provider yfinance",
+      "status": "PASS",
+      "detail": "class=YFinancePythonProvider source_name=yfinance_python"
+    },
+    {
+      "category": "Provider ssi_vn",
+      "status": "PASS",
+      "detail": "class=SSIVNProvider source_name=ssi_vn"
+    },
+    {
+      "category": "Provider multi_source",
+      "status": "PASS",
+      "detail": "class=MultiSourceProvider source_name=multi_source"
+    },
+    {
+      "category": "Indicator service",
+      "status": "PASS",
+      "detail": "VCB enriched with 24 cols"
+    },
+    {
+      "category": "Forecasting (LR)",
+      "status": "PASS",
+      "detail": "MAE=0.00 RMSE=0.00 MAPE=0.00%"
+    },
+    {
+      "category": "Backtesting (MA)",
+      "status": "PASS",
+      "detail": "trades=3 return=-20.50% sharpe=-0.391"
+    },
+    {
+      "category": "GET /api/v1/health",
+      "status": "PASS",
+      "detail": "200 keys=['status', 'app']"
+    },
+    {
+      "category": "GET /api/v1/stocks/symbols",
+      "status": "PASS",
+      "detail": "200 keys=['symbols']"
+    },
+    {
+      "category": "GET /api/v1/stocks/VCB?interval=1d",
+      "status": "PASS",
+      "detail": "200 keys=['symbol', 'interval', 'latest']"
+    },
+    {
+      "category": "GET /api/v1/stocks/FPT/latest?interval=1d",
+      "status": "PASS",
+      "detail": "200 keys=['symbol', 'timestamp', 'open']"
+    },
+    {
+      "category": "GET /api/v1/stocks/VCB/indicators",
+      "status": "PASS",
+      "detail": "200 keys=['symbol', 'latest', 'summary']"
+    },
+    {
+      "category": "GET /api/v1/data/stocks/supported",
+      "status": "PASS",
+      "detail": "200 keys=['symbols', 'count']"
+    },
+    {
+      "category": "POST /api/v1/backtests/run",
+      "status": "PASS",
+      "detail": "200 keys=['symbol', 'strategy', 'start_date']"
+    },
+    {
+      "category": "POST /api/v1/forecast/train",
+      "status": "PASS",
+      "detail": "200 keys=['symbol', 'model_name', 'train_start']"
+    },
+    {
+      "category": "POST /api/v1/forecast/predict",
+      "status": "PASS",
+      "detail": "200 keys=['symbol', 'model_name', 'horizon']"
+    },
+    {
+      "category": "Kafka producer",
+      "status": "PASS",
+      "detail": "sent 1 message(s)"
+    },
+    {
+      "category": "Kafka consumer (inspect)",
+      "status": "PASS",
+      "detail": "received 1 messages"
+    },
+    {
+      "category": "TCP MinIO API",
+      "status": "PASS",
+      "detail": "localhost:9000"
+    },
+    {
+      "category": "TCP MinIO Console",
+      "status": "PASS",
+      "detail": "localhost:9001"
+    },
+    {
+      "category": "TCP Kafka internal",
+      "status": "PASS",
+      "detail": "localhost:9092"
+    },
+    {
+      "category": "TCP Kafka external",
+      "status": "PASS",
+      "detail": "localhost:9094"
+    },
+    {
+      "category": "TCP Kafka UI",
+      "status": "PASS",
+      "detail": "localhost:8090"
+    },
+    {
+      "category": "Docker containers",
+      "status": "PASS",
+      "detail": "8 stock-lakehouse containers running"
+    }
+  ]
+}
