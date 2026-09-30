@@ -1,0 +1,36 @@
+{
+  "symbol": "TPB",
+  "quality": {
+    "symbol": "TPB",
+    "rows": 2107,
+    "first_date": "2018-04-19",
+    "last_date": "2026-09-30",
+    "span_days": 3086,
+    "span_years": 8.45,
+    "bad_high_low": 0,
+    "bad_close_range": 9,
+    "bad_open_range": 2,
+    "neg_prices": 0,
+    "zero_volume": 0,
+    "missing_open": 0,
+    "missing_close": 0,
+    "missing_volume": 0,
+    "long_gaps": 8,
+    "avg_close_vnd": 11385.34,
+    "min_close_vnd": 4580.0,
+    "max_close_vnd": 21000.0,
+    "avg_volume": 6500385.92,
+    "total_volume": 13696313140.0,
+    "status": "warnings",
+    "issues": [
+      "close outside high/low in 9 rows",
+      "open outside high/low in 2 rows"
+    ]
+  },
+  "bronze_records": 2107,
+  "silver_records": 2096,
+  "silver_errors": 11,
+  "gold_records": 2096,
+  "status": "warnings",
+  "elapsed_s": 18.58
+}

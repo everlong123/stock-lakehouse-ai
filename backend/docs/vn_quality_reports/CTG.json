@@ -1,0 +1,36 @@
+{
+  "symbol": "CTG",
+  "quality": {
+    "symbol": "CTG",
+    "rows": 2494,
+    "first_date": "2016-10-03",
+    "last_date": "2026-09-30",
+    "span_days": 3649,
+    "span_years": 9.99,
+    "bad_high_low": 0,
+    "bad_close_range": 6,
+    "bad_open_range": 1,
+    "neg_prices": 0,
+    "zero_volume": 0,
+    "missing_open": 0,
+    "missing_close": 0,
+    "missing_volume": 0,
+    "long_gaps": 10,
+    "avg_close_vnd": 17536.44,
+    "min_close_vnd": 6090.0,
+    "max_close_vnd": 40870.0,
+    "avg_volume": 6674113.45,
+    "total_volume": 16645238940.0,
+    "status": "warnings",
+    "issues": [
+      "close outside high/low in 6 rows",
+      "open outside high/low in 1 rows"
+    ]
+  },
+  "bronze_records": 2494,
+  "silver_records": 2487,
+  "silver_errors": 11,
+  "gold_records": 2487,
+  "status": "warnings",
+  "elapsed_s": 20.36
+}

@@ -1,0 +1,36 @@
+{
+  "symbol": "TCB",
+  "quality": {
+    "symbol": "TCB",
+    "rows": 2080,
+    "first_date": "2018-06-04",
+    "last_date": "2026-09-30",
+    "span_days": 3040,
+    "span_years": 8.32,
+    "bad_high_low": 0,
+    "bad_close_range": 4,
+    "bad_open_range": 1,
+    "neg_prices": 0,
+    "zero_volume": 0,
+    "missing_open": 0,
+    "missing_close": 0,
+    "missing_volume": 0,
+    "long_gaps": 8,
+    "avg_close_vnd": 18915.21,
+    "min_close_vnd": 6890.0,
+    "max_close_vnd": 40450.0,
+    "avg_volume": 9081002.86,
+    "total_volume": 18888485950.0,
+    "status": "warnings",
+    "issues": [
+      "close outside high/low in 4 rows",
+      "open outside high/low in 1 rows"
+    ]
+  },
+  "bronze_records": 2080,
+  "silver_records": 2075,
+  "silver_errors": 11,
+  "gold_records": 2075,
+  "status": "warnings",
+  "elapsed_s": 14.65
+}

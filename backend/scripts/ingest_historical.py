@@ -66,7 +66,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument(
         "--source",
         default=None,
-        choices=["yfinance", "yfinance_direct", "finnhub", "alpha_vantage", "web_scraper", "multi_source"],
+        choices=["yfinance", "yfinance_direct", "finnhub", "alpha_vantage", "web_scraper", "ssi_vn", "multi_source"],
         help="Override the data source. Defaults to DATA_SOURCE in .env.",
     )
     parser.add_argument(

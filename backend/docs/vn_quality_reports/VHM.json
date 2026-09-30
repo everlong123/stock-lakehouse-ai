@@ -1,0 +1,35 @@
+{
+  "symbol": "VHM",
+  "quality": {
+    "symbol": "VHM",
+    "rows": 2088,
+    "first_date": "2018-05-17",
+    "last_date": "2026-09-30",
+    "span_days": 3058,
+    "span_years": 8.37,
+    "bad_high_low": 0,
+    "bad_close_range": 1,
+    "bad_open_range": 0,
+    "neg_prices": 0,
+    "zero_volume": 0,
+    "missing_open": 0,
+    "missing_close": 0,
+    "missing_volume": 0,
+    "long_gaps": 8,
+    "avg_close_vnd": 32585.28,
+    "min_close_vnd": 16610.0,
+    "max_close_vnd": 78970.0,
+    "avg_volume": 4504420.34,
+    "total_volume": 9405229660.0,
+    "status": "warnings",
+    "issues": [
+      "close outside high/low in 1 rows"
+    ]
+  },
+  "bronze_records": 2088,
+  "silver_records": 2087,
+  "silver_errors": 11,
+  "gold_records": 2087,
+  "status": "warnings",
+  "elapsed_s": 16.32
+}

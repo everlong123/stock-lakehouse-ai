@@ -1,0 +1,36 @@
+{
+  "symbol": "POW",
+  "quality": {
+    "symbol": "POW",
+    "rows": 2131,
+    "first_date": "2018-03-06",
+    "last_date": "2026-09-30",
+    "span_days": 3130,
+    "span_years": 8.57,
+    "bad_high_low": 0,
+    "bad_close_range": 1,
+    "bad_open_range": 1,
+    "neg_prices": 0,
+    "zero_volume": 0,
+    "missing_open": 0,
+    "missing_close": 0,
+    "missing_volume": 0,
+    "long_gaps": 9,
+    "avg_close_vnd": 10786.39,
+    "min_close_vnd": 5590.0,
+    "max_close_vnd": 16650.0,
+    "avg_volume": 8577803.31,
+    "total_volume": 18279298862.0,
+    "status": "warnings",
+    "issues": [
+      "close outside high/low in 1 rows",
+      "open outside high/low in 1 rows"
+    ]
+  },
+  "bronze_records": 2131,
+  "silver_records": 2128,
+  "silver_errors": 11,
+  "gold_records": 2128,
+  "status": "warnings",
+  "elapsed_s": 18.61
+}

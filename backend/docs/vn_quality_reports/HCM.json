@@ -1,0 +1,36 @@
+{
+  "symbol": "HCM",
+  "quality": {
+    "symbol": "HCM",
+    "rows": 2494,
+    "first_date": "2016-10-03",
+    "last_date": "2026-09-30",
+    "span_days": 3649,
+    "span_years": 9.99,
+    "bad_high_low": 0,
+    "bad_close_range": 3,
+    "bad_open_range": 2,
+    "neg_prices": 0,
+    "zero_volume": 0,
+    "missing_open": 0,
+    "missing_close": 0,
+    "missing_volume": 0,
+    "long_gaps": 10,
+    "avg_close_vnd": 11921.38,
+    "min_close_vnd": 3160.0,
+    "max_close_vnd": 26500.0,
+    "avg_volume": 4793355.56,
+    "total_volume": 11954628770.0,
+    "status": "warnings",
+    "issues": [
+      "close outside high/low in 3 rows",
+      "open outside high/low in 2 rows"
+    ]
+  },
+  "bronze_records": 2494,
+  "silver_records": 2489,
+  "silver_errors": 11,
+  "gold_records": 2489,
+  "status": "warnings",
+  "elapsed_s": 19.97
+}

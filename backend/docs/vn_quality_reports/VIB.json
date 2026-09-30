@@ -1,0 +1,35 @@
+{
+  "symbol": "VIB",
+  "quality": {
+    "symbol": "VIB",
+    "rows": 2416,
+    "first_date": "2017-01-09",
+    "last_date": "2026-09-30",
+    "span_days": 3551,
+    "span_years": 9.72,
+    "bad_high_low": 0,
+    "bad_close_range": 0,
+    "bad_open_range": 1,
+    "neg_prices": 0,
+    "zero_volume": 0,
+    "missing_open": 0,
+    "missing_close": 0,
+    "missing_volume": 0,
+    "long_gaps": 11,
+    "avg_close_vnd": 9181.01,
+    "min_close_vnd": 1720.0,
+    "max_close_vnd": 20430.0,
+    "avg_volume": 3283313.8,
+    "total_volume": 7932486140.0,
+    "status": "warnings",
+    "issues": [
+      "open outside high/low in 1 rows"
+    ]
+  },
+  "bronze_records": 2416,
+  "silver_records": 2415,
+  "silver_errors": 11,
+  "gold_records": 2415,
+  "status": "warnings",
+  "elapsed_s": 18.79
+}

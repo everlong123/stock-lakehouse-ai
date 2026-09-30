@@ -1,0 +1,35 @@
+{
+  "symbol": "STB",
+  "quality": {
+    "symbol": "STB",
+    "rows": 1647,
+    "first_date": "2020-02-26",
+    "last_date": "2026-09-30",
+    "span_days": 2408,
+    "span_years": 6.59,
+    "bad_high_low": 0,
+    "bad_close_range": 0,
+    "bad_open_range": 1,
+    "neg_prices": 0,
+    "zero_volume": 0,
+    "missing_open": 0,
+    "missing_close": 0,
+    "missing_volume": 0,
+    "long_gaps": 6,
+    "avg_close_vnd": 32728.48,
+    "min_close_vnd": 7300.0,
+    "max_close_vnd": 78200.0,
+    "avg_volume": 16349756.08,
+    "total_volume": 26928048260.0,
+    "status": "warnings",
+    "issues": [
+      "open outside high/low in 1 rows"
+    ]
+  },
+  "bronze_records": 1647,
+  "silver_records": 1646,
+  "silver_errors": 11,
+  "gold_records": 1646,
+  "status": "warnings",
+  "elapsed_s": 14.99
+}

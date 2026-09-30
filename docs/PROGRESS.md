@@ -11,6 +11,8 @@
 
 > **Verified 30/09/2026**: `tests/verify_real_data.py` đã download OHLCV thật cho AAPL/MSFT/AMZN (~2511 rows × 9.99 năm), BTC-USD (3650 rows × 9.99 năm), ETH-USD (3247 rows × 8.89 năm), EUR/USD (2599 rows × 9.99 năm). `tests/_smoke_real_pipeline.py` đã ingest vào MinIO: stock-bronze 4747 objects, stock-silver 4768 objects, stock-gold 315 objects với 94 features/row. Đã upgrade `yfinance 0.2.43 → 1.7.0` và cài `curl_cffi 0.16.3` để bypass Yahoo TLS fingerprint block.
 
+> **VN Stock Verified 30/09/2026 (SSI iBoard)**: 50/53 HOSE symbols ingested qua `scripts/ingest_vn.py`, 117,686 Bronze + 117,401 Silver + 119,151 Gold rows. Coverage: 16 banks, 17 real estate, 2 tech, 6 consumer, 7 industrial, 4 securities. Span: 46/50 symbols ≥8 năm, 4/50 symbols 5-8 năm. Full per-symbol quality report ở [`docs/vn_data_quality.md`](vn_data_quality.md).
+
 ---
 
 ## Mục lục
@@ -304,6 +306,9 @@ npm run dev
 | **Indicator CLI** (`run_indicators.py`) | Hoan thanh | 30/09/2026 |
 | **Macro/Regime CLI** (`run_macro_features.py`) | Hoan thanh | 30/09/2026 |
 | **AI Agent CLI** (`run_agent.py`) | Hoan thanh | 30/09/2026 |
+| **SSI iBoard VN Provider** (`ssi_vn_provider.py`) | Hoan thanh | 30/09/2026 |
+| **VN Ingestion CLI** (`ingest_vn.py` - 53 symbols w/ quality report) | Hoan thanh | 30/09/2026 |
+| **VN Data Quality Report** (`docs/vn_data_quality.md`) | Hoan thanh | 30/09/2026 |
 
 ### TODO - Next Steps
 

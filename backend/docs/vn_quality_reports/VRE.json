@@ -1,0 +1,36 @@
+{
+  "symbol": "VRE",
+  "quality": {
+    "symbol": "VRE",
+    "rows": 2215,
+    "first_date": "2017-11-06",
+    "last_date": "2026-09-30",
+    "span_days": 3250,
+    "span_years": 8.9,
+    "bad_high_low": 0,
+    "bad_close_range": 7,
+    "bad_open_range": 1,
+    "neg_prices": 0,
+    "zero_volume": 0,
+    "missing_open": 0,
+    "missing_close": 0,
+    "missing_volume": 0,
+    "long_gaps": 9,
+    "avg_close_vnd": 27944.73,
+    "min_close_vnd": 15550.0,
+    "max_close_vnd": 46710.0,
+    "avg_volume": 5117111.99,
+    "total_volume": 11334403050.0,
+    "status": "warnings",
+    "issues": [
+      "close outside high/low in 7 rows",
+      "open outside high/low in 1 rows"
+    ]
+  },
+  "bronze_records": 2215,
+  "silver_records": 2207,
+  "silver_errors": 11,
+  "gold_records": 2207,
+  "status": "warnings",
+  "elapsed_s": 17.78
+}

@@ -1,0 +1,33 @@
+{
+  "symbol": "NVB",
+  "quality": {
+    "symbol": "NVB",
+    "rows": 2452,
+    "first_date": "2016-10-03",
+    "last_date": "2026-09-30",
+    "span_days": 3649,
+    "span_years": 9.99,
+    "bad_high_low": 0,
+    "bad_close_range": 0,
+    "bad_open_range": 0,
+    "neg_prices": 0,
+    "zero_volume": 0,
+    "missing_open": 0,
+    "missing_close": 0,
+    "missing_volume": 0,
+    "long_gaps": 12,
+    "avg_close_vnd": 11884.32,
+    "min_close_vnd": 3280.0,
+    "max_close_vnd": 39700.0,
+    "avg_volume": 1097971.48,
+    "total_volume": 2692226057.0,
+    "status": "ok",
+    "issues": []
+  },
+  "bronze_records": 2452,
+  "silver_records": 2452,
+  "silver_errors": 11,
+  "gold_records": 2452,
+  "status": "ok",
+  "elapsed_s": 19.29
+}

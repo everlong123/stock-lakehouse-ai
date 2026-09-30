@@ -1,0 +1,35 @@
+{
+  "symbol": "MSB",
+  "quality": {
+    "symbol": "MSB",
+    "rows": 1439,
+    "first_date": "2020-12-23",
+    "last_date": "2026-09-30",
+    "span_days": 2107,
+    "span_years": 5.77,
+    "bad_high_low": 0,
+    "bad_close_range": 0,
+    "bad_open_range": 1,
+    "neg_prices": 0,
+    "zero_volume": 0,
+    "missing_open": 0,
+    "missing_close": 0,
+    "missing_volume": 0,
+    "long_gaps": 6,
+    "avg_close_vnd": 8590.67,
+    "min_close_vnd": 5120.0,
+    "max_close_vnd": 14250.0,
+    "avg_volume": 7209837.97,
+    "total_volume": 10374956840.0,
+    "status": "warnings",
+    "issues": [
+      "open outside high/low in 1 rows"
+    ]
+  },
+  "bronze_records": 1439,
+  "silver_records": 1435,
+  "silver_errors": 11,
+  "gold_records": 1435,
+  "status": "warnings",
+  "elapsed_s": 11.47
+}

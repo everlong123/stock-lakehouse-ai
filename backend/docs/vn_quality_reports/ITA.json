@@ -1,0 +1,36 @@
+{
+  "symbol": "ITA",
+  "quality": {
+    "symbol": "ITA",
+    "rows": 1994,
+    "first_date": "2016-10-03",
+    "last_date": "2024-09-25",
+    "span_days": 2914,
+    "span_years": 7.98,
+    "bad_high_low": 0,
+    "bad_close_range": 4,
+    "bad_open_range": 1,
+    "neg_prices": 0,
+    "zero_volume": 0,
+    "missing_open": 0,
+    "missing_close": 0,
+    "missing_volume": 0,
+    "long_gaps": 8,
+    "avg_close_vnd": 5189.99,
+    "min_close_vnd": 1830.0,
+    "max_close_vnd": 18550.0,
+    "avg_volume": 6542166.59,
+    "total_volume": 13045080190.0,
+    "status": "warnings",
+    "issues": [
+      "close outside high/low in 4 rows",
+      "open outside high/low in 1 rows"
+    ]
+  },
+  "bronze_records": 1994,
+  "silver_records": 1989,
+  "silver_errors": 11,
+  "gold_records": 2486,
+  "status": "warnings",
+  "elapsed_s": 16.63
+}

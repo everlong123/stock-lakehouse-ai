@@ -1,0 +1,35 @@
+{
+  "symbol": "OCB",
+  "quality": {
+    "symbol": "OCB",
+    "rows": 1411,
+    "first_date": "2021-01-28",
+    "last_date": "2026-09-30",
+    "span_days": 2071,
+    "span_years": 5.67,
+    "bad_high_low": 0,
+    "bad_close_range": 0,
+    "bad_open_range": 1,
+    "neg_prices": 0,
+    "zero_volume": 0,
+    "missing_open": 0,
+    "missing_close": 0,
+    "missing_volume": 0,
+    "long_gaps": 6,
+    "avg_close_vnd": 9086.97,
+    "min_close_vnd": 5220.0,
+    "max_close_vnd": 12940.0,
+    "avg_volume": 2983883.35,
+    "total_volume": 4210259400.0,
+    "status": "warnings",
+    "issues": [
+      "open outside high/low in 1 rows"
+    ]
+  },
+  "bronze_records": 1411,
+  "silver_records": 1410,
+  "silver_errors": 11,
+  "gold_records": 1410,
+  "status": "warnings",
+  "elapsed_s": 11.35
+}

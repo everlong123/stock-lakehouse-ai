@@ -80,8 +80,28 @@ CRYPTO_SYMBOLS: list[str] = [
     "ETH-USD",  # Ethereum
 ]
 
+# Vietnamese stocks on HOSE (Ho Chi Minh Stock Exchange)
+# Source: SSI iBoard public API (iboard-api.ssi.com.vn)
+# Price unit: thousands of VND (e.g. 100 = 100,000 VND)
+VN_HOSE_SYMBOLS: list[str] = [
+    # Banks
+    "VCB", "TCB", "MBB", "ACB", "BID", "CTG", "HDB", "STB", "TPB", "MSB",
+    "SHB", "LPB", "EIB", "OCB", "VIB", "NVB",
+    # Real estate
+    "VHM", "VRE", "KDH", "VIC", "NVL", "PDR", "BCM", "HDG", "DIG", "FCN",
+    "ITA", "HCM", "NSC", "MBC", "SBT", "IMP", "PLD",
+    # Technology
+    "FPT", "CMG",
+    # Consumer / Retail
+    "MWG", "PNJ", "MSN", "SAB", "VNM", "PNVN",
+    # Industrial / Materials
+    "HPG", "GAS", "PLX", "POW", "REE", "KDC", "DHG",
+    # Securities
+    "SSI", "VND", "VCI", "HCM", "SHS",
+]
+
 # All available symbols
-ALL_SYMBOLS: list[str] = SUPPORTED_SYMBOLS + MARKET_INDEXES + CRYPTO_SYMBOLS
+ALL_SYMBOLS: list[str] = SUPPORTED_SYMBOLS + MARKET_INDEXES + CRYPTO_SYMBOLS + VN_HOSE_SYMBOLS
 
 # Intervals
 SUPPORTED_INTERVALS: list[str] = ["1d", "1h", "15m", "5m"]

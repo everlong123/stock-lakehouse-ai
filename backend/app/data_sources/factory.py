@@ -24,6 +24,7 @@ from app.data_sources.alpha_vantage_provider import AlphaVantageProvider
 from app.data_sources.base import StockDataProvider
 from app.data_sources.finnhub_provider import FinnhubProvider
 from app.data_sources.multi_source import MultiSourceProvider
+from app.data_sources.ssi_vn_provider import SSIVNProvider
 from app.data_sources.web_scraper_provider import StockScraperProvider
 from app.data_sources.yfinance_provider import YFinanceProvider
 from app.data_sources.yfinance_python_provider import YFinancePythonProvider
@@ -87,7 +88,11 @@ def get_data_provider(name: str | None = None) -> StockDataProvider:
         logger.info("Using StockScraperProvider (HTTP scrape, no key).")
         return StockScraperProvider()
 
+    if selected in {"ssi_vn", "ssi", "vn_ssi"}:
+        logger.info("Using SSIVNProvider (SSI iBoard public API, HOSE/HNX/UPCOM).")
+        return SSIVNProvider()
+
     raise DataSourceError(
         f"Unknown DATA_SOURCE='{selected}'. Supported: yfinance, yfinance_direct, "
-        "finnhub, alpha_vantage, web_scraper, multi_source."
+        "finnhub, alpha_vantage, web_scraper, ssi_vn, multi_source."
     )

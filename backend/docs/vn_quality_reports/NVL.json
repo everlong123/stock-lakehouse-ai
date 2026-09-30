@@ -1,0 +1,36 @@
+{
+  "symbol": "NVL",
+  "quality": {
+    "symbol": "NVL",
+    "rows": 2432,
+    "first_date": "2016-12-28",
+    "last_date": "2026-09-30",
+    "span_days": 3563,
+    "span_years": 9.75,
+    "bad_high_low": 0,
+    "bad_close_range": 5,
+    "bad_open_range": 1,
+    "neg_prices": 0,
+    "zero_volume": 0,
+    "missing_open": 0,
+    "missing_close": 0,
+    "missing_volume": 0,
+    "long_gaps": 10,
+    "avg_close_vnd": 30427.74,
+    "min_close_vnd": 7480.0,
+    "max_close_vnd": 85300.0,
+    "avg_volume": 9174220.94,
+    "total_volume": 22311705330.0,
+    "status": "warnings",
+    "issues": [
+      "close outside high/low in 5 rows",
+      "open outside high/low in 1 rows"
+    ]
+  },
+  "bronze_records": 2432,
+  "silver_records": 2426,
+  "silver_errors": 11,
+  "gold_records": 2426,
+  "status": "warnings",
+  "elapsed_s": 19.15
+}

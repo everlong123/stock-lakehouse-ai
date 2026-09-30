@@ -1,0 +1,36 @@
+{
+  "symbol": "VCI",
+  "quality": {
+    "symbol": "VCI",
+    "rows": 2302,
+    "first_date": "2017-07-07",
+    "last_date": "2026-09-30",
+    "span_days": 3372,
+    "span_years": 9.23,
+    "bad_high_low": 0,
+    "bad_close_range": 10,
+    "bad_open_range": 1,
+    "neg_prices": 0,
+    "zero_volume": 0,
+    "missing_open": 0,
+    "missing_close": 0,
+    "missing_volume": 0,
+    "long_gaps": 9,
+    "avg_close_vnd": 16645.05,
+    "min_close_vnd": 2510.0,
+    "max_close_vnd": 34970.0,
+    "avg_volume": 4082551.42,
+    "total_volume": 9398033360.0,
+    "status": "warnings",
+    "issues": [
+      "close outside high/low in 10 rows",
+      "open outside high/low in 1 rows"
+    ]
+  },
+  "bronze_records": 2302,
+  "silver_records": 2291,
+  "silver_errors": 11,
+  "gold_records": 2291,
+  "status": "warnings",
+  "elapsed_s": 19.1
+}

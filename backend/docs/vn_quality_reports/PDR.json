@@ -1,0 +1,36 @@
+{
+  "symbol": "PDR",
+  "quality": {
+    "symbol": "PDR",
+    "rows": 2494,
+    "first_date": "2016-10-03",
+    "last_date": "2026-09-30",
+    "span_days": 3649,
+    "span_years": 9.99,
+    "bad_high_low": 0,
+    "bad_close_range": 4,
+    "bad_open_range": 2,
+    "neg_prices": 0,
+    "zero_volume": 0,
+    "missing_open": 0,
+    "missing_close": 0,
+    "missing_volume": 0,
+    "long_gaps": 10,
+    "avg_close_vnd": 19856.09,
+    "min_close_vnd": 3010.0,
+    "max_close_vnd": 60760.0,
+    "avg_volume": 5336994.58,
+    "total_volume": 13310464480.0,
+    "status": "warnings",
+    "issues": [
+      "close outside high/low in 4 rows",
+      "open outside high/low in 2 rows"
+    ]
+  },
+  "bronze_records": 2494,
+  "silver_records": 2488,
+  "silver_errors": 11,
+  "gold_records": 2488,
+  "status": "warnings",
+  "elapsed_s": 19.78
+}

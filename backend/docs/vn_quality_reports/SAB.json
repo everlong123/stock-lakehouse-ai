@@ -1,0 +1,36 @@
+{
+  "symbol": "SAB",
+  "quality": {
+    "symbol": "SAB",
+    "rows": 2448,
+    "first_date": "2016-12-06",
+    "last_date": "2026-09-30",
+    "span_days": 3585,
+    "span_years": 9.82,
+    "bad_high_low": 0,
+    "bad_close_range": 9,
+    "bad_open_range": 2,
+    "neg_prices": 0,
+    "zero_volume": 0,
+    "missing_open": 0,
+    "missing_close": 0,
+    "missing_volume": 0,
+    "long_gaps": 10,
+    "avg_close_vnd": 63787.17,
+    "min_close_vnd": 35960.0,
+    "max_close_vnd": 115440.0,
+    "avg_volume": 368261.7,
+    "total_volume": 901504640.0,
+    "status": "warnings",
+    "issues": [
+      "close outside high/low in 9 rows",
+      "open outside high/low in 2 rows"
+    ]
+  },
+  "bronze_records": 2448,
+  "silver_records": 2437,
+  "silver_errors": 11,
+  "gold_records": 2437,
+  "status": "warnings",
+  "elapsed_s": 19.56
+}

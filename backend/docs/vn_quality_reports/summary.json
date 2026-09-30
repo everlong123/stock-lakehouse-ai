@@ -1,0 +1,832 @@
+{
+  "started_at": "2026-09-30T18:11:30.262532+00:00",
+  "elapsed_s": 955.35,
+  "lookback_days": 3650,
+  "total_symbols": 53,
+  "ok": 3,
+  "warnings": 47,
+  "failed": 3,
+  "summary": [
+    {
+      "symbol": "VCB",
+      "status": "warnings",
+      "rows": 2492,
+      "span_years": 9.99,
+      "first_date": "2016-10-03",
+      "last_date": "2026-09-30",
+      "issues": [
+        "close outside high/low in 6 rows",
+        "open outside high/low in 2 rows"
+      ],
+      "bronze_records": 2492,
+      "silver_records": 2484,
+      "gold_records": 2484,
+      "elapsed_s": 23.91
+    },
+    {
+      "symbol": "TCB",
+      "status": "warnings",
+      "rows": 2080,
+      "span_years": 8.32,
+      "first_date": "2018-06-04",
+      "last_date": "2026-09-30",
+      "issues": [
+        "close outside high/low in 4 rows",
+        "open outside high/low in 1 rows"
+      ],
+      "bronze_records": 2080,
+      "silver_records": 2075,
+      "gold_records": 2075,
+      "elapsed_s": 14.65
+    },
+    {
+      "symbol": "MBB",
+      "status": "warnings",
+      "rows": 2494,
+      "span_years": 9.99,
+      "first_date": "2016-10-03",
+      "last_date": "2026-09-30",
+      "issues": [
+        "close outside high/low in 9 rows",
+        "open outside high/low in 2 rows"
+      ],
+      "bronze_records": 2494,
+      "silver_records": 2483,
+      "gold_records": 2483,
+      "elapsed_s": 16.89
+    },
+    {
+      "symbol": "ACB",
+      "status": "warnings",
+      "rows": 2491,
+      "span_years": 9.99,
+      "first_date": "2016-10-03",
+      "last_date": "2026-09-30",
+      "issues": [
+        "open outside high/low in 2 rows"
+      ],
+      "bronze_records": 2491,
+      "silver_records": 2489,
+      "gold_records": 2489,
+      "elapsed_s": 17.7
+    },
+    {
+      "symbol": "BID",
+      "status": "warnings",
+      "rows": 2494,
+      "span_years": 9.99,
+      "first_date": "2016-10-03",
+      "last_date": "2026-09-30",
+      "issues": [
+        "close outside high/low in 2 rows",
+        "open outside high/low in 1 rows"
+      ],
+      "bronze_records": 2494,
+      "silver_records": 2491,
+      "gold_records": 3744,
+      "elapsed_s": 22.11
+    },
+    {
+      "symbol": "CTG",
+      "status": "warnings",
+      "rows": 2494,
+      "span_years": 9.99,
+      "first_date": "2016-10-03",
+      "last_date": "2026-09-30",
+      "issues": [
+        "close outside high/low in 6 rows",
+        "open outside high/low in 1 rows"
+      ],
+      "bronze_records": 2494,
+      "silver_records": 2487,
+      "gold_records": 2487,
+      "elapsed_s": 20.36
+    },
+    {
+      "symbol": "HDB",
+      "status": "warnings",
+      "rows": 2176,
+      "span_years": 8.73,
+      "first_date": "2018-01-05",
+      "last_date": "2026-09-30",
+      "issues": [
+        "close outside high/low in 4 rows",
+        "open outside high/low in 2 rows"
+      ],
+      "bronze_records": 2176,
+      "silver_records": 2170,
+      "gold_records": 2170,
+      "elapsed_s": 19.14
+    },
+    {
+      "symbol": "STB",
+      "status": "warnings",
+      "rows": 1647,
+      "span_years": 6.59,
+      "first_date": "2020-02-26",
+      "last_date": "2026-09-30",
+      "issues": [
+        "open outside high/low in 1 rows"
+      ],
+      "bronze_records": 1647,
+      "silver_records": 1646,
+      "gold_records": 1646,
+      "elapsed_s": 14.99
+    },
+    {
+      "symbol": "TPB",
+      "status": "warnings",
+      "rows": 2107,
+      "span_years": 8.45,
+      "first_date": "2018-04-19",
+      "last_date": "2026-09-30",
+      "issues": [
+        "close outside high/low in 9 rows",
+        "open outside high/low in 2 rows"
+      ],
+      "bronze_records": 2107,
+      "silver_records": 2096,
+      "gold_records": 2096,
+      "elapsed_s": 18.58
+    },
+    {
+      "symbol": "MSB",
+      "status": "warnings",
+      "rows": 1439,
+      "span_years": 5.77,
+      "first_date": "2020-12-23",
+      "last_date": "2026-09-30",
+      "issues": [
+        "open outside high/low in 1 rows"
+      ],
+      "bronze_records": 1439,
+      "silver_records": 1435,
+      "gold_records": 1435,
+      "elapsed_s": 11.47
+    },
+    {
+      "symbol": "SHB",
+      "status": "ok",
+      "rows": 2493,
+      "span_years": 9.99,
+      "first_date": "2016-10-03",
+      "last_date": "2026-09-30",
+      "issues": [],
+      "bronze_records": 2493,
+      "silver_records": 2493,
+      "gold_records": 2493,
+      "elapsed_s": 19.11
+    },
+    {
+      "symbol": "LPB",
+      "status": "warnings",
+      "rows": 2232,
+      "span_years": 8.99,
+      "first_date": "2017-10-05",
+      "last_date": "2026-09-30",
+      "issues": [
+        "close outside high/low in 1 rows",
+        "open outside high/low in 2 rows"
+      ],
+      "bronze_records": 2232,
+      "silver_records": 2229,
+      "gold_records": 2229,
+      "elapsed_s": 17.4
+    },
+    {
+      "symbol": "EIB",
+      "status": "warnings",
+      "rows": 2494,
+      "span_years": 9.99,
+      "first_date": "2016-10-03",
+      "last_date": "2026-09-30",
+      "issues": [
+        "close outside high/low in 3 rows",
+        "open outside high/low in 1 rows"
+      ],
+      "bronze_records": 2494,
+      "silver_records": 2490,
+      "gold_records": 2490,
+      "elapsed_s": 19.2
+    },
+    {
+      "symbol": "OCB",
+      "status": "warnings",
+      "rows": 1411,
+      "span_years": 5.67,
+      "first_date": "2021-01-28",
+      "last_date": "2026-09-30",
+      "issues": [
+        "open outside high/low in 1 rows"
+      ],
+      "bronze_records": 1411,
+      "silver_records": 1410,
+      "gold_records": 1410,
+      "elapsed_s": 11.35
+    },
+    {
+      "symbol": "VIB",
+      "status": "warnings",
+      "rows": 2416,
+      "span_years": 9.72,
+      "first_date": "2017-01-09",
+      "last_date": "2026-09-30",
+      "issues": [
+        "open outside high/low in 1 rows"
+      ],
+      "bronze_records": 2416,
+      "silver_records": 2415,
+      "gold_records": 2415,
+      "elapsed_s": 18.79
+    },
+    {
+      "symbol": "NVB",
+      "status": "ok",
+      "rows": 2452,
+      "span_years": 9.99,
+      "first_date": "2016-10-03",
+      "last_date": "2026-09-30",
+      "issues": [],
+      "bronze_records": 2452,
+      "silver_records": 2452,
+      "gold_records": 2452,
+      "elapsed_s": 19.29
+    },
+    {
+      "symbol": "VHM",
+      "status": "warnings",
+      "rows": 2088,
+      "span_years": 8.37,
+      "first_date": "2018-05-17",
+      "last_date": "2026-09-30",
+      "issues": [
+        "close outside high/low in 1 rows"
+      ],
+      "bronze_records": 2088,
+      "silver_records": 2087,
+      "gold_records": 2087,
+      "elapsed_s": 16.32
+    },
+    {
+      "symbol": "VRE",
+      "status": "warnings",
+      "rows": 2215,
+      "span_years": 8.9,
+      "first_date": "2017-11-06",
+      "last_date": "2026-09-30",
+      "issues": [
+        "close outside high/low in 7 rows",
+        "open outside high/low in 1 rows"
+      ],
+      "bronze_records": 2215,
+      "silver_records": 2207,
+      "gold_records": 2207,
+      "elapsed_s": 17.78
+    },
+    {
+      "symbol": "KDH",
+      "status": "warnings",
+      "rows": 2494,
+      "span_years": 9.99,
+      "first_date": "2016-10-03",
+      "last_date": "2026-09-30",
+      "issues": [
+        "close outside high/low in 3 rows",
+        "open outside high/low in 1 rows"
+      ],
+      "bronze_records": 2494,
+      "silver_records": 2490,
+      "gold_records": 2490,
+      "elapsed_s": 19.93
+    },
+    {
+      "symbol": "VIC",
+      "status": "warnings",
+      "rows": 2492,
+      "span_years": 9.99,
+      "first_date": "2016-10-03",
+      "last_date": "2026-09-30",
+      "issues": [
+        "close outside high/low in 10 rows",
+        "open outside high/low in 1 rows"
+      ],
+      "bronze_records": 2492,
+      "silver_records": 2481,
+      "gold_records": 2481,
+      "elapsed_s": 19.71
+    },
+    {
+      "symbol": "NVL",
+      "status": "warnings",
+      "rows": 2432,
+      "span_years": 9.75,
+      "first_date": "2016-12-28",
+      "last_date": "2026-09-30",
+      "issues": [
+        "close outside high/low in 5 rows",
+        "open outside high/low in 1 rows"
+      ],
+      "bronze_records": 2432,
+      "silver_records": 2426,
+      "gold_records": 2426,
+      "elapsed_s": 19.15
+    },
+    {
+      "symbol": "PDR",
+      "status": "warnings",
+      "rows": 2494,
+      "span_years": 9.99,
+      "first_date": "2016-10-03",
+      "last_date": "2026-09-30",
+      "issues": [
+        "close outside high/low in 4 rows",
+        "open outside high/low in 2 rows"
+      ],
+      "bronze_records": 2494,
+      "silver_records": 2488,
+      "gold_records": 2488,
+      "elapsed_s": 19.78
+    },
+    {
+      "symbol": "BCM",
+      "status": "warnings",
+      "rows": 2127,
+      "span_years": 8.61,
+      "first_date": "2018-02-21",
+      "last_date": "2026-09-30",
+      "issues": [
+        "open outside high/low in 2 rows"
+      ],
+      "bronze_records": 2127,
+      "silver_records": 2125,
+      "gold_records": 2125,
+      "elapsed_s": 16.91
+    },
+    {
+      "symbol": "HDG",
+      "status": "warnings",
+      "rows": 2493,
+      "span_years": 9.99,
+      "first_date": "2016-10-03",
+      "last_date": "2026-09-30",
+      "issues": [
+        "close outside high/low in 6 rows",
+        "open outside high/low in 2 rows"
+      ],
+      "bronze_records": 2493,
+      "silver_records": 2485,
+      "gold_records": 2485,
+      "elapsed_s": 20.26
+    },
+    {
+      "symbol": "DIG",
+      "status": "warnings",
+      "rows": 2494,
+      "span_years": 9.99,
+      "first_date": "2016-10-03",
+      "last_date": "2026-09-30",
+      "issues": [
+        "close outside high/low in 7 rows",
+        "open outside high/low in 2 rows"
+      ],
+      "bronze_records": 2494,
+      "silver_records": 2485,
+      "gold_records": 2485,
+      "elapsed_s": 20.32
+    },
+    {
+      "symbol": "FCN",
+      "status": "warnings",
+      "rows": 2494,
+      "span_years": 9.99,
+      "first_date": "2016-10-03",
+      "last_date": "2026-09-30",
+      "issues": [
+        "close outside high/low in 1 rows",
+        "open outside high/low in 2 rows"
+      ],
+      "bronze_records": 2494,
+      "silver_records": 2491,
+      "gold_records": 2491,
+      "elapsed_s": 20.06
+    },
+    {
+      "symbol": "ITA",
+      "status": "warnings",
+      "rows": 1994,
+      "span_years": 7.98,
+      "first_date": "2016-10-03",
+      "last_date": "2024-09-25",
+      "issues": [
+        "close outside high/low in 4 rows",
+        "open outside high/low in 1 rows"
+      ],
+      "bronze_records": 1994,
+      "silver_records": 1989,
+      "gold_records": 2486,
+      "elapsed_s": 16.63
+    },
+    {
+      "symbol": "HCM",
+      "status": "warnings",
+      "rows": 2494,
+      "span_years": 9.99,
+      "first_date": "2016-10-03",
+      "last_date": "2026-09-30",
+      "issues": [
+        "close outside high/low in 3 rows",
+        "open outside high/low in 2 rows"
+      ],
+      "bronze_records": 2494,
+      "silver_records": 2489,
+      "gold_records": 2489,
+      "elapsed_s": 19.85
+    },
+    {
+      "symbol": "NSC",
+      "status": "warnings",
+      "rows": 2362,
+      "span_years": 9.99,
+      "first_date": "2016-10-03",
+      "last_date": "2026-09-30",
+      "issues": [
+        "close outside high/low in 4 rows"
+      ],
+      "bronze_records": 2362,
+      "silver_records": 2358,
+      "gold_records": 2358,
+      "elapsed_s": 19.87
+    },
+    {
+      "symbol": "MBC",
+      "status": "fetch_failed",
+      "rows": 0,
+      "span_years": 0,
+      "first_date": null,
+      "last_date": null,
+      "issues": [],
+      "bronze_records": null,
+      "silver_records": null,
+      "gold_records": null,
+      "elapsed_s": null
+    },
+    {
+      "symbol": "SBT",
+      "status": "warnings",
+      "rows": 2494,
+      "span_years": 9.99,
+      "first_date": "2016-10-03",
+      "last_date": "2026-09-30",
+      "issues": [
+        "close outside high/low in 9 rows",
+        "open outside high/low in 2 rows"
+      ],
+      "bronze_records": 2494,
+      "silver_records": 2483,
+      "gold_records": 2483,
+      "elapsed_s": 19.85
+    },
+    {
+      "symbol": "IMP",
+      "status": "warnings",
+      "rows": 2478,
+      "span_years": 9.99,
+      "first_date": "2016-10-03",
+      "last_date": "2026-09-30",
+      "issues": [
+        "close outside high/low in 6 rows",
+        "open outside high/low in 2 rows"
+      ],
+      "bronze_records": 2478,
+      "silver_records": 2470,
+      "gold_records": 2470,
+      "elapsed_s": 20.24
+    },
+    {
+      "symbol": "PLD",
+      "status": "fetch_failed",
+      "rows": 0,
+      "span_years": 0,
+      "first_date": null,
+      "last_date": null,
+      "issues": [],
+      "bronze_records": null,
+      "silver_records": null,
+      "gold_records": null,
+      "elapsed_s": null
+    },
+    {
+      "symbol": "FPT",
+      "status": "warnings",
+      "rows": 2494,
+      "span_years": 9.99,
+      "first_date": "2016-10-03",
+      "last_date": "2026-09-30",
+      "issues": [
+        "close outside high/low in 4 rows",
+        "open outside high/low in 1 rows"
+      ],
+      "bronze_records": 2494,
+      "silver_records": 2489,
+      "gold_records": 2489,
+      "elapsed_s": 21.07
+    },
+    {
+      "symbol": "CMG",
+      "status": "warnings",
+      "rows": 2487,
+      "span_years": 9.99,
+      "first_date": "2016-10-03",
+      "last_date": "2026-09-30",
+      "issues": [
+        "close outside high/low in 8 rows",
+        "open outside high/low in 1 rows"
+      ],
+      "bronze_records": 2487,
+      "silver_records": 2475,
+      "gold_records": 2475,
+      "elapsed_s": 20.5
+    },
+    {
+      "symbol": "MWG",
+      "status": "warnings",
+      "rows": 2494,
+      "span_years": 9.99,
+      "first_date": "2016-10-03",
+      "last_date": "2026-09-30",
+      "issues": [
+        "close outside high/low in 8 rows",
+        "open outside high/low in 2 rows"
+      ],
+      "bronze_records": 2494,
+      "silver_records": 2484,
+      "gold_records": 2484,
+      "elapsed_s": 19.9
+    },
+    {
+      "symbol": "PNJ",
+      "status": "warnings",
+      "rows": 2494,
+      "span_years": 9.99,
+      "first_date": "2016-10-03",
+      "last_date": "2026-09-30",
+      "issues": [
+        "close outside high/low in 6 rows",
+        "open outside high/low in 1 rows"
+      ],
+      "bronze_records": 2494,
+      "silver_records": 2487,
+      "gold_records": 2487,
+      "elapsed_s": 20.08
+    },
+    {
+      "symbol": "MSN",
+      "status": "warnings",
+      "rows": 2494,
+      "span_years": 9.99,
+      "first_date": "2016-10-03",
+      "last_date": "2026-09-30",
+      "issues": [
+        "close outside high/low in 7 rows",
+        "open outside high/low in 2 rows"
+      ],
+      "bronze_records": 2494,
+      "silver_records": 2485,
+      "gold_records": 2485,
+      "elapsed_s": 19.5
+    },
+    {
+      "symbol": "SAB",
+      "status": "warnings",
+      "rows": 2448,
+      "span_years": 9.82,
+      "first_date": "2016-12-06",
+      "last_date": "2026-09-30",
+      "issues": [
+        "close outside high/low in 9 rows",
+        "open outside high/low in 2 rows"
+      ],
+      "bronze_records": 2448,
+      "silver_records": 2437,
+      "gold_records": 2437,
+      "elapsed_s": 19.56
+    },
+    {
+      "symbol": "VNM",
+      "status": "warnings",
+      "rows": 2492,
+      "span_years": 9.99,
+      "first_date": "2016-10-03",
+      "last_date": "2026-09-30",
+      "issues": [
+        "close outside high/low in 7 rows",
+        "open outside high/low in 1 rows"
+      ],
+      "bronze_records": 2492,
+      "silver_records": 2484,
+      "gold_records": 2484,
+      "elapsed_s": 20.18
+    },
+    {
+      "symbol": "PNVN",
+      "status": "fetch_failed",
+      "rows": 0,
+      "span_years": 0,
+      "first_date": null,
+      "last_date": null,
+      "issues": [],
+      "bronze_records": null,
+      "silver_records": null,
+      "gold_records": null,
+      "elapsed_s": null
+    },
+    {
+      "symbol": "HPG",
+      "status": "warnings",
+      "rows": 2494,
+      "span_years": 9.99,
+      "first_date": "2016-10-03",
+      "last_date": "2026-09-30",
+      "issues": [
+        "close outside high/low in 2 rows",
+        "open outside high/low in 1 rows"
+      ],
+      "bronze_records": 2494,
+      "silver_records": 2491,
+      "gold_records": 2491,
+      "elapsed_s": 21.43
+    },
+    {
+      "symbol": "GAS",
+      "status": "warnings",
+      "rows": 2494,
+      "span_years": 9.99,
+      "first_date": "2016-10-03",
+      "last_date": "2026-09-30",
+      "issues": [
+        "close outside high/low in 3 rows",
+        "open outside high/low in 1 rows"
+      ],
+      "bronze_records": 2494,
+      "silver_records": 2490,
+      "gold_records": 2490,
+      "elapsed_s": 21.61
+    },
+    {
+      "symbol": "PLX",
+      "status": "warnings",
+      "rows": 2357,
+      "span_years": 9.44,
+      "first_date": "2017-04-21",
+      "last_date": "2026-09-30",
+      "issues": [
+        "close outside high/low in 1 rows",
+        "open outside high/low in 2 rows"
+      ],
+      "bronze_records": 2357,
+      "silver_records": 2354,
+      "gold_records": 2354,
+      "elapsed_s": 22.03
+    },
+    {
+      "symbol": "POW",
+      "status": "warnings",
+      "rows": 2131,
+      "span_years": 8.57,
+      "first_date": "2018-03-06",
+      "last_date": "2026-09-30",
+      "issues": [
+        "close outside high/low in 1 rows",
+        "open outside high/low in 1 rows"
+      ],
+      "bronze_records": 2131,
+      "silver_records": 2128,
+      "gold_records": 2128,
+      "elapsed_s": 18.61
+    },
+    {
+      "symbol": "REE",
+      "status": "warnings",
+      "rows": 2494,
+      "span_years": 9.99,
+      "first_date": "2016-10-03",
+      "last_date": "2026-09-30",
+      "issues": [
+        "close outside high/low in 13 rows",
+        "open outside high/low in 2 rows"
+      ],
+      "bronze_records": 2494,
+      "silver_records": 2479,
+      "gold_records": 2479,
+      "elapsed_s": 20.12
+    },
+    {
+      "symbol": "KDC",
+      "status": "warnings",
+      "rows": 2494,
+      "span_years": 9.99,
+      "first_date": "2016-10-03",
+      "last_date": "2026-09-30",
+      "issues": [
+        "close outside high/low in 4 rows",
+        "open outside high/low in 1 rows"
+      ],
+      "bronze_records": 2494,
+      "silver_records": 2489,
+      "gold_records": 2489,
+      "elapsed_s": 19.75
+    },
+    {
+      "symbol": "DHG",
+      "status": "warnings",
+      "rows": 2494,
+      "span_years": 9.99,
+      "first_date": "2016-10-03",
+      "last_date": "2026-09-30",
+      "issues": [
+        "close outside high/low in 3 rows",
+        "open outside high/low in 1 rows"
+      ],
+      "bronze_records": 2494,
+      "silver_records": 2490,
+      "gold_records": 2490,
+      "elapsed_s": 20.14
+    },
+    {
+      "symbol": "SSI",
+      "status": "warnings",
+      "rows": 2494,
+      "span_years": 9.99,
+      "first_date": "2016-10-03",
+      "last_date": "2026-09-30",
+      "issues": [
+        "close outside high/low in 5 rows",
+        "open outside high/low in 1 rows"
+      ],
+      "bronze_records": 2494,
+      "silver_records": 2488,
+      "gold_records": 2488,
+      "elapsed_s": 19.79
+    },
+    {
+      "symbol": "VND",
+      "status": "warnings",
+      "rows": 2482,
+      "span_years": 9.99,
+      "first_date": "2016-10-03",
+      "last_date": "2026-09-30",
+      "issues": [
+        "close outside high/low in 6 rows"
+      ],
+      "bronze_records": 2482,
+      "silver_records": 2476,
+      "gold_records": 2476,
+      "elapsed_s": 19.84
+    },
+    {
+      "symbol": "VCI",
+      "status": "warnings",
+      "rows": 2302,
+      "span_years": 9.23,
+      "first_date": "2017-07-07",
+      "last_date": "2026-09-30",
+      "issues": [
+        "close outside high/low in 10 rows",
+        "open outside high/low in 1 rows"
+      ],
+      "bronze_records": 2302,
+      "silver_records": 2291,
+      "gold_records": 2291,
+      "elapsed_s": 19.1
+    },
+    {
+      "symbol": "HCM",
+      "status": "warnings",
+      "rows": 2494,
+      "span_years": 9.99,
+      "first_date": "2016-10-03",
+      "last_date": "2026-09-30",
+      "issues": [
+        "close outside high/low in 3 rows",
+        "open outside high/low in 2 rows"
+      ],
+      "bronze_records": 2494,
+      "silver_records": 2489,
+      "gold_records": 2489,
+      "elapsed_s": 19.97
+    },
+    {
+      "symbol": "SHS",
+      "status": "ok",
+      "rows": 2496,
+      "span_years": 9.99,
+      "first_date": "2016-10-03",
+      "last_date": "2026-09-30",
+      "issues": [],
+      "bronze_records": 2496,
+      "silver_records": 2496,
+      "gold_records": 2496,
+      "elapsed_s": 19.66
+    }
+  ]
+}

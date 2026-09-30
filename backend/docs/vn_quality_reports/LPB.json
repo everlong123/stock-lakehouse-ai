@@ -1,0 +1,36 @@
+{
+  "symbol": "LPB",
+  "quality": {
+    "symbol": "LPB",
+    "rows": 2232,
+    "first_date": "2017-10-05",
+    "last_date": "2026-09-30",
+    "span_days": 3282,
+    "span_years": 8.99,
+    "bad_high_low": 0,
+    "bad_close_range": 1,
+    "bad_open_range": 2,
+    "neg_prices": 0,
+    "zero_volume": 0,
+    "missing_open": 0,
+    "missing_close": 0,
+    "missing_volume": 0,
+    "long_gaps": 10,
+    "avg_close_vnd": 14257.29,
+    "min_close_vnd": 2090.0,
+    "max_close_vnd": 56000.0,
+    "avg_volume": 4921338.21,
+    "total_volume": 10984426877.0,
+    "status": "warnings",
+    "issues": [
+      "close outside high/low in 1 rows",
+      "open outside high/low in 2 rows"
+    ]
+  },
+  "bronze_records": 2232,
+  "silver_records": 2229,
+  "silver_errors": 11,
+  "gold_records": 2229,
+  "status": "warnings",
+  "elapsed_s": 17.4
+}

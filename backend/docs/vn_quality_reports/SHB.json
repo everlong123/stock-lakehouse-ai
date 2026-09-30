@@ -1,0 +1,33 @@
+{
+  "symbol": "SHB",
+  "quality": {
+    "symbol": "SHB",
+    "rows": 2493,
+    "first_date": "2016-10-03",
+    "last_date": "2026-09-30",
+    "span_days": 3649,
+    "span_years": 9.99,
+    "bad_high_low": 0,
+    "bad_close_range": 0,
+    "bad_open_range": 0,
+    "neg_prices": 0,
+    "zero_volume": 0,
+    "missing_open": 0,
+    "missing_close": 0,
+    "missing_volume": 0,
+    "long_gaps": 10,
+    "avg_close_vnd": 7119.94,
+    "min_close_vnd": 1270.0,
+    "max_close_vnd": 18780.0,
+    "avg_volume": 21518505.15,
+    "total_volume": 53645633334.0,
+    "status": "ok",
+    "issues": []
+  },
+  "bronze_records": 2493,
+  "silver_records": 2493,
+  "silver_errors": 11,
+  "gold_records": 2493,
+  "status": "ok",
+  "elapsed_s": 19.11
+}

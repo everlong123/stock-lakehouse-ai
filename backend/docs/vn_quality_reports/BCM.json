@@ -1,0 +1,35 @@
+{
+  "symbol": "BCM",
+  "quality": {
+    "symbol": "BCM",
+    "rows": 2127,
+    "first_date": "2018-02-21",
+    "last_date": "2026-09-30",
+    "span_days": 3143,
+    "span_years": 8.61,
+    "bad_high_low": 0,
+    "bad_close_range": 0,
+    "bad_open_range": 2,
+    "neg_prices": 0,
+    "zero_volume": 0,
+    "missing_open": 0,
+    "missing_close": 0,
+    "missing_volume": 0,
+    "long_gaps": 9,
+    "avg_close_vnd": 50236.42,
+    "min_close_vnd": 12590.0,
+    "max_close_vnd": 92870.0,
+    "avg_volume": 303511.19,
+    "total_volume": 645568293.0,
+    "status": "warnings",
+    "issues": [
+      "open outside high/low in 2 rows"
+    ]
+  },
+  "bronze_records": 2127,
+  "silver_records": 2125,
+  "silver_errors": 11,
+  "gold_records": 2125,
+  "status": "warnings",
+  "elapsed_s": 16.91
+}
