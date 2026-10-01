@@ -71,6 +71,15 @@ def predict_symbol(symbol: str, model_name: str, horizon: int = 5) -> dict[str, 
     registry = load_registry_record(symbol, model_name)
     gold = GoldLayer().read(symbol)
     if gold.empty:
+        # Fallback: build Gold from MarketService when Bronze is empty
+        from app.features.feature_engineering import build_gold_features
+        from app.services.market_service import MarketService
+        try:
+            base = MarketService().get_history(symbol)
+            gold = build_gold_features(base)
+        except Exception as exc:
+            raise PredictionError(f"No Gold data available for {symbol}. ({exc})")
+    if gold.empty:
         raise PredictionError(f"No Gold data available for {symbol}.")
     gold = gold.sort_values("timestamp")
 

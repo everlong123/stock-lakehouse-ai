@@ -88,4 +88,4 @@ python scripts/run_stream_publisher.py --symbols AAPL,MSFT --duration 120
 python scripts/run_stream_consumer.py --topic stock-ohlcv-raw
 ```
 
-You can watch the topic live at <http://localhost:8090> (Kafka UI).
+You can inspect the topic via the Kafka CLI (`kafka-topics.sh --bootstrap-server localhost:9094 --list`) or any Kafka client (kcat, kafkacat, Conduktor).

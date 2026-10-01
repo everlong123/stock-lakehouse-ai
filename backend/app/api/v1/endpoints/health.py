@@ -2,6 +2,10 @@
 
 from __future__ import annotations
 
+import json
+import os
+from pathlib import Path
+
 from fastapi import APIRouter
 
 from app.core.config import settings
@@ -28,22 +32,43 @@ def system_status() -> dict:
     storage = get_storage_backend()
     mysql_ok = check_database_connection()
     minio_mode = storage.backend_name == "minio"
-    agent_ready = bool(settings.openai_api_key.strip())
+
+    # Detect LLM provider
+    provider = settings.llm_provider.lower().strip()
+    if provider == "gemini" and settings.gemini_api_key.strip():
+        agent_status = "gemini_free"
+    elif settings.gemini_api_key.strip():
+        agent_status = "gemini_free"
+    elif settings.openai_api_key.strip():
+        agent_status = "llm_ready"
+    elif provider == "local" or not settings.openai_api_key.strip():
+        agent_status = "local_tool_router"
+    else:
+        agent_status = "local_tool_router"
+
+    # Quick HTTP probes for optional services (best-effort, non-blocking)
+    iceberg_ok = _probe_http(f"{settings.iceberg_catalog_uri}/v1/config", expect_status=[200, 400, 404, 405])
+    kafka_ok = _probe_tcp(settings.kafka_bootstrap_servers.split(",")[0].strip()) if settings.use_kafka else False
+
     payload = {
         "backend_api": {"label": "Backend API", "status": "online"},
         "mysql": {"label": "MySQL", "status": "connected" if mysql_ok else "disconnected"},
         "minio": {
-            "label": "MinIO",
+            "label": "MinIO (S3)",
             "status": "connected" if minio_mode else "local_storage_mode",
         },
-        "spark": {
-            "label": "Spark",
-            "status": "enabled" if spark_enabled() else "disabled_pandas_mode",
+        "iceberg": {
+            "label": "Iceberg REST",
+            "status": "online" if iceberg_ok else "disabled",
+        },
+        "kafka": {
+            "label": "Kafka",
+            "status": "online" if kafka_ok else ("disabled" if not settings.use_kafka else "offline"),
         },
         "data_source": {"label": "Data Source", "status": settings.data_source},
         "ai_agent": {
             "label": "AI Agent",
-            "status": "llm_ready" if agent_ready else "local_tool_router",
+            "status": agent_status,
         },
         "counts": {
             "bronze": BronzeLayer().record_count(),
@@ -52,5 +77,58 @@ def system_status() -> dict:
         },
         "storage_backend": storage.backend_name,
         "use_spark": settings.use_spark,
+        "last_pipeline_run": _last_pipeline_run(),
     }
     return ok(payload)
+
+
+def _probe_http(url: str, expect_status: list[int]) -> bool:
+    """Quick HEAD-like probe; returns True if any expected status comes back."""
+    try:
+        import urllib.request
+        import urllib.error
+        req = urllib.request.Request(url, method="GET")
+        with urllib.request.urlopen(req, timeout=2) as resp:
+            return resp.status in expect_status
+    except urllib.error.HTTPError as exc:
+        return exc.code in expect_status
+    except Exception:
+        return False
+
+
+def _probe_tcp(endpoint: str) -> bool:
+    """Quick TCP probe; returns True if connection succeeds."""
+    if not endpoint or ":" not in endpoint:
+        return False
+    host, port = endpoint.rsplit(":", 1)
+    try:
+        import socket
+        with socket.create_connection((host, int(port)), timeout=2):
+            return True
+    except Exception:
+        return False
+
+
+def _last_pipeline_run() -> dict | None:
+    """Find the most recent pipeline run metadata JSON file."""
+    candidates = [
+        Path(settings.data_root_path) / "pipeline_runs",
+        Path(settings.data_root_path),
+        Path("./backend/data/pipeline_runs"),
+        Path("./data/pipeline_runs"),
+    ]
+    try:
+        latest: tuple[float, Path] | None = None
+        for base in candidates:
+            if not base.exists():
+                continue
+            for path in base.rglob("pipeline_run_*.json"):
+                mtime = path.stat().st_mtime
+                if latest is None or mtime > latest[0]:
+                    latest = (mtime, path)
+        if not latest:
+            return None
+        with latest[1].open("r", encoding="utf-8") as fh:
+            return json.load(fh)
+    except Exception:
+        return None

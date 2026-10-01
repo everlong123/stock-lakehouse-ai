@@ -26,6 +26,9 @@ export async function fetchSystemStatus() {
 }
 
 export async function runPipeline(symbol: string, interval: string) {
-  const { data } = await api.post<ApiEnvelope<Record<string, unknown>>>("/pipeline/run", { symbol, interval });
+  const { data } = await api.post<ApiEnvelope<Record<string, unknown>>>("/pipeline/run", {
+    symbols: [symbol],
+    interval,
+  });
   return data.data;
 }

@@ -1,8 +1,9 @@
 # Free Data Sources
 
 This document lists the **free** data sources configured for the Stock Lakehouse AI
-project, their limits, and how to switch between them.  All providers return
-**real OHLCV market data** - there is no offline / synthetic fallback.
+project, their limits, and how to switch between them. All providers return
+**real OHLCV market data** - there is no offline / synthetic fallback in the
+ingestion pipeline (UI có synthetic fallback chỉ khi Lakehouse trống, xem `docs/lakehouse.md`).
 
 ---
 
@@ -10,24 +11,57 @@ project, their limits, and how to switch between them.  All providers return
 
 | Provider           | Key required | Free tier limit                | Historical depth | Status      |
 |--------------------|--------------|--------------------------------|------------------|-------------|
+| **yfinance**       | No           | Unlimited (rate-limited)       | 10+ years        | Active      |
+| **Finnhub REST**   | Yes          | 60 req/min                     | Years            | Active      |
 | **Alpha Vantage**  | Yes          | 25 req/day                     | Last 100 days    | Active      |
-| **Finnhub REST**   | Yes          | 60 req/min                     | Years            | Key old     |
-| **yfinance**       | No           | Unlimited (rate-limited)       | 10+ years        | Blocked     |
+| **SSI iBoard**     | No           | Public API (best-effort)       | 8-10 years VN    | Active      |
 | **Web scraper**    | No           | Best-effort                    | Varies           | Backup      |
 | **Multi-source**   | Auto         | Failover chain                 | Best of all      | Default     |
 
 ---
 
-## 1. Alpha Vantage (recommended default for KLTN)
+## 1. yfinance (best for deep historical, default)
 
-- **Free tier:** 25 requests / day (enough for historical backfill runs)
+- **Free tier:** unlimited (Yahoo rate-limit kicks in aggressively từ cloud / VPN IPs - trả empty DataFrame).
+- **Historical depth:** 10+ years.
+- **No key required.**
+- **Config:** không cần - dùng `yfinance` Python package trực tiếp.
+
+```bash
+python scripts/ingest_historical.py --source yfinance --symbols AAPL --interval 1d
+```
+
+Nếu `yfinance` bị block, đổi sang `multi_source` (auto failover).
+
+Đã upgrade lên `yfinance>=1.0` + `curl_cffi>=0.15` để bypass Yahoo TLS fingerprint block.
+
+---
+
+## 2. Finnhub (REST + WebSocket)
+
+- **Free tier:** 60 requests / minute.
 - **Endpoints:**
-  - `TIME_SERIES_DAILY` — last 100 daily bars (free, **not** the adjusted variant)
-  - `TIME_SERIES_INTRADAY` — last 100 intraday bars at 5/15/30/60 min
-  - `GLOBAL_QUOTE` — single latest quote
+  - `/stock/candle` - up to years of OHLCV.
+  - `/news`, `/stock/profile2` - news + company profile.
+- **Register:** <https://finnhub.io/>
+- **Config:** set `FINNHUB_API_KEY=...` trong `.env`.
+
+```bash
+python scripts/ingest_historical.py --source finnhub --symbols AAPL --interval 1d
+```
+
+**WebSocket** (free tier): 50 symbols / connection, ~50 msgs/sec. Dùng cho real-time streaming qua `scripts/run_stream_publisher.py`.
+
+---
+
+## 3. Alpha Vantage (daily fallback)
+
+- **Free tier:** 25 requests / day.
+- **Endpoints:**
+  - `TIME_SERIES_DAILY` - last 100 daily bars.
+  - `GLOBAL_QUOTE` - latest quote.
 - **Register:** <https://www.alphavantage.co/support/#api-key>
-- **Config:** set `ALPHA_VANTAGE_API_KEY=...` in `.env`
-- **Use:**
+- **Config:** set `ALPHA_VANTAGE_API_KEY=...` trong `.env`.
 
 ```bash
 python scripts/ingest_historical.py --source alpha_vantage --symbols AAPL,MSFT --interval 1d
@@ -35,45 +69,24 @@ python scripts/ingest_historical.py --source alpha_vantage --symbols AAPL,MSFT -
 
 ---
 
-## 2. Finnhub (REST, not WebSocket)
+## 4. SSI iBoard (Vietnamese stocks)
 
-- **Free tier:** 60 requests / minute
-- **Endpoints:** `/stock/candle` returns up to years of OHLCV
-- **Register:** <https://finnhub.io/>
-- **Config:** set `FINNHUB_API_KEY=...` in `.env`
-- **Use:**
+- **Free tier:** public API, không cần key.
+- **Coverage:** HOSE, HNX, UPCOM - 53 symbols phổ biến.
+- **Endpoint:** `https://iboard-api.ssi.com.vn/statistics/charts/history`.
+- **Historical depth:** 5-10 năm (xem `docs/vn_data_quality.md`).
 
 ```bash
-python scripts/ingest_historical.py --source finnhub --symbols AAPL --interval 1d
+python scripts/ingest_vn.py --years 10
 ```
 
-> **Note:** the project's WebSocket streaming layer is optional and currently
-> disabled.  This document only covers historical (REST) sources.
+SSI trả giá theo đơn vị nghìn VND - `SSIVNProvider._normalize()` tự multiply 1000.
 
 ---
 
-## 3. yfinance (best for deep historical)
+## 5. Web scraper (no-key fallback)
 
-- **Free tier:** unlimited (Yahoo's rate limit kicks in aggressively from
-  cloud / VPN IPs - returns empty DataFrames for unknown reasons)
-- **Historical depth:** 10+ years
-- **No key required.**
-- **Config:** none - uses the `yfinance` Python package directly.
-- **Use:**
-
-```bash
-python scripts/ingest_historical.py --source yfinance --symbols AAPL --interval 1d
-```
-
-If `yfinance` is blocked, switch to `alpha_vantage` or `multi_source`.
-
----
-
-## 4. Web scraper (no-key fallback)
-
-- Direct HTTP scrape of Yahoo Finance / Stooq pages - no key required.
-- Limited throughput and brittle to layout changes.  Use only as last resort.
-- **Use:**
+Direct HTTP scrape Yahoo Finance / CafeF pages. Không cần key nhưng throughput thấp và dễ vỡ layout. Chỉ dùng khi các provider trên đều fail.
 
 ```bash
 python scripts/ingest_historical.py --source web_scraper --symbols AAPL --interval 1d
@@ -81,11 +94,9 @@ python scripts/ingest_historical.py --source web_scraper --symbols AAPL --interv
 
 ---
 
-## 5. Multi-source (default in `.env`)
+## 6. Multi-source (default trong `.env`)
 
-Automatic failover chain - tries each provider in order until one returns
-non-empty data.  Chains are configured per interval in
-`backend/app/data_sources/multi_source.py`.
+Auto failover chain - thử từng provider đến khi có data. Chain config trong `backend/app/data_sources/multi_source.py`:
 
 ```python
 DEFAULT_CHAINS = {
@@ -96,30 +107,27 @@ DEFAULT_CHAINS = {
 }
 ```
 
-**Use:**
-
 ```bash
 python scripts/ingest_historical.py --source multi_source --symbols AAPL --interval 1d
 ```
 
-If yfinance is blocked and Finnhub key is invalid, the chain silently falls
-through to Alpha Vantage and still returns data.
+Nếu yfinance bị block và Finnhub key invalid, chain silently fall through Alpha Vantage / web_scraper.
 
 ---
 
 ## Switching sources
 
-The active source is controlled by the `DATA_SOURCE` variable in `.env`:
+Active source điều khiển qua `DATA_SOURCE` trong `.env`:
 
 ```env
 DATA_SOURCE=multi_source   # default
-DATA_SOURCE=alpha_vantage
-DATA_SOURCE=finnhub
 DATA_SOURCE=yfinance
+DATA_SOURCE=finnhub
+DATA_SOURCE=alpha_vantage
 DATA_SOURCE=web_scraper
 ```
 
-Or override per-run with `--source`:
+Hoặc override per-run:
 
 ```bash
 python scripts/ingest_historical.py --source alpha_vantage --symbols AAPL --interval 1d
@@ -127,15 +135,13 @@ python scripts/ingest_historical.py --source alpha_vantage --symbols AAPL --inte
 
 ---
 
-## Recommended setup for KLTN
-
-For a free, reliable historical data pipeline:
+## Recommended setup cho KLTN ($0 budget)
 
 ```env
 DATA_SOURCE=multi_source
-ALPHA_VANTAGE_API_KEY=<your-free-key>     # primary on free tier
-FINNHUB_API_KEY=<your-free-key>           # secondary (60 req/min)
-# yfinance needs no key but is rate-limited
+ALPHA_VANTAGE_API_KEY=<free-key>        # fallback daily
+FINNHUB_API_KEY=<free-key>              # fallback + WebSocket streaming
+# yfinance không cần key, đã có trong requirements.txt
 ```
 
-With `multi_source`, the pipeline always finds a working provider.
+Với `multi_source`, pipeline luôn tìm được 1 provider hoạt động.

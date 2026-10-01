@@ -134,6 +134,13 @@ class BacktestEngine:
         if frame.empty:
             frame = SilverLayer().read(symbol)
         if frame.empty:
+            # Fallback: read raw OHLCV from MarketService (uses synthetic data when Bronze is empty)
+            from app.services.market_service import MarketService
+            try:
+                frame = MarketService().get_history(symbol)
+            except Exception as exc:
+                raise BacktestError(f"No market data available for {symbol}. Run the pipeline first. ({exc})")
+        if frame.empty:
             raise BacktestError(f"No market data available for {symbol}. Run the pipeline first.")
         frame = frame.sort_values("timestamp").reset_index(drop=True)
         if start_date:

@@ -1,8 +1,10 @@
 # Stock Lakehouse AI
 
-Nền tảng prototype khóa luận tốt nghiệp: **Xây dựng nền tảng Data Lakehouse phân tích và dự báo chứng khoán thời gian thực ứng dụng học sâu và AI Agent.**
+Nền tảng prototype khóa luận tốt nghiệp:
 
-Toàn bộ dữ liệu OHLCV trong project là dữ liệu thật từ các nguồn free (Yahoo Finance, Finnhub, Alpha Vantage, web scraper). Pipeline Bronze-Silver-Gold chạy qua MinIO, có thể bật PySpark thay cho Pandas, và có luồng streaming qua Kafka.
+**Xây dựng nền tảng Data Lakehouse phân tích và dự báo chứng khoán ứng dụng học sâu và AI Agent.**
+
+Toàn bộ dữ liệu OHLCV trong project là dữ liệu thật từ các nguồn free (Yahoo Finance, Finnhub, Alpha Vantage, SSI iBoard cho cổ phiếu Việt Nam). Pipeline Bronze - Silver - Gold chạy trên MinIO (S3-compatible), catalog quản lý schema bằng Apache Iceberg REST. Backend FastAPI expose dữ liệu + model + backtest, frontend React/Vite hiển thị dashboard, và AI Agent dùng Gemini Free API để trả lời câu hỏi tự nhiên qua tool calling vào chính backend.
 
 ---
 
@@ -10,45 +12,30 @@ Toàn bộ dữ liệu OHLCV trong project là dữ liệu thật từ các ngu�
 
 Đây là prototype nghiên cứu học thuật.
 
-- Không giao dịch chứng khoán thật
-- Không tự động đặt lệnh mua/bán
-- Không cam kết lợi nhuận
-- Không khẳng định LSTM là mô hình tốt nhất
-- Backtesting chỉ đánh giá hiệu suất lịch sử giả định, không phải dự đoán tương lai
+- Không giao dịch chứng khoán thật.
+- Không tự động đặt lệnh mua/bán.
+- Không cam kết lợi nhuận.
+- Không khẳng định LSTM là mô hình tốt nhất.
+- Backtesting chỉ đánh giá hiệu suất lịch sử giả định, không phải dự đoán tương lai.
 
 ---
 
-## Quick Start
+## Tech Stack (công nghệ nào có trong đồ án)
 
-### 1. Docker Infrastructure
-```bash
-docker compose up -d
-```
-
-### 2. Backend
-```bash
-cd backend
-py -3.11 -m venv .venv
-.venv\Scripts\activate
-pip install -r requirements.txt
-python scripts\bootstrap_infrastructure.py
-python scripts\ingest_historical.py --source yfinance --symbols AAPL,MSFT,GOOGL,NVDA
-python scripts\init_database.py
-uvicorn app.main:app --reload
-```
-
-### 3. Frontend
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-### 4. JupyterLab (Notebooks)
-```bash
-cd notebooks
-jupyter lab
-```
+| Tầng | Công nghệ | Vai trò |
+|------|-----------|---------|
+| **Backend API** | Python 3.11, FastAPI, Pydantic v2 | REST API (`/api/v1/...`) |
+| **ORM / Migration** | SQLAlchemy 2, Alembic | Metadata MySQL + schema version |
+| **Metadata DB** | MySQL 8 (`stock_lakehouse`) | Lưu `users`, `pipeline_runs`, `model_runs`, `backtest_runs`, `agent_conversations` |
+| **Object Storage** | MinIO (S3-compatible) | Bucket `stock-bronze`, `stock-silver`, `stock-gold`, `stock-models`, `stock-backtests` |
+| **Lakehouse format** | Apache Parquet + Apache Iceberg (REST catalog) | Partition theo `symbol/year/month`, time-travel |
+| **Stream engine** | Apache Kafka 3.8 (KRaft mode) | Topic `stock-ohlcv-raw`, `stock-tick`, `stock-alerts`... |
+| **ML / Forecasting** | scikit-learn, statsmodels (ARIMA), PyTorch (LSTM) | Train/predict LR, ARIMA, LSTM |
+| **Backtest** | Engine tự viết (`app/backtesting/`) | MA Crossover, RSI Strategy, Sharpe / Drawdown |
+| **AI Agent** | Gemini Free API (`gemini-2.0-flash-exp`) + tool router | Tool calling vào backend thật |
+| **Data sources** | yfinance, Finnhub, Alpha Vantage, SSI iBoard | Multi-provider + failover |
+| **Frontend** | React 18, Vite 5, TypeScript, TailwindCSS, TanStack Query, Recharts, Lucide | Dashboard, indicator, forecast, backtest, agent chat |
+| **Container** | Docker Compose | mysql, minio, iceberg-rest, kafka |
 
 ---
 
@@ -56,131 +43,295 @@ jupyter lab
 
 ```
 stock-lakehouse-ai/
-├── backend/              # FastAPI backend
-│   ├── app/             # API routes, models, lakehouse
-│   ├── scripts/         # Pipelines, ingestion, training
+├── backend/
+│   ├── app/                    # FastAPI app, lakehouse, forecasting, agent, streaming
+│   ├── scripts/                # CLI scripts (ingest, bootstrap, train, backtest, agent)
+│   ├── alembic/                # Database migrations
+│   ├── alembic.ini
 │   └── requirements.txt
-├── frontend/            # React + Vite frontend
-├── notebooks/           # Jupyter notebooks (EDA, demo)
-├── docs/                # Documentation
-├── docker-compose.yml   # Docker infrastructure
+├── frontend/
+│   ├── src/                    # React app
+│   ├── .env                    # VITE_API_BASE_URL
+│   └── package.json
+├── docs/                       # Documentation (architecture, lakehouse, ai agent, ...)
+├── docker-compose.yml          # mysql + minio + iceberg-rest + kafka
+├── .env                        # Backend env (MySQL/MinIO/Kafka/API keys)
 └── README.md
 ```
+
+---
+
+## Quick Start (5 bước)
+
+### Bước 0 - Yêu cầu môi trường
+
+| Phần mềm | Phiên bản | Ghi chú |
+|----------|-----------|---------|
+| Docker Desktop | 4.x trở lên | Bắt buộc cho MySQL/MinIO/Iceberg/Kafka |
+| Python | 3.11 | Tạo venv trong `backend/.venv` |
+| Node.js | 18 hoặc 20 LTS | Cho frontend Vite |
+| Git | bất kỳ | Clone repo |
+
+> Toàn bộ 4 service infra chạy bằng Docker Compose. Backend Python chạy local (không cần Docker cho app). Frontend chạy local qua `npm run dev`.
+
+### Bước 1 - Khởi động Docker Infrastructure
+
+```bash
+# tại thư mục gốc stock-lakehouse-ai/
+docker compose up -d
+docker compose ps
+```
+
+Sau ~20-30 giây, 4 container sau phải ở trạng thái `running`/`healthy`:
+
+| Service | Container | Port (host) | URL quản lý |
+|---------|-----------|-------------|-------------|
+| MySQL 8 | stock-lakehouse-mysql | 3307 | (không có UI; dùng CLI hoặc MySQL client) |
+| MinIO | stock-lakehouse-minio | 9000 (API), 9001 (Console) | http://localhost:9001 (minioadmin / minioadmin) |
+| Iceberg REST | stock-lakehouse-iceberg-rest | 8181 | http://localhost:8181/v1/config |
+| Apache Kafka | stock-lakehouse-kafka | 9092 (internal), 9094 (external) | (không có UI) |
+
+Nếu container nào báo `unhealthy`, đợi thêm 15-30s rồi `docker compose ps` lại. Nếu Kafka lâu healthy, kiểm tra log: `docker compose logs -f kafka`.
+
+### Bước 2 - Cấu hình `.env`
+
+File `.env` ở thư mục gốc và `backend/.env` đã có sẵn các giá trị mặc định để chạy local. Các biến quan trọng cần kiểm tra:
+
+```bash
+# .env (root) hoặc backend/.env
+MYSQL_HOST=localhost
+MYSQL_PORT=3307
+MYSQL_PASSWORD=123456
+DATABASE_URL=mysql+pymysql://root:123456@localhost:3307/stock_lakehouse
+
+STORAGE_BACKEND=minio
+MINIO_ENDPOINT=localhost:9000
+MINIO_ACCESS_KEY=minioadmin
+MINIO_SECRET_KEY=minioadmin
+
+# Data source
+DATA_SOURCE=multi_source    # yfinance -> finnhub -> alpha_vantage -> web_scraper
+FINNHUB_API_KEY=<optional>  # free tại https://finnhub.io/
+ALPHA_VANTAGE_API_KEY=<optional>  # free tại https://www.alphavantage.co/support/#api-key
+
+# AI Agent
+LLM_PROVIDER=gemini
+GEMINI_API_KEY=<free-key-from-aistudio.google.com>
+GEMINI_MODEL=gemini-2.0-flash-exp
+```
+
+> Cả `.env` ở root và `backend/.env` đều được đọc. `backend/.env` sẽ override các biến tương ứng.
+
+### Bước 3 - Backend (FastAPI)
+
+```powershell
+cd backend
+
+# tạo venv lần đầu
+py -3.11 -m venv .venv
+.\.venv\Scripts\Activate.ps1
+
+# cài dependencies
+pip install -r requirements.txt
+
+# tạo database + chạy Alembic migrations (idempotent)
+python scripts\init_database.py
+
+# (optional) tạo MinIO buckets + Kafka topics
+python scripts\bootstrap_infrastructure.py
+
+# (optional) ingest dữ liệu lịch sử thật (5-10 năm)
+python scripts\ingest_historical.py --source multi_source --years 10
+python scripts\ingest_vn.py --years 10        # cổ phiếu VN qua SSI
+
+# chạy API server
+uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
+```
+
+Sau khi server lên, kiểm tra:
+
+- Swagger UI: http://127.0.0.1:8000/docs
+- Health check: http://127.0.0.1:8000/api/v1/health
+- OpenAPI schema: http://127.0.0.1:8000/openapi.json
+
+### Bước 4 - Frontend (React + Vite)
+
+```powershell
+cd frontend
+npm install
+# .env đã có sẵn VITE_API_BASE_URL=http://127.0.0.1:8000/api/v1
+npm run dev
+```
+
+Frontend chạy tại: **http://127.0.0.1:5173**.
+
+Vite đã được cấu hình proxy `/api/v1` -> `http://127.0.0.1:8000`, nên có thể gọi API trực tiếp từ browser qua `/api/v1/...` mà không cần CORS.
+
+### Bước 5 - Truy cập nhanh
+
+| Service | URL | Credentials |
+|---------|-----|-------------|
+| Frontend (web app) | http://127.0.0.1:5173 | - |
+| Backend Swagger | http://127.0.0.1:8000/docs | - |
+| Backend Health | http://127.0.0.1:8000/api/v1/health | - |
+| MinIO Console | http://127.0.0.1:9001 | minioadmin / minioadmin |
+| Iceberg REST | http://127.0.0.1:8181/v1/config | - |
 
 ---
 
 ## Data Lake Architecture (Medallion)
 
 ```
-Raw Data -> Bronze -> Silver -> Gold -> ML/Analytics
-                |
-          MinIO Storage (S3-compatible)
+Real sources (yfinance / Finnhub / Alpha Vantage / SSI iBoard)
+        |
+        v
+   Bronze (raw OHLCV, append-only, partitioned symbol/year/month)
+        |
+        v
+   Silver (cleaned UTC, OHLC validated, dedupe, _errors/)
+        |
+        v
+   Gold (94 features: technical + advanced + macro + composite + target)
+        |
+        +--> Technical Analysis (SMA/EMA/RSI/MACD/Bollinger/ATR/ADX/Ichimoku)
+        +--> Forecasting (Linear Regression / ARIMA / LSTM)
+        +--> Backtesting (MA Crossover, RSI Strategy)
+        +--> AI Agent (tool calling) --> Frontend
 ```
 
-| Layer | Mô tả | Storage |
-|-------|-------|---------|
-| **Bronze** | Raw data, snapshot từ source | `stock-bronze/` |
-| **Silver** | Cleaned, enriched, partitioned by symbol/year/month | `stock-silver/` |
-| **Gold** | Aggregated features, ML-ready (94 cols / symbol) | `stock-gold/` |
-
-Schema evolution: Bronze append-only, Silver overwrites per partition, Gold overwrites per partition.
+Mỗi layer được giải thích chi tiết trong [`docs/lakehouse.md`](docs/lakehouse.md) và [`docs/PROGRESS_LAKEHOUSE.md`](docs/PROGRESS_LAKEHOUSE.md).
 
 ---
 
-## Data Sources
+## Các lệnh thường dùng
 
-### Supported Symbols
-
-**US Stocks (60+):**
-```
-Technology: AAPL, MSFT, GOOGL, META, NVDA, AMD, ORCL, CRM, ADBE
-Finance: JPM, V, MA, GS, BAC, MS, BLK
-Consumer: AMZN, TSLA, WMT, HD, NKE, MCD, SBUX
-Healthcare: JNJ, UNH, PFE, MRK, ABBV, LLY
-Energy: XOM, CVX, COP, SLB
-Crypto: COIN, BTC-USD, ETH-USD, MSTR
-Vietnam: FPT, MWG, VNM, HPG, VCB, TCB, VIC, VHM, VRE, BID, CTG, EOG, PLX, POW, SAB, SSI
-```
-
-**Market Indexes:**
-```
-^GSPC - S&P 500
-^DJI  - Dow Jones
-^IXIC - NASDAQ
-```
-
-### Adapter Pattern
-
-Mỗi nguồn dữ liệu được đóng gói trong adapter riêng (`app/data_sources/`):
-
-- **YFinancePythonProvider** - `yfinance>=1.0` + `curl_cffi`, real OHLCV, không cần API key
-- **FinnhubProvider** - Free tier historical + WebSocket streaming
-- **AlphaVantageProvider** - Free tier, fallback khi Yahoo fail
-- **WebScraperProvider** - Backup cho VN stocks (VnExpress, Vietstock)
-- **MultiSourceProvider** - Failover chain tự động: yfinance -> finnhub -> alpha_vantage -> web_scraper
-
-Đổi nguồn qua biến `DATA_SOURCE` trong `.env`, không cần sửa pipeline.
-
----
-
-## Features
-
-| Module | Mô tả |
-|--------|-------|
-| Dashboard | Giá realtime, RSI, prediction, charts (React) |
-| Technical Analysis | SMA, EMA, RSI, MACD, Bollinger Bands, ATR, ADX, Ichimoku, Supertrend, VWAP |
-| Forecasting | Linear Regression, ARIMA, LSTM với walk-forward validation |
-| Backtesting | MA Crossover, RSI Strategy, equity curve, Sharpe ratio |
-| AI Agent | Tool calling vào backend thật, 14+ Pydantic tools |
-| Data Lake | MinIO + PySpark pipeline + Iceberg REST catalog |
-| Streaming | Kafka producer/consumer cho real-time OHLCV |
-
-Gold layer hiện có **94 features** mỗi symbol (technical + advanced + macro + composite).
-
----
-
-## Tech Stack
-
-| Layer | Tech |
-|-------|------|
-| Backend | Python 3.11, FastAPI, Pandas, PySpark |
-| Frontend | React 18, Vite, TailwindCSS |
-| Database | MySQL 8 |
-| Storage | MinIO (S3-compatible) |
-| Orchestration | Cron-based scheduler (`scripts/schedule_batch.py`) |
-| ML | PyTorch, scikit-learn, statsmodels |
-| Streaming | Kafka + WebSocket |
-| Lakehouse format | Parquet (default) hoặc Apache Iceberg (opt-in) |
-
----
-
-## Truy cập Dịch vụ
-
-| Service | URL | Credentials |
-|---------|-----|-------------|
-| Frontend | http://localhost:5173 | - |
-| API | http://localhost:8000 | - |
-| Swagger | http://localhost:8000/docs | - |
-| MinIO Console | http://localhost:9001 | minioadmin / minioadmin |
-| Adminer (MySQL UI) | http://localhost:8081 | root / 123456 |
-| JupyterLab | http://localhost:8888 | Token from terminal |
-| Kafka UI | http://localhost:8090 | - |
-| Spark Master UI | http://localhost:8080 | - |
-
----
-
-## Configuration
+### Docker
 
 ```bash
-# .env
-STORAGE_BACKEND=minio       # local hoặc minio
-DATA_SOURCE=yfinance        # yfinance, yfinance_direct, finnhub, alpha_vantage, web_scraper, multi_source
-USE_SPARK=false             # bật PySpark cho Silver/Gold
-USE_KAFKA=false             # bật streaming pipeline
-OPENAI_API_KEY=sk-...       # optional, cho AI Agent
+docker compose ps                    # trạng thái container
+docker compose logs -f kafka         # log real-time của 1 service
+docker compose restart minio         # restart 1 service
+docker compose down                  # dừng tất cả (giữ volume)
+docker compose down -v               # dừng + XÓA data (cẩn thận)
 ```
 
-Xem `.env.example` để biết đầy đủ biến môi trường.
+### Backend (Python)
+
+```powershell
+cd backend
+.\.venv\Scripts\Activate.ps1
+
+# Migration MySQL
+python scripts\init_database.py
+
+# Tạo MinIO buckets + Kafka topics
+python scripts\bootstrap_infrastructure.py
+
+# Ingest dữ liệu thật
+python scripts\ingest_historical.py --source yfinance --symbols AAPL,MSFT,GOOGL,NVDA --years 10
+python scripts\ingest_vn.py --years 10
+
+# Chạy pipeline Bronze -> Silver -> Gold cho 1 symbol
+python scripts\run_pipeline.py --symbol AAPL
+
+# Train + backtest + walk-forward
+python scripts\train_models.py --symbol AAPL --models linear_regression,arima,lstm
+python scripts\run_backtest.py --symbol AAPL --strategy ma_crossover
+python scripts\run_walk_forward.py --symbol AAPL --model lstm --folds 5
+
+# Test AI Agent headless
+python scripts\run_agent.py --symbol AAPL --question "RSI hiện tại bao nhiêu?"
+
+# API server
+uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
+```
+
+### Frontend
+
+```powershell
+cd frontend
+npm install         # lần đầu
+npm run dev         # dev server (http://127.0.0.1:5173)
+npm run build       # build production (tsc + vite build)
+npm run preview     # preview production build
+```
+
+---
+
+## API Endpoints chính
+
+| Method | Path | Mô tả |
+|--------|------|-------|
+| GET | `/api/v1/health` | Health check tổng |
+| GET | `/api/v1/system/status` | Trạng thái bronze/silver/gold + providers |
+| GET | `/api/v1/stocks/symbols` | Danh sách symbol đã ingest |
+| GET | `/api/v1/stocks/{symbol}?interval=1d&limit=500` | Lịch sử OHLCV |
+| GET | `/api/v1/stocks/{symbol}/latest` | Bar mới nhất |
+| GET | `/api/v1/stocks/{symbol}/indicators` | SMA/EMA/RSI/MACD/Bollinger |
+| GET | `/api/v1/dashboard/{symbol}` | Bundle data cho dashboard |
+| POST | `/api/v1/forecast/train` | Train model (LR/ARIMA/LSTM) |
+| POST | `/api/v1/forecast/predict` | Predict N-day |
+| GET | `/api/v1/forecast/compare/{symbol}` | So sánh 3 model |
+| POST | `/api/v1/backtests/run` | Chạy 1 backtest |
+| GET | `/api/v1/backtests/history` | Lịch sử backtest |
+| POST | `/api/v1/agent/chat` | Chat với AI Agent |
+| POST | `/api/v1/pipeline/run` | Chạy Bronze -> Silver -> Gold |
+
+Đầy đủ ở Swagger: <http://127.0.0.1:8000/docs>.
+
+---
+
+## Cấu hình chi tiết
+
+### AI Agent (Gemini Free)
+
+1. Lấy API key miễn phí tại <https://aistudio.google.com/apikey> (60 req/min, không cần thẻ).
+2. Đặt vào `.env`:
+   ```
+   LLM_PROVIDER=gemini
+   GEMINI_API_KEY=<key-của-bạn>
+   GEMINI_MODEL=gemini-2.0-flash-exp
+   ```
+3. Không có key, Agent vẫn chạy được bằng local tool router (vẫn gọi đúng backend tools, không bịa số).
+
+### Data Sources (free)
+
+| Source | Key? | Dùng cho | Cách lấy |
+|--------|------|----------|----------|
+| yfinance | Không | US stocks + crypto + indexes | `pip install yfinance` (đã có sẵn) |
+| Finnhub | Có (free) | US stocks + WS streaming | <https://finnhub.io/> |
+| Alpha Vantage | Có (free) | Fallback daily OHLCV | <https://www.alphavantage.co/support/#api-key> |
+| SSI iBoard | Không | Cổ phiếu VN (HOSE/HNX/UPCOM) | Public API của SSI |
+| Multi-source | Auto | Failover chain | Set `DATA_SOURCE=multi_source` |
+
+### Storage
+
+- `STORAGE_BACKEND=minio` (mặc định): dùng MinIO container đang chạy ở `localhost:9000`.
+- `STORAGE_BACKEND=local`: fallback về `backend/data/` nếu MinIO lỗi. Không cần Docker để dev nhanh.
+
+### Streaming (Kafka)
+
+- `docker compose up -d kafka` đã bật Kafka ở KRaft mode (không cần ZooKeeper).
+- `scripts/bootstrap_infrastructure.py` tạo các topic: `stock-ohlcv-raw`, `stock-ohlcv-enriched`, `stock-alerts`, `stock-tick`, `stock-candle-1m`.
+- Producer / consumer chạy qua:
+  ```powershell
+  python scripts\run_stream_publisher.py --symbols AAPL,MSFT
+  python scripts\run_stream_consumer.py --topic stock-ohlcv-raw
+  ```
+
+---
+
+## Data Quality Guarantees
+
+- Tất cả OHLCV trong Gold layer đều từ nguồn thật (yfinance / Finnhub / Alpha Vantage / SSI iBoard). Không có synthetic data trong production pipeline.
+- Minimum 5 năm daily data cho mỗi symbol được verify.
+- Walk-forward validation đảm bảo không có future leakage (chia time-series, target dùng `shift(-1)`).
+- Khi Lakehouse trống, `MarketService` có fallback synthetic deterministic (chỉ cho demo UI, không ghi vào Bronze/Silver/Gold) để chart không bị trống.
+
+Verified datasets (snapshot 2026-09-30):
+- US stocks (AAPL, MSFT, GOOGL, NVDA, ...): ~2500 rows × ~10 năm mỗi mã.
+- Crypto (BTC-USD, ETH-USD): 3000-3650 rows × 8-10 năm.
+- VN stocks (VCB, FPT, HPG, MWG, ...): 50/53 symbols × 5-10 năm (xem `docs/vn_data_quality.md`).
 
 ---
 
@@ -188,64 +339,20 @@ Xem `.env.example` để biết đầy đủ biến môi trường.
 
 | File | Mô tả |
 |------|-------|
-| [docs/PROGRESS.md](docs/PROGRESS.md) | Progress tracker & setup guide |
-| [docs/architecture.md](docs/architecture.md) | Kiến trúc hệ thống |
-| [docs/lakehouse.md](docs/lakehouse.md) | Lakehouse (Iceberg/Parquet) |
-| [docs/pipeline.md](docs/pipeline.md) | Pipeline & Streaming |
-| [docs/database.md](docs/database.md) | MySQL schema |
-| [docs/ai_agent.md](docs/ai_agent.md) | AI Agent tools |
-| [docs/tech_stack_matrix.md](docs/tech_stack_matrix.md) | Tech-to-file mapping |
-| [docs/data_sources.md](docs/data_sources.md) | Data source catalog |
-
----
-
-## Common Tasks
-
-### Ingest thêm symbols
-```bash
-python scripts/ingest_historical.py --source yfinance --symbols TSLA,AMZN --interval 1d
-```
-
-### Rebuild Gold cho symbols bị lỗi
-```bash
-python scripts/rebuild_gold.py
-```
-
-### Train forecasting model
-```bash
-python scripts/train_models.py --symbol AAPL --model lstm
-```
-
-### Run backtest
-```bash
-python scripts/run_backtest.py --symbol AAPL --strategy ma_crossover
-```
-
-### Walk-forward validation
-```bash
-python scripts/run_walk_forward.py --symbol AAPL --model lstm --folds 5
-```
-
----
-
-## Data Quality Guarantees
-
-- Tất cả OHLCV trong Gold layer đều từ nguồn thật (Yahoo Finance, Finnhub, Alpha Vantage, hoặc web scraper)
-- Không có synthetic/sample data trong production pipeline
-- Minimum 5 năm daily data cho mỗi symbol được verify
-- Walk-forward validation đảm bảo không có future leakage
-
-Verified datasets (tính tới 2026-09-30):
-- AAPL: 2507 rows × 9.99 năm
-- MSFT: 1250 rows × ~3.4 năm (Finnhub free tier cap)
-- BTC-USD: 3650 rows × 9.99 năm
-- ETH-USD: 3247 rows × 8.89 năm
-- 102/102 symbols có Gold features built
+| [docs/PROGRESS_LAKEHOUSE.md](docs/PROGRESS_LAKEHOUSE.md) | Báo cáo tiến độ chi tiết cho thầy (Bronze/Silver/Gold + demo) |
+| [docs/PROGRESS.md](docs/PROGRESS.md) | Progress tracker tổng + setup guide |
+| [docs/architecture.md](docs/architecture.md) | Kiến trúc tổng thể |
+| [docs/lakehouse.md](docs/lakehouse.md) | Chi tiết Bronze/Silver/Gold + Iceberg |
+| [docs/pipeline.md](docs/pipeline.md) | Pipeline orchestrator + streaming |
+| [docs/database.md](docs/database.md) | MySQL schema (metadata) |
+| [docs/ai_agent.md](docs/ai_agent.md) | AI Agent tools + Gemini config |
+| [docs/data_sources.md](docs/data_sources.md) | Catalog data sources free |
+| [docs/tech_stack_matrix.md](docs/tech_stack_matrix.md) | Map công nghệ -> file implementation |
+| [docs/vn_data_quality.md](docs/vn_data_quality.md) | Quality report cho cổ phiếu VN |
+| [docs/system_health.md](docs/system_health.md) | System health audit (sau khi chạy audit script) |
 
 ---
 
 ## License
 
 Academic Research Project - Không sử dụng cho mục đích thương mại.
-
-Updated: 2026-09-30 02:24

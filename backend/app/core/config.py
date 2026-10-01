@@ -61,6 +61,14 @@ class Settings(BaseSettings):
     openai_base_url: str = "https://api.openai.com/v1"
     openai_timeout_seconds: int = 60
 
+    # Gemini Free API (Google AI Studio - free tier)
+    gemini_api_key: str = ""
+    gemini_model: str = "gemini-2.0-flash-exp"
+    gemini_base_url: str = "https://generativelanguage.googleapis.com/v1beta"
+
+    # LLM provider selection: "openai", "gemini", or "local" (offline router)
+    llm_provider: Literal["openai", "gemini", "local"] = "local"
+
     default_symbol: str = "AAPL"
     default_interval: str = "1d"
     default_lookback_days: int = 3650  # ~10 years (exceeds 5-year requirement)

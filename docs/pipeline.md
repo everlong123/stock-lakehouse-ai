@@ -4,101 +4,108 @@
 
 Pipeline chính của đồ án là batch processing chạy qua các script trong `backend/scripts/`, theo luồng Medallion (Bronze -> Silver -> Gold).
 
-### Luồng:
+### Luồng
 
-1. collect_data (yfinance, finnhub, alpha_vantage, ssi_vn, multi_source failover)
-2. validate_data (provider-side + silver-side checks)
-3. store_bronze (MinIO `stock-bronze/`)
-4. transform_silver (cleaning, partition by symbol/year/month)
-5. data_quality_check (critical fail -> không build Gold)
-6. build_gold (94 technical + macro + regime + candlestick features)
+1. `collect_data` (yfinance, finnhub, alpha_vantage, ssi_vn, multi_source failover)
+2. `validate_data` (provider-side + silver-side checks)
+3. `store_bronze` (MinIO `stock-bronze/`)
+4. `transform_silver` (cleaning, partition by `symbol/year/month`, engine = Pandas)
+5. `data_quality_check` (critical fail -> không build Gold)
+6. `build_gold` (94 technical + macro + regime + candlestick features)
 
-### Chạy local:
+### Chạy local
 
-```bat
-python scripts\ingest_historical.py --years 10
-python scripts\run_pipeline.py --symbol ALL
+```powershell
+# từ thư mục backend/
+.venv\Scripts\Activate.ps1
+
+# ingest 10 năm daily OHLCV (Bronze -> Silver -> Gold)
+python scripts\ingest_historical.py --source multi_source --years 10
+
+# ingest cổ phiếu VN (SSI iBoard)
+python scripts\ingest_vn.py --years 10
+
+# chạy pipeline cho 1 symbol (đã có trong Bronze)
+python scripts\run_pipeline.py --symbol VCB
 ```
 
-### API:
+### API
 
 `POST /api/v1/pipeline/run`
 
 ```json
-{ "symbol": "AAPL", "interval": "1d", "source": "yfinance" }
+{
+  "symbols": ["VCB"],
+  "interval": "1d",
+  "source": "multi_source"
+}
 ```
 
-### Quality report:
+> Schema Pydantic chấp nhận `symbols` (list) chứ không phải `symbol` (string).
 
-record_count, duplicate_count, missing_count, invalid_ohlc_count, invalid_volume_count, min_timestamp, max_timestamp, quality_status
+### Quality report
 
-### Idempotent: rerun không nhân bản business key `(symbol, timestamp)`.
+`record_count`, `duplicate_count`, `missing_count`, `invalid_ohlc_count`, `invalid_volume_count`, `min_timestamp`, `max_timestamp`, `quality_status`.
 
-### Chạy local:
+### Idempotent
 
-```bat
-python scripts\ingest_historical.py --years 10
-python scripts\run_pipeline.py --symbol ALL
-```
-
-### API:
-
-`POST /api/v1/pipeline/run`
-
-```json
-{ "symbol": "AAPL", "interval": "1d", "source": "yfinance" }
-```
-
-### Quality report:
-
-record_count, duplicate_count, missing_count, invalid_ohlc_count, invalid_volume_count, min_timestamp, max_timestamp, quality_status
-
-### Idempotent: rerun không nhân bản business key `(symbol, timestamp)`.
+Rerun không nhân bản business key `(symbol, timestamp)`.
 
 ---
 
 ## Real-time Streaming (Kafka)
 
-Ngoài batch pipeline, project hỗ trợ **real-time streaming** với Apache Kafka.
+Ngoài batch pipeline, project hỗ trợ **near-real-time streaming** với Apache Kafka.
 
 ### Architecture
 
 ```
-Data Source (yfinance/web)
-        │
-        ▼
-┌─────────────────┐
-│  Kafka Producer │
-│  (publisher)    │
-└────────┬────────┘
-         │
-    ┌────▼────┐
-    │  Kafka  │
-    │  Topic  │
-    │ stock-  │
-    │ ohlcv-  │
-    │ raw     │
-    └────┬────┘
-         │
-         ▼
-┌─────────────────┐
-│  Kafka Consumer │
-│  (real-time)    │
-└────────┬────────┘
-         │
-    ┌────┴────┐
-    ▼         ▼
-Bronze     Dashboard
- Storage   (live)
+Finnhub WebSocket           yfinance polling
+        |                          |
+        v                          v
++---------------------------------------+
+|  StreamPublisher (1s OHLCV aggregation)|
++-----------------+---------------------+
+                  |
+                  v
+            +-----------+
+            |   Kafka   |
+            |   Topic   |
+            | stock-    |
+            | ohlcv-raw |
+            +-----+-----+
+                  |
+                  v
++---------------------------------------+
+|  Kafka Consumer                       |
++-----------------+---------------------+
+                  |
+        +---------+---------+
+        |                   |
+        v                   v
++----------+      +----------------+
+| Bronze   |      |  Dashboard     |
+| /Silver/ |      |  (live update) |
+| Gold     |      +----------------+
++----------+
 ```
 
-### Start Kafka
+### Setup streaming
 
 ```bash
-docker compose up -d kafka kafka-ui
+# 1. Đảm bảo Kafka container đang chạy
+docker compose up -d kafka
 
-# Kafka UI: http://localhost:8090
-# Kafka port:  localhost:9094
+# 2. Tạo topic + buckets
+python scripts/bootstrap_infrastructure.py
+
+# 3. Điền FINNHUB_API_KEY vào .env (lấy miễn phí tại https://finnhub.io/)
+
+# 4. Chạy publisher (terminal 1)
+python scripts/run_stream_publisher.py --symbols AAPL,MSFT,GOOGL
+
+# 5. Chạy consumer (terminal 2)
+python scripts/run_stream_consumer.py --topic stock-ohlcv-raw
 ```
 
 ### Code - Producer
@@ -106,11 +113,10 @@ docker compose up -d kafka kafka-ui
 ```python
 from app.streaming.kafka_producer import StockKafkaProducer, publish_ohlcv
 
-# Publish OHLCV data to Kafka
 producer = StockKafkaProducer()
 producer.send_ohlcv("AAPL", df)
 
-# Or convenience function
+# Hoặc dùng hàm tiện ích
 publish_ohlcv("AAPL", df)
 ```
 
@@ -119,38 +125,41 @@ publish_ohlcv("AAPL", df)
 ```python
 from app.streaming.kafka_consumer import StockKafkaConsumer
 
-# Start consuming in background
+# Chạy consumer nền
 consumer = StockKafkaConsumer()
 consumer.start()
 
-# Or consume batch manually
+# Hoặc consume 1 batch
 count = consumer.consume_batch(max_records=100)
 ```
 
 ### Topics
 
-| Topic | Description |
-|-------|-------------|
-| `stock-ohlcv-raw` | Raw OHLCV bars |
-| `stock-ohlcv-enriched` | Enriched with indicators |
-| `stock-alerts` | Price alerts |
+| Topic | Mô tả |
+|-------|-------|
+| `stock-ohlcv-raw` | Raw OHLCV bars từ WebSocket |
+| `stock-ohlcv-enriched` | OHLCV + indicators |
+| `stock-alerts` | Cảnh báo giá |
+| `stock-tick` | Trade tick thô |
+| `stock-candle-1m` | Bar 1 phút sau resample |
 
 ### Streaming Ingester (Background)
 
 ```python
 from app.streaming.kafka_producer import StreamingIngester
 
-# Continuous polling and publishing
+# Polling liên tục + publish Kafka
 ingester = StreamingIngester(
     symbols=["AAPL", "MSFT"],
     interval="1m",
 )
-ingester.start()  # Runs in background
+ingester.start()  # chạy nền
 ```
 
-### Enable in .env
+### Enable in `.env`
 
 ```bash
-use_kafka=true
-kafka_bootstrap_servers=localhost:9094
+KAFKA_BOOTSTRAP_SERVERS=localhost:9094
 ```
+
+> Bootstrap script `bootstrap_infrastructure.py` tự tạo topic khi Kafka đã healthy. Idempotent - chạy nhiều lần không lỗi.

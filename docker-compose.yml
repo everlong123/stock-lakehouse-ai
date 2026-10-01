@@ -1,5 +1,5 @@
 services:
-  # ── Database ────────────────────────────────────────────────────────────────
+  # ── Database (lưu pipeline metadata, AI chat history) ─────────────────────
   mysql:
     image: mysql:8.4
     container_name: stock-lakehouse-mysql
@@ -18,7 +18,7 @@ services:
       timeout: 5s
       retries: 10
 
-  # ── Object Storage (MinIO - S3 Compatible) ──────────────────────────────────
+  # ── Object Storage (S3-compatible) ─────────────────────────────────────────
   minio:
     image: quay.io/minio/minio:latest
     container_name: stock-lakehouse-minio
@@ -33,17 +33,26 @@ services:
     volumes:
       - minio_data:/data
 
-  # ── Database Admin UI ───────────────────────────────────────────────────────
-  adminer:
-    image: adminer:4
-    container_name: stock-lakehouse-adminer
+  # ── Apache Iceberg REST Catalog ─────────────────────────────────────────────
+  iceberg-rest:
+    image: tabulario/iceberg-rest:0.9.0
+    container_name: stock-lakehouse-iceberg-rest
     restart: unless-stopped
+    environment:
+      CATALOG_sqlite__catalog__uri: "sqlite:///var/lib/iceberg/iceberg_rest.db"
+      CATALOG_s3__endpoint: "http://minio:9000"
+      CATALOG_s3__access-key__id: "minioadmin"
+      CATALOG_s3__secret-access-key: "minioadmin"
+      CATALOG_s3__region: "us-east-1"
+      CATALOG_properties: "--unauthenticated"
     ports:
-      - "8081:8080"
+      - "8181:8181"
+    volumes:
+      - iceberg_rest_data:/var/lib/iceberg
     depends_on:
-      - mysql
+      - minio
 
-  # ── Apache Kafka (Real-time Streaming) ──────────────────────────────────────
+  # ── Apache Kafka (Real-time Streaming) ─────────────────────────────────────
   kafka:
     image: apache/kafka:3.8.0
     container_name: stock-lakehouse-kafka
@@ -69,87 +78,9 @@ services:
       timeout: 10s
       retries: 5
 
-  # ── Kafka UI ────────────────────────────────────────────────────────────────
-  kafka-ui:
-    image: provectuslabs/kafka-ui:latest
-    container_name: stock-lakehouse-kafka-ui
-    restart: unless-stopped
-    environment:
-      KAFKA_CLUSTERS_0_NAME: local
-      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
-      KAFKA_CLUSTERS_0_ZOOKEEPER: ""
-    ports:
-      - "8090:8080"
-    depends_on:
-      - kafka
-
-  # ── Apache Iceberg REST Catalog ──────────────────────────────────────────────
-  iceberg-rest:
-    image: tabulario/iceberg-rest:0.9.0
-    container_name: stock-lakehouse-iceberg-rest
-    restart: unless-stopped
-    environment:
-      CATALOG_sqlite__catalog__uri: "sqlite:///var/lib/iceberg/iceberg_rest.db"
-      CATALOG_s3__endpoint: "http://minio:9000"
-      CATALOG_s3__access-key__id: "minioadmin"
-      CATALOG_s3__secret-access-key: "minioadmin"
-      CATALOG_s3__region: "us-east-1"
-      CATALOG_properties: "--unauthenticated"
-    ports:
-      - "8181:8181"
-    volumes:
-      - iceberg_rest_data:/var/lib/iceberg
-    depends_on:
-      - minio
-
-  # ── Apache Spark (Silver & Gold Processing) ──────────────────────────────────
-  spark-master:
-    image: jupyter/pyspark-notebook:latest
-    container_name: stock-lakehouse-spark-master
-    restart: unless-stopped
-    environment:
-      SPARK_MODE: master
-      SPARK_RPC_AUTHENTICATION_ENABLED: "no"
-      SPARK_RPC_ENCRYPTION_ENABLED: "no"
-      SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED: "no"
-      SPARK_SSL_ENABLED: "no"
-      AWS_ACCESS_KEY_ID: minioadmin
-      AWS_SECRET_ACCESS_KEY: minioadmin
-      AWS_ENDPOINT: http://minio:9000
-      AWS_REGION: us-east-1
-    ports:
-      - "8080:8080"  # Spark UI
-      - "7077:7077"  # Spark submit
-      - "8888:8888"  # Jupyter
-    volumes:
-      - spark_workspace:/workspace
-    depends_on:
-      - minio
-
-  # ── JupyterLab + PySpark (Development & ML) ──────────────────────────────────
-  jupyter:
-    image: jupyter/pyspark-notebook:latest
-    container_name: stock-lakehouse-jupyter
-    restart: unless-stopped
-    environment:
-      SPARK_MASTER: spark://spark-master:7077
-      AWS_ACCESS_KEY_ID: minioadmin
-      AWS_SECRET_ACCESS_KEY: minioadmin
-      AWS_ENDPOINT: http://minio:9000
-      AWS_REGION: us-east-1
-      JUPYTER_ENABLE_LAB: "yes"
-    ports:
-      - "8889:8888"  # Jupyter
-    volumes:
-      - spark_workspace:/workspace
-    depends_on:
-      - minio
-
-# ── Volumes ─────────────────────────────────────────────────────────────────────
+# ── Volumes ────────────────────────────────────────────────────────────────────
 volumes:
   mysql_data:
   minio_data:
   iceberg_rest_data:
   kafka_data:
-  spark_workspace:
-
