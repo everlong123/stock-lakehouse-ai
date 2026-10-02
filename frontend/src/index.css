@@ -3,86 +3,67 @@
 @tailwind utilities;
 
 :root {
-  /* Base - clean white + emerald green */
-  --background: 0 0% 99%;
-  --foreground: 158 25% 12%;
+  --background: 0 0% 100%;
+  --foreground: 220 18% 12%;
 
   --card: 0 0% 100%;
-  --card-foreground: 158 25% 12%;
+  --card-foreground: 220 18% 12%;
 
-  --muted: 152 30% 96%;
-  --muted-foreground: 158 12% 32%;
+  --muted: 220 14% 96%;
+  --muted-foreground: 220 10% 38%;
 
-  --border: 152 18% 88%;
-  --primary: 154 58% 38%;
+  --border: 220 14% 88%;
+  --input: 220 14% 84%;
+
+  --primary: 168 76% 32%;
   --primary-foreground: 0 0% 100%;
-  --accent: 152 30% 94%;
-  --accent-foreground: 156 64% 22%;
 
-  --up: 154 60% 36%;
-  --down: 0 70% 50%;
-  --warn: 36 90% 48%;
+  --accent: 220 14% 94%;
+  --accent-foreground: 220 18% 14%;
+
+  --up: 152 60% 32%;
+  --down: 0 64% 48%;
+  --warn: 32 88% 44%;
 }
 
 * { box-sizing: border-box; }
 html, body, #root { min-height: 100%; }
 body {
   margin: 0;
-  background:
-    radial-gradient(1200px 600px at 90% -10%, hsl(154 60% 92% / 0.55), transparent 60%),
-    radial-gradient(900px 500px at -10% 100%, hsl(152 50% 95% / 0.45), transparent 60%),
-    hsl(var(--background));
+  background: hsl(var(--background));
   color: hsl(var(--foreground));
-  font-family: "Inter", "IBM Plex Sans", "Segoe UI", sans-serif;
+  font-family: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  letter-spacing: -0.005em;
+  letter-spacing: 0;
+}
+
+::selection {
+  background: hsl(168 76% 32% / 0.18);
+  color: hsl(220 18% 12%);
 }
 
 ::-webkit-scrollbar { width: 10px; height: 10px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb {
-  background: hsl(152 25% 80%);
+  background: hsl(220 10% 80%);
   border-radius: 999px;
   border: 2px solid hsl(var(--background));
 }
-::-webkit-scrollbar-thumb:hover { background: hsl(152 30% 70%); }
+::-webkit-scrollbar-thumb:hover { background: hsl(220 10% 65%); }
 
-/* Reusable component classes */
 @layer components {
-  .glass {
-    background: hsl(var(--card) / 0.85);
-    backdrop-filter: blur(10px);
+  .panel {
+    @apply rounded-lg border border-border bg-card;
   }
-  .card-elevated {
-    @apply rounded-xl border border-border bg-card shadow-soft;
-    transition: box-shadow 0.2s ease, transform 0.2s ease;
+  .panel-muted {
+    @apply rounded-lg border border-border bg-muted;
   }
-  .card-elevated:hover {
-    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 12px 32px -12px rgba(15, 23, 42, 0.16);
-  }
-  .chip {
-    @apply inline-flex items-center gap-1.5 rounded-full border border-border bg-muted px-2.5 py-0.5 text-[11px] font-medium text-muted-foreground;
-  }
-  .chip-primary {
-    @apply inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-semibold text-white;
-    background: linear-gradient(135deg, hsl(154 58% 42%), hsl(156 64% 30%));
-  }
-  .grid-bg {
-    background-image:
-      linear-gradient(hsl(152 30% 92%) 1px, transparent 1px),
-      linear-gradient(90deg, hsl(152 30% 92%) 1px, transparent 1px);
-    background-size: 32px 32px;
-  }
-  .text-gradient {
-    background: linear-gradient(135deg, hsl(154 58% 30%), hsl(156 64% 18%));
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
+  .kbd {
+    @apply inline-flex items-center rounded border border-border bg-muted px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground;
   }
 }
 
-.shimmer {
-  background: linear-gradient(90deg, hsl(var(--muted)) 0%, hsl(var(--accent)) 50%, hsl(var(--muted)) 100%);
-  background-size: 1000px 100%;
+.skeleton-bar {
+  background: hsl(220 14% 92%);
 }

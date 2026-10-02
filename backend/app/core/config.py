@@ -97,7 +97,7 @@ class Settings(BaseSettings):
 
     arima_order: str = "5,1,0"
 
-    data_source: Literal["yfinance", "yfinance_direct", "alpha_vantage", "finnhub", "web_scraper", "vnstock", "multi_source"] = "yfinance"
+    data_source: Literal["yfinance", "yfinance_direct", "alpha_vantage", "finnhub", "web_scraper", "vnstock", "ssi_vn", "yahoo_http", "stooq", "multi_source"] = "yfinance"
     yfinance_timeout: int = 30
     alpha_vantage_api_key: str = ""
     finnhub_api_key: str = ""

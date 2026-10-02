@@ -18,7 +18,7 @@ __all__ = [
     "LocalStorageBackend",
     "MinioStorageBackend",
     "get_storage_backend",
-    
+
     # Medallion Layers
     "BronzeLayer",
     "SilverLayer",
@@ -27,8 +27,8 @@ __all__ = [
     "FundamentalsSilverLayer",
     "GoldFeaturesLayer",
     "GoldSentimentFeatures",
-    
-    # Pipeline
+
+    # Multi-symbol pipeline (API / batch scripts)
     "LakehousePipeline",
     "PipelineConfig",
     "PipelineRun",

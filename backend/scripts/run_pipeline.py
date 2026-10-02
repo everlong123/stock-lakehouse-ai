@@ -12,7 +12,7 @@ if str(ROOT) not in sys.path:
 
 from app.core.constants import SUPPORTED_SYMBOLS
 from app.core.logging_config import get_logger
-from app.pipelines.pipeline_runner import run_symbol_pipeline
+from app.pipelines import run_symbol_pipeline
 
 logger = get_logger(__name__)
 

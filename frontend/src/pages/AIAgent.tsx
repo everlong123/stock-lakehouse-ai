@@ -6,7 +6,8 @@ export function AIAgentPage() {
     <div className="space-y-4">
       <PageTitle
         title="AI Agent"
-        subtitle="Agent gọi tool backend. Không bịa giá, indicator, forecast hay backtest metrics."
+        subtitle="Agent goi tool backend. Khong bia gia, indicator, forecast hay backtest metrics."
+        meta="06 · Agent"
       />
       <ChatBox />
     </div>

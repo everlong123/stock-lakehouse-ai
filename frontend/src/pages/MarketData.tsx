@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Download, Search } from "lucide-react";
+import { Download } from "lucide-react";
 import { useMarket } from "@/hooks/useMarket";
 import { useStocks } from "@/hooks/useStocks";
 import { csvUrl, fetchSymbols } from "@/api/stocks";
@@ -39,69 +39,71 @@ export function MarketDataPage() {
   );
 
   if (query.isLoading) return <Loading />;
-  if (query.isError) return <ErrorState message={errorMessage(query.error, "Không kết nối được backend API.")} />;
+  if (query.isError)
+    return <ErrorState message={errorMessage(query.error, "Khong ket noi duoc backend API.")} />;
 
   const rows = query.data?.rows ?? [];
-  if (!rows.length) return <EmptyState message={`Không có dữ liệu cho ${localSymbol || ctxSymbol}.`} />;
+  if (!rows.length) return <EmptyState message={`Khong co du lieu cho ${localSymbol || ctxSymbol}.`} />;
 
   const latest = query.data?.latest;
   const headerStats = [
     { label: "Source", value: query.data?.data_source || "Yahoo" },
     { label: "Rows", value: rows.length.toLocaleString("en-US") },
-    { label: "Last Close", value: formatPrice(latest?.close) },
-    { label: "Last Volume", value: formatVolume(latest?.volume) },
+    { label: "Last close", value: formatPrice(latest?.close) },
+    { label: "Last volume", value: formatVolume(latest?.volume) },
   ];
 
   return (
     <div className="space-y-6">
       <PageTitle
-        title="Market Data"
-        subtitle={`Dữ liệu OHLCV thô từ Bronze layer · interval ${interval}`}
-        badge={`${rows.length} bars`}
+        title="Market data"
+        subtitle={`Du lieu OHLCV tho tu Bronze layer · interval ${interval}`}
+        meta={`02 · ${rows.length} bars`}
         actions={
           <a href={csvUrl(localSymbol || ctxSymbol, interval)}>
-            <Button variant="outline">
+            <Button variant="outline" size="sm">
               <Download size={14} />
-              Download CSV
+              CSV
             </Button>
           </a>
         }
       />
 
       <div className="grid gap-4 xl:grid-cols-4">
-        <div className="xl:col-span-3 space-y-4">
-          {/* Stats row */}
+        <div className="space-y-4 xl:col-span-3">
           <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
             {headerStats.map((s) => (
-              <div key={s.label} className="card-elevated p-4">
-                <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+              <div key={s.label} className="rounded-md border border-border bg-card p-3">
+                <div className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
                   {s.label}
                 </div>
-                <div className="mt-1.5 font-mono text-lg font-bold text-foreground">{s.value}</div>
+                <div className="mt-1.5 font-mono text-lg font-semibold text-foreground">{s.value}</div>
               </div>
             ))}
           </div>
 
-          {/* Chart */}
-          <div className="card-elevated p-5">
-            <div className="mb-3 flex items-center justify-between">
-              <h3 className="text-base font-bold text-foreground">Candlestick · 180 phiên gần nhất</h3>
-              <span className="chip">{interval}</span>
+          <div className="rounded-md border border-border bg-card">
+            <div className="flex items-center justify-between border-b border-border px-4 py-3">
+              <h3 className="text-sm font-semibold text-foreground">Candlestick · 180 phien gan nhat</h3>
+              <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+                {interval}
+              </span>
             </div>
-            <CandlestickChart points={rows.slice(-180)} height={340} />
+            <div className="px-2 py-3">
+              <CandlestickChart points={rows.slice(-180)} height={340} />
+            </div>
           </div>
 
-          {/* Table */}
-          <div className="card-elevated overflow-hidden p-0">
-            <div className="border-b border-border px-5 py-3">
-              <h3 className="text-sm font-bold text-foreground">Bảng dữ liệu · 80 phiên cuối</h3>
+          <div className="overflow-hidden rounded-md border border-border bg-card">
+            <div className="border-b border-border px-4 py-3">
+              <h3 className="text-sm font-semibold text-foreground">Bang du lieu · 80 phien cuoi</h3>
             </div>
             <div className="max-h-[480px] overflow-auto">
               <table className="min-w-full text-left text-sm">
-                <thead className="sticky top-0 bg-muted/80 backdrop-blur text-[11px] uppercase tracking-wider text-muted-foreground">
+                <thead className="sticky top-0 border-b border-border font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
                   <tr>
                     {["Time", "Open", "High", "Low", "Close", "Volume"].map((col) => (
-                      <th key={col} className="px-4 py-2.5 font-semibold">
+                      <th key={col} className="px-3 py-2 font-semibold">
                         {col}
                       </th>
                     ))}
@@ -111,14 +113,14 @@ export function MarketDataPage() {
                   {rows.slice(-80).reverse().map((row) => (
                     <tr
                       key={row.timestamp}
-                      className="border-t border-border transition-colors hover:bg-muted/40"
+                      className="border-t border-border hover:bg-muted/40"
                     >
-                      <td className="px-4 py-2 font-mono text-xs">{shortDate(row.timestamp)}</td>
-                      <td className="px-4 py-2 font-mono">{formatNumber(row.open)}</td>
-                      <td className="px-4 py-2 font-mono text-up">{formatNumber(row.high)}</td>
-                      <td className="px-4 py-2 font-mono text-down">{formatNumber(row.low)}</td>
-                      <td className="px-4 py-2 font-mono font-semibold">{formatNumber(row.close)}</td>
-                      <td className="px-4 py-2 font-mono text-muted-foreground">
+                      <td className="px-3 py-2 font-mono text-xs">{shortDate(row.timestamp)}</td>
+                      <td className="px-3 py-2 font-mono">{formatNumber(row.open)}</td>
+                      <td className="px-3 py-2 font-mono text-up">{formatNumber(row.high)}</td>
+                      <td className="px-3 py-2 font-mono text-down">{formatNumber(row.low)}</td>
+                      <td className="px-3 py-2 font-mono font-semibold">{formatNumber(row.close)}</td>
+                      <td className="px-3 py-2 font-mono text-muted-foreground">
                         {formatVolume(row.volume)}
                       </td>
                     </tr>
@@ -129,17 +131,15 @@ export function MarketDataPage() {
           </div>
         </div>
 
-        {/* Sidebar: symbol picker */}
-        <div className="card-elevated p-4">
-          <div className="mb-3 flex items-center gap-2">
-            <Search size={14} className="text-muted-foreground" />
-            <h3 className="text-sm font-bold text-foreground">Symbol picker</h3>
+        <div className="rounded-md border border-border bg-card p-3">
+          <div className="mb-3">
+            <h3 className="text-sm font-semibold text-foreground">Symbol picker</h3>
           </div>
           <Input
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
-            placeholder="Lọc mã CK..."
-            className="mb-3"
+            placeholder="Loc ma CK..."
+            className="mb-3 font-mono"
           />
           <div className="max-h-[440px] space-y-1 overflow-auto pr-1">
             {visibleSymbols.map((s) => {
@@ -151,14 +151,14 @@ export function MarketDataPage() {
                     setLocalSymbol(s);
                     setSymbol(s);
                   }}
-                  className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-sm transition-colors ${
+                  className={`flex w-full items-center justify-between rounded-md px-3 py-1.5 text-[13px] ${
                     active
-                      ? "bg-brand-50 font-semibold text-brand-700"
+                      ? "bg-foreground text-background"
                       : "text-foreground hover:bg-muted"
                   }`}
                 >
                   <span className="font-mono">{s}</span>
-                  {active ? <span className="h-2 w-2 rounded-full bg-brand-500" /> : null}
+                  {active ? <span className="h-1.5 w-1.5 rounded-full bg-background" /> : null}
                 </button>
               );
             })}

@@ -1,5 +1,5 @@
 import { Component, ErrorInfo, ReactNode } from "react";
-import { AlertTriangle } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface ErrorBoundaryProps {
   children: ReactNode;
@@ -27,18 +27,12 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
       if (this.props.fallback) return this.props.fallback;
       return (
         <div className="flex min-h-[40vh] items-center justify-center p-6">
-          <div className="max-w-md rounded-xl border border-down/30 bg-down/5 p-6 text-center">
-            <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-down/10 text-down">
-              <AlertTriangle size={20} />
-            </div>
-            <h3 className="font-bold text-foreground">Đã có lỗi xảy ra</h3>
+          <div className="max-w-md rounded-md border border-border bg-card p-6">
+            <h3 className="text-base font-semibold text-foreground">Da co loi xay ra</h3>
             <p className="mt-1 text-sm text-muted-foreground">{this.state.message}</p>
-            <button
-              className="mt-4 rounded-lg bg-brand-500 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-600"
-              onClick={() => window.location.reload()}
-            >
-              Tải lại trang
-            </button>
+            <div className="mt-4">
+              <Button onClick={() => window.location.reload()}>Tai lai trang</Button>
+            </div>
           </div>
         </div>
       );

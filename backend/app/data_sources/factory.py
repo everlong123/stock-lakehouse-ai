@@ -7,12 +7,12 @@ returns > 10 years of OHLCV history for every supported US ticker.
 
 Supported ``DATA_SOURCE`` values:
 
-- ``yfinance``       -> :class:`YFinancePythonProvider` (official ``yfinance`` package).
-- ``yfinance_direct``-> :class:`YFinanceProvider` (raw HTTP, no extra dependency).
-- ``finnhub``        -> :class:`FinnhubProvider` (Free tier, 60 req/min).
-- ``alpha_vantage``  -> :class:`AlphaVantageProvider` (Free tier, key required).
-- ``web_scraper``    -> :class:`StockScraperProvider` (HTTP scrape, no key).
-- ``multi_source``   -> :class:`MultiSourceProvider` (failover chain).
+    - ``yfinance``       -> :class:`YFinancePythonProvider` (official ``yfinance`` package).
+    - ``finnhub``        -> :class:`FinnhubProvider` (Free tier, 60 req/min).
+    - ``alpha_vantage``  -> :class:`AlphaVantageProvider` (Free tier, key required).
+    - ``web_scraper``    -> :class:`StockScraperProvider` (HTTP scrape, no key).
+    - ``ssi_vn``         -> :class:`SSIVNProvider` (SSI iBoard, HOSE/HNX/UPCOM).
+    - ``multi_source``   -> :class:`MultiSourceProvider` (failover chain).
 """
 
 from __future__ import annotations
@@ -25,8 +25,9 @@ from app.data_sources.base import StockDataProvider
 from app.data_sources.finnhub_provider import FinnhubProvider
 from app.data_sources.multi_source import MultiSourceProvider
 from app.data_sources.ssi_vn_provider import SSIVNProvider
+from app.data_sources.stooq_provider import StooqProvider
 from app.data_sources.web_scraper_provider import StockScraperProvider
-from app.data_sources.yfinance_provider import YFinanceProvider
+from app.data_sources.yahoo_http_provider import YahooHttpProvider
 from app.data_sources.yfinance_python_provider import YFinancePythonProvider
 
 logger = get_logger(__name__)
@@ -44,8 +45,8 @@ def get_data_provider(name: str | None = None) -> StockDataProvider:
     if selected == "sample":
         raise DataSourceError(
             "DATA_SOURCE=sample is no longer supported - this project ships "
-            "ONLY real market data. Use one of: yfinance, yfinance_direct, "
-            "finnhub, alpha_vantage, web_scraper, multi_source."
+            "ONLY real market data. Use one of: yfinance, finnhub, "
+            "alpha_vantage, web_scraper, ssi_vn, multi_source."
         )
 
     if selected == "multi_source":
@@ -53,18 +54,8 @@ def get_data_provider(name: str | None = None) -> StockDataProvider:
         return MultiSourceProvider()
 
     if selected == "yfinance":
-        try:
-            return YFinancePythonProvider()
-        except Exception as exc:
-            logger.warning(
-                "yfinance package unavailable (%s); falling back to direct REST client.",
-                exc,
-            )
-            return YFinanceProvider()
-
-    if selected == "yfinance_direct":
-        logger.info("Using YFinanceProvider (raw HTTP, no yfinance package required).")
-        return YFinanceProvider()
+        logger.info("Using YFinancePythonProvider (official yfinance package).")
+        return YFinancePythonProvider()
 
     if selected == "alpha_vantage":
         if not settings.alpha_vantage_api_key:
@@ -92,7 +83,15 @@ def get_data_provider(name: str | None = None) -> StockDataProvider:
         logger.info("Using SSIVNProvider (SSI iBoard public API, HOSE/HNX/UPCOM).")
         return SSIVNProvider()
 
+    if selected == "stooq":
+        logger.info("Using StooqProvider (Stooq.com free CSV, 30+ years history).")
+        return StooqProvider()
+
+    if selected in {"yahoo_http", "yahoo"}:
+        logger.info("Using YahooHttpProvider (direct v8 chart API, browser UA).")
+        return YahooHttpProvider()
+
     raise DataSourceError(
-        f"Unknown DATA_SOURCE='{selected}'. Supported: yfinance, yfinance_direct, "
-        "finnhub, alpha_vantage, web_scraper, ssi_vn, multi_source."
+        f"Unknown DATA_SOURCE='{selected}'. Supported: yfinance, yahoo_http, "
+        "finnhub, alpha_vantage, web_scraper, ssi_vn, stooq, multi_source."
     )

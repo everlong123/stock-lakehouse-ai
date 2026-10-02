@@ -26,9 +26,9 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
               toastOptions={{
                 style: {
                   background: "white",
-                  border: "1px solid hsl(152 18% 88%)",
-                  color: "hsl(158 25% 12%)",
-                  boxShadow: "0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -12px rgba(15,23,42,0.10)",
+                  border: "1px solid hsl(220 14% 88%)",
+                  color: "hsl(220 18% 12%)",
+                  fontFamily: '"IBM Plex Sans", system-ui, sans-serif',
                 },
               }}
             />

@@ -17,7 +17,6 @@ import { Loading } from "@/components/common/Loading";
 import { PageTitle } from "@/components/common/PageTitle";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
-import { cn } from "@/lib/utils";
 import { relativeTime } from "@/utils/format";
 
 const HEALTHY_STATUSES = new Set([
@@ -30,42 +29,29 @@ function isHealthy(status?: string): boolean {
   return HEALTHY_STATUSES.has(status) || status.includes("ready");
 }
 
-interface ServiceTileProps {
+function ServiceTile({
+  label,
+  status,
+  icon,
+}: {
   label: string;
   status: string;
   icon: React.ReactNode;
-}
-
-function ServiceTile({ label, status, icon }: ServiceTileProps) {
+}) {
   const ok = isHealthy(status);
   return (
-    <div className="card-elevated relative overflow-hidden p-5">
-      <div
-        className={cn(
-          "absolute inset-x-0 top-0 h-1",
-          ok ? "bg-gradient-to-r from-brand-400 to-brand-600" : "bg-muted",
-        )}
-      />
-      <div className="flex items-start justify-between">
+    <div className="rounded-md border border-border bg-card p-3">
+      <div className="flex items-start justify-between gap-2">
         <div className="flex items-center gap-3">
-          <div
-            className={cn(
-              "flex h-10 w-10 items-center justify-center rounded-xl",
-              ok ? "bg-brand-50 text-brand-700" : "bg-muted text-muted-foreground",
-            )}
-          >
-            {icon}
-          </div>
-          <div>
-            <div className="text-sm font-bold text-foreground">{label}</div>
-            <div className="font-mono text-xs text-muted-foreground">{status.replaceAll("_", " ")}</div>
+          <span className="text-muted-foreground">{icon}</span>
+          <div className="min-w-0">
+            <div className="text-[13px] font-semibold text-foreground">{label}</div>
+            <div className="truncate font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+              {status.replaceAll("_", " ")}
+            </div>
           </div>
         </div>
-        {ok ? (
-          <CheckCircle2 size={18} className="text-brand-600" />
-        ) : (
-          <XCircle size={18} className="text-muted-foreground" />
-        )}
+        {ok ? <CheckCircle2 size={14} className="text-up" /> : <XCircle size={14} className="text-muted-foreground" />}
       </div>
     </div>
   );
@@ -80,36 +66,36 @@ export function SystemStatusPage() {
   });
 
   if (query.isLoading) return <Loading />;
-  if (query.isError) return <ErrorState message={errorMessage(query.error, "Không kết nối được backend API.")} />;
+  if (query.isError)
+    return <ErrorState message={errorMessage(query.error, "Khong ket noi duoc backend API.")} />;
 
   const data = query.data || {};
   const counts = (data.counts as Record<string, number>) || {};
   const lastRun = data.last_pipeline_run as Record<string, unknown> | undefined;
 
   const services = [
-    { key: "backend_api", label: "Backend API", icon: <Server size={16} /> },
-    { key: "mysql",       label: "MySQL",       icon: <Database size={16} /> },
-    { key: "minio",       label: "MinIO (S3)",  icon: <HardDrive size={16} /> },
-    { key: "iceberg",     label: "Iceberg REST", icon: <Layers size={16} /> },
-    { key: "kafka",       label: "Kafka",       icon: <Radio size={16} /> },
-    { key: "data_source", label: "Data Source", icon: <Activity size={16} /> },
-    { key: "ai_agent",    label: "AI Agent",    icon: <Sparkles size={16} /> },
+    { key: "backend_api", label: "Backend API", icon: <Server size={14} /> },
+    { key: "mysql",       label: "MySQL",       icon: <Database size={14} /> },
+    { key: "minio",       label: "MinIO (S3)",  icon: <HardDrive size={14} /> },
+    { key: "iceberg",     label: "Iceberg REST", icon: <Layers size={14} /> },
+    { key: "kafka",       label: "Kafka",       icon: <Radio size={14} /> },
+    { key: "data_source", label: "Data Source", icon: <Activity size={14} /> },
+    { key: "ai_agent",    label: "AI Agent",    icon: <Sparkles size={14} /> },
   ];
 
   return (
     <div className="space-y-6">
       <PageTitle
-        title="System Status"
-        subtitle="Trạng thái các service trong hệ thống Lakehouse. Auto-refresh mỗi 15 giây."
-        badge="Live"
+        title="System status"
+        subtitle="Trang thai cac service trong he thong Lakehouse. Auto-refresh moi 15 giay."
+        meta="07 · Platform"
       />
 
-      {/* Service tiles */}
       <section>
-        <h2 className="mb-3 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+        <h2 className="mb-2 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
           Services
         </h2>
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
           {services.map((s) => {
             const info = data[s.key] as { status: string; label?: string } | undefined;
             return (
@@ -124,68 +110,66 @@ export function SystemStatusPage() {
         </div>
       </section>
 
-      {/* Layer counts */}
       <section>
-        <h2 className="mb-3 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+        <h2 className="mb-2 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
           Medallion counts
         </h2>
-        <div className="grid gap-3 md:grid-cols-3">
+        <div className="grid gap-2 md:grid-cols-3">
           {[
-            { label: "Bronze records", value: counts.bronze ?? 0, color: "from-amber-50 to-amber-100" },
-            { label: "Silver records", value: counts.silver ?? 0, color: "from-slate-50 to-slate-100" },
-            { label: "Gold records",   value: counts.gold ?? 0,   color: "from-brand-50 to-brand-100" },
+            { label: "Bronze records", value: counts.bronze ?? 0 },
+            { label: "Silver records", value: counts.silver ?? 0 },
+            { label: "Gold records",   value: counts.gold ?? 0 },
           ].map((c) => (
-            <Card key={c.label} className={cn("bg-gradient-to-br p-5", c.color)}>
-              <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+            <div key={c.label} className="rounded-md border border-border bg-card p-4">
+              <div className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
                 {c.label}
               </div>
-              <div className="mt-2 font-mono text-3xl font-bold text-foreground">
+              <div className="mt-2 font-mono text-[24px] font-semibold text-foreground">
                 {c.value.toLocaleString("en-US")}
               </div>
-            </Card>
+            </div>
           ))}
         </div>
       </section>
 
-      {/* Last pipeline run */}
       {lastRun ? (
         <section>
-          <h2 className="mb-3 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+          <h2 className="mb-2 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
             Last pipeline run
           </h2>
-          <Card className="p-5">
+          <Card className="p-4">
             <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-4">
               <div>
-                <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                <div className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
                   Run ID
                 </div>
-                <div className="mt-1 font-mono text-sm font-bold">{String(lastRun.run_id ?? "—")}</div>
+                <div className="mt-1 font-mono text-[13px] font-semibold">{String(lastRun.run_id ?? "—")}</div>
               </div>
               <div>
-                <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                <div className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
                   Status
                 </div>
                 <div className="mt-1">
-                  <Badge variant={lastRun.status === "success" ? "primary" : "warn"}>
+                  <Badge variant={lastRun.status === "success" ? "success" : "warn"}>
                     {String(lastRun.status ?? "—")}
                   </Badge>
                 </div>
               </div>
               <div>
-                <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                <div className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
                   Symbols
                 </div>
-                <div className="mt-1 text-sm font-semibold">
+                <div className="mt-1 text-[13px] font-semibold">
                   {Array.isArray(lastRun.symbols_processed)
                     ? (lastRun.symbols_processed as string[]).join(", ")
                     : "—"}
                 </div>
               </div>
               <div>
-                <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                  Cập nhật
+                <div className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+                  Cap nhat
                 </div>
-                <div className="mt-1 text-sm">
+                <div className="mt-1 text-[13px]">
                   {relativeTime(lastRun.completed_at as string)}
                 </div>
               </div>

@@ -3,24 +3,24 @@ import { ReactNode } from "react";
 interface PageTitleProps {
   title: string;
   subtitle?: string;
-  badge?: string;
+  meta?: string;
   actions?: ReactNode;
 }
 
-export function PageTitle({ title, subtitle, badge, actions }: PageTitleProps) {
+export function PageTitle({ title, subtitle, meta, actions }: PageTitleProps) {
   return (
-    <div className="mb-6 flex flex-wrap items-end justify-between gap-4 animate-slide-up">
-      <div>
-        <div className="mb-1.5 flex items-center gap-2">
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">
-            {title}
-          </h1>
-          {badge ? (
-            <span className="chip-primary">{badge}</span>
-          ) : null}
-        </div>
+    <div className="mb-6 flex flex-wrap items-end justify-between gap-4 border-b border-border pb-4">
+      <div className="min-w-0">
+        {meta ? (
+          <div className="mb-1 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+            {meta}
+          </div>
+        ) : null}
+        <h1 className="text-[22px] font-semibold leading-tight tracking-tight text-foreground">
+          {title}
+        </h1>
         {subtitle ? (
-          <p className="max-w-3xl text-sm leading-relaxed text-muted-foreground">
+          <p className="mt-1 max-w-3xl text-sm leading-relaxed text-muted-foreground">
             {subtitle}
           </p>
         ) : null}

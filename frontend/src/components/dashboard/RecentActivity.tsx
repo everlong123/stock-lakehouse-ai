@@ -1,4 +1,4 @@
-import { CheckCircle2, FlaskConical, History, Zap } from "lucide-react";
+import { CheckCircle2, FlaskConical, History, XCircle, Zap } from "lucide-react";
 
 interface RecentActivityProps {
   pipeline?: Record<string, unknown> | null;
@@ -18,16 +18,18 @@ function StatusRow({
   ok: boolean;
 }) {
   return (
-    <li className="flex items-start gap-3 rounded-lg border border-border bg-background p-3">
-      <span className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${ok ? "bg-brand-50 text-brand-700" : "bg-muted text-muted-foreground"}`}>
-        {icon}
-      </span>
+    <li className="flex items-center gap-3 rounded-md border border-border bg-card px-3 py-2">
+      <span className="text-muted-foreground">{icon}</span>
       <div className="min-w-0 flex-1">
         <div className="flex items-center justify-between gap-2">
-          <div className="text-sm font-semibold text-foreground">{title}</div>
-          {ok ? <CheckCircle2 size={14} className="text-brand-600" /> : null}
+          <div className="text-[13px] font-semibold text-foreground">{title}</div>
+          {ok ? (
+            <CheckCircle2 size={13} className="text-up" />
+          ) : (
+            <XCircle size={13} className="text-muted-foreground" />
+          )}
         </div>
-        <div className="mt-0.5 truncate text-[12px] text-muted-foreground">{detail}</div>
+        <div className="mt-0.5 truncate font-mono text-[11px] text-muted-foreground">{detail}</div>
       </div>
     </li>
   );
@@ -35,32 +37,32 @@ function StatusRow({
 
 export function RecentActivity({ pipeline, model, backtest }: RecentActivityProps) {
   return (
-    <div className="card-elevated p-5">
-      <div className="mb-3 flex items-center gap-2">
-        <History size={14} className="text-brand-600" />
-        <h3 className="text-sm font-bold text-foreground">Hoạt động gần đây</h3>
+    <div className="rounded-md border border-border bg-card">
+      <div className="flex items-center gap-2 border-b border-border px-4 py-3">
+        <History size={14} className="text-muted-foreground" />
+        <h3 className="text-sm font-semibold text-foreground">Hoat dong gan day</h3>
       </div>
-      <ul className="space-y-2">
+      <ul className="space-y-2 p-3">
         <StatusRow
-          icon={<Zap size={14} />}
+          icon={<Zap size={13} />}
           title="Pipeline run"
-          detail={pipeline ? String(pipeline.status ?? "ok") : "Chưa chạy lần nào"}
+          detail={pipeline ? String(pipeline.status ?? "ok") : "Chua chay lan nao"}
           ok={Boolean(pipeline)}
         />
         <StatusRow
-          icon={<FlaskConical size={14} />}
-          title="Model mới nhất"
+          icon={<FlaskConical size={13} />}
+          title="Model moi nhat"
           detail={
             model
               ? `${String(model.model_name)} · MAE ${String(model.mae ?? "—")}`
-              : "Chưa train model"
+              : "Chua train model"
           }
           ok={Boolean(model)}
         />
         <StatusRow
-          icon={<History size={14} />}
-          title="Backtest gần nhất"
-          detail={backtest ? String(backtest.strategy ?? "ok") : "Chưa chạy backtest"}
+          icon={<History size={13} />}
+          title="Backtest gan nhat"
+          detail={backtest ? String(backtest.strategy ?? "ok") : "Chua chay backtest"}
           ok={Boolean(backtest)}
         />
       </ul>

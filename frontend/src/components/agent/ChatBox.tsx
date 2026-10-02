@@ -1,5 +1,5 @@
 import { FormEvent, useEffect, useRef, useState } from "react";
-import { Bot, Loader2, Send, Sparkles, Trash2 } from "lucide-react";
+import { Bot, Loader2, Send, Trash2 } from "lucide-react";
 import { sendChat } from "@/api/agent";
 import { ChatMessage } from "@/components/agent/ChatMessage";
 import { ToolCallDisplay } from "@/components/agent/ToolCallDisplay";
@@ -55,32 +55,21 @@ export function ChatBox() {
   const clearChat = () => setTurns([]);
 
   return (
-    <div className="flex h-[calc(100vh-9rem)] flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-soft">
-      {/* Header */}
-      <div className="flex items-center justify-between border-b border-border bg-gradient-to-r from-brand-500/8 to-brand-700/8 px-5 py-4">
+    <div className="flex h-[calc(100vh-12rem)] flex-col overflow-hidden rounded-md border border-border bg-card">
+      <div className="flex items-center justify-between border-b border-border px-4 py-3">
         <div className="flex items-center gap-3">
-          <div className="relative">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-brand-500 to-brand-700 text-white shadow-glow">
-              <Bot size={18} />
-            </div>
-            <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-card bg-up" />
+          <div className="flex h-8 w-8 items-center justify-center rounded-md bg-foreground text-background">
+            <Bot size={15} />
           </div>
           <div>
-            <div className="font-bold text-foreground">Stock Analysis AI Agent</div>
-            <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
-              <span>Tool-calling</span>
-              <span>·</span>
-              <span>Dữ liệu thật từ backend</span>
-              <span>·</span>
-              <Badge variant="primary" className="px-1.5 py-0 text-[10px]">
-                <Sparkles size={9} />
-                Gemini Free
-              </Badge>
+            <div className="text-[14px] font-semibold text-foreground">Stock Analysis AI Agent</div>
+            <div className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+              Tool-calling · Du lieu that tu backend
             </div>
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Badge variant="primary">Symbol: {symbol}</Badge>
+          <Badge variant="primary">Symbol · {symbol}</Badge>
           {turns.length > 0 && (
             <Button variant="ghost" size="sm" onClick={clearChat}>
               <Trash2 size={14} />
@@ -90,22 +79,16 @@ export function ChatBox() {
         </div>
       </div>
 
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto bg-muted/30 p-5">
+      <div className="flex-1 overflow-y-auto bg-muted/30 p-4">
         {turns.length === 0 ? (
           <div className="flex h-full flex-col items-center justify-center text-center">
-            <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-brand-500 to-brand-700 text-white shadow-glow">
-              <Sparkles size={28} />
-            </div>
-            <h3 className="text-lg font-bold text-foreground">
-              Chào thầy/cô
-            </h3>
-            <p className="mt-1 max-w-md text-sm text-muted-foreground">
-              Em có thể phân tích kỹ thuật, so sánh mô hình dự báo, chạy backtest,
-              hoặc giải thích chỉ số. Dữ liệu lấy thẳng từ lakehouse phía sau.
+            <h3 className="text-base font-semibold text-foreground">Chao thay/co</h3>
+            <p className="mt-2 max-w-md text-sm text-muted-foreground">
+              Em co the phan tich ky thuat, so sanh mo hinh du bao, chay backtest,
+              hoac giai thich chi so. Du lieu lay thang tu lakehouse phia sau.
             </p>
-            <p className="mt-2 text-[11px] text-warn">
-              Lưu ý: Không phải khuyến nghị đầu tư. Demo học thuật.
+            <p className="mt-3 font-mono text-[10px] uppercase tracking-wider text-warn">
+              Luu y: khong phai khuyen nghi dau tu. Demo hoc thuat.
             </p>
           </div>
         ) : (
@@ -118,8 +101,8 @@ export function ChatBox() {
             ))}
             {busy ? (
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Loader2 size={14} className="animate-spin text-brand-600" />
-                Agent đang gọi tool và suy nghĩ...
+                <Loader2 size={14} className="animate-spin" />
+                Agent dang goi tool va suy nghi
               </div>
             ) : null}
             <div ref={bottom} />
@@ -127,37 +110,34 @@ export function ChatBox() {
         )}
       </div>
 
-      {/* Quick prompts */}
-      <div className="flex flex-wrap gap-2 border-t border-border bg-card px-5 py-2.5">
+      <div className="flex flex-wrap gap-2 border-t border-border bg-card px-4 py-2">
         {QUICK_PROMPTS.map((item) => (
           <button
             key={item.label}
-            className="inline-flex items-center gap-1.5 rounded-full border border-border bg-muted px-3 py-1 text-xs font-medium text-muted-foreground transition-all hover:border-brand-300 hover:bg-brand-50 hover:text-brand-700"
+            className="inline-flex items-center gap-1.5 rounded-md border border-border bg-card px-3 py-1 text-[12px] font-medium text-foreground hover:bg-muted"
             onClick={() => void submit(item.prompt)}
             type="button"
           >
-            <span>{item.icon}</span>
+            <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">{item.icon}</span>
             {item.label}
           </button>
         ))}
       </div>
 
-      {/* Input */}
-      <form onSubmit={onSubmit} className="flex gap-2 border-t border-border bg-card p-4">
+      <form onSubmit={onSubmit} className="flex gap-2 border-t border-border bg-card p-3">
         <input
-          className="h-11 flex-1 rounded-xl border border-border bg-background px-4 text-sm outline-none transition-colors placeholder:text-muted-foreground/70 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20"
+          className="h-10 flex-1 rounded-md border border-input bg-card px-3 text-sm outline-none placeholder:text-muted-foreground focus:border-foreground"
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder="Phân tích kỹ thuật VCB 3 tháng gần nhất..."
+          placeholder="Phan tich ky thuat VCB 3 thang gan nhat..."
         />
         <Button
           type="submit"
           disabled={busy || !input.trim()}
           size="lg"
-          className="px-5"
         >
           {busy ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
-          Gửi
+          Gui
         </Button>
       </form>
     </div>

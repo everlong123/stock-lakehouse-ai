@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 from app.core.logging_config import get_logger
 from app.database.repositories.pipeline_repository import PipelineRepository
 from app.database.session import check_database_connection
-from app.pipelines.pipeline_runner import run_symbol_pipeline
+from app.pipelines import run_symbol_pipeline
 
 logger = get_logger(__name__)
 

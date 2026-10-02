@@ -19,7 +19,6 @@ export function CandlestickChart({ points, height = 320 }: CandleProps) {
 
   const y = (price: number) => pad + ((max - price) / span) * chartH;
 
-  // Build Y-axis grid lines
   const gridLines = 5;
   const gridYs = Array.from({ length: gridLines }, (_, i) => pad + ((chartH / (gridLines - 1)) * i));
   const gridPrices = gridYs.map((yPos) => max - ((yPos - pad) / chartH) * span);
@@ -27,7 +26,6 @@ export function CandlestickChart({ points, height = 320 }: CandleProps) {
   return (
     <div className="w-full overflow-x-auto">
       <svg width={width} height={height} className="min-w-full">
-        {/* Grid lines */}
         {gridYs.map((yPos, i) => (
           <g key={i}>
             <line
@@ -35,20 +33,19 @@ export function CandlestickChart({ points, height = 320 }: CandleProps) {
               x2={width}
               y1={yPos}
               y2={yPos}
-              stroke="hsl(152 25% 92%)"
+              stroke="hsl(220 14% 92%)"
               strokeDasharray="3 3"
             />
-            <text x={4} y={yPos + 4} fontSize={10} fill="hsl(158 15% 50%)" fontFamily="JetBrains Mono">
+            <text x={4} y={yPos + 4} fontSize={10} fill="hsl(220 10% 50%)" fontFamily="IBM Plex Mono">
               {gridPrices[i].toFixed(0)}
             </text>
           </g>
         ))}
 
-        {/* Candles */}
         {points.map((point, index) => {
           const x = 40 + (index + 0.5) * ((width - 50) / points.length);
           const up = point.close >= point.open;
-          const color = up ? "hsl(154 60% 36%)" : "hsl(0 70% 50%)";
+          const color = up ? "hsl(152 60% 32%)" : "hsl(0 64% 48%)";
           const bodyTop = y(Math.max(point.open, point.close));
           const bodyBottom = y(Math.min(point.open, point.close));
           const bodyH = Math.max(1.5, bodyBottom - bodyTop);

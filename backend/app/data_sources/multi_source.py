@@ -12,7 +12,7 @@ Typical usage:
     adapter = MultiSourceProvider([
         "yfinance",        # primary - widest lookback, no key
         "finnhub",         # backup if API key configured
-        "yfinance_direct", # last resort - direct HTTP, no extra dep
+        "web_scraper",     # last resort - direct HTTP scrape
     ])
     frame = adapter.get_historical_data("AAPL", interval="1d")
 """
@@ -33,11 +33,11 @@ logger = get_logger(__name__)
 # Recommended fallback chains per interval (best → worst).  When a
 # chain is empty (no providers available), we raise DataSourceError.
 DEFAULT_CHAINS: dict[str, list[str]] = {
-    "1d": ["yfinance", "finnhub", "yfinance_direct", "alpha_vantage"],
-    "1h": ["yfinance", "yfinance_direct", "finnhub"],
-    "15m": ["yfinance", "yfinance_direct", "finnhub"],
-    "5m": ["yfinance", "yfinance_direct"],
-    "1m": ["yfinance"],
+    "1d": ["yahoo_http", "yfinance", "stooq", "finnhub", "alpha_vantage", "web_scraper"],
+    "1h": ["yahoo_http", "yfinance", "stooq", "finnhub", "web_scraper"],
+    "15m": ["yahoo_http", "yfinance", "finnhub", "web_scraper"],
+    "5m": ["yahoo_http", "yfinance", "web_scraper"],
+    "1m": ["yahoo_http", "yfinance"],
 }
 
 

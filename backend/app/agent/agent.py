@@ -87,9 +87,23 @@ class StockAnalysisAgent:
         text = user_message.lower()
         symbol = _extract_symbol(user_message, default_symbol)
         plan: list[tuple[str, dict[str, Any]]] = []
-        if any(word in text for word in ["backtest", "chiến lược", "ma crossover", "rsi strategy"]):
-            strategy = "rsi_strategy" if "rsi" in text and "crossover" not in text else "ma_crossover"
-            plan.append(("run_backtest", {"symbol": symbol, "strategy": strategy}))
+
+        # Greetings - always respond with a friendly message first.
+        if any(word in text for word in ["xin chào", "chào bạn", "chào", "hello", "hi", "hey", "helo"]):
+            greeting = _get_greeting(user_message)
+            message = (
+                f"{greeting}\n\n"
+                "Đây là Stock Analysis AI Agent. Tôi có thể giúp bạn:\n"
+                "- Tra cứu giá, chỉ báo kỹ thuật (RSI, MACD, SMA...)\n"
+                "- So sánh mô hình dự báo (Linear Regression, ARIMA, LSTM)\n"
+                "- Chạy backtest (MA Crossover, RSI Strategy)\n"
+                "- Phân tích tin tức\n\n"
+                "Bạn muốn tìm hiểu về mã nào?"
+            )
+            return {"assistant_message": message, "tools": []}
+
+        if any(word in text for word in ["cảm ơn", "thanks", "thank you", "tạm biệt", "bye"]):
+            return {"assistant_message": _get_farewell(user_message), "tools": []}
         elif any(word in text for word in ["so sánh", "compare", "mae", "rmse"]):
             plan.append(("compare_models", {"symbol": symbol}))
         elif any(word in text for word in ["dự báo", "forecast", "lstm", "arima", "linear"]):
@@ -125,6 +139,28 @@ def _extract_symbol(text: str, default_symbol: str | None) -> str:
     if match and match.group(1) not in {"RSI", "MACD", "SMA", "EMA", "LSTM", "MA"}:
         return match.group(1)
     return (default_symbol or "AAPL").upper()
+
+
+def _get_greeting(text: str) -> str:
+    text_lower = text.lower()
+    if "xin chào" in text_lower or "chào bạn" in text_lower:
+        return "Xin chào bạn! 👋"
+    if "chào buổi sáng" in text_lower or "good morning" in text_lower:
+        return "Chào buổi sáng! ☀️"
+    if "chào buổi chiều" in text_lower or "good afternoon" in text_lower:
+        return "Chào buổi chiều! 🌤️"
+    if "chào buổi tối" in text_lower or "good evening" in text_lower:
+        return "Chào buổi tối! 🌙"
+    return "Chào bạn! 👋"
+
+
+def _get_farewell(text: str) -> str:
+    text_lower = text.lower()
+    if "cảm ơn" in text_lower or "thanks" in text_lower or "thank you" in text_lower:
+        return "Không có gì! Cảm ơn bạn đã sử dụng. Hẹn gặp lại! 🙏"
+    if "tạm biệt" in text_lower or "bye" in text_lower:
+        return "Tạm biệt! Chúc bạn một ngày tốt lành! 👋"
+    return "Hẹn gặp lại! 👋"
 
 
 def _render_local_answer(question: str, collected: dict[str, Any]) -> str:

@@ -1,5 +1,4 @@
 import { ArrowDown, ArrowUp, Minus } from "lucide-react";
-import { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
 interface MetricCardProps {
@@ -7,10 +6,9 @@ interface MetricCardProps {
   value: string;
   delta?: number | null;
   hint?: string;
-  icon?: ReactNode;
 }
 
-export function MetricCard({ label, value, delta, hint, icon }: MetricCardProps) {
+export function MetricCard({ label, value, delta, hint }: MetricCardProps) {
   const trend =
     delta === undefined || delta === null
       ? "neutral"
@@ -21,42 +19,35 @@ export function MetricCard({ label, value, delta, hint, icon }: MetricCardProps)
           : "neutral";
 
   return (
-    <div className="card-elevated p-5">
-      <div className="flex items-start justify-between">
-        <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-          {label}
-        </span>
-        {icon ? (
-          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-50 text-brand-600">
-            {icon}
-          </span>
-        ) : null}
+    <div className="rounded-md border border-border bg-card p-4">
+      <div className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+        {label}
       </div>
 
-      <div className="mt-3 font-mono text-[26px] font-bold leading-none text-foreground">
+      <div className="mt-2 font-mono text-[22px] font-semibold leading-none text-foreground">
         {value}
       </div>
 
-      <div className="mt-3 flex items-center gap-2">
+      <div className="mt-3 flex items-center gap-2 text-[11px]">
         {trend === "up" && (
-          <span className="flex items-center gap-1 rounded-full bg-up/10 px-2 py-0.5 text-[11px] font-semibold text-up">
-            <ArrowUp size={12} />
+          <span className="inline-flex items-center gap-1 font-mono text-up">
+            <ArrowUp size={11} />
             {(delta! * 100).toFixed(2)}%
           </span>
         )}
         {trend === "down" && (
-          <span className="flex items-center gap-1 rounded-full bg-down/10 px-2 py-0.5 text-[11px] font-semibold text-down">
-            <ArrowDown size={12} />
+          <span className="inline-flex items-center gap-1 font-mono text-down">
+            <ArrowDown size={11} />
             {(delta! * 100).toFixed(2)}%
           </span>
         )}
         {trend === "neutral" && (
-          <span className="flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[11px] font-semibold text-muted-foreground">
-            <Minus size={12} />
-            —
+          <span className="inline-flex items-center gap-1 font-mono text-muted-foreground">
+            <Minus size={11} />
+            0.00%
           </span>
         )}
-        {hint ? <span className={cn("text-[11px] text-muted-foreground")}>{hint}</span> : null}
+        {hint ? <span className={cn("text-muted-foreground")}>{hint}</span> : null}
       </div>
     </div>
   );

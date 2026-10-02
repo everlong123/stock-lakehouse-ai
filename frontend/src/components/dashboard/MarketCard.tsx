@@ -1,4 +1,3 @@
-import { Database } from "lucide-react";
 import { formatPrice, relativeTime } from "@/utils/format";
 
 export function MarketCard({
@@ -13,33 +12,32 @@ export function MarketCard({
   updated?: string;
 }) {
   return (
-    <div className="card-elevated overflow-hidden p-0">
-      <div className="relative bg-gradient-to-br from-brand-500 to-brand-700 p-5 text-white">
-        <div className="absolute inset-0 opacity-30 mix-blend-overlay">
-          <svg width="100%" height="100%">
-            <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
-              <path d="M 20 0 L 0 0 0 20" fill="none" stroke="white" strokeWidth="0.5" />
-            </pattern>
-            <rect width="100%" height="100%" fill="url(#grid)" />
-          </svg>
+    <div className="rounded-md border border-border bg-card">
+      <div className="border-b border-border px-4 py-3">
+        <div className="flex items-center justify-between">
+          <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+            Symbol
+          </span>
+          <span className="inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-wider text-up">
+            <span className="h-1.5 w-1.5 rounded-full bg-up" aria-hidden="true" />
+            Live
+          </span>
         </div>
-        <div className="relative">
-          <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider opacity-90">
-            <Database size={12} />
-            Lakehouse · Live
-          </div>
-          <div className="mt-3 text-2xl font-bold tracking-tight">{symbol}</div>
-          <div className="mt-1 font-mono text-3xl font-bold">{formatPrice(price)}</div>
+        <div className="mt-1 font-mono text-[20px] font-semibold text-foreground">{symbol}</div>
+      </div>
+      <div className="px-4 py-4">
+        <div className="font-mono text-[28px] font-semibold leading-none text-foreground">
+          {formatPrice(price)}
         </div>
       </div>
-      <div className="p-4 text-xs">
+      <div className="border-t border-border px-4 py-2 text-[11px] text-muted-foreground">
         <div className="flex items-center justify-between">
-          <span className="text-muted-foreground">Source</span>
-          <span className="font-medium text-foreground">{source || "lakehouse"}</span>
+          <span>Source</span>
+          <span className="font-mono text-foreground">{source || "lakehouse"}</span>
         </div>
-        <div className="mt-2 flex items-center justify-between">
-          <span className="text-muted-foreground">Cập nhật</span>
-          <span className="font-medium text-foreground">{relativeTime(updated)}</span>
+        <div className="mt-1 flex items-center justify-between">
+          <span>Cap nhat</span>
+          <span className="font-mono text-foreground">{relativeTime(updated)}</span>
         </div>
       </div>
     </div>

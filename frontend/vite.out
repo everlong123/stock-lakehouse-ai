@@ -1,10 +1,4 @@
 
-> stock-lakehouse-frontend@1.0.0 dev
-> vite --host 127.0.0.1 --port 5173
-
-
-  VITE v5.4.21  ready in 355 ms
+  VITE v5.4.21  ready in 1361 ms
 
   ➜  Local:   http://127.0.0.1:5173/
-1:46:50 PM [vite] vite.config.ts changed, restarting server...
-1:46:50 PM [vite] server restarted.

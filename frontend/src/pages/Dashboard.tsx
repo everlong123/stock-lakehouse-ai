@@ -1,13 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
 import { Bar, BarChart, CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import {
-  Activity,
-  ArrowUpRight,
-  Database,
-  LineChart as LineChartIcon,
-  TrendingUp,
-  Waves,
-} from "lucide-react";
 import { fetchDashboard, fetchSystemStatus } from "@/api/agent";
 import { errorMessage } from "@/api/client";
 import { CandlestickChart } from "@/components/charts/CandlestickChart";
@@ -23,6 +15,13 @@ import { useMarket } from "@/hooks/useMarket";
 import { OHLCVPoint } from "@/types/stock";
 import { formatNumber, formatPrice, formatVolume } from "@/utils/format";
 import { DISCLAIMER } from "@/utils/constants";
+
+const tooltipStyle = {
+  background: "white",
+  border: "1px solid hsl(220 14% 88%)",
+  borderRadius: 6,
+  fontSize: 12,
+};
 
 export function DashboardPage() {
   const { symbol } = useMarket();
@@ -40,10 +39,11 @@ export function DashboardPage() {
   });
 
   if (query.isLoading) return <Loading />;
-  if (query.isError) return <ErrorState message={errorMessage(query.error, "Không kết nối được backend API.")} />;
+  if (query.isError)
+    return <ErrorState message={errorMessage(query.error, "Khong ket noi duoc backend API.")} />;
 
   const data = query.data;
-  if (!data) return <EmptyState message="Không có dữ liệu cho symbol này." />;
+  if (!data) return <EmptyState message="Khong co du lieu cho symbol nay." />;
 
   const candles = (data.candles as OHLCVPoint[]) || [];
   const prediction = data.latest_prediction as Record<string, unknown> | null;
@@ -60,128 +60,99 @@ export function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      {/* Hero */}
-      <div className="card-elevated relative overflow-hidden p-0">
-        <div className="relative bg-gradient-to-br from-brand-600 via-brand-500 to-brand-700 px-6 py-7 text-white">
-          <div className="absolute inset-0 grid-bg opacity-15" />
-          <div className="relative flex flex-wrap items-end justify-between gap-4">
-            <div>
-              <div className="mb-2 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-widest opacity-90">
-                <Waves size={12} />
-                Lakehouse AI · {symbol}
-              </div>
-              <h1 className="text-3xl font-bold tracking-tight">{symbol} Live</h1>
-              <p className="mt-1 max-w-xl text-sm opacity-90">
-                Dữ liệu đi qua Bronze → Silver → Gold, mô hình Linear Regression, ARIMA, LSTM và AI Agent.
-              </p>
-            </div>
-            <div className="text-right">
-              <div className="font-mono text-4xl font-bold">{formatPrice(lastClose)}</div>
-              <div className="mt-1 flex items-center justify-end gap-2">
-                <ArrowUpRight size={14} />
-                <span className="font-mono text-sm">
-                  {changePct >= 0 ? "+" : ""}
-                  {(changePct * 100).toFixed(2)}%
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
       <PageTitle
-        title="Tổng quan thị trường"
+        title={`${symbol} · Tong quan`}
         subtitle={`Pipeline data lakehouse cho ${symbol}. ${DISCLAIMER}`}
-        badge="Live"
+        meta="01 · Dashboard"
       />
 
       {/* Metrics row */}
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
-        <MetricCard
-          label="Giá hiện tại"
-          value={formatPrice(lastClose)}
-          delta={changePct}
-          icon={<TrendingUp size={14} />}
-        />
-        <MetricCard
-          label="Biến động %"
-          value={`${(changePct * 100).toFixed(2)}%`}
-          delta={changePct}
-          icon={<Activity size={14} />}
-        />
-        <MetricCard
-          label="Volume"
-          value={formatVolume((data.volume as number) ?? candles.at(-1)?.volume)}
-          hint="Phiên gần nhất"
-          icon={<Database size={14} />}
-        />
-        <MetricCard
-          label="RSI (14)"
-          value={formatNumber(data.rsi as number)}
-          hint="Gold layer"
-          icon={<LineChartIcon size={14} />}
-        />
-        <MetricCard
-          label="Model gần nhất"
-          value={prediction ? String(prediction.model_name) : "Chưa train"}
-          hint={prediction ? `MAE ${formatNumber(prediction.mae as number)}` : "Train để bắt đầu"}
-        />
-      </div>
+      <section>
+        <div className="mb-2 flex items-center justify-between">
+          <h2 className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+            Metrics · 5 cot
+          </h2>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+          <MetricCard
+            label="Gia hien tai"
+            value={formatPrice(lastClose)}
+            delta={changePct}
+          />
+          <MetricCard
+            label="Bien dong %"
+            value={`${(changePct * 100).toFixed(2)}%`}
+            delta={changePct}
+          />
+          <MetricCard
+            label="Volume"
+            value={formatVolume((data.volume as number) ?? candles.at(-1)?.volume)}
+            hint="Phien gan nhat"
+          />
+          <MetricCard
+            label="RSI (14)"
+            value={formatNumber(data.rsi as number)}
+            hint="Gold layer"
+          />
+          <MetricCard
+            label="Model gan nhat"
+            value={prediction ? String(prediction.model_name) : "Chua train"}
+            hint={prediction ? `MAE ${formatNumber(prediction.mae as number)}` : "Train de bat dau"}
+          />
+        </div>
+      </section>
 
       {/* Lakehouse flow + sidebar */}
       <div className="grid gap-4 xl:grid-cols-3">
-        <div className="xl:col-span-2 space-y-4">
+        <div className="space-y-4 xl:col-span-2">
           <LakehouseFlow
             bronzeCount={counts.bronze ?? 0}
             silverCount={counts.silver ?? 0}
             goldCount={counts.gold ?? 0}
           />
-          <div className="card-elevated p-5">
-            <div className="mb-3 flex items-center justify-between">
+
+          <div className="rounded-md border border-border bg-card">
+            <div className="flex items-center justify-between border-b border-border px-4 py-3">
               <div>
-                <h3 className="text-base font-bold text-foreground">Giá 60 phiên gần nhất</h3>
-                <p className="text-xs text-muted-foreground">Đường line trực tiếp từ Gold layer</p>
+                <h3 className="text-sm font-semibold text-foreground">Gia 60 phien gan nhat</h3>
+                <p className="text-[11px] text-muted-foreground">Duong line truc tiep tu Gold layer</p>
               </div>
-              <span className="chip">{candles.length} bars</span>
+              <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+                {candles.length} bars
+              </span>
             </div>
-            <div className="h-56">
+            <div className="h-56 px-2 py-3">
               <ResponsiveContainer>
                 <LineChart data={lastSeries}>
-                  <CartesianGrid stroke="hsl(152 25% 90%)" strokeDasharray="3 3" />
+                  <CartesianGrid stroke="hsl(220 14% 92%)" strokeDasharray="3 3" />
                   <XAxis dataKey="timestamp" hide />
-                  <YAxis stroke="hsl(158 15% 50%)" fontSize={11} domain={["auto", "auto"]} />
-                  <Tooltip
-                    contentStyle={{
-                      background: "white",
-                      border: "1px solid hsl(152 18% 88%)",
-                      borderRadius: 8,
-                      fontSize: 12,
-                    }}
-                  />
+                  <YAxis stroke="hsl(220 10% 50%)" fontSize={11} domain={["auto", "auto"]} />
+                  <Tooltip contentStyle={tooltipStyle} />
                   <Line
                     type="monotone"
                     dataKey="price"
-                    stroke="hsl(154 58% 42%)"
-                    strokeWidth={2.5}
+                    stroke="hsl(168 76% 32%)"
+                    strokeWidth={2}
                     dot={false}
-                    activeDot={{ r: 5, fill: "hsl(154 58% 42%)" }}
+                    activeDot={{ r: 4, fill: "hsl(168 76% 32%)" }}
                   />
                 </LineChart>
               </ResponsiveContainer>
             </div>
           </div>
-          <div className="card-elevated p-5">
-            <div className="mb-3 flex items-center justify-between">
-              <div>
-                <h3 className="text-base font-bold text-foreground">Candlestick · Bronze layer</h3>
-                <p className="text-xs text-muted-foreground">OHLCV gốc, không qua chỉnh sửa</p>
-              </div>
+
+          <div className="rounded-md border border-border bg-card">
+            <div className="border-b border-border px-4 py-3">
+              <h3 className="text-sm font-semibold text-foreground">Candlestick · Bronze layer</h3>
+              <p className="text-[11px] text-muted-foreground">OHLCV goc, khong qua chinh sua</p>
             </div>
-            {candles.length ? (
-              <CandlestickChart points={candles.slice(-90)} height={300} />
-            ) : (
-              <EmptyState message="Không có dữ liệu candle." />
-            )}
+            <div className="px-2 py-3">
+              {candles.length ? (
+                <CandlestickChart points={candles.slice(-90)} height={300} />
+              ) : (
+                <EmptyState message="Khong co du lieu candle." />
+              )}
+            </div>
           </div>
         </div>
 
@@ -201,28 +172,19 @@ export function DashboardPage() {
       </div>
 
       {/* Volume */}
-      <div className="card-elevated p-5">
-        <div className="mb-3 flex items-center justify-between">
-          <div>
-            <h3 className="text-base font-bold text-foreground">Volume bars</h3>
-            <p className="text-xs text-muted-foreground">80 phiên gần nhất</p>
-          </div>
+      <div className="rounded-md border border-border bg-card">
+        <div className="border-b border-border px-4 py-3">
+          <h3 className="text-sm font-semibold text-foreground">Volume bars</h3>
+          <p className="text-[11px] text-muted-foreground">80 phien gan nhat</p>
         </div>
-        <div className="h-44">
+        <div className="h-44 px-2 py-3">
           <ResponsiveContainer>
             <BarChart data={candles.slice(-80)}>
-              <CartesianGrid stroke="hsl(152 25% 90%)" strokeDasharray="3 3" />
+              <CartesianGrid stroke="hsl(220 14% 92%)" strokeDasharray="3 3" />
               <XAxis dataKey="timestamp" hide />
-              <YAxis stroke="hsl(158 15% 50%)" fontSize={11} />
-              <Tooltip
-                contentStyle={{
-                  background: "white",
-                  border: "1px solid hsl(152 18% 88%)",
-                  borderRadius: 8,
-                  fontSize: 12,
-                }}
-              />
-              <Bar dataKey="volume" fill="hsl(154 58% 50%)" radius={[4, 4, 0, 0]} />
+              <YAxis stroke="hsl(220 10% 50%)" fontSize={11} />
+              <Tooltip contentStyle={tooltipStyle} />
+              <Bar dataKey="volume" fill="hsl(168 76% 32%)" />
             </BarChart>
           </ResponsiveContainer>
         </div>

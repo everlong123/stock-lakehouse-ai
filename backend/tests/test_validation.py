@@ -2,7 +2,7 @@
 
 import pandas as pd
 
-from app.pipelines.validation import validate_ohlc_frame
+from app.pipelines import validate_ohlc_frame
 from tests.conftest import make_ohlcv
 
 

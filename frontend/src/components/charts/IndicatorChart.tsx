@@ -10,10 +10,9 @@ interface IndicatorChartProps {
 
 const tooltipStyle = {
   background: "white",
-  border: "1px solid hsl(152 18% 88%)",
-  borderRadius: 10,
+  border: "1px solid hsl(220 14% 88%)",
+  borderRadius: 6,
   fontSize: 12,
-  boxShadow: "0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -12px rgba(15,23,42,0.10)",
 };
 
 export function IndicatorChart({ data, lines, referenceLines, height = 220 }: IndicatorChartProps) {
@@ -21,15 +20,15 @@ export function IndicatorChart({ data, lines, referenceLines, height = 220 }: In
     <div className="w-full" style={{ height }}>
       <ResponsiveContainer>
         <LineChart data={data as Array<Record<string, string | number | null>>}>
-          <CartesianGrid stroke="hsl(152 25% 92%)" strokeDasharray="3 3" />
+          <CartesianGrid stroke="hsl(220 14% 92%)" strokeDasharray="3 3" />
           <XAxis
             dataKey="timestamp"
             tickFormatter={shortDate}
             minTickGap={32}
-            stroke="hsl(158 15% 50%)"
+            stroke="hsl(220 10% 50%)"
             fontSize={11}
           />
-          <YAxis stroke="hsl(158 15% 50%)" fontSize={11} />
+          <YAxis stroke="hsl(220 10% 50%)" fontSize={11} />
           <Tooltip contentStyle={tooltipStyle} labelFormatter={(v) => shortDate(String(v))} />
           {referenceLines?.map((ref) => (
             <ReferenceLine
@@ -46,7 +45,7 @@ export function IndicatorChart({ data, lines, referenceLines, height = 220 }: In
               type="monotone"
               dataKey={line.key}
               stroke={line.color}
-              strokeWidth={1.6}
+              strokeWidth={1.5}
               dot={false}
               name={line.name ?? line.key}
             />

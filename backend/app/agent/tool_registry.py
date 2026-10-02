@@ -5,7 +5,6 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import Any
 
-from app.agent.tools.backtest_tools import run_backtest
 from app.agent.tools.fundamental_tools import (
     BalanceSheetInput,
     CashFlowInput,
@@ -38,6 +37,7 @@ from app.agent.tools.stock_tools import (
     forecast_stock,
     ForecastInput,
     IndicatorInput,
+    run_backtest,
     StockQueryInput,
     get_market_summary,
     query_stock_data,
