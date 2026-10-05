@@ -42,16 +42,10 @@ def train_model(
     extra_params = extra_params or {}
     gold = GoldLayer().read(symbol)
     if gold.empty:
-        # Fallback: build Gold features on the fly from MarketService (synthetic when Bronze is empty)
-        from app.features.feature_engineering import build_gold_features
-        from app.services.market_service import MarketService
-        try:
-            base = MarketService().get_history(symbol)
-            gold = build_gold_features(base)
-        except Exception as exc:
-            raise ModelTrainingError(f"No Gold data for {symbol}. Run the lakehouse pipeline first. ({exc})")
-    if gold.empty:
-        raise ModelTrainingError(f"No Gold data for {symbol}. Run the lakehouse pipeline first.")
+        raise ModelTrainingError(
+            f"No Gold data for {symbol}. Run the lakehouse pipeline first "
+            f"(POST /api/v1/pipeline/run or wait for auto-refresh on startup)."
+        )
 
     model_name = model_name.lower()
     if model_name not in MODEL_CLASSES:

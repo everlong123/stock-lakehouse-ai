@@ -1,0 +1,543 @@
+INFO:     Started server process [24832]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+2026-10-03 21:49:35 | WARNING | app.database.session | MySQL connection check failed: (pymysql.err.OperationalError) (2003, "Can't connect to MySQL server on 'localhost' ([WinError 10061] No connection could be made because the target machine actively refused it)")
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2026-10-03 21:49:36 | ERROR | app.agent.llm_client | LLM request failed (gemini)
+Traceback (most recent call last):
+  File "D:\School\kltn\stock-lakehouse-ai\backend\app\agent\llm_client.py", line 100, in _chat_gemini
+    with urllib.request.urlopen(req, timeout=settings.openai_timeout_seconds) as resp:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 216, in urlopen
+    return opener.open(url, data, timeout)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 525, in open
+    response = meth(req, response)
+               ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 634, in http_response
+    response = self.parent.error(
+               ^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 563, in error
+    return self._call_chain(*args)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 496, in _call_chain
+    result = func(*args)
+             ^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 643, in http_error_default
+    raise HTTPError(req.full_url, code, msg, hdrs, fp)
+urllib.error.HTTPError: HTTP Error 400: Bad Request
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "D:\School\kltn\stock-lakehouse-ai\backend\app\agent\llm_client.py", line 45, in chat
+    return self._chat_gemini(messages, tools)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\School\kltn\stock-lakehouse-ai\backend\app\agent\llm_client.py", line 104, in _chat_gemini
+    raise AgentError(f"Gemini API error {exc.code}: {err_body[:200]}") from exc
+app.core.exceptions.AgentError: Gemini API error 400: {
+  "error": {
+    "code": 400,
+    "message": "Invalid JSON payload received. Unknown name \"exclusiveMinimum\" at 'tools[0].function_declarations[6].parameters.properties[4].value': Cannot find fiel
+2026-10-03 21:49:36 | WARNING | app.agent.agent | LLM path failed (LLM request failed: Gemini API error 400: {
+  "error": {
+    "code": 400,
+    "message": "Invalid JSON payload received. Unknown name \"exclusiveMinimum\" at 'tools[0].function_declarations[6].parameters.properties[4].value': Cannot find fiel). Falling back to local tool router.
+2026-10-03 21:49:40 | WARNING | app.database.session | MySQL connection check failed: (pymysql.err.OperationalError) (2003, "Can't connect to MySQL server on 'localhost' ([WinError 10061] No connection could be made because the target machine actively refused it)")
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2026-10-03 21:49:40 | ERROR | app.agent.llm_client | LLM request failed (gemini)
+Traceback (most recent call last):
+  File "D:\School\kltn\stock-lakehouse-ai\backend\app\agent\llm_client.py", line 100, in _chat_gemini
+    with urllib.request.urlopen(req, timeout=settings.openai_timeout_seconds) as resp:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 216, in urlopen
+    return opener.open(url, data, timeout)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 525, in open
+    response = meth(req, response)
+               ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 634, in http_response
+    response = self.parent.error(
+               ^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 563, in error
+    return self._call_chain(*args)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 496, in _call_chain
+    result = func(*args)
+             ^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 643, in http_error_default
+    raise HTTPError(req.full_url, code, msg, hdrs, fp)
+urllib.error.HTTPError: HTTP Error 400: Bad Request
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "D:\School\kltn\stock-lakehouse-ai\backend\app\agent\llm_client.py", line 45, in chat
+    return self._chat_gemini(messages, tools)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\School\kltn\stock-lakehouse-ai\backend\app\agent\llm_client.py", line 104, in _chat_gemini
+    raise AgentError(f"Gemini API error {exc.code}: {err_body[:200]}") from exc
+app.core.exceptions.AgentError: Gemini API error 400: {
+  "error": {
+    "code": 400,
+    "message": "Invalid JSON payload received. Unknown name \"exclusiveMinimum\" at 'tools[0].function_declarations[6].parameters.properties[4].value': Cannot find fiel
+2026-10-03 21:49:40 | WARNING | app.agent.agent | LLM path failed (LLM request failed: Gemini API error 400: {
+  "error": {
+    "code": 400,
+    "message": "Invalid JSON payload received. Unknown name \"exclusiveMinimum\" at 'tools[0].function_declarations[6].parameters.properties[4].value': Cannot find fiel). Falling back to local tool router.
+2026-10-03 21:49:44 | WARNING | app.database.session | MySQL connection check failed: (pymysql.err.OperationalError) (2003, "Can't connect to MySQL server on 'localhost' ([WinError 10061] No connection could be made because the target machine actively refused it)")
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2026-10-03 21:49:45 | ERROR | app.agent.llm_client | LLM request failed (gemini)
+Traceback (most recent call last):
+  File "D:\School\kltn\stock-lakehouse-ai\backend\app\agent\llm_client.py", line 100, in _chat_gemini
+    with urllib.request.urlopen(req, timeout=settings.openai_timeout_seconds) as resp:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 216, in urlopen
+    return opener.open(url, data, timeout)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 525, in open
+    response = meth(req, response)
+               ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 634, in http_response
+    response = self.parent.error(
+               ^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 563, in error
+    return self._call_chain(*args)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 496, in _call_chain
+    result = func(*args)
+             ^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 643, in http_error_default
+    raise HTTPError(req.full_url, code, msg, hdrs, fp)
+urllib.error.HTTPError: HTTP Error 400: Bad Request
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "D:\School\kltn\stock-lakehouse-ai\backend\app\agent\llm_client.py", line 45, in chat
+    return self._chat_gemini(messages, tools)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\School\kltn\stock-lakehouse-ai\backend\app\agent\llm_client.py", line 104, in _chat_gemini
+    raise AgentError(f"Gemini API error {exc.code}: {err_body[:200]}") from exc
+app.core.exceptions.AgentError: Gemini API error 400: {
+  "error": {
+    "code": 400,
+    "message": "Invalid JSON payload received. Unknown name \"exclusiveMinimum\" at 'tools[0].function_declarations[6].parameters.properties[4].value': Cannot find fiel
+2026-10-03 21:49:45 | WARNING | app.agent.agent | LLM path failed (LLM request failed: Gemini API error 400: {
+  "error": {
+    "code": 400,
+    "message": "Invalid JSON payload received. Unknown name \"exclusiveMinimum\" at 'tools[0].function_declarations[6].parameters.properties[4].value': Cannot find fiel). Falling back to local tool router.
+2026-10-03 21:49:46 | WARNING | app.lakehouse.storage_factory | MinIO initialization failed (Cannot initialize MinIO buckets: HTTPConnectionPool(host='localhost', port=9000): Max retries exceeded with url: /stock-backtests?location= (Caused by ConnectTimeoutError(<HTTPConnection(host='localhost', port=9000) at 0x1ce584aa350>, 'Connection to localhost timed out. (connect timeout=0.5)'))). Falling back to local storage.
+2026-10-03 21:49:46 | INFO | app.lakehouse.storage_factory | Using local filesystem storage backend.
+2026-10-03 21:49:47 | WARNING | app.lakehouse.storage_factory | MinIO initialization failed (Cannot initialize MinIO buckets: HTTPConnectionPool(host='localhost', port=9000): Max retries exceeded with url: /stock-backtests?location= (Caused by ConnectTimeoutError(<HTTPConnection(host='localhost', port=9000) at 0x1ce584a9d50>, 'Connection to localhost timed out. (connect timeout=0.5)'))). Falling back to local storage.
+2026-10-03 21:49:47 | INFO | app.lakehouse.storage_factory | Using local filesystem storage backend.
+2026-10-03 21:49:48 | WARNING | app.lakehouse.storage_factory | MinIO initialization failed (Cannot initialize MinIO buckets: HTTPConnectionPool(host='localhost', port=9000): Max retries exceeded with url: /stock-backtests?location= (Caused by ConnectTimeoutError(<HTTPConnection(host='localhost', port=9000) at 0x1ce589f7050>, 'Connection to localhost timed out. (connect timeout=0.5)'))). Falling back to local storage.
+2026-10-03 21:49:48 | INFO | app.lakehouse.storage_factory | Using local filesystem storage backend.
+2026-10-03 21:49:49 | WARNING | app.lakehouse.storage_factory | MinIO initialization failed (Cannot initialize MinIO buckets: HTTPConnectionPool(host='localhost', port=9000): Max retries exceeded with url: /stock-backtests?location= (Caused by ConnectTimeoutError(<HTTPConnection(host='localhost', port=9000) at 0x1ce589cca90>, 'Connection to localhost timed out. (connect timeout=0.5)'))). Falling back to local storage.
+2026-10-03 21:49:49 | INFO | app.lakehouse.storage_factory | Using local filesystem storage backend.
+2026-10-03 21:49:50 | WARNING | app.lakehouse.storage_factory | MinIO initialization failed (Cannot initialize MinIO buckets: HTTPConnectionPool(host='localhost', port=9000): Max retries exceeded with url: /stock-backtests?location= (Caused by ConnectTimeoutError(<HTTPConnection(host='localhost', port=9000) at 0x1ce589f75d0>, 'Connection to localhost timed out. (connect timeout=0.5)'))). Falling back to local storage.
+2026-10-03 21:49:50 | INFO | app.lakehouse.storage_factory | Using local filesystem storage backend.
+2026-10-03 21:49:51 | WARNING | app.lakehouse.storage_factory | MinIO initialization failed (Cannot initialize MinIO buckets: HTTPConnectionPool(host='localhost', port=9000): Max retries exceeded with url: /stock-backtests?location= (Caused by ConnectTimeoutError(<HTTPConnection(host='localhost', port=9000) at 0x1ce589f5bd0>, 'Connection to localhost timed out. (connect timeout=0.5)'))). Falling back to local storage.
+2026-10-03 21:49:51 | INFO | app.lakehouse.storage_factory | Using local filesystem storage backend.
+2026-10-03 21:49:58 | WARNING | app.database.session | MySQL connection check failed: (pymysql.err.OperationalError) (2003, "Can't connect to MySQL server on 'localhost' ([WinError 10061] No connection could be made because the target machine actively refused it)")
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2026-10-03 21:49:58 | ERROR | app.agent.llm_client | LLM request failed (gemini)
+Traceback (most recent call last):
+  File "D:\School\kltn\stock-lakehouse-ai\backend\app\agent\llm_client.py", line 100, in _chat_gemini
+    with urllib.request.urlopen(req, timeout=settings.openai_timeout_seconds) as resp:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 216, in urlopen
+    return opener.open(url, data, timeout)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 525, in open
+    response = meth(req, response)
+               ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 634, in http_response
+    response = self.parent.error(
+               ^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 563, in error
+    return self._call_chain(*args)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 496, in _call_chain
+    result = func(*args)
+             ^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 643, in http_error_default
+    raise HTTPError(req.full_url, code, msg, hdrs, fp)
+urllib.error.HTTPError: HTTP Error 400: Bad Request
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "D:\School\kltn\stock-lakehouse-ai\backend\app\agent\llm_client.py", line 45, in chat
+    return self._chat_gemini(messages, tools)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\School\kltn\stock-lakehouse-ai\backend\app\agent\llm_client.py", line 104, in _chat_gemini
+    raise AgentError(f"Gemini API error {exc.code}: {err_body[:200]}") from exc
+app.core.exceptions.AgentError: Gemini API error 400: {
+  "error": {
+    "code": 400,
+    "message": "Invalid JSON payload received. Unknown name \"exclusiveMinimum\" at 'tools[0].function_declarations[6].parameters.properties[4].value': Cannot find fiel
+2026-10-03 21:49:58 | WARNING | app.agent.agent | LLM path failed (LLM request failed: Gemini API error 400: {
+  "error": {
+    "code": 400,
+    "message": "Invalid JSON payload received. Unknown name \"exclusiveMinimum\" at 'tools[0].function_declarations[6].parameters.properties[4].value': Cannot find fiel). Falling back to local tool router.
+2026-10-03 21:50:02 | WARNING | app.database.session | MySQL connection check failed: (pymysql.err.OperationalError) (2003, "Can't connect to MySQL server on 'localhost' ([WinError 10061] No connection could be made because the target machine actively refused it)")
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2026-10-03 21:50:03 | ERROR | app.agent.llm_client | LLM request failed (gemini)
+Traceback (most recent call last):
+  File "D:\School\kltn\stock-lakehouse-ai\backend\app\agent\llm_client.py", line 100, in _chat_gemini
+    with urllib.request.urlopen(req, timeout=settings.openai_timeout_seconds) as resp:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 216, in urlopen
+    return opener.open(url, data, timeout)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 525, in open
+    response = meth(req, response)
+               ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 634, in http_response
+    response = self.parent.error(
+               ^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 563, in error
+    return self._call_chain(*args)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 496, in _call_chain
+    result = func(*args)
+             ^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 643, in http_error_default
+    raise HTTPError(req.full_url, code, msg, hdrs, fp)
+urllib.error.HTTPError: HTTP Error 400: Bad Request
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "D:\School\kltn\stock-lakehouse-ai\backend\app\agent\llm_client.py", line 45, in chat
+    return self._chat_gemini(messages, tools)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\School\kltn\stock-lakehouse-ai\backend\app\agent\llm_client.py", line 104, in _chat_gemini
+    raise AgentError(f"Gemini API error {exc.code}: {err_body[:200]}") from exc
+app.core.exceptions.AgentError: Gemini API error 400: {
+  "error": {
+    "code": 400,
+    "message": "Invalid JSON payload received. Unknown name \"exclusiveMinimum\" at 'tools[0].function_declarations[6].parameters.properties[4].value': Cannot find fiel
+2026-10-03 21:50:03 | WARNING | app.agent.agent | LLM path failed (LLM request failed: Gemini API error 400: {
+  "error": {
+    "code": 400,
+    "message": "Invalid JSON payload received. Unknown name \"exclusiveMinimum\" at 'tools[0].function_declarations[6].parameters.properties[4].value': Cannot find fiel). Falling back to local tool router.
+2026-10-03 21:50:07 | WARNING | app.database.session | MySQL connection check failed: (pymysql.err.OperationalError) (2003, "Can't connect to MySQL server on 'localhost' ([WinError 10061] No connection could be made because the target machine actively refused it)")
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2026-10-03 21:50:07 | ERROR | app.agent.llm_client | LLM request failed (gemini)
+Traceback (most recent call last):
+  File "D:\School\kltn\stock-lakehouse-ai\backend\app\agent\llm_client.py", line 100, in _chat_gemini
+    with urllib.request.urlopen(req, timeout=settings.openai_timeout_seconds) as resp:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 216, in urlopen
+    return opener.open(url, data, timeout)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 525, in open
+    response = meth(req, response)
+               ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 634, in http_response
+    response = self.parent.error(
+               ^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 563, in error
+    return self._call_chain(*args)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 496, in _call_chain
+    result = func(*args)
+             ^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 643, in http_error_default
+    raise HTTPError(req.full_url, code, msg, hdrs, fp)
+urllib.error.HTTPError: HTTP Error 400: Bad Request
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "D:\School\kltn\stock-lakehouse-ai\backend\app\agent\llm_client.py", line 45, in chat
+    return self._chat_gemini(messages, tools)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\School\kltn\stock-lakehouse-ai\backend\app\agent\llm_client.py", line 104, in _chat_gemini
+    raise AgentError(f"Gemini API error {exc.code}: {err_body[:200]}") from exc
+app.core.exceptions.AgentError: Gemini API error 400: {
+  "error": {
+    "code": 400,
+    "message": "Invalid JSON payload received. Unknown name \"exclusiveMinimum\" at 'tools[0].function_declarations[6].parameters.properties[4].value': Cannot find fiel
+2026-10-03 21:50:07 | WARNING | app.agent.agent | LLM path failed (LLM request failed: Gemini API error 400: {
+  "error": {
+    "code": 400,
+    "message": "Invalid JSON payload received. Unknown name \"exclusiveMinimum\" at 'tools[0].function_declarations[6].parameters.properties[4].value': Cannot find fiel). Falling back to local tool router.
+2026-10-03 21:50:11 | WARNING | app.database.session | MySQL connection check failed: (pymysql.err.OperationalError) (2003, "Can't connect to MySQL server on 'localhost' ([WinError 10061] No connection could be made because the target machine actively refused it)")
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2026-10-03 21:50:12 | ERROR | app.agent.llm_client | LLM request failed (gemini)
+Traceback (most recent call last):
+  File "D:\School\kltn\stock-lakehouse-ai\backend\app\agent\llm_client.py", line 100, in _chat_gemini
+    with urllib.request.urlopen(req, timeout=settings.openai_timeout_seconds) as resp:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 216, in urlopen
+    return opener.open(url, data, timeout)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 525, in open
+    response = meth(req, response)
+               ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 634, in http_response
+    response = self.parent.error(
+               ^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 563, in error
+    return self._call_chain(*args)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 496, in _call_chain
+    result = func(*args)
+             ^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 643, in http_error_default
+    raise HTTPError(req.full_url, code, msg, hdrs, fp)
+urllib.error.HTTPError: HTTP Error 400: Bad Request
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "D:\School\kltn\stock-lakehouse-ai\backend\app\agent\llm_client.py", line 45, in chat
+    return self._chat_gemini(messages, tools)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\School\kltn\stock-lakehouse-ai\backend\app\agent\llm_client.py", line 104, in _chat_gemini
+    raise AgentError(f"Gemini API error {exc.code}: {err_body[:200]}") from exc
+app.core.exceptions.AgentError: Gemini API error 400: {
+  "error": {
+    "code": 400,
+    "message": "Invalid JSON payload received. Unknown name \"exclusiveMinimum\" at 'tools[0].function_declarations[6].parameters.properties[4].value': Cannot find fiel
+2026-10-03 21:50:12 | WARNING | app.agent.agent | LLM path failed (LLM request failed: Gemini API error 400: {
+  "error": {
+    "code": 400,
+    "message": "Invalid JSON payload received. Unknown name \"exclusiveMinimum\" at 'tools[0].function_declarations[6].parameters.properties[4].value': Cannot find fiel). Falling back to local tool router.
+2026-10-03 21:50:16 | WARNING | app.database.session | MySQL connection check failed: (pymysql.err.OperationalError) (2003, "Can't connect to MySQL server on 'localhost' ([WinError 10061] No connection could be made because the target machine actively refused it)")
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2026-10-03 21:50:16 | ERROR | app.agent.llm_client | LLM request failed (gemini)
+Traceback (most recent call last):
+  File "D:\School\kltn\stock-lakehouse-ai\backend\app\agent\llm_client.py", line 100, in _chat_gemini
+    with urllib.request.urlopen(req, timeout=settings.openai_timeout_seconds) as resp:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 216, in urlopen
+    return opener.open(url, data, timeout)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 525, in open
+    response = meth(req, response)
+               ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 634, in http_response
+    response = self.parent.error(
+               ^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 563, in error
+    return self._call_chain(*args)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 496, in _call_chain
+    result = func(*args)
+             ^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 643, in http_error_default
+    raise HTTPError(req.full_url, code, msg, hdrs, fp)
+urllib.error.HTTPError: HTTP Error 400: Bad Request
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "D:\School\kltn\stock-lakehouse-ai\backend\app\agent\llm_client.py", line 45, in chat
+    return self._chat_gemini(messages, tools)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\School\kltn\stock-lakehouse-ai\backend\app\agent\llm_client.py", line 104, in _chat_gemini
+    raise AgentError(f"Gemini API error {exc.code}: {err_body[:200]}") from exc
+app.core.exceptions.AgentError: Gemini API error 400: {
+  "error": {
+    "code": 400,
+    "message": "Invalid JSON payload received. Unknown name \"exclusiveMinimum\" at 'tools[0].function_declarations[6].parameters.properties[4].value': Cannot find fiel
+2026-10-03 21:50:16 | WARNING | app.agent.agent | LLM path failed (LLM request failed: Gemini API error 400: {
+  "error": {
+    "code": 400,
+    "message": "Invalid JSON payload received. Unknown name \"exclusiveMinimum\" at 'tools[0].function_declarations[6].parameters.properties[4].value': Cannot find fiel). Falling back to local tool router.
+2026-10-03 21:50:20 | WARNING | app.database.session | MySQL connection check failed: (pymysql.err.OperationalError) (2003, "Can't connect to MySQL server on 'localhost' ([WinError 10061] No connection could be made because the target machine actively refused it)")
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2026-10-03 21:50:20 | ERROR | app.agent.llm_client | LLM request failed (gemini)
+Traceback (most recent call last):
+  File "D:\School\kltn\stock-lakehouse-ai\backend\app\agent\llm_client.py", line 100, in _chat_gemini
+    with urllib.request.urlopen(req, timeout=settings.openai_timeout_seconds) as resp:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 216, in urlopen
+    return opener.open(url, data, timeout)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 525, in open
+    response = meth(req, response)
+               ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 634, in http_response
+    response = self.parent.error(
+               ^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 563, in error
+    return self._call_chain(*args)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 496, in _call_chain
+    result = func(*args)
+             ^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 643, in http_error_default
+    raise HTTPError(req.full_url, code, msg, hdrs, fp)
+urllib.error.HTTPError: HTTP Error 400: Bad Request
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "D:\School\kltn\stock-lakehouse-ai\backend\app\agent\llm_client.py", line 45, in chat
+    return self._chat_gemini(messages, tools)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\School\kltn\stock-lakehouse-ai\backend\app\agent\llm_client.py", line 104, in _chat_gemini
+    raise AgentError(f"Gemini API error {exc.code}: {err_body[:200]}") from exc
+app.core.exceptions.AgentError: Gemini API error 400: {
+  "error": {
+    "code": 400,
+    "message": "Invalid JSON payload received. Unknown name \"exclusiveMinimum\" at 'tools[0].function_declarations[6].parameters.properties[4].value': Cannot find fiel
+2026-10-03 21:50:20 | WARNING | app.agent.agent | LLM path failed (LLM request failed: Gemini API error 400: {
+  "error": {
+    "code": 400,
+    "message": "Invalid JSON payload received. Unknown name \"exclusiveMinimum\" at 'tools[0].function_declarations[6].parameters.properties[4].value': Cannot find fiel). Falling back to local tool router.
+2026-10-03 21:50:25 | WARNING | app.database.session | MySQL connection check failed: (pymysql.err.OperationalError) (2003, "Can't connect to MySQL server on 'localhost' ([WinError 10061] No connection could be made because the target machine actively refused it)")
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2026-10-03 21:50:25 | ERROR | app.agent.llm_client | LLM request failed (gemini)
+Traceback (most recent call last):
+  File "D:\School\kltn\stock-lakehouse-ai\backend\app\agent\llm_client.py", line 100, in _chat_gemini
+    with urllib.request.urlopen(req, timeout=settings.openai_timeout_seconds) as resp:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 216, in urlopen
+    return opener.open(url, data, timeout)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 525, in open
+    response = meth(req, response)
+               ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 634, in http_response
+    response = self.parent.error(
+               ^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 563, in error
+    return self._call_chain(*args)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 496, in _call_chain
+    result = func(*args)
+             ^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 643, in http_error_default
+    raise HTTPError(req.full_url, code, msg, hdrs, fp)
+urllib.error.HTTPError: HTTP Error 400: Bad Request
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "D:\School\kltn\stock-lakehouse-ai\backend\app\agent\llm_client.py", line 45, in chat
+    return self._chat_gemini(messages, tools)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\School\kltn\stock-lakehouse-ai\backend\app\agent\llm_client.py", line 104, in _chat_gemini
+    raise AgentError(f"Gemini API error {exc.code}: {err_body[:200]}") from exc
+app.core.exceptions.AgentError: Gemini API error 400: {
+  "error": {
+    "code": 400,
+    "message": "Invalid JSON payload received. Unknown name \"exclusiveMinimum\" at 'tools[0].function_declarations[6].parameters.properties[4].value': Cannot find fiel
+2026-10-03 21:50:25 | WARNING | app.agent.agent | LLM path failed (LLM request failed: Gemini API error 400: {
+  "error": {
+    "code": 400,
+    "message": "Invalid JSON payload received. Unknown name \"exclusiveMinimum\" at 'tools[0].function_declarations[6].parameters.properties[4].value': Cannot find fiel). Falling back to local tool router.
+2026-10-03 21:50:29 | WARNING | app.database.session | MySQL connection check failed: (pymysql.err.OperationalError) (2003, "Can't connect to MySQL server on 'localhost' ([WinError 10061] No connection could be made because the target machine actively refused it)")
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2026-10-03 21:50:29 | ERROR | app.agent.llm_client | LLM request failed (gemini)
+Traceback (most recent call last):
+  File "D:\School\kltn\stock-lakehouse-ai\backend\app\agent\llm_client.py", line 100, in _chat_gemini
+    with urllib.request.urlopen(req, timeout=settings.openai_timeout_seconds) as resp:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 216, in urlopen
+    return opener.open(url, data, timeout)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 525, in open
+    response = meth(req, response)
+               ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 634, in http_response
+    response = self.parent.error(
+               ^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 563, in error
+    return self._call_chain(*args)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 496, in _call_chain
+    result = func(*args)
+             ^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 643, in http_error_default
+    raise HTTPError(req.full_url, code, msg, hdrs, fp)
+urllib.error.HTTPError: HTTP Error 400: Bad Request
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "D:\School\kltn\stock-lakehouse-ai\backend\app\agent\llm_client.py", line 45, in chat
+    return self._chat_gemini(messages, tools)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\School\kltn\stock-lakehouse-ai\backend\app\agent\llm_client.py", line 104, in _chat_gemini
+    raise AgentError(f"Gemini API error {exc.code}: {err_body[:200]}") from exc
+app.core.exceptions.AgentError: Gemini API error 400: {
+  "error": {
+    "code": 400,
+    "message": "Invalid JSON payload received. Unknown name \"exclusiveMinimum\" at 'tools[0].function_declarations[6].parameters.properties[4].value': Cannot find fiel
+2026-10-03 21:50:29 | WARNING | app.agent.agent | LLM path failed (LLM request failed: Gemini API error 400: {
+  "error": {
+    "code": 400,
+    "message": "Invalid JSON payload received. Unknown name \"exclusiveMinimum\" at 'tools[0].function_declarations[6].parameters.properties[4].value': Cannot find fiel). Falling back to local tool router.
+2026-10-03 21:50:30 | WARNING | app.lakehouse.storage_factory | MinIO initialization failed (Cannot initialize MinIO buckets: HTTPConnectionPool(host='localhost', port=9000): Max retries exceeded with url: /stock-backtests?location= (Caused by ConnectTimeoutError(<HTTPConnection(host='localhost', port=9000) at 0x1ce58a9b590>, 'Connection to localhost timed out. (connect timeout=0.5)'))). Falling back to local storage.
+2026-10-03 21:50:30 | INFO | app.lakehouse.storage_factory | Using local filesystem storage backend.
+2026-10-03 21:50:31 | WARNING | app.lakehouse.storage_factory | MinIO initialization failed (Cannot initialize MinIO buckets: HTTPConnectionPool(host='localhost', port=9000): Max retries exceeded with url: /stock-backtests?location= (Caused by ConnectTimeoutError(<HTTPConnection(host='localhost', port=9000) at 0x1ce58ad25d0>, 'Connection to localhost timed out. (connect timeout=0.5)'))). Falling back to local storage.
+2026-10-03 21:50:31 | INFO | app.lakehouse.storage_factory | Using local filesystem storage backend.
+2026-10-03 21:50:32 | WARNING | app.lakehouse.storage_factory | MinIO initialization failed (Cannot initialize MinIO buckets: HTTPConnectionPool(host='localhost', port=9000): Max retries exceeded with url: /stock-backtests?location= (Caused by ConnectTimeoutError(<HTTPConnection(host='localhost', port=9000) at 0x1ce58abda90>, 'Connection to localhost timed out. (connect timeout=0.5)'))). Falling back to local storage.
+2026-10-03 21:50:32 | INFO | app.lakehouse.storage_factory | Using local filesystem storage backend.
+2026-10-03 21:50:33 | WARNING | app.lakehouse.storage_factory | MinIO initialization failed (Cannot initialize MinIO buckets: HTTPConnectionPool(host='localhost', port=9000): Max retries exceeded with url: /stock-backtests?location= (Caused by ConnectTimeoutError(<HTTPConnection(host='localhost', port=9000) at 0x1ce589f7c50>, 'Connection to localhost timed out. (connect timeout=0.5)'))). Falling back to local storage.
+2026-10-03 21:50:33 | INFO | app.lakehouse.storage_factory | Using local filesystem storage backend.
+2026-10-03 21:50:35 | WARNING | app.lakehouse.storage_factory | MinIO initialization failed (Cannot initialize MinIO buckets: HTTPConnectionPool(host='localhost', port=9000): Max retries exceeded with url: /stock-backtests?location= (Caused by ConnectTimeoutError(<HTTPConnection(host='localhost', port=9000) at 0x1ce58a882d0>, 'Connection to localhost timed out. (connect timeout=0.5)'))). Falling back to local storage.
+2026-10-03 21:50:35 | INFO | app.lakehouse.storage_factory | Using local filesystem storage backend.
+2026-10-03 21:50:36 | WARNING | app.lakehouse.storage_factory | MinIO initialization failed (Cannot initialize MinIO buckets: HTTPConnectionPool(host='localhost', port=9000): Max retries exceeded with url: /stock-backtests?location= (Caused by ConnectTimeoutError(<HTTPConnection(host='localhost', port=9000) at 0x1ce58aa4410>, 'Connection to localhost timed out. (connect timeout=0.5)'))). Falling back to local storage.
+2026-10-03 21:50:36 | INFO | app.lakehouse.storage_factory | Using local filesystem storage backend.
+2026-10-03 21:50:39 | WARNING | app.database.session | MySQL connection check failed: (pymysql.err.OperationalError) (2003, "Can't connect to MySQL server on 'localhost' ([WinError 10061] No connection could be made because the target machine actively refused it)")
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2026-10-03 21:50:39 | ERROR | app.agent.llm_client | LLM request failed (gemini)
+Traceback (most recent call last):
+  File "D:\School\kltn\stock-lakehouse-ai\backend\app\agent\llm_client.py", line 100, in _chat_gemini
+    with urllib.request.urlopen(req, timeout=settings.openai_timeout_seconds) as resp:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 216, in urlopen
+    return opener.open(url, data, timeout)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 525, in open
+    response = meth(req, response)
+               ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 634, in http_response
+    response = self.parent.error(
+               ^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 563, in error
+    return self._call_chain(*args)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 496, in _call_chain
+    result = func(*args)
+             ^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 643, in http_error_default
+    raise HTTPError(req.full_url, code, msg, hdrs, fp)
+urllib.error.HTTPError: HTTP Error 400: Bad Request
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "D:\School\kltn\stock-lakehouse-ai\backend\app\agent\llm_client.py", line 45, in chat
+    return self._chat_gemini(messages, tools)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\School\kltn\stock-lakehouse-ai\backend\app\agent\llm_client.py", line 104, in _chat_gemini
+    raise AgentError(f"Gemini API error {exc.code}: {err_body[:200]}") from exc
+app.core.exceptions.AgentError: Gemini API error 400: {
+  "error": {
+    "code": 400,
+    "message": "Invalid JSON payload received. Unknown name \"exclusiveMinimum\" at 'tools[0].function_declarations[6].parameters.properties[4].value': Cannot find fiel
+2026-10-03 21:50:39 | WARNING | app.agent.agent | LLM path failed (LLM request failed: Gemini API error 400: {
+  "error": {
+    "code": 400,
+    "message": "Invalid JSON payload received. Unknown name \"exclusiveMinimum\" at 'tools[0].function_declarations[6].parameters.properties[4].value': Cannot find fiel). Falling back to local tool router.
+2026-10-03 21:50:40 | WARNING | app.lakehouse.storage_factory | MinIO initialization failed (Cannot initialize MinIO buckets: HTTPConnectionPool(host='localhost', port=9000): Max retries exceeded with url: /stock-backtests?location= (Caused by ConnectTimeoutError(<HTTPConnection(host='localhost', port=9000) at 0x1ce589f6790>, 'Connection to localhost timed out. (connect timeout=0.5)'))). Falling back to local storage.
+2026-10-03 21:50:40 | INFO | app.lakehouse.storage_factory | Using local filesystem storage backend.
+2026-10-03 21:50:41 | WARNING | app.lakehouse.storage_factory | MinIO initialization failed (Cannot initialize MinIO buckets: HTTPConnectionPool(host='localhost', port=9000): Max retries exceeded with url: /stock-backtests?location= (Caused by ConnectTimeoutError(<HTTPConnection(host='localhost', port=9000) at 0x1ce58abe1d0>, 'Connection to localhost timed out. (connect timeout=0.5)'))). Falling back to local storage.
+2026-10-03 21:50:41 | INFO | app.lakehouse.storage_factory | Using local filesystem storage backend.
+2026-10-03 21:50:43 | WARNING | app.lakehouse.storage_factory | MinIO initialization failed (Cannot initialize MinIO buckets: HTTPConnectionPool(host='localhost', port=9000): Max retries exceeded with url: /stock-backtests?location= (Caused by ConnectTimeoutError(<HTTPConnection(host='localhost', port=9000) at 0x1ce58a8b490>, 'Connection to localhost timed out. (connect timeout=0.5)'))). Falling back to local storage.
+2026-10-03 21:50:43 | INFO | app.lakehouse.storage_factory | Using local filesystem storage backend.
+2026-10-03 21:50:44 | WARNING | app.lakehouse.storage_factory | MinIO initialization failed (Cannot initialize MinIO buckets: HTTPConnectionPool(host='localhost', port=9000): Max retries exceeded with url: /stock-backtests?location= (Caused by ConnectTimeoutError(<HTTPConnection(host='localhost', port=9000) at 0x1ce58ae9590>, 'Connection to localhost timed out. (connect timeout=0.5)'))). Falling back to local storage.
+2026-10-03 21:50:44 | INFO | app.lakehouse.storage_factory | Using local filesystem storage backend.
+2026-10-03 21:50:45 | WARNING | app.lakehouse.storage_factory | MinIO initialization failed (Cannot initialize MinIO buckets: HTTPConnectionPool(host='localhost', port=9000): Max retries exceeded with url: /stock-backtests?location= (Caused by ConnectTimeoutError(<HTTPConnection(host='localhost', port=9000) at 0x1ce58aeb650>, 'Connection to localhost timed out. (connect timeout=0.5)'))). Falling back to local storage.
+2026-10-03 21:50:45 | INFO | app.lakehouse.storage_factory | Using local filesystem storage backend.
+2026-10-03 21:50:45 | INFO | app.backtesting.engine | Backtest FPT ma_crossover return=-0.0124 trades=1

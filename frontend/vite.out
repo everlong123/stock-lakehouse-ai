@@ -1,4 +1,39 @@
 
-  VITE v5.4.21  ready in 1361 ms
+> stock-lakehouse-frontend@1.0.0 dev
+> vite
+
+
+  VITE v5.4.21  ready in 378 ms
 
   ➜  Local:   http://127.0.0.1:5173/
+12:53:02 PM [vite] page reload index.html
+12:53:07 PM [vite] page reload tailwind.config.js
+12:53:18 PM [vite] hmr update /src/index.css
+12:53:34 PM [vite] hmr update /src/components/ui/button.tsx, /src/index.css
+12:53:37 PM [vite] hmr update /src/index.css
+12:53:41 PM [vite] hmr update /src/components/ui/button.tsx, /src/index.css
+12:53:44 PM [vite] hmr update /src/components/layout/Sidebar.tsx, /src/index.css
+12:53:47 PM [vite] hmr update /src/components/agent/ChatBox.tsx, /src/index.css
+12:53:54 PM [vite] hmr update /src/components/agent/ChatMessage.tsx, /src/index.css
+12:54:00 PM [vite] hmr update /src/pages/MarketData.tsx, /src/index.css
+12:54:11 PM [vite] hmr update /src/pages/MarketData.tsx, /src/index.css
+12:54:18 PM [vite] hmr update /src/components/charts/PriceChart.tsx, /src/index.css
+12:54:28 PM [vite] hmr update /src/components/charts/IndicatorChart.tsx, /src/index.css
+12:54:33 PM [vite] hmr update /src/components/charts/ForecastChart.tsx, /src/index.css
+12:54:39 PM [vite] hmr update /src/components/charts/EquityCurve.tsx, /src/index.css
+12:54:43 PM [vite] hmr update /src/components/charts/EquityCurve.tsx, /src/index.css
+12:54:46 PM [vite] hmr update /src/components/charts/ForecastChart.tsx, /src/index.css
+12:54:53 PM [vite] hmr update /src/pages/Dashboard.tsx, /src/index.css
+12:55:02 PM [vite] hmr update /src/pages/Dashboard.tsx, /src/index.css
+12:55:08 PM [vite] hmr update /src/pages/Dashboard.tsx, /src/index.css
+12:55:14 PM [vite] hmr update /src/pages/Backtesting.tsx, /src/index.css
+12:55:18 PM [vite] page reload src/main.tsx
+12:55:40 PM [vite] hmr update /src/components/layout/Header.tsx, /src/index.css
+12:55:44 PM [vite] hmr update /src/lib/i18n.tsx, /src/index.css
+12:55:45 PM [vite] hmr invalidate /src/lib/i18n.tsx Could not Fast Refresh ("t" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+12:55:45 PM [vite] page reload src/lib/i18n.tsx
+12:55:48 PM [vite] hmr update /src/lib/i18n.tsx, /src/index.css
+12:55:48 PM [vite] hmr invalidate /src/lib/i18n.tsx Could not Fast Refresh ("t" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+12:55:48 PM [vite] page reload src/lib/i18n.tsx
+12:55:51 PM [vite] hmr update /src/components/layout/Header.tsx, /src/index.css
+12:56:09 PM [vite] hmr update /src/components/charts/CandlestickChart.tsx, /src/index.css

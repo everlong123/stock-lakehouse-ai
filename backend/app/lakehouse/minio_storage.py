@@ -38,11 +38,18 @@ class MinioStorageBackend(StorageBackend):
             from minio import Minio
         except ImportError as exc:
             raise StorageError("minio package is not installed.") from exc
+        import urllib3
+
+        http_client = urllib3.PoolManager(
+            timeout=urllib3.Timeout(connect=2.0, read=30.0),
+            retries=urllib3.util.retry.Retry(total=2),
+        )
         self.client = Minio(
             settings.minio_endpoint,
             access_key=settings.minio_access_key,
             secret_key=settings.minio_secret_key,
             secure=settings.minio_secure,
+            http_client=http_client,
         )
         self._ensure_buckets()
 

@@ -1,0 +1,27 @@
+
+> stock-lakehouse-frontend@1.0.0 dev
+> vite
+
+
+  VITE v5.4.21  ready in 1398 ms
+
+  ➜  Local:   http://127.0.0.1:5173/
+12:09:34 PM [vite] page reload index.html
+12:09:37 PM [vite] page reload tailwind.config.js
+12:09:40 PM [vite] hmr update /src/index.css
+12:10:12 PM [vite] page reload src/main.tsx
+12:10:15 PM [vite] page reload src/main.tsx
+12:10:23 PM [vite] hmr update /src/components/layout/Header.tsx, /src/index.css
+12:10:46 PM [vite] hmr update /src/components/layout/Sidebar.tsx, /src/index.css
+12:10:59 PM [vite] hmr update /src/pages/Dashboard.tsx, /src/index.css
+12:11:03 PM [vite] hmr update /src/pages/MarketData.tsx, /src/index.css
+12:11:23 PM [vite] hmr update /src/pages/MarketData.tsx, /src/index.css
+12:11:39 PM [vite] hmr update /src/pages/SystemStatus.tsx, /src/index.css
+12:11:44 PM [vite] hmr update /src/pages/AIAgent.tsx, /src/index.css
+12:11:53 PM [vite] hmr update /src/components/agent/ChatBox.tsx, /src/index.css
+12:14:21 PM [vite] hmr update /src/components/layout/Sidebar.tsx, /src/index.css
+12:16:38 PM [vite] hmr update /src/pages/Dashboard.tsx, /src/index.css
+12:16:38 PM [vite] hmr update /src/pages/MarketData.tsx, /src/index.css
+12:16:38 PM [vite] hmr update /src/components/agent/ChatBox.tsx, /src/index.css
+12:16:38 PM [vite] hmr update /src/pages/SystemStatus.tsx, /src/index.css
+12:17:13 PM [vite] hmr update /src/pages/SystemStatus.tsx, /src/index.css

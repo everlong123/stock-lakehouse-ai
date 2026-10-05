@@ -73,11 +73,9 @@ class Settings(BaseSettings):
     default_interval: str = "1d"
     default_lookback_days: int = 3650  # ~10 years (exceeds 5-year requirement)
 
-    # Multi-interval data collection
-    collect_1d: bool = True      # Daily data (5 years)
-    collect_1h: bool = True      # Hourly data (1 year)
-    collect_15m: bool = False    # 15-min data (30 days)
-    collect_5m: bool = False     # 5-min data (7 days)
+    # Single-interval lakehouse - only daily bars are collected.
+    # Intraday (1h/15m/5m) collection is intentionally disabled so the
+    # Bronze/Silver/Gold tables stay 1d-aligned and easy to reason about.
 
     model_dir: str = "data/models"
     random_seed: int = 42

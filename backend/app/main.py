@@ -2,6 +2,12 @@
 
 from __future__ import annotations
 
+import os
+from pathlib import Path
+
+from dotenv import load_dotenv
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -12,11 +18,37 @@ from app.core.exceptions import StockLakehouseError
 from app.core.logging_config import get_logger, setup_logging
 from app.core.seeding import set_global_seed
 from app.schemas.common import fail
+from app.services.auto_refresh import start_auto_refresh, stop_auto_refresh
 from app.services.crawler_service import start_crawler, stop_crawler
+
+from dotenv import load_dotenv
+
+# Load .env before anything else so all modules see the same settings
+_dotenv = Path(__file__).resolve().parents[1] / ".env"
+if _dotenv.exists():
+    load_dotenv(_dotenv, override=True)
 
 setup_logging()
 set_global_seed(settings.random_seed)
 logger = get_logger(__name__)
+
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    # ── startup ──
+    crawler = start_crawler()
+    if crawler:
+        logger.info("Stock crawler started successfully")
+    try:
+        start_auto_refresh()
+    except Exception as exc:
+        logger.exception("Failed to start auto-refresh service: %s", exc)
+    yield
+    # ── shutdown ──
+    stop_auto_refresh()
+    stop_crawler()
+    logger.info("Background services stopped")
+
 
 app = FastAPI(
     title=settings.app_name,
@@ -27,6 +59,7 @@ app = FastAPI(
     version="1.0.0",
     docs_url="/docs",
     redoc_url="/redoc",
+    lifespan=lifespan,
 )
 
 app.add_middleware(
@@ -63,18 +96,3 @@ def root() -> dict:
         },
         "message": "Research prototype. Not investment advice.",
     }
-
-
-@app.on_event("startup")
-async def startup_event():
-    """Start the stock crawler on app startup."""
-    crawler = start_crawler()
-    if crawler:
-        logger.info("Stock crawler started successfully")
-
-
-@app.on_event("shutdown")
-async def shutdown_event():
-    """Stop the stock crawler on app shutdown."""
-    stop_crawler()
-    logger.info("Stock crawler stopped")

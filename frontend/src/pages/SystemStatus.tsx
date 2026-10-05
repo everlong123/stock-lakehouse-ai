@@ -7,7 +7,7 @@ import {
   Layers,
   Radio,
   Server,
-  Sparkles,
+ Sparkles,
   XCircle,
 } from "lucide-react";
 import { fetchSystemStatus } from "@/api/agent";
@@ -17,6 +17,7 @@ import { Loading } from "@/components/common/Loading";
 import { PageTitle } from "@/components/common/PageTitle";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import { useI18n, t } from "@/lib/i18n";
 import { relativeTime } from "@/utils/format";
 
 const HEALTHY_STATUSES = new Set([
@@ -47,7 +48,7 @@ function ServiceTile({
           <div className="min-w-0">
             <div className="text-[13px] font-semibold text-foreground">{label}</div>
             <div className="truncate font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-              {status.replaceAll("_", " ")}
+             {status.replaceAll("_", " ")}
             </div>
           </div>
         </div>
@@ -58,6 +59,7 @@ function ServiceTile({
 }
 
 export function SystemStatusPage() {
+  const { locale } = useI18n();
   const query = useQuery({
     queryKey: ["system-status"],
     queryFn: fetchSystemStatus,
@@ -67,27 +69,29 @@ export function SystemStatusPage() {
 
   if (query.isLoading) return <Loading />;
   if (query.isError)
-    return <ErrorState message={errorMessage(query.error, "Khong ket noi duoc backend API.")} />;
+   return <ErrorState message={errorMessage(query.error, t("dashboard.err_connect", locale))} />;
 
   const data = query.data || {};
   const counts = (data.counts as Record<string, number>) || {};
   const lastRun = data.last_pipeline_run as Record<string, unknown> | undefined;
 
   const services = [
-    { key: "backend_api", label: "Backend API", icon: <Server size={14} /> },
-    { key: "mysql",       label: "MySQL",       icon: <Database size={14} /> },
-    { key: "minio",       label: "MinIO (S3)",  icon: <HardDrive size={14} /> },
-    { key: "iceberg",     label: "Iceberg REST", icon: <Layers size={14} /> },
-    { key: "kafka",       label: "Kafka",       icon: <Radio size={14} /> },
-    { key: "data_source", label: "Data Source", icon: <Activity size={14} /> },
-    { key: "ai_agent",    label: "AI Agent",    icon: <Sparkles size={14} /> },
+    { key: "backend_api", label: t("system.backend", locale),     icon: <Server size={14} /> },
+    { key: "mysql",       label: t("system.mysql", locale),       icon: <Database size={14} /> },
+    { key: "minio",       label: t("system.minio", locale),       icon: <HardDrive size={14} /> },
+   { key: "iceberg",     label: t("system.iceberg", locale),     icon: <Layers size={14} /> },
+    { key: "kafka",       label: t("system.kafka", locale),       icon: <Radio size={14} /> },
+    { key: "data_source", label: t("system.data_source", locale), icon: <Activity size={14} /> },
+    { key: "ai_agent",    label: t("system.ai_agent", locale),    icon: <Sparkles size={14} /> },
   ];
 
   return (
     <div className="space-y-6">
       <PageTitle
-        title="System status"
-        subtitle="Trang thai cac service trong he thong Lakehouse. Auto-refresh moi 15 giay."
+        title={t("system.title", locale)}
+       subtitle={locale === "vi"
+          ? "Trạng thái các service trong hệ thống Lakehouse. Auto-refresh mỗi 15 giây."
+          : "Status of all services in the Lakehouse. Auto-refresh every 15s."}
         meta="07 · Platform"
       />
 
@@ -97,7 +101,7 @@ export function SystemStatusPage() {
         </h2>
         <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
           {services.map((s) => {
-            const info = data[s.key] as { status: string; label?: string } | undefined;
+           const info = data[s.key] as { status: string; label?: string } | undefined;
             return (
               <ServiceTile
                 key={s.key}
@@ -107,18 +111,18 @@ export function SystemStatusPage() {
               />
             );
           })}
-        </div>
+       </div>
       </section>
 
       <section>
         <h2 className="mb-2 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-          Medallion counts
+          {t("system.counts", locale)}
         </h2>
         <div className="grid gap-2 md:grid-cols-3">
           {[
-            { label: "Bronze records", value: counts.bronze ?? 0 },
-            { label: "Silver records", value: counts.silver ?? 0 },
-            { label: "Gold records",   value: counts.gold ?? 0 },
+            { label: t("system.bronze", locale), value: counts.bronze ?? 0 },
+           { label: t("system.silver", locale), value: counts.silver ?? 0 },
+            { label: t("system.gold", locale),   value: counts.gold ?? 0 },
           ].map((c) => (
             <div key={c.label} className="rounded-md border border-border bg-card p-4">
               <div className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
@@ -127,7 +131,7 @@ export function SystemStatusPage() {
               <div className="mt-2 font-mono text-[24px] font-semibold text-foreground">
                 {c.value.toLocaleString("en-US")}
               </div>
-            </div>
+           </div>
           ))}
         </div>
       </section>
@@ -135,9 +139,9 @@ export function SystemStatusPage() {
       {lastRun ? (
         <section>
           <h2 className="mb-2 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-            Last pipeline run
+            {locale === "vi" ? "Lần chạy pipeline gần nhất" : "Last pipeline run"}
           </h2>
-          <Card className="p-4">
+         <Card className="p-4">
             <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-4">
               <div>
                 <div className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
@@ -147,7 +151,7 @@ export function SystemStatusPage() {
               </div>
               <div>
                 <div className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-                  Status
+                 {locale === "vi" ? "Trạng thái" : "Status"}
                 </div>
                 <div className="mt-1">
                   <Badge variant={lastRun.status === "success" ? "success" : "warn"}>
@@ -157,7 +161,7 @@ export function SystemStatusPage() {
               </div>
               <div>
                 <div className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-                  Symbols
+                 Symbols
                 </div>
                 <div className="mt-1 text-[13px] font-semibold">
                   {Array.isArray(lastRun.symbols_processed)
@@ -167,7 +171,7 @@ export function SystemStatusPage() {
               </div>
               <div>
                 <div className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-                  Cap nhat
+                 {locale === "vi" ? "Cập nhật" : "Updated"}
                 </div>
                 <div className="mt-1 text-[13px]">
                   {relativeTime(lastRun.completed_at as string)}
@@ -177,6 +181,6 @@ export function SystemStatusPage() {
           </Card>
         </section>
       ) : null}
-    </div>
+   </div>
   );
 }

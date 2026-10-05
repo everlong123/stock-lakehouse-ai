@@ -1,0 +1,12 @@
+INFO:     Started server process [25928]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+2026-10-03 22:11:51 | WARNING | app.database.session | MySQL connection check failed: (pymysql.err.OperationalError) (2003, "Can't connect to MySQL server on 'localhost' (timed out)")
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2026-10-03 22:11:56 | WARNING | app.lakehouse.storage_factory | MinIO initialization failed (Cannot initialize MinIO buckets: HTTPConnectionPool(host='localhost', port=9000): Max retries exceeded with url: /stock-bronze?location= (Caused by ConnectTimeoutError(<HTTPConnection(host='localhost', port=9000) at 0x2342e1c9a90>, 'Connection to localhost timed out. (connect timeout=0.5)'))). Falling back to local storage.
+2026-10-03 22:11:56 | INFO | app.lakehouse.storage_factory | Using local filesystem storage backend.
+2026-10-03 22:11:57 | WARNING | app.lakehouse.storage_factory | MinIO initialization failed (Cannot initialize MinIO buckets: HTTPConnectionPool(host='localhost', port=9000): Max retries exceeded with url: /stock-bronze?location= (Caused by ConnectTimeoutError(<HTTPConnection(host='localhost', port=9000) at 0x2342ebbed90>, 'Connection to localhost timed out. (connect timeout=0.5)'))). Falling back to local storage.
+2026-10-03 22:11:57 | INFO | app.lakehouse.storage_factory | Using local filesystem storage backend.
+2026-10-03 22:11:58 | WARNING | app.lakehouse.storage_factory | MinIO initialization failed (Cannot initialize MinIO buckets: HTTPConnectionPool(host='localhost', port=9000): Max retries exceeded with url: /stock-bronze?location= (Caused by ConnectTimeoutError(<HTTPConnection(host='localhost', port=9000) at 0x2342ebbffd0>, 'Connection to localhost timed out. (connect timeout=0.5)'))). Falling back to local storage.
+2026-10-03 22:11:58 | INFO | app.lakehouse.storage_factory | Using local filesystem storage backend.

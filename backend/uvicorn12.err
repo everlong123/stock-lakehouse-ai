@@ -1,0 +1,460 @@
+INFO:     Started server process [12568]
+INFO:     Waiting for application startup.
+2026-10-05 11:08:38 | INFO | app.data_sources.factory | Using MultiSourceProvider (failover chain of real APIs).
+2026-10-05 11:08:38 | INFO | app.services.auto_refresh | AutoRefreshService started: on_start=True interval=21600s symbols=621 batch_size=20
+INFO:     Application startup complete.
+2026-10-05 11:08:38 | INFO | app.data_sources.factory | Using YahooHttpProvider (direct v8 chart API, browser UA).
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+2026-10-05 11:08:38 | INFO | app.data_sources.factory | Using YFinancePythonProvider (official yfinance package).
+2026-10-05 11:08:38 | INFO | app.data_sources.factory | Using FinnhubProvider (Free tier).
+2026-10-05 11:08:38 | INFO | app.data_sources.factory | Using AlphaVantageProvider.
+2026-10-05 11:08:38 | INFO | app.data_sources.factory | Using StockScraperProvider (HTTP scrape, no key).
+2026-10-05 11:08:39 | INFO | app.lakehouse.storage_factory | Using MinIO storage backend.
+2026-10-05 11:09:06 | WARNING | app.database.session | MySQL connection check failed: (pymysql.err.OperationalError) (2013, 'Lost connection to MySQL server during query')
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2026-10-05 11:09:08 | WARNING | urllib3.connectionpool | Connection pool is full, discarding connection: localhost. Connection pool size: 0
+2026-10-05 11:09:08 | WARNING | urllib3.connectionpool | Connection pool is full, discarding connection: localhost. Connection pool size: 1
+2026-10-05 11:09:09 | WARNING | urllib3.connectionpool | Connection pool is full, discarding connection: localhost. Connection pool size: 1
+2026-10-05 11:09:09 | WARNING | urllib3.connectionpool | Connection pool is full, discarding connection: localhost. Connection pool size: 1
+2026-10-05 11:09:09 | WARNING | urllib3.connectionpool | Connection pool is full, discarding connection: localhost. Connection pool size: 0
+2026-10-05 11:09:10 | WARNING | urllib3.connectionpool | Connection pool is full, discarding connection: localhost. Connection pool size: 0
+2026-10-05 11:09:10 | WARNING | urllib3.connectionpool | Connection pool is full, discarding connection: localhost. Connection pool size: 1
+2026-10-05 11:09:11 | WARNING | urllib3.connectionpool | Connection pool is full, discarding connection: localhost. Connection pool size: 1
+2026-10-05 11:09:11 | WARNING | urllib3.connectionpool | Connection pool is full, discarding connection: localhost. Connection pool size: 1
+2026-10-05 11:09:11 | WARNING | urllib3.connectionpool | Connection pool is full, discarding connection: localhost. Connection pool size: 0
+2026-10-05 11:09:11 | WARNING | urllib3.connectionpool | Connection pool is full, discarding connection: localhost. Connection pool size: 1
+2026-10-05 11:09:11 | WARNING | urllib3.connectionpool | Connection pool is full, discarding connection: localhost. Connection pool size: 1
+2026-10-05 11:09:11 | WARNING | urllib3.connectionpool | Connection pool is full, discarding connection: localhost. Connection pool size: 1
+2026-10-05 11:09:12 | WARNING | urllib3.connectionpool | Connection pool is full, discarding connection: localhost. Connection pool size: 0
+2026-10-05 11:09:12 | WARNING | urllib3.connectionpool | Connection pool is full, discarding connection: localhost. Connection pool size: 1
+2026-10-05 11:09:12 | WARNING | urllib3.connectionpool | Connection pool is full, discarding connection: localhost. Connection pool size: 1
+2026-10-05 11:09:12 | WARNING | urllib3.connectionpool | Connection pool is full, discarding connection: localhost. Connection pool size: 1
+2026-10-05 11:09:12 | WARNING | urllib3.connectionpool | Connection pool is full, discarding connection: localhost. Connection pool size: 1
+2026-10-05 11:09:13 | WARNING | urllib3.connectionpool | Connection pool is full, discarding connection: localhost. Connection pool size: 1
+2026-10-05 11:09:13 | WARNING | urllib3.connectionpool | Connection pool is full, discarding connection: localhost. Connection pool size: 0
+2026-10-05 11:09:13 | WARNING | urllib3.connectionpool | Connection pool is full, discarding connection: localhost. Connection pool size: 0
+2026-10-05 11:09:13 | WARNING | urllib3.connectionpool | Connection pool is full, discarding connection: localhost. Connection pool size: 0
+2026-10-05 11:09:13 | WARNING | urllib3.connectionpool | Connection pool is full, discarding connection: localhost. Connection pool size: 1
+2026-10-05 11:09:14 | WARNING | urllib3.connectionpool | Connection pool is full, discarding connection: localhost. Connection pool size: 0
+2026-10-05 11:09:14 | WARNING | urllib3.connectionpool | Connection pool is full, discarding connection: localhost. Connection pool size: 0
+2026-10-05 11:09:14 | WARNING | urllib3.connectionpool | Connection pool is full, discarding connection: localhost. Connection pool size: 0
+2026-10-05 11:09:15 | WARNING | urllib3.connectionpool | Connection pool is full, discarding connection: localhost. Connection pool size: 1
+2026-10-05 11:09:15 | WARNING | urllib3.connectionpool | Connection pool is full, discarding connection: localhost. Connection pool size: 1
+2026-10-05 11:09:15 | WARNING | urllib3.connectionpool | Connection pool is full, discarding connection: localhost. Connection pool size: 0
+2026-10-05 11:09:15 | WARNING | urllib3.connectionpool | Connection pool is full, discarding connection: localhost. Connection pool size: 1
+2026-10-05 11:09:15 | WARNING | urllib3.connectionpool | Connection pool is full, discarding connection: localhost. Connection pool size: 0
+2026-10-05 11:09:15 | WARNING | urllib3.connectionpool | Connection pool is full, discarding connection: localhost. Connection pool size: 1
+2026-10-05 11:09:15 | WARNING | urllib3.connectionpool | Connection pool is full, discarding connection: localhost. Connection pool size: 1
+2026-10-05 11:09:18 | INFO | app.data_sources.yahoo_http_provider | [yahoo_http] returned 1 rows for A (2026-10-02 -> 2026-10-02)
+2026-10-05 11:09:18 | INFO | app.data_sources.multi_source | [yahoo_http] returned 1 rows for A (1d)
+2026-10-05 11:09:18 | WARNING | urllib3.connectionpool | Connection pool is full, discarding connection: localhost. Connection pool size: 1
+2026-10-05 11:09:18 | WARNING | urllib3.connectionpool | Connection pool is full, discarding connection: localhost. Connection pool size: 1
+2026-10-05 11:09:18 | INFO | app.lakehouse.bronze | Bronze append complete: received=1 duplicates=1 paths=1
+2026-10-05 11:09:18 | WARNING | urllib3.connectionpool | Connection pool is full, discarding connection: localhost. Connection pool size: 1
+2026-10-05 11:09:18 | WARNING | urllib3.connectionpool | Connection pool is full, discarding connection: localhost. Connection pool size: 1
+2026-10-05 11:09:18 | WARNING | urllib3.connectionpool | Connection pool is full, discarding connection: localhost. Connection pool size: 1
+2026-10-05 11:09:19 | WARNING | urllib3.connectionpool | Connection pool is full, discarding connection: localhost. Connection pool size: 1
+2026-10-05 11:09:19 | WARNING | urllib3.connectionpool | Connection pool is full, discarding connection: localhost. Connection pool size: 1
+2026-10-05 11:09:19 | WARNING | urllib3.connectionpool | Connection pool is full, discarding connection: localhost. Connection pool size: 1
+2026-10-05 11:09:19 | INFO | app.data_sources.yahoo_http_provider | [yahoo_http] returned 1 rows for AAL (2026-10-02 -> 2026-10-02)
+2026-10-05 11:09:19 | INFO | app.data_sources.multi_source | [yahoo_http] returned 1 rows for AAL (1d)
+2026-10-05 11:09:19 | INFO | app.lakehouse.bronze | Bronze append complete: received=1 duplicates=1 paths=1
+2026-10-05 11:09:19 | WARNING | urllib3.connectionpool | Connection pool is full, discarding connection: localhost. Connection pool size: 1
+2026-10-05 11:09:19 | WARNING | urllib3.connectionpool | Connection pool is full, discarding connection: localhost. Connection pool size: 1
+2026-10-05 11:09:19 | WARNING | urllib3.connectionpool | Connection pool is full, discarding connection: localhost. Connection pool size: 1
+2026-10-05 11:09:20 | WARNING | urllib3.connectionpool | Connection pool is full, discarding connection: localhost. Connection pool size: 1
+2026-10-05 11:09:20 | WARNING | urllib3.connectionpool | Connection pool is full, discarding connection: localhost. Connection pool size: 1
+2026-10-05 11:09:20 | WARNING | urllib3.connectionpool | Connection pool is full, discarding connection: localhost. Connection pool size: 1
+2026-10-05 11:09:20 | WARNING | urllib3.connectionpool | Connection pool is full, discarding connection: localhost. Connection pool size: 1
+2026-10-05 11:09:21 | WARNING | urllib3.connectionpool | Connection pool is full, discarding connection: localhost. Connection pool size: 1
+2026-10-05 11:09:21 | WARNING | urllib3.connectionpool | Connection pool is full, discarding connection: localhost. Connection pool size: 0
+2026-10-05 11:09:21 | WARNING | urllib3.connectionpool | Connection pool is full, discarding connection: localhost. Connection pool size: 1
+2026-10-05 11:09:21 | WARNING | urllib3.connectionpool | Connection pool is full, discarding connection: localhost. Connection pool size: 1
+2026-10-05 11:09:21 | WARNING | urllib3.connectionpool | Connection pool is full, discarding connection: localhost. Connection pool size: 1
+2026-10-05 11:09:21 | WARNING | urllib3.connectionpool | Connection pool is full, discarding connection: localhost. Connection pool size: 1
+2026-10-05 11:09:22 | WARNING | urllib3.connectionpool | Connection pool is full, discarding connection: localhost. Connection pool size: 0
+2026-10-05 11:09:22 | WARNING | urllib3.connectionpool | Connection pool is full, discarding connection: localhost. Connection pool size: 1
+2026-10-05 11:09:22 | WARNING | urllib3.connectionpool | Connection pool is full, discarding connection: localhost. Connection pool size: 1
+2026-10-05 11:09:22 | WARNING | urllib3.connectionpool | Connection pool is full, discarding connection: localhost. Connection pool size: 1
+2026-10-05 11:09:22 | WARNING | urllib3.connectionpool | Connection pool is full, discarding connection: localhost. Connection pool size: 1
+2026-10-05 11:09:23 | WARNING | urllib3.connectionpool | Connection pool is full, discarding connection: localhost. Connection pool size: 0
+2026-10-05 11:09:23 | WARNING | urllib3.connectionpool | Connection pool is full, discarding connection: localhost. Connection pool size: 1
+2026-10-05 11:09:23 | WARNING | urllib3.connectionpool | Connection pool is full, discarding connection: localhost. Connection pool size: 1
+2026-10-05 11:09:23 | WARNING | urllib3.connectionpool | Connection pool is full, discarding connection: localhost. Connection pool size: 1
+2026-10-05 11:09:23 | WARNING | urllib3.connectionpool | Connection pool is full, discarding connection: localhost. Connection pool size: 1
+2026-10-05 11:09:23 | WARNING | urllib3.connectionpool | Connection pool is full, discarding connection: localhost. Connection pool size: 1
+2026-10-05 11:09:24 | INFO | app.data_sources.yahoo_http_provider | [yahoo_http] returned 1 rows for AAPL (2026-10-02 -> 2026-10-02)
+2026-10-05 11:09:24 | INFO | app.data_sources.multi_source | [yahoo_http] returned 1 rows for AAPL (1d)
+2026-10-05 11:09:24 | WARNING | urllib3.connectionpool | Connection pool is full, discarding connection: localhost. Connection pool size: 1
+2026-10-05 11:09:24 | INFO | app.lakehouse.bronze | Bronze append complete: received=1 duplicates=1 paths=1
+2026-10-05 11:09:24 | WARNING | urllib3.connectionpool | Connection pool is full, discarding connection: localhost. Connection pool size: 0
+2026-10-05 11:09:24 | WARNING | urllib3.connectionpool | Connection pool is full, discarding connection: localhost. Connection pool size: 0
+2026-10-05 11:09:24 | WARNING | urllib3.connectionpool | Connection pool is full, discarding connection: localhost. Connection pool size: 1
+2026-10-05 11:09:24 | WARNING | urllib3.connectionpool | Connection pool is full, discarding connection: localhost. Connection pool size: 1
+2026-10-05 11:09:24 | WARNING | urllib3.connectionpool | Connection pool is full, discarding connection: localhost. Connection pool size: 1
+2026-10-05 11:09:24 | WARNING | urllib3.connectionpool | Connection pool is full, discarding connection: localhost. Connection pool size: 1
+2026-10-05 11:09:24 | WARNING | urllib3.connectionpool | Connection pool is full, discarding connection: localhost. Connection pool size: 1
+2026-10-05 11:09:25 | WARNING | urllib3.connectionpool | Connection pool is full, discarding connection: localhost. Connection pool size: 1
+2026-10-05 11:09:25 | INFO | app.data_sources.yahoo_http_provider | [yahoo_http] returned 1 rows for ABBV (2026-10-02 -> 2026-10-02)
+2026-10-05 11:09:25 | INFO | app.data_sources.multi_source | [yahoo_http] returned 1 rows for ABBV (1d)
+2026-10-05 11:09:25 | WARNING | urllib3.connectionpool | Connection pool is full, discarding connection: localhost. Connection pool size: 1
+2026-10-05 11:09:25 | WARNING | urllib3.connectionpool | Connection pool is full, discarding connection: localhost. Connection pool size: 1
+2026-10-05 11:09:25 | INFO | app.lakehouse.bronze | Bronze append complete: received=1 duplicates=1 paths=1
+2026-10-05 11:09:25 | WARNING | urllib3.connectionpool | Connection pool is full, discarding connection: localhost. Connection pool size: 1
+2026-10-05 11:09:25 | WARNING | urllib3.connectionpool | Connection pool is full, discarding connection: localhost. Connection pool size: 1
+2026-10-05 11:09:25 | WARNING | urllib3.connectionpool | Connection pool is full, discarding connection: localhost. Connection pool size: 1
+2026-10-05 11:09:25 | WARNING | urllib3.connectionpool | Connection pool is full, discarding connection: localhost. Connection pool size: 1
+2026-10-05 11:09:26 | INFO | app.data_sources.yahoo_http_provider | [yahoo_http] returned 1 rows for ABNB (2026-10-02 -> 2026-10-02)
+2026-10-05 11:09:26 | INFO | app.data_sources.multi_source | [yahoo_http] returned 1 rows for ABNB (1d)
+2026-10-05 11:09:26 | WARNING | urllib3.connectionpool | Connection pool is full, discarding connection: localhost. Connection pool size: 1
+2026-10-05 11:09:26 | WARNING | urllib3.connectionpool | Connection pool is full, discarding connection: localhost. Connection pool size: 1
+2026-10-05 11:09:26 | INFO | app.lakehouse.bronze | Bronze append complete: received=1 duplicates=1 paths=1
+2026-10-05 11:09:26 | WARNING | urllib3.connectionpool | Connection pool is full, discarding connection: localhost. Connection pool size: 1
+2026-10-05 11:09:26 | WARNING | urllib3.connectionpool | Connection pool is full, discarding connection: localhost. Connection pool size: 1
+2026-10-05 11:09:26 | WARNING | urllib3.connectionpool | Connection pool is full, discarding connection: localhost. Connection pool size: 0
+2026-10-05 11:09:26 | WARNING | urllib3.connectionpool | Connection pool is full, discarding connection: localhost. Connection pool size: 1
+2026-10-05 11:09:27 | WARNING | urllib3.connectionpool | Connection pool is full, discarding connection: localhost. Connection pool size: 1
+2026-10-05 11:09:27 | WARNING | urllib3.connectionpool | Connection pool is full, discarding connection: localhost. Connection pool size: 1
+2026-10-05 11:09:27 | WARNING | urllib3.connectionpool | Connection pool is full, discarding connection: localhost. Connection pool size: 1
+2026-10-05 11:09:27 | INFO | app.data_sources.yahoo_http_provider | [yahoo_http] returned 1 rows for ABT (2026-10-02 -> 2026-10-02)
+2026-10-05 11:09:27 | INFO | app.data_sources.multi_source | [yahoo_http] returned 1 rows for ABT (1d)
+2026-10-05 11:09:27 | WARNING | urllib3.connectionpool | Connection pool is full, discarding connection: localhost. Connection pool size: 1
+2026-10-05 11:09:27 | INFO | app.lakehouse.bronze | Bronze append complete: received=1 duplicates=1 paths=1
+2026-10-05 11:09:27 | WARNING | urllib3.connectionpool | Connection pool is full, discarding connection: localhost. Connection pool size: 1
+2026-10-05 11:09:28 | WARNING | urllib3.connectionpool | Connection pool is full, discarding connection: localhost. Connection pool size: 1
+2026-10-05 11:09:28 | WARNING | urllib3.connectionpool | Connection pool is full, discarding connection: localhost. Connection pool size: 1
+2026-10-05 11:09:28 | WARNING | urllib3.connectionpool | Connection pool is full, discarding connection: localhost. Connection pool size: 1
+2026-10-05 11:09:28 | WARNING | urllib3.connectionpool | Connection pool is full, discarding connection: localhost. Connection pool size: 1
+2026-10-05 11:09:28 | WARNING | urllib3.connectionpool | Connection pool is full, discarding connection: localhost. Connection pool size: 1
+2026-10-05 11:09:29 | INFO | app.data_sources.yahoo_http_provider | [yahoo_http] returned 1 rows for ACAD (2026-10-02 -> 2026-10-02)
+2026-10-05 11:09:29 | INFO | app.data_sources.multi_source | [yahoo_http] returned 1 rows for ACAD (1d)
+2026-10-05 11:09:29 | INFO | app.lakehouse.bronze | Bronze append complete: received=1 duplicates=1 paths=1
+2026-10-05 11:09:30 | INFO | app.data_sources.yahoo_http_provider | [yahoo_http] returned 1 rows for ACHC (2026-10-02 -> 2026-10-02)
+2026-10-05 11:09:30 | INFO | app.data_sources.multi_source | [yahoo_http] returned 1 rows for ACHC (1d)
+2026-10-05 11:09:30 | INFO | app.lakehouse.bronze | Bronze append complete: received=1 duplicates=1 paths=1
+2026-10-05 11:09:30 | INFO | app.data_sources.yahoo_http_provider | [yahoo_http] returned 1 rows for ACI (2026-10-02 -> 2026-10-02)
+2026-10-05 11:09:30 | INFO | app.data_sources.multi_source | [yahoo_http] returned 1 rows for ACI (1d)
+2026-10-05 11:09:30 | INFO | app.lakehouse.bronze | Bronze append complete: received=1 duplicates=1 paths=1
+2026-10-05 11:09:31 | INFO | app.data_sources.yahoo_http_provider | [yahoo_http] returned 1 rows for ACLS (2026-10-02 -> 2026-10-02)
+2026-10-05 11:09:31 | INFO | app.data_sources.multi_source | [yahoo_http] returned 1 rows for ACLS (1d)
+2026-10-05 11:09:31 | INFO | app.lakehouse.bronze | Bronze append complete: received=1 duplicates=1 paths=1
+2026-10-05 11:09:32 | INFO | app.data_sources.yahoo_http_provider | [yahoo_http] returned 1 rows for ADBE (2026-10-02 -> 2026-10-02)
+2026-10-05 11:09:32 | INFO | app.data_sources.multi_source | [yahoo_http] returned 1 rows for ADBE (1d)
+2026-10-05 11:09:32 | INFO | app.lakehouse.bronze | Bronze append complete: received=1 duplicates=1 paths=1
+2026-10-05 11:09:33 | INFO | app.data_sources.yahoo_http_provider | [yahoo_http] returned 1 rows for ADI (2026-10-02 -> 2026-10-02)
+2026-10-05 11:09:33 | INFO | app.data_sources.multi_source | [yahoo_http] returned 1 rows for ADI (1d)
+2026-10-05 11:09:33 | INFO | app.lakehouse.bronze | Bronze append complete: received=1 duplicates=1 paths=1
+2026-10-05 11:09:33 | INFO | app.data_sources.yahoo_http_provider | [yahoo_http] returned 1 rows for ADM (2026-10-02 -> 2026-10-02)
+2026-10-05 11:09:33 | INFO | app.data_sources.multi_source | [yahoo_http] returned 1 rows for ADM (1d)
+2026-10-05 11:09:33 | INFO | app.lakehouse.bronze | Bronze append complete: received=1 duplicates=1 paths=1
+2026-10-05 11:09:34 | INFO | app.data_sources.yahoo_http_provider | [yahoo_http] returned 1 rows for ADP (2026-10-02 -> 2026-10-02)
+2026-10-05 11:09:34 | INFO | app.data_sources.multi_source | [yahoo_http] returned 1 rows for ADP (1d)
+2026-10-05 11:09:34 | INFO | app.lakehouse.bronze | Bronze append complete: received=1 duplicates=1 paths=1
+2026-10-05 11:09:35 | INFO | app.data_sources.yahoo_http_provider | [yahoo_http] returned 1 rows for AEE (2026-10-02 -> 2026-10-02)
+2026-10-05 11:09:35 | INFO | app.data_sources.multi_source | [yahoo_http] returned 1 rows for AEE (1d)
+2026-10-05 11:09:35 | INFO | app.lakehouse.bronze | Bronze append complete: received=1 duplicates=1 paths=1
+2026-10-05 11:09:36 | INFO | app.data_sources.yahoo_http_provider | [yahoo_http] returned 1 rows for AEHR (2026-10-02 -> 2026-10-02)
+2026-10-05 11:09:36 | INFO | app.data_sources.multi_source | [yahoo_http] returned 1 rows for AEHR (1d)
+2026-10-05 11:09:36 | INFO | app.lakehouse.bronze | Bronze append complete: received=1 duplicates=1 paths=1
+2026-10-05 11:09:36 | INFO | app.data_sources.yahoo_http_provider | [yahoo_http] returned 1 rows for AEM (2026-10-02 -> 2026-10-02)
+2026-10-05 11:09:36 | INFO | app.data_sources.multi_source | [yahoo_http] returned 1 rows for AEM (1d)
+2026-10-05 11:09:37 | INFO | app.lakehouse.bronze | Bronze append complete: received=1 duplicates=1 paths=1
+2026-10-05 11:09:37 | INFO | app.data_sources.yahoo_http_provider | [yahoo_http] returned 1 rows for AEO (2026-10-02 -> 2026-10-02)
+2026-10-05 11:09:37 | INFO | app.data_sources.multi_source | [yahoo_http] returned 1 rows for AEO (1d)
+2026-10-05 11:09:37 | INFO | app.lakehouse.bronze | Bronze append complete: received=1 duplicates=1 paths=1
+2026-10-05 11:09:38 | INFO | app.data_sources.yahoo_http_provider | [yahoo_http] returned 1 rows for AEP (2026-10-02 -> 2026-10-02)
+2026-10-05 11:09:38 | INFO | app.data_sources.multi_source | [yahoo_http] returned 1 rows for AEP (1d)
+2026-10-05 11:09:38 | INFO | app.lakehouse.bronze | Bronze append complete: received=1 duplicates=1 paths=1
+2026-10-05 11:09:39 | INFO | app.data_sources.yahoo_http_provider | [yahoo_http] returned 1 rows for AES (2026-10-02 -> 2026-10-02)
+2026-10-05 11:09:39 | INFO | app.data_sources.multi_source | [yahoo_http] returned 1 rows for AES (1d)
+2026-10-05 11:09:39 | INFO | app.lakehouse.bronze | Bronze append complete: received=1 duplicates=1 paths=1
+2026-10-05 11:09:39 | INFO | app.services.auto_refresh | AutoRefresh progress: 20/621 symbols processed
+2026-10-05 11:09:40 | INFO | app.data_sources.yahoo_http_provider | [yahoo_http] returned 1 rows for AFL (2026-10-02 -> 2026-10-02)
+2026-10-05 11:09:40 | INFO | app.data_sources.multi_source | [yahoo_http] returned 1 rows for AFL (1d)
+2026-10-05 11:09:40 | INFO | app.lakehouse.bronze | Bronze append complete: received=1 duplicates=1 paths=1
+2026-10-05 11:09:41 | INFO | app.data_sources.yahoo_http_provider | [yahoo_http] returned 1 rows for AG (2026-10-02 -> 2026-10-02)
+2026-10-05 11:09:41 | INFO | app.data_sources.multi_source | [yahoo_http] returned 1 rows for AG (1d)
+2026-10-05 11:09:41 | INFO | app.lakehouse.bronze | Bronze append complete: received=1 duplicates=1 paths=1
+2026-10-05 11:09:42 | INFO | app.data_sources.yahoo_http_provider | [yahoo_http] returned 1 rows for AGG (2026-10-02 -> 2026-10-02)
+2026-10-05 11:09:42 | INFO | app.data_sources.multi_source | [yahoo_http] returned 1 rows for AGG (1d)
+2026-10-05 11:09:42 | INFO | app.lakehouse.bronze | Bronze append complete: received=1 duplicates=1 paths=1
+2026-10-05 11:09:43 | INFO | app.data_sources.yahoo_http_provider | [yahoo_http] returned 1 rows for AJG (2026-10-02 -> 2026-10-02)
+2026-10-05 11:09:43 | INFO | app.data_sources.multi_source | [yahoo_http] returned 1 rows for AJG (1d)
+2026-10-05 11:09:43 | INFO | app.lakehouse.bronze | Bronze append complete: received=1 duplicates=1 paths=1
+2026-10-05 11:09:43 | WARNING | app.data_sources.multi_source | [yahoo_http] failed for AKRO: Yahoo HTTP request failed for AKRO: 404 Client Error: Not Found for url: https://query1.finance.yahoo.com/v8/finance/chart/AKRO?period1=1765299600&period2=1791148119&interval=1d&includeAdjustedClose=true&events=history
+2026-10-05 11:09:45 | ERROR | yfinance | HTTP Error 404: {"quoteSummary":{"result":null,"error":{"code":"Not Found","description":"Quote not found for symbol: AKRO"}}}
+2026-10-05 11:09:45 | ERROR | yfinance | $AKRO: No data found, symbol may be delisted
+2026-10-05 11:09:45 | WARNING | app.data_sources.multi_source | [yfinance] failed for AKRO: No data returned by yfinance for AKRO (1d)
+2026-10-05 11:09:46 | WARNING | app.data_sources.multi_source | [finnhub] failed for AKRO: Finnhub authentication failed. Check FINNHUB_API_KEY in .env.
+2026-10-05 11:09:46 | WARNING | app.data_sources.multi_source | [alpha_vantage] failed for AKRO: Alpha Vantage error: We have detected your API key as GHS8FR0JK3K0PAG0 and our standard API rate limit is 25 requests per day. Please subscribe to any of the premium plans at https://www.alphavantage.co/premium/ to instantly remove all daily rate limits.
+2026-10-05 11:09:47 | WARNING | app.data_sources.multi_source | [web_scraper] failed for AKRO: Yahoo Finance request failed: 404 Client Error: Not Found for url: https://query1.finance.yahoo.com/v8/finance/chart/AKRO?period1=1765299600&period2=1791148119&interval=1d&events=history
+2026-10-05 11:09:47 | WARNING | app.services.auto_refresh | AutoRefresh: provider fetch failed for AKRO: All providers failed for AKRO (1d): {'yahoo_http': 'Yahoo HTTP request failed for AKRO: 404 Client Error: Not Found for url: https://query1.finance.yahoo.com/v8/finance/chart/AKRO?period1=1765299600&period2=1791148119&interval=1d&includeAdjustedClose=true&events=history', 'yfinance': 'No data returned by yfinance for AKRO (1d)', 'finnhub': 'Finnhub authentication failed. Check FINNHUB_API_KEY in .env.', 'alpha_vantage': 'Alpha Vantage error: We have detected your API key as GHS8FR0JK3K0PAG0 and our standard API rate limit is 25 requests per day. Please subscribe to any of the premium plans at https://www.alphavantage.co/premium/ to instantly remove all daily rate limits.', 'web_scraper': 'Yahoo Finance request failed: 404 Client Error: Not Found for url: https://query1.finance.yahoo.com/v8/finance/chart/AKRO?period1=1765299600&period2=1791148119&interval=1d&events=history'}
+2026-10-05 11:09:48 | INFO | app.data_sources.yahoo_http_provider | [yahoo_http] returned 1 rows for ALB (2026-10-02 -> 2026-10-02)
+2026-10-05 11:09:48 | INFO | app.data_sources.multi_source | [yahoo_http] returned 1 rows for ALB (1d)
+2026-10-05 11:09:48 | INFO | app.lakehouse.bronze | Bronze append complete: received=1 duplicates=1 paths=1
+2026-10-05 11:09:48 | INFO | app.data_sources.yahoo_http_provider | [yahoo_http] returned 1 rows for ALK (2026-10-02 -> 2026-10-02)
+2026-10-05 11:09:48 | INFO | app.data_sources.multi_source | [yahoo_http] returned 1 rows for ALK (1d)
+2026-10-05 11:09:48 | INFO | app.lakehouse.bronze | Bronze append complete: received=1 duplicates=1 paths=1
+2026-10-05 11:09:50 | INFO | app.data_sources.yahoo_http_provider | [yahoo_http] returned 1 rows for ALL (2026-10-02 -> 2026-10-02)
+2026-10-05 11:09:50 | INFO | app.data_sources.multi_source | [yahoo_http] returned 1 rows for ALL (1d)
+2026-10-05 11:09:50 | INFO | app.lakehouse.bronze | Bronze append complete: received=1 duplicates=1 paths=1
+2026-10-05 11:09:51 | INFO | app.data_sources.yahoo_http_provider | [yahoo_http] returned 1 rows for ALLE (2026-10-02 -> 2026-10-02)
+2026-10-05 11:09:51 | INFO | app.data_sources.multi_source | [yahoo_http] returned 1 rows for ALLE (1d)
+2026-10-05 11:09:51 | INFO | app.lakehouse.bronze | Bronze append complete: received=1 duplicates=1 paths=1
+2026-10-05 11:09:51 | INFO | app.data_sources.yahoo_http_provider | [yahoo_http] returned 1 rows for ALLY (2026-10-02 -> 2026-10-02)
+2026-10-05 11:09:51 | INFO | app.data_sources.multi_source | [yahoo_http] returned 1 rows for ALLY (1d)
+2026-10-05 11:09:52 | INFO | app.lakehouse.bronze | Bronze append complete: received=1 duplicates=1 paths=1
+2026-10-05 11:09:52 | WARNING | app.data_sources.multi_source | [yahoo_http] failed for ALTM: Yahoo HTTP request failed for ALTM: 404 Client Error: Not Found for url: https://query1.finance.yahoo.com/v8/finance/chart/ALTM?period1=1741194000&period2=1791148119&interval=1d&includeAdjustedClose=true&events=history
+2026-10-05 11:09:53 | ERROR | yfinance | $ALTM: No data found, symbol may be delisted
+2026-10-05 11:09:53 | WARNING | app.data_sources.multi_source | [yfinance] failed for ALTM: No data returned by yfinance for ALTM (1d)
+2026-10-05 11:09:53 | WARNING | app.data_sources.multi_source | [finnhub] failed for ALTM: Finnhub authentication failed. Check FINNHUB_API_KEY in .env.
+2026-10-05 11:09:53 | WARNING | app.data_sources.multi_source | [alpha_vantage] failed for ALTM: Alpha Vantage error: We have detected your API key as GHS8FR0JK3K0PAG0 and our standard API rate limit is 25 requests per day. Please subscribe to any of the premium plans at https://www.alphavantage.co/premium/ to instantly remove all daily rate limits.
+2026-10-05 11:09:53 | WARNING | app.data_sources.multi_source | [web_scraper] failed for ALTM: Yahoo Finance request failed: 404 Client Error: Not Found for url: https://query1.finance.yahoo.com/v8/finance/chart/ALTM?period1=1741194000&period2=1791148119&interval=1d&events=history
+2026-10-05 11:09:53 | WARNING | app.services.auto_refresh | AutoRefresh: provider fetch failed for ALTM: All providers failed for ALTM (1d): {'yahoo_http': 'Yahoo HTTP request failed for ALTM: 404 Client Error: Not Found for url: https://query1.finance.yahoo.com/v8/finance/chart/ALTM?period1=1741194000&period2=1791148119&interval=1d&includeAdjustedClose=true&events=history', 'yfinance': 'No data returned by yfinance for ALTM (1d)', 'finnhub': 'Finnhub authentication failed. Check FINNHUB_API_KEY in .env.', 'alpha_vantage': 'Alpha Vantage error: We have detected your API key as GHS8FR0JK3K0PAG0 and our standard API rate limit is 25 requests per day. Please subscribe to any of the premium plans at https://www.alphavantage.co/premium/ to instantly remove all daily rate limits.', 'web_scraper': 'Yahoo Finance request failed: 404 Client Error: Not Found for url: https://query1.finance.yahoo.com/v8/finance/chart/ALTM?period1=1741194000&period2=1791148119&interval=1d&events=history'}
+2026-10-05 11:09:54 | WARNING | app.data_sources.multi_source | [yahoo_http] failed for ALXN: Yahoo HTTP request failed for ALXN: 404 Client Error: Not Found for url: https://query1.finance.yahoo.com/v8/finance/chart/ALXN?period1=1627491600&period2=1791148119&interval=1d&includeAdjustedClose=true&events=history
+2026-10-05 11:09:54 | ERROR | yfinance | $ALXN: possibly delisted; no timezone found
+2026-10-05 11:09:54 | WARNING | app.data_sources.multi_source | [yfinance] failed for ALXN: No data returned by yfinance for ALXN (1d)
+2026-10-05 11:09:54 | WARNING | app.data_sources.multi_source | [finnhub] failed for ALXN: Finnhub authentication failed. Check FINNHUB_API_KEY in .env.
+2026-10-05 11:09:55 | WARNING | app.data_sources.multi_source | [alpha_vantage] failed for ALXN: Alpha Vantage error: We have detected your API key as GHS8FR0JK3K0PAG0 and our standard API rate limit is 25 requests per day. Please subscribe to any of the premium plans at https://www.alphavantage.co/premium/ to instantly remove all daily rate limits.
+2026-10-05 11:09:55 | WARNING | app.data_sources.multi_source | [web_scraper] failed for ALXN: Yahoo Finance request failed: 404 Client Error: Not Found for url: https://query1.finance.yahoo.com/v8/finance/chart/ALXN?period1=1627491600&period2=1791148119&interval=1d&events=history
+2026-10-05 11:09:55 | WARNING | app.services.auto_refresh | AutoRefresh: provider fetch failed for ALXN: All providers failed for ALXN (1d): {'yahoo_http': 'Yahoo HTTP request failed for ALXN: 404 Client Error: Not Found for url: https://query1.finance.yahoo.com/v8/finance/chart/ALXN?period1=1627491600&period2=1791148119&interval=1d&includeAdjustedClose=true&events=history', 'yfinance': 'No data returned by yfinance for ALXN (1d)', 'finnhub': 'Finnhub authentication failed. Check FINNHUB_API_KEY in .env.', 'alpha_vantage': 'Alpha Vantage error: We have detected your API key as GHS8FR0JK3K0PAG0 and our standard API rate limit is 25 requests per day. Please subscribe to any of the premium plans at https://www.alphavantage.co/premium/ to instantly remove all daily rate limits.', 'web_scraper': 'Yahoo Finance request failed: 404 Client Error: Not Found for url: https://query1.finance.yahoo.com/v8/finance/chart/ALXN?period1=1627491600&period2=1791148119&interval=1d&events=history'}
+2026-10-05 11:09:55 | INFO | app.data_sources.yahoo_http_provider | [yahoo_http] returned 1 rows for AMAT (2026-10-02 -> 2026-10-02)
+2026-10-05 11:09:55 | INFO | app.data_sources.multi_source | [yahoo_http] returned 1 rows for AMAT (1d)
+2026-10-05 11:09:56 | INFO | app.lakehouse.bronze | Bronze append complete: received=1 duplicates=1 paths=1
+2026-10-05 11:09:56 | INFO | app.data_sources.yahoo_http_provider | [yahoo_http] returned 1 rows for AMD (2026-10-02 -> 2026-10-02)
+2026-10-05 11:09:56 | INFO | app.data_sources.multi_source | [yahoo_http] returned 1 rows for AMD (1d)
+2026-10-05 11:09:56 | INFO | app.lakehouse.bronze | Bronze append complete: received=1 duplicates=1 paths=1
+2026-10-05 11:09:57 | INFO | app.data_sources.yahoo_http_provider | [yahoo_http] returned 1 rows for AMGN (2026-10-02 -> 2026-10-02)
+2026-10-05 11:09:57 | INFO | app.data_sources.multi_source | [yahoo_http] returned 1 rows for AMGN (1d)
+2026-10-05 11:09:57 | INFO | app.lakehouse.bronze | Bronze append complete: received=1 duplicates=1 paths=1
+2026-10-05 11:09:58 | INFO | app.data_sources.yahoo_http_provider | [yahoo_http] returned 1 rows for AMP (2026-10-02 -> 2026-10-02)
+2026-10-05 11:09:58 | INFO | app.data_sources.multi_source | [yahoo_http] returned 1 rows for AMP (1d)
+2026-10-05 11:09:58 | INFO | app.lakehouse.bronze | Bronze append complete: received=1 duplicates=1 paths=1
+2026-10-05 11:09:58 | INFO | app.data_sources.yahoo_http_provider | [yahoo_http] returned 1 rows for AMT (2026-10-02 -> 2026-10-02)
+2026-10-05 11:09:58 | INFO | app.data_sources.multi_source | [yahoo_http] returned 1 rows for AMT (1d)
+2026-10-05 11:09:58 | INFO | app.lakehouse.bronze | Bronze append complete: received=1 duplicates=1 paths=1
+2026-10-05 11:09:59 | INFO | app.data_sources.yahoo_http_provider | [yahoo_http] returned 1 rows for AMZN (2026-10-02 -> 2026-10-02)
+2026-10-05 11:09:59 | INFO | app.data_sources.multi_source | [yahoo_http] returned 1 rows for AMZN (1d)
+2026-10-05 11:09:59 | INFO | app.lakehouse.bronze | Bronze append complete: received=1 duplicates=1 paths=1
+2026-10-05 11:10:01 | INFO | app.data_sources.yahoo_http_provider | [yahoo_http] returned 1 rows for AN (2026-10-02 -> 2026-10-02)
+2026-10-05 11:10:01 | INFO | app.data_sources.multi_source | [yahoo_http] returned 1 rows for AN (1d)
+2026-10-05 11:10:01 | INFO | app.lakehouse.bronze | Bronze append complete: received=1 duplicates=1 paths=1
+2026-10-05 11:10:02 | INFO | app.data_sources.yahoo_http_provider | [yahoo_http] returned 1 rows for ANET (2026-10-02 -> 2026-10-02)
+2026-10-05 11:10:02 | INFO | app.data_sources.multi_source | [yahoo_http] returned 1 rows for ANET (1d)
+2026-10-05 11:10:02 | INFO | app.lakehouse.bronze | Bronze append complete: received=1 duplicates=1 paths=1
+2026-10-05 11:10:02 | INFO | app.services.auto_refresh | AutoRefresh progress: 40/621 symbols processed
+2026-10-05 11:10:02 | INFO | app.data_sources.yahoo_http_provider | [yahoo_http] returned 1 rows for ANF (2026-10-02 -> 2026-10-02)
+2026-10-05 11:10:02 | INFO | app.data_sources.multi_source | [yahoo_http] returned 1 rows for ANF (1d)
+2026-10-05 11:10:03 | INFO | app.lakehouse.bronze | Bronze append complete: received=1 duplicates=1 paths=1
+2026-10-05 11:10:03 | INFO | app.data_sources.yahoo_http_provider | [yahoo_http] returned 1 rows for AON (2026-10-02 -> 2026-10-02)
+2026-10-05 11:10:03 | INFO | app.data_sources.multi_source | [yahoo_http] returned 1 rows for AON (1d)
+2026-10-05 11:10:03 | INFO | app.lakehouse.bronze | Bronze append complete: received=1 duplicates=1 paths=1
+2026-10-05 11:10:04 | INFO | app.data_sources.yahoo_http_provider | [yahoo_http] returned 1 rows for AOS (2026-10-02 -> 2026-10-02)
+2026-10-05 11:10:04 | INFO | app.data_sources.multi_source | [yahoo_http] returned 1 rows for AOS (1d)
+2026-10-05 11:10:04 | INFO | app.lakehouse.bronze | Bronze append complete: received=1 duplicates=1 paths=1
+2026-10-05 11:10:05 | INFO | app.data_sources.yahoo_http_provider | [yahoo_http] returned 1 rows for APA (2026-10-02 -> 2026-10-02)
+2026-10-05 11:10:05 | INFO | app.data_sources.multi_source | [yahoo_http] returned 1 rows for APA (1d)
+2026-10-05 11:10:05 | INFO | app.lakehouse.bronze | Bronze append complete: received=1 duplicates=1 paths=1
+2026-10-05 11:10:05 | INFO | app.data_sources.yahoo_http_provider | [yahoo_http] returned 1 rows for APD (2026-10-02 -> 2026-10-02)
+2026-10-05 11:10:05 | INFO | app.data_sources.multi_source | [yahoo_http] returned 1 rows for APD (1d)
+2026-10-05 11:10:06 | INFO | app.lakehouse.bronze | Bronze append complete: received=1 duplicates=1 paths=1
+2026-10-05 11:10:09 | INFO | app.data_sources.yahoo_http_provider | [yahoo_http] returned 1 rows for AR (2026-10-02 -> 2026-10-02)
+2026-10-05 11:10:09 | INFO | app.data_sources.multi_source | [yahoo_http] returned 1 rows for AR (1d)
+2026-10-05 11:10:09 | INFO | app.lakehouse.bronze | Bronze append complete: received=1 duplicates=1 paths=1
+2026-10-05 11:10:10 | INFO | app.data_sources.yahoo_http_provider | [yahoo_http] returned 1 rows for ARCB (2026-10-02 -> 2026-10-02)
+2026-10-05 11:10:10 | INFO | app.data_sources.multi_source | [yahoo_http] returned 1 rows for ARCB (1d)
+2026-10-05 11:10:10 | INFO | app.lakehouse.bronze | Bronze append complete: received=1 duplicates=1 paths=1
+2026-10-05 11:10:11 | INFO | app.data_sources.yahoo_http_provider | [yahoo_http] returned 1 rows for ARE (2026-10-02 -> 2026-10-02)
+2026-10-05 11:10:11 | INFO | app.data_sources.multi_source | [yahoo_http] returned 1 rows for ARE (1d)
+2026-10-05 11:10:11 | INFO | app.lakehouse.bronze | Bronze append complete: received=1 duplicates=1 paths=1
+2026-10-05 11:10:11 | INFO | app.data_sources.yahoo_http_provider | [yahoo_http] returned 1 rows for ARKF (2026-10-02 -> 2026-10-02)
+2026-10-05 11:10:11 | INFO | app.data_sources.multi_source | [yahoo_http] returned 1 rows for ARKF (1d)
+2026-10-05 11:10:12 | INFO | app.lakehouse.bronze | Bronze append complete: received=1 duplicates=1 paths=1
+2026-10-05 11:10:12 | INFO | app.data_sources.yahoo_http_provider | [yahoo_http] returned 1 rows for ARKK (2026-10-02 -> 2026-10-02)
+2026-10-05 11:10:12 | INFO | app.data_sources.multi_source | [yahoo_http] returned 1 rows for ARKK (1d)
+2026-10-05 11:10:12 | INFO | app.lakehouse.bronze | Bronze append complete: received=1 duplicates=1 paths=1
+2026-10-05 11:10:13 | INFO | app.data_sources.yahoo_http_provider | [yahoo_http] returned 1 rows for ARKW (2026-10-02 -> 2026-10-02)
+2026-10-05 11:10:13 | INFO | app.data_sources.multi_source | [yahoo_http] returned 1 rows for ARKW (1d)
+2026-10-05 11:10:13 | INFO | app.lakehouse.bronze | Bronze append complete: received=1 duplicates=1 paths=1
+2026-10-05 11:10:13 | INFO | app.data_sources.yahoo_http_provider | [yahoo_http] returned 1 rows for ARM (2026-10-02 -> 2026-10-02)
+2026-10-05 11:10:13 | INFO | app.data_sources.multi_source | [yahoo_http] returned 1 rows for ARM (1d)
+2026-10-05 11:10:13 | INFO | app.lakehouse.bronze | Bronze append complete: received=1 duplicates=1 paths=1
+2026-10-05 11:10:14 | INFO | app.data_sources.yahoo_http_provider | [yahoo_http] returned 1 rows for ARVN (2026-10-02 -> 2026-10-02)
+2026-10-05 11:10:14 | INFO | app.data_sources.multi_source | [yahoo_http] returned 1 rows for ARVN (1d)
+2026-10-05 11:10:14 | INFO | app.lakehouse.bronze | Bronze append complete: received=1 duplicates=1 paths=1
+2026-10-05 11:10:15 | INFO | app.data_sources.yahoo_http_provider | [yahoo_http] returned 1 rows for ASML (2026-10-02 -> 2026-10-02)
+2026-10-05 11:10:15 | INFO | app.data_sources.multi_source | [yahoo_http] returned 1 rows for ASML (1d)
+2026-10-05 11:10:15 | INFO | app.lakehouse.bronze | Bronze append complete: received=1 duplicates=1 paths=1
+2026-10-05 11:10:15 | INFO | app.data_sources.yahoo_http_provider | [yahoo_http] returned 1 rows for ATO (2026-10-02 -> 2026-10-02)
+2026-10-05 11:10:15 | INFO | app.data_sources.multi_source | [yahoo_http] returned 1 rows for ATO (1d)
+2026-10-05 11:10:16 | INFO | app.lakehouse.bronze | Bronze append complete: received=1 duplicates=1 paths=1
+2026-10-05 11:10:16 | WARNING | app.data_sources.multi_source | [yahoo_http] failed for ATSG: Yahoo HTTP request failed for ATSG: 404 Client Error: Not Found for url: https://query1.finance.yahoo.com/v8/finance/chart/ATSG?period1=1744390800&period2=1791148119&interval=1d&includeAdjustedClose=true&events=history
+2026-10-05 11:10:16 | ERROR | yfinance | $ATSG: No data found, symbol may be delisted
+2026-10-05 11:10:16 | WARNING | app.data_sources.multi_source | [yfinance] failed for ATSG: No data returned by yfinance for ATSG (1d)
+2026-10-05 11:10:17 | WARNING | app.data_sources.multi_source | [finnhub] failed for ATSG: Finnhub authentication failed. Check FINNHUB_API_KEY in .env.
+2026-10-05 11:10:17 | WARNING | app.data_sources.multi_source | [alpha_vantage] failed for ATSG: Alpha Vantage error: We have detected your API key as GHS8FR0JK3K0PAG0 and our standard API rate limit is 25 requests per day. Please subscribe to any of the premium plans at https://www.alphavantage.co/premium/ to instantly remove all daily rate limits.
+2026-10-05 11:10:17 | WARNING | app.data_sources.multi_source | [web_scraper] failed for ATSG: Yahoo Finance request failed: 404 Client Error: Not Found for url: https://query1.finance.yahoo.com/v8/finance/chart/ATSG?period1=1744390800&period2=1791148119&interval=1d&events=history
+2026-10-05 11:10:17 | WARNING | app.services.auto_refresh | AutoRefresh: provider fetch failed for ATSG: All providers failed for ATSG (1d): {'yahoo_http': 'Yahoo HTTP request failed for ATSG: 404 Client Error: Not Found for url: https://query1.finance.yahoo.com/v8/finance/chart/ATSG?period1=1744390800&period2=1791148119&interval=1d&includeAdjustedClose=true&events=history', 'yfinance': 'No data returned by yfinance for ATSG (1d)', 'finnhub': 'Finnhub authentication failed. Check FINNHUB_API_KEY in .env.', 'alpha_vantage': 'Alpha Vantage error: We have detected your API key as GHS8FR0JK3K0PAG0 and our standard API rate limit is 25 requests per day. Please subscribe to any of the premium plans at https://www.alphavantage.co/premium/ to instantly remove all daily rate limits.', 'web_scraper': 'Yahoo Finance request failed: 404 Client Error: Not Found for url: https://query1.finance.yahoo.com/v8/finance/chart/ATSG?period1=1744390800&period2=1791148119&interval=1d&events=history'}
+2026-10-05 11:10:17 | WARNING | app.data_sources.multi_source | [yahoo_http] failed for ATVI: Yahoo HTTP request failed for ATVI: 404 Client Error: Not Found for url: https://query1.finance.yahoo.com/v8/finance/chart/ATVI?period1=1697216400&period2=1791148119&interval=1d&includeAdjustedClose=true&events=history
+2026-10-05 11:10:18 | ERROR | yfinance | $ATVI: No data found, symbol may be delisted
+2026-10-05 11:10:18 | WARNING | app.data_sources.multi_source | [yfinance] failed for ATVI: No data returned by yfinance for ATVI (1d)
+2026-10-05 11:10:18 | WARNING | app.data_sources.multi_source | [finnhub] failed for ATVI: Finnhub authentication failed. Check FINNHUB_API_KEY in .env.
+2026-10-05 11:10:19 | WARNING | app.data_sources.multi_source | [alpha_vantage] failed for ATVI: Alpha Vantage error: We have detected your API key as GHS8FR0JK3K0PAG0 and our standard API rate limit is 25 requests per day. Please subscribe to any of the premium plans at https://www.alphavantage.co/premium/ to instantly remove all daily rate limits.
+2026-10-05 11:10:19 | WARNING | app.data_sources.multi_source | [web_scraper] failed for ATVI: Yahoo Finance request failed: 404 Client Error: Not Found for url: https://query1.finance.yahoo.com/v8/finance/chart/ATVI?period1=1697216400&period2=1791148119&interval=1d&events=history
+2026-10-05 11:10:19 | WARNING | app.services.auto_refresh | AutoRefresh: provider fetch failed for ATVI: All providers failed for ATVI (1d): {'yahoo_http': 'Yahoo HTTP request failed for ATVI: 404 Client Error: Not Found for url: https://query1.finance.yahoo.com/v8/finance/chart/ATVI?period1=1697216400&period2=1791148119&interval=1d&includeAdjustedClose=true&events=history', 'yfinance': 'No data returned by yfinance for ATVI (1d)', 'finnhub': 'Finnhub authentication failed. Check FINNHUB_API_KEY in .env.', 'alpha_vantage': 'Alpha Vantage error: We have detected your API key as GHS8FR0JK3K0PAG0 and our standard API rate limit is 25 requests per day. Please subscribe to any of the premium plans at https://www.alphavantage.co/premium/ to instantly remove all daily rate limits.', 'web_scraper': 'Yahoo Finance request failed: 404 Client Error: Not Found for url: https://query1.finance.yahoo.com/v8/finance/chart/ATVI?period1=1697216400&period2=1791148119&interval=1d&events=history'}
+2026-10-05 11:10:20 | INFO | app.data_sources.yahoo_http_provider | [yahoo_http] returned 1 rows for AU (2026-10-02 -> 2026-10-02)
+2026-10-05 11:10:20 | INFO | app.data_sources.multi_source | [yahoo_http] returned 1 rows for AU (1d)
+2026-10-05 11:10:20 | INFO | app.lakehouse.bronze | Bronze append complete: received=1 duplicates=1 paths=1
+2026-10-05 11:10:20 | INFO | app.data_sources.yahoo_http_provider | [yahoo_http] returned 1 rows for AVA (2026-10-02 -> 2026-10-02)
+2026-10-05 11:10:20 | INFO | app.data_sources.multi_source | [yahoo_http] returned 1 rows for AVA (1d)
+2026-10-05 11:10:20 | INFO | app.lakehouse.bronze | Bronze append complete: received=1 duplicates=1 paths=1
+2026-10-05 11:10:21 | INFO | app.data_sources.yahoo_http_provider | [yahoo_http] returned 1 rows for AVB (2026-08-14 -> 2026-08-14)
+2026-10-05 11:10:21 | INFO | app.data_sources.multi_source | [yahoo_http] returned 1 rows for AVB (1d)
+2026-10-05 11:10:21 | INFO | app.lakehouse.bronze | Bronze append complete: received=1 duplicates=1 paths=1
+2026-10-05 11:10:21 | INFO | app.services.auto_refresh | AutoRefresh progress: 60/621 symbols processed
+2026-10-05 11:10:21 | INFO | app.data_sources.yahoo_http_provider | [yahoo_http] returned 1 rows for AVGO (2026-10-02 -> 2026-10-02)
+2026-10-05 11:10:21 | INFO | app.data_sources.multi_source | [yahoo_http] returned 1 rows for AVGO (1d)
+2026-10-05 11:10:21 | INFO | app.lakehouse.bronze | Bronze append complete: received=1 duplicates=1 paths=1
+2026-10-05 11:10:21 | WARNING | app.data_sources.multi_source | [yahoo_http] failed for AVTE: Yahoo HTTP request failed for AVTE: 404 Client Error: Not Found for url: https://query1.finance.yahoo.com/v8/finance/chart/AVTE?period1=1790960400&period2=1791148119&interval=1d&includeAdjustedClose=true&events=history
+2026-10-05 11:10:22 | ERROR | yfinance | $AVTE: No data found, symbol may be delisted
+2026-10-05 11:10:22 | WARNING | app.data_sources.multi_source | [yfinance] failed for AVTE: No data returned by yfinance for AVTE (1d)
+2026-10-05 11:10:22 | WARNING | app.data_sources.multi_source | [finnhub] failed for AVTE: Finnhub authentication failed. Check FINNHUB_API_KEY in .env.
+2026-10-05 11:10:23 | WARNING | app.data_sources.multi_source | [alpha_vantage] failed for AVTE: Alpha Vantage error: We have detected your API key as GHS8FR0JK3K0PAG0 and our standard API rate limit is 25 requests per day. Please subscribe to any of the premium plans at https://www.alphavantage.co/premium/ to instantly remove all daily rate limits.
+2026-10-05 11:10:23 | WARNING | app.data_sources.multi_source | [web_scraper] failed for AVTE: Yahoo Finance request failed: 404 Client Error: Not Found for url: https://query1.finance.yahoo.com/v8/finance/chart/AVTE?period1=1790960400&period2=1791148119&interval=1d&events=history
+2026-10-05 11:10:23 | WARNING | app.services.auto_refresh | AutoRefresh: provider fetch failed for AVTE: All providers failed for AVTE (1d): {'yahoo_http': 'Yahoo HTTP request failed for AVTE: 404 Client Error: Not Found for url: https://query1.finance.yahoo.com/v8/finance/chart/AVTE?period1=1790960400&period2=1791148119&interval=1d&includeAdjustedClose=true&events=history', 'yfinance': 'No data returned by yfinance for AVTE (1d)', 'finnhub': 'Finnhub authentication failed. Check FINNHUB_API_KEY in .env.', 'alpha_vantage': 'Alpha Vantage error: We have detected your API key as GHS8FR0JK3K0PAG0 and our standard API rate limit is 25 requests per day. Please subscribe to any of the premium plans at https://www.alphavantage.co/premium/ to instantly remove all daily rate limits.', 'web_scraper': 'Yahoo Finance request failed: 404 Client Error: Not Found for url: https://query1.finance.yahoo.com/v8/finance/chart/AVTE?period1=1790960400&period2=1791148119&interval=1d&events=history'}
+2026-10-05 11:10:24 | INFO | app.data_sources.yahoo_http_provider | [yahoo_http] returned 1 rows for AWK (2026-10-02 -> 2026-10-02)
+2026-10-05 11:10:24 | INFO | app.data_sources.multi_source | [yahoo_http] returned 1 rows for AWK (1d)
+2026-10-05 11:10:24 | INFO | app.lakehouse.bronze | Bronze append complete: received=1 duplicates=1 paths=1
+2026-10-05 11:10:24 | INFO | app.data_sources.yahoo_http_provider | [yahoo_http] returned 1 rows for AWR (2026-10-02 -> 2026-10-02)
+2026-10-05 11:10:24 | INFO | app.data_sources.multi_source | [yahoo_http] returned 1 rows for AWR (1d)
+2026-10-05 11:10:24 | INFO | app.lakehouse.bronze | Bronze append complete: received=1 duplicates=1 paths=1
+2026-10-05 11:10:25 | INFO | app.data_sources.yahoo_http_provider | [yahoo_http] returned 1 rows for AXP (2026-10-02 -> 2026-10-02)
+2026-10-05 11:10:25 | INFO | app.data_sources.multi_source | [yahoo_http] returned 1 rows for AXP (1d)
+2026-10-05 11:10:25 | INFO | app.lakehouse.bronze | Bronze append complete: received=1 duplicates=1 paths=1
+2026-10-05 11:10:26 | INFO | app.data_sources.yahoo_http_provider | [yahoo_http] returned 1 rows for AYI (2026-10-02 -> 2026-10-02)
+2026-10-05 11:10:26 | INFO | app.data_sources.multi_source | [yahoo_http] returned 1 rows for AYI (1d)
+2026-10-05 11:10:26 | INFO | app.lakehouse.bronze | Bronze append complete: received=1 duplicates=1 paths=1
+2026-10-05 11:10:26 | INFO | app.data_sources.yahoo_http_provider | [yahoo_http] returned 1 rows for AZO (2026-10-02 -> 2026-10-02)
+2026-10-05 11:10:26 | INFO | app.data_sources.multi_source | [yahoo_http] returned 1 rows for AZO (1d)
+2026-10-05 11:10:26 | INFO | app.lakehouse.bronze | Bronze append complete: received=1 duplicates=1 paths=1
+2026-10-05 11:10:28 | INFO | app.data_sources.yahoo_http_provider | [yahoo_http] returned 1 rows for BA (2026-10-02 -> 2026-10-02)
+2026-10-05 11:10:28 | INFO | app.data_sources.multi_source | [yahoo_http] returned 1 rows for BA (1d)
+2026-10-05 11:10:28 | INFO | app.lakehouse.bronze | Bronze append complete: received=1 duplicates=1 paths=1
+2026-10-05 11:10:29 | INFO | app.data_sources.yahoo_http_provider | [yahoo_http] returned 1 rows for BAC (2026-10-02 -> 2026-10-02)
+2026-10-05 11:10:29 | INFO | app.data_sources.multi_source | [yahoo_http] returned 1 rows for BAC (1d)
+2026-10-05 11:10:29 | INFO | app.lakehouse.bronze | Bronze append complete: received=1 duplicates=1 paths=1
+2026-10-05 11:10:30 | INFO | app.data_sources.yahoo_http_provider | [yahoo_http] returned 1 rows for BAX (2026-10-02 -> 2026-10-02)
+2026-10-05 11:10:30 | INFO | app.data_sources.multi_source | [yahoo_http] returned 1 rows for BAX (1d)
+2026-10-05 11:10:30 | INFO | app.lakehouse.bronze | Bronze append complete: received=1 duplicates=1 paths=1
+2026-10-05 11:10:30 | INFO | app.data_sources.yahoo_http_provider | [yahoo_http] returned 1 rows for BBIO (2026-10-02 -> 2026-10-02)
+2026-10-05 11:10:30 | INFO | app.data_sources.multi_source | [yahoo_http] returned 1 rows for BBIO (1d)
+2026-10-05 11:10:30 | INFO | app.lakehouse.bronze | Bronze append complete: received=1 duplicates=1 paths=1
+2026-10-05 11:10:31 | INFO | app.data_sources.yahoo_http_provider | [yahoo_http] returned 1 rows for BBWI (2026-10-02 -> 2026-10-02)
+2026-10-05 11:10:31 | INFO | app.data_sources.multi_source | [yahoo_http] returned 1 rows for BBWI (1d)
+2026-10-05 11:10:32 | INFO | app.lakehouse.bronze | Bronze append complete: received=1 duplicates=1 paths=1
+2026-10-05 11:10:32 | INFO | app.data_sources.yahoo_http_provider | [yahoo_http] returned 1 rows for BBY (2026-10-02 -> 2026-10-02)
+2026-10-05 11:10:32 | INFO | app.data_sources.multi_source | [yahoo_http] returned 1 rows for BBY (1d)
+2026-10-05 11:10:32 | INFO | app.lakehouse.bronze | Bronze append complete: received=1 duplicates=1 paths=1
+2026-10-05 11:10:33 | INFO | app.data_sources.yahoo_http_provider | [yahoo_http] returned 1 rows for BDN (2026-10-02 -> 2026-10-02)
+2026-10-05 11:10:33 | INFO | app.data_sources.multi_source | [yahoo_http] returned 1 rows for BDN (1d)
+2026-10-05 11:10:33 | INFO | app.lakehouse.bronze | Bronze append complete: received=1 duplicates=1 paths=1
+2026-10-05 11:10:34 | INFO | app.data_sources.yahoo_http_provider | [yahoo_http] returned 1 rows for BDX (2026-10-02 -> 2026-10-02)
+2026-10-05 11:10:34 | INFO | app.data_sources.multi_source | [yahoo_http] returned 1 rows for BDX (1d)
+2026-10-05 11:10:34 | INFO | app.lakehouse.bronze | Bronze append complete: received=1 duplicates=1 paths=1
+2026-10-05 11:10:34 | INFO | app.data_sources.yahoo_http_provider | [yahoo_http] returned 1 rows for BEAM (2026-10-02 -> 2026-10-02)
+2026-10-05 11:10:34 | INFO | app.data_sources.multi_source | [yahoo_http] returned 1 rows for BEAM (1d)
+2026-10-05 11:10:34 | INFO | app.lakehouse.bronze | Bronze append complete: received=1 duplicates=1 paths=1
+2026-10-05 11:10:35 | INFO | app.data_sources.yahoo_http_provider | [yahoo_http] returned 1 rows for BG (2026-10-02 -> 2026-10-02)
+2026-10-05 11:10:35 | INFO | app.data_sources.multi_source | [yahoo_http] returned 1 rows for BG (1d)
+2026-10-05 11:10:35 | INFO | app.lakehouse.bronze | Bronze append complete: received=1 duplicates=1 paths=1
+2026-10-05 11:10:36 | INFO | app.data_sources.yahoo_http_provider | [yahoo_http] returned 1 rows for BIIB (2026-10-02 -> 2026-10-02)
+2026-10-05 11:10:36 | INFO | app.data_sources.multi_source | [yahoo_http] returned 1 rows for BIIB (1d)
+2026-10-05 11:10:36 | INFO | app.lakehouse.bronze | Bronze append complete: received=1 duplicates=1 paths=1
+2026-10-05 11:10:36 | INFO | app.data_sources.yahoo_http_provider | [yahoo_http] returned 1 rows for BIL (2026-10-02 -> 2026-10-02)
+2026-10-05 11:10:36 | INFO | app.data_sources.multi_source | [yahoo_http] returned 1 rows for BIL (1d)
+2026-10-05 11:10:37 | INFO | app.lakehouse.bronze | Bronze append complete: received=1 duplicates=1 paths=1
+2026-10-05 11:10:37 | INFO | app.data_sources.yahoo_http_provider | [yahoo_http] returned 1 rows for BIO (2026-10-02 -> 2026-10-02)
+2026-10-05 11:10:37 | INFO | app.data_sources.multi_source | [yahoo_http] returned 1 rows for BIO (1d)
+2026-10-05 11:10:37 | INFO | app.lakehouse.bronze | Bronze append complete: received=1 duplicates=1 paths=1
+2026-10-05 11:10:37 | INFO | app.services.auto_refresh | AutoRefresh progress: 80/621 symbols processed
+2026-10-05 11:10:38 | INFO | app.data_sources.yahoo_http_provider | [yahoo_http] returned 1 rows for BIP (2026-10-02 -> 2026-10-02)
+2026-10-05 11:10:38 | INFO | app.data_sources.multi_source | [yahoo_http] returned 1 rows for BIP (1d)
+2026-10-05 11:10:38 | INFO | app.lakehouse.bronze | Bronze append complete: received=1 duplicates=1 paths=1
+2026-10-05 11:10:39 | INFO | app.data_sources.yahoo_http_provider | [yahoo_http] returned 1 rows for BITO (2026-10-02 -> 2026-10-02)
+2026-10-05 11:10:39 | INFO | app.data_sources.multi_source | [yahoo_http] returned 1 rows for BITO (1d)
+2026-10-05 11:10:39 | INFO | app.lakehouse.bronze | Bronze append complete: received=1 duplicates=1 paths=1
+2026-10-05 11:10:39 | INFO | app.data_sources.yahoo_http_provider | [yahoo_http] returned 1 rows for BITQ (2026-10-02 -> 2026-10-02)
+2026-10-05 11:10:39 | INFO | app.data_sources.multi_source | [yahoo_http] returned 1 rows for BITQ (1d)
+2026-10-05 11:10:39 | INFO | app.lakehouse.bronze | Bronze append complete: received=1 duplicates=1 paths=1
+2026-10-05 11:10:40 | INFO | app.data_sources.yahoo_http_provider | [yahoo_http] returned 1 rows for BITX (2026-10-02 -> 2026-10-02)
+2026-10-05 11:10:40 | INFO | app.data_sources.multi_source | [yahoo_http] returned 1 rows for BITX (1d)
+2026-10-05 11:10:40 | INFO | app.lakehouse.bronze | Bronze append complete: received=1 duplicates=1 paths=1
+2026-10-05 11:10:40 | INFO | app.data_sources.yahoo_http_provider | [yahoo_http] returned 1 rows for BJRI (2026-10-02 -> 2026-10-02)
+2026-10-05 11:10:40 | INFO | app.data_sources.multi_source | [yahoo_http] returned 1 rows for BJRI (1d)
+2026-10-05 11:10:41 | INFO | app.lakehouse.bronze | Bronze append complete: received=1 duplicates=1 paths=1
+2026-10-05 11:10:42 | WARNING | app.data_sources.multi_source | [yahoo_http] failed for BK: Yahoo HTTP request failed for BK: 404 Client Error: Not Found for url: https://query1.finance.yahoo.com/v8/finance/chart/BK?period1=1791032402&period2=1791148119&interval=1d&includeAdjustedClose=true&events=history
+2026-10-05 11:10:42 | ERROR | yfinance | $BK: No data found, symbol may be delisted
+2026-10-05 11:10:42 | WARNING | app.data_sources.multi_source | [yfinance] failed for BK: No data returned by yfinance for BK (1d)
+2026-10-05 11:10:43 | WARNING | app.data_sources.multi_source | [finnhub] failed for BK: Finnhub authentication failed. Check FINNHUB_API_KEY in .env.
+2026-10-05 11:10:43 | WARNING | app.data_sources.multi_source | [alpha_vantage] failed for BK: Alpha Vantage error: We have detected your API key as GHS8FR0JK3K0PAG0 and our standard API rate limit is 25 requests per day. Please subscribe to any of the premium plans at https://www.alphavantage.co/premium/ to instantly remove all daily rate limits.
+2026-10-05 11:10:43 | WARNING | app.data_sources.multi_source | [web_scraper] failed for BK: Yahoo Finance request failed: 404 Client Error: Not Found for url: https://query1.finance.yahoo.com/v8/finance/chart/BK?period1=1791032402&period2=1791148119&interval=1d&events=history
+2026-10-05 11:10:43 | WARNING | app.services.auto_refresh | AutoRefresh: provider fetch failed for BK: All providers failed for BK (1d): {'yahoo_http': 'Yahoo HTTP request failed for BK: 404 Client Error: Not Found for url: https://query1.finance.yahoo.com/v8/finance/chart/BK?period1=1791032402&period2=1791148119&interval=1d&includeAdjustedClose=true&events=history', 'yfinance': 'No data returned by yfinance for BK (1d)', 'finnhub': 'Finnhub authentication failed. Check FINNHUB_API_KEY in .env.', 'alpha_vantage': 'Alpha Vantage error: We have detected your API key as GHS8FR0JK3K0PAG0 and our standard API rate limit is 25 requests per day. Please subscribe to any of the premium plans at https://www.alphavantage.co/premium/ to instantly remove all daily rate limits.', 'web_scraper': 'Yahoo Finance request failed: 404 Client Error: Not Found for url: https://query1.finance.yahoo.com/v8/finance/chart/BK?period1=1791032402&period2=1791148119&interval=1d&events=history'}
+2026-10-05 11:10:44 | INFO | app.data_sources.yahoo_http_provider | [yahoo_http] returned 1 rows for BKH (2026-10-02 -> 2026-10-02)
+2026-10-05 11:10:44 | INFO | app.data_sources.multi_source | [yahoo_http] returned 1 rows for BKH (1d)
+2026-10-05 11:10:44 | INFO | app.lakehouse.bronze | Bronze append complete: received=1 duplicates=1 paths=1
+2026-10-05 11:10:44 | INFO | app.data_sources.yahoo_http_provider | [yahoo_http] returned 1 rows for BKNG (2026-10-02 -> 2026-10-02)
+2026-10-05 11:10:44 | INFO | app.data_sources.multi_source | [yahoo_http] returned 1 rows for BKNG (1d)
+2026-10-05 11:10:45 | INFO | app.lakehouse.bronze | Bronze append complete: received=1 duplicates=1 paths=1
+2026-10-05 11:10:45 | INFO | app.data_sources.yahoo_http_provider | [yahoo_http] returned 1 rows for BLDR (2026-10-02 -> 2026-10-02)
+2026-10-05 11:10:45 | INFO | app.data_sources.multi_source | [yahoo_http] returned 1 rows for BLDR (1d)
+2026-10-05 11:10:45 | INFO | app.lakehouse.bronze | Bronze append complete: received=1 duplicates=1 paths=1
+2026-10-05 11:10:46 | INFO | app.data_sources.yahoo_http_provider | [yahoo_http] returned 1 rows for BLK (2026-10-02 -> 2026-10-02)
+2026-10-05 11:10:46 | INFO | app.data_sources.multi_source | [yahoo_http] returned 1 rows for BLK (1d)
+2026-10-05 11:10:46 | INFO | app.lakehouse.bronze | Bronze append complete: received=1 duplicates=1 paths=1
+2026-10-05 11:10:46 | INFO | app.data_sources.yahoo_http_provider | [yahoo_http] returned 1 rows for BLMN (2026-10-02 -> 2026-10-02)
+2026-10-05 11:10:46 | INFO | app.data_sources.multi_source | [yahoo_http] returned 1 rows for BLMN (1d)
+2026-10-05 11:10:47 | INFO | app.lakehouse.bronze | Bronze append complete: received=1 duplicates=1 paths=1
+2026-10-05 11:10:47 | WARNING | app.data_sources.multi_source | [yahoo_http] failed for BLUE: Yahoo HTTP request failed for BLUE: 404 Client Error: Not Found for url: https://query1.finance.yahoo.com/v8/finance/chart/BLUE?period1=1748883600&period2=1791148119&interval=1d&includeAdjustedClose=true&events=history
+2026-10-05 11:10:47 | ERROR | yfinance | $BLUE: No data found, symbol may be delisted
+2026-10-05 11:10:47 | WARNING | app.data_sources.multi_source | [yfinance] failed for BLUE: No data returned by yfinance for BLUE (1d)
+2026-10-05 11:10:48 | WARNING | app.data_sources.multi_source | [finnhub] failed for BLUE: Finnhub authentication failed. Check FINNHUB_API_KEY in .env.
+2026-10-05 11:10:48 | WARNING | app.data_sources.multi_source | [alpha_vantage] failed for BLUE: Alpha Vantage error: We have detected your API key as GHS8FR0JK3K0PAG0 and our standard API rate limit is 25 requests per day. Please subscribe to any of the premium plans at https://www.alphavantage.co/premium/ to instantly remove all daily rate limits.
+2026-10-05 11:10:48 | WARNING | app.data_sources.multi_source | [web_scraper] failed for BLUE: Yahoo Finance request failed: 404 Client Error: Not Found for url: https://query1.finance.yahoo.com/v8/finance/chart/BLUE?period1=1748883600&period2=1791148119&interval=1d&events=history
+2026-10-05 11:10:48 | WARNING | app.services.auto_refresh | AutoRefresh: provider fetch failed for BLUE: All providers failed for BLUE (1d): {'yahoo_http': 'Yahoo HTTP request failed for BLUE: 404 Client Error: Not Found for url: https://query1.finance.yahoo.com/v8/finance/chart/BLUE?period1=1748883600&period2=1791148119&interval=1d&includeAdjustedClose=true&events=history', 'yfinance': 'No data returned by yfinance for BLUE (1d)', 'finnhub': 'Finnhub authentication failed. Check FINNHUB_API_KEY in .env.', 'alpha_vantage': 'Alpha Vantage error: We have detected your API key as GHS8FR0JK3K0PAG0 and our standard API rate limit is 25 requests per day. Please subscribe to any of the premium plans at https://www.alphavantage.co/premium/ to instantly remove all daily rate limits.', 'web_scraper': 'Yahoo Finance request failed: 404 Client Error: Not Found for url: https://query1.finance.yahoo.com/v8/finance/chart/BLUE?period1=1748883600&period2=1791148119&interval=1d&events=history'}
+2026-10-05 11:10:49 | INFO | app.data_sources.yahoo_http_provider | [yahoo_http] returned 1 rows for BMRN (2026-10-02 -> 2026-10-02)
+2026-10-05 11:10:49 | INFO | app.data_sources.multi_source | [yahoo_http] returned 1 rows for BMRN (1d)
+2026-10-05 11:10:49 | INFO | app.lakehouse.bronze | Bronze append complete: received=1 duplicates=1 paths=1
+2026-10-05 11:10:50 | INFO | app.data_sources.yahoo_http_provider | [yahoo_http] returned 1 rows for BND (2026-10-02 -> 2026-10-02)
+2026-10-05 11:10:50 | INFO | app.data_sources.multi_source | [yahoo_http] returned 1 rows for BND (1d)
+2026-10-05 11:10:50 | INFO | app.lakehouse.bronze | Bronze append complete: received=1 duplicates=1 paths=1
+2026-10-05 11:10:51 | INFO | app.data_sources.yahoo_http_provider | [yahoo_http] returned 1 rows for BNDX (2026-10-02 -> 2026-10-02)
+2026-10-05 11:10:51 | INFO | app.data_sources.multi_source | [yahoo_http] returned 1 rows for BNDX (1d)
+2026-10-05 11:10:51 | INFO | app.lakehouse.bronze | Bronze append complete: received=1 duplicates=1 paths=1
+2026-10-05 11:10:52 | INFO | app.data_sources.yahoo_http_provider | [yahoo_http] returned 1 rows for BNTX (2026-10-02 -> 2026-10-02)
+2026-10-05 11:10:52 | INFO | app.data_sources.multi_source | [yahoo_http] returned 1 rows for BNTX (1d)
+2026-10-05 11:10:52 | INFO | app.lakehouse.bronze | Bronze append complete: received=1 duplicates=1 paths=1
+2026-10-05 11:10:53 | INFO | app.data_sources.yahoo_http_provider | [yahoo_http] returned 1 rows for BP (2026-10-02 -> 2026-10-02)
+2026-10-05 11:10:53 | INFO | app.data_sources.multi_source | [yahoo_http] returned 1 rows for BP (1d)
+2026-10-05 11:10:53 | INFO | app.lakehouse.bronze | Bronze append complete: received=1 duplicates=1 paths=1
+2026-10-05 11:10:53 | INFO | app.data_sources.yahoo_http_provider | [yahoo_http] returned 1 rows for BRO (2026-10-02 -> 2026-10-02)
+2026-10-05 11:10:53 | INFO | app.data_sources.multi_source | [yahoo_http] returned 1 rows for BRO (1d)
+2026-10-05 11:10:53 | INFO | app.lakehouse.bronze | Bronze append complete: received=1 duplicates=1 paths=1
+2026-10-05 11:10:54 | INFO | app.data_sources.yahoo_http_provider | [yahoo_http] returned 1 rows for BRX (2026-10-02 -> 2026-10-02)
+2026-10-05 11:10:54 | INFO | app.data_sources.multi_source | [yahoo_http] returned 1 rows for BRX (1d)
+2026-10-05 11:10:54 | INFO | app.lakehouse.bronze | Bronze append complete: received=1 duplicates=1 paths=1
+2026-10-05 11:10:55 | INFO | app.data_sources.yahoo_http_provider | [yahoo_http] returned 1 rows for BSX (2026-10-02 -> 2026-10-02)
+2026-10-05 11:10:55 | INFO | app.data_sources.multi_source | [yahoo_http] returned 1 rows for BSX (1d)
+2026-10-05 11:10:55 | INFO | app.lakehouse.bronze | Bronze append complete: received=1 duplicates=1 paths=1
+2026-10-05 11:10:55 | INFO | app.services.auto_refresh | AutoRefresh progress: 100/621 symbols processed
+2026-10-05 11:10:55 | INFO | app.data_sources.yahoo_http_provider | [yahoo_http] returned 1 rows for BTF (2026-10-02 -> 2026-10-02)
+2026-10-05 11:10:55 | INFO | app.data_sources.multi_source | [yahoo_http] returned 1 rows for BTF (1d)
+2026-10-05 11:10:55 | INFO | app.lakehouse.bronze | Bronze append complete: received=1 duplicates=1 paths=1
+2026-10-05 11:10:56 | INFO | app.data_sources.yahoo_http_provider | [yahoo_http] returned 1 rows for BURL (2026-10-02 -> 2026-10-02)
+2026-10-05 11:10:56 | INFO | app.data_sources.multi_source | [yahoo_http] returned 1 rows for BURL (1d)
+2026-10-05 11:10:56 | INFO | app.lakehouse.bronze | Bronze append complete: received=1 duplicates=1 paths=1
+2026-10-05 11:10:57 | INFO | app.data_sources.yahoo_http_provider | [yahoo_http] returned 1 rows for BXP (2026-10-02 -> 2026-10-02)
+2026-10-05 11:10:57 | INFO | app.data_sources.multi_source | [yahoo_http] returned 1 rows for BXP (1d)
+2026-10-05 11:10:57 | INFO | app.lakehouse.bronze | Bronze append complete: received=1 duplicates=1 paths=1
+2026-10-05 11:11:21 | INFO | app.data_sources.yahoo_http_provider | [yahoo_http] returned 1 rows for C (2026-10-02 -> 2026-10-02)
+2026-10-05 11:11:21 | INFO | app.data_sources.multi_source | [yahoo_http] returned 1 rows for C (1d)
+2026-10-05 11:11:21 | INFO | app.lakehouse.bronze | Bronze append complete: received=1 duplicates=1 paths=1

@@ -1,0 +1,66 @@
+INFO:     Started server process [20688]
+INFO:     Waiting for application startup.
+2026-10-05 11:39:49 | INFO | app.services.auto_refresh | AutoRefreshService started: on_start=False interval=21600s symbols=621 batch_size=20
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+2026-10-05 11:40:01 | WARNING | app.database.session | MySQL connection check failed: (pymysql.err.OperationalError) (2013, 'Lost connection to MySQL server during query')
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2026-10-05 11:40:01 | WARNING | app.agent.llm_client | Transient LLM error (attempt 1/4), retrying in 1.6s: Gemini API error 429: { "error": { "code": 429, "message": "You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-a
+2026-10-05 11:40:06 | WARNING | app.agent.llm_client | Transient LLM error (attempt 2/4), retrying in 2.1s: Gemini API error 429: { "error": { "code": 429, "message": "You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-a
+2026-10-05 11:40:10 | WARNING | app.agent.llm_client | Transient LLM error (attempt 3/4), retrying in 5.1s: Gemini API error 429: { "error": { "code": 429, "message": "You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-a
+2026-10-05 11:40:15 | ERROR | app.agent.llm_client | LLM request failed (gemini) after 4 attempt(s): Gemini API error 429: {
+  "error": {
+    "code": 429,
+    "message": "You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-a
+2026-10-05 11:40:15 | WARNING | app.agent.agent | LLM path failed (LLM request failed: Gemini API error 429: { "error": { "code": 429, "message": "You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-a). Falling back to local tool router.
+2026-10-05 11:40:19 | WARNING | app.database.session | MySQL connection check failed: (pymysql.err.OperationalError) (2013, 'Lost connection to MySQL server during query')
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2026-10-05 11:40:20 | WARNING | app.agent.llm_client | Transient LLM error (attempt 1/4), retrying in 1.2s: Gemini API error 429: { "error": { "code": 429, "message": "You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-a
+2026-10-05 11:40:24 | WARNING | app.agent.llm_client | Transient LLM error (attempt 2/4), retrying in 3.5s: Gemini API error 429: { "error": { "code": 429, "message": "You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-a
+2026-10-05 11:40:28 | WARNING | app.agent.llm_client | Transient LLM error (attempt 3/4), retrying in 6.7s: Gemini API error 429: { "error": { "code": 429, "message": "You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-a
+2026-10-05 11:40:35 | ERROR | app.agent.llm_client | LLM request failed (gemini) after 4 attempt(s): Gemini API error 429: {
+  "error": {
+    "code": 429,
+    "message": "You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-a
+2026-10-05 11:40:35 | WARNING | app.agent.agent | LLM path failed (LLM request failed: Gemini API error 429: { "error": { "code": 429, "message": "You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-a). Falling back to local tool router.
+2026-10-05 11:40:39 | WARNING | app.database.session | MySQL connection check failed: (pymysql.err.OperationalError) (2013, 'Lost connection to MySQL server during query')
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2026-10-05 11:40:39 | WARNING | app.agent.llm_client | Transient LLM error (attempt 1/4), retrying in 1.9s: Gemini API error 429: { "error": { "code": 429, "message": "You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-a
+2026-10-05 11:40:43 | WARNING | app.agent.llm_client | Transient LLM error (attempt 2/4), retrying in 2.2s: Gemini API error 429: { "error": { "code": 429, "message": "You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-a
+2026-10-05 11:40:47 | WARNING | app.agent.llm_client | Transient LLM error (attempt 3/4), retrying in 5.7s: Gemini API error 429: { "error": { "code": 429, "message": "You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-a
+2026-10-05 11:40:53 | ERROR | app.agent.llm_client | LLM request failed (gemini) after 4 attempt(s): Gemini API error 429: {
+  "error": {
+    "code": 429,
+    "message": "You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-a
+2026-10-05 11:40:53 | WARNING | app.agent.agent | LLM path failed (LLM request failed: Gemini API error 429: { "error": { "code": 429, "message": "You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-a). Falling back to local tool router.
+2026-10-05 11:40:57 | WARNING | app.database.session | MySQL connection check failed: (pymysql.err.OperationalError) (2013, 'Lost connection to MySQL server during query')
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2026-10-05 11:40:58 | WARNING | app.agent.llm_client | Transient LLM error (attempt 1/4), retrying in 1.0s: Gemini API error 429: { "error": { "code": 429, "message": "You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-a
+2026-10-05 11:41:02 | WARNING | app.agent.llm_client | Transient LLM error (attempt 2/4), retrying in 2.4s: Gemini API error 429: { "error": { "code": 429, "message": "You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-a
+2026-10-05 11:41:06 | WARNING | app.agent.llm_client | Transient LLM error (attempt 3/4), retrying in 6.0s: Gemini API error 429: { "error": { "code": 429, "message": "You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-a
+2026-10-05 11:41:13 | ERROR | app.agent.llm_client | LLM request failed (gemini) after 4 attempt(s): Gemini API error 429: {
+  "error": {
+    "code": 429,
+    "message": "You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-a
+2026-10-05 11:41:13 | WARNING | app.agent.agent | LLM path failed (LLM request failed: Gemini API error 429: { "error": { "code": 429, "message": "You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-a). Falling back to local tool router.
+2026-10-05 11:41:13 | INFO | app.lakehouse.storage_factory | Using MinIO storage backend.
+2026-10-05 11:41:17 | WARNING | app.database.session | MySQL connection check failed: (pymysql.err.OperationalError) (2013, 'Lost connection to MySQL server during query')
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2026-10-05 11:41:17 | WARNING | app.agent.llm_client | Transient LLM error (attempt 1/4), retrying in 1.0s: Gemini API error 429: { "error": { "code": 429, "message": "You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-a
+2026-10-05 11:41:21 | WARNING | app.agent.llm_client | Transient LLM error (attempt 2/4), retrying in 2.4s: Gemini API error 429: { "error": { "code": 429, "message": "You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-a
+2026-10-05 11:41:25 | WARNING | app.agent.llm_client | Transient LLM error (attempt 3/4), retrying in 6.6s: Gemini API error 429: { "error": { "code": 429, "message": "You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-a
+2026-10-05 11:41:32 | ERROR | app.agent.llm_client | LLM request failed (gemini) after 4 attempt(s): Gemini API error 429: {
+  "error": {
+    "code": 429,
+    "message": "You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-a
+2026-10-05 11:41:32 | WARNING | app.agent.agent | LLM path failed (LLM request failed: Gemini API error 429: { "error": { "code": 429, "message": "You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-a). Falling back to local tool router.
+2026-10-05 11:41:55 | WARNING | app.database.session | MySQL connection check failed: (pymysql.err.OperationalError) (2013, 'Lost connection to MySQL server during query')
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2026-10-05 11:41:55 | WARNING | app.agent.llm_client | Transient LLM error (attempt 1/4), retrying in 1.5s: Gemini API error 429: { "error": { "code": 429, "message": "You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-a
+2026-10-05 11:41:59 | WARNING | app.agent.llm_client | Transient LLM error (attempt 2/4), retrying in 2.4s: Gemini API error 429: { "error": { "code": 429, "message": "You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-a
+2026-10-05 11:42:03 | WARNING | app.agent.llm_client | Transient LLM error (attempt 3/4), retrying in 6.4s: Gemini API error 429: { "error": { "code": 429, "message": "You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-a
+2026-10-05 11:42:10 | ERROR | app.agent.llm_client | LLM request failed (gemini) after 4 attempt(s): Gemini API error 429: {
+  "error": {
+    "code": 429,
+    "message": "You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-a
+2026-10-05 11:42:10 | WARNING | app.agent.agent | LLM path failed (LLM request failed: Gemini API error 429: { "error": { "code": 429, "message": "You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-a). Falling back to local tool router.

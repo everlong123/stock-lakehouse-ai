@@ -30,6 +30,7 @@ from app.data_sources.factory import get_data_provider
 from app.lakehouse.bronze import BronzeLayer
 from app.lakehouse.gold import GoldLayer
 from app.lakehouse.silver import SilverLayer
+from app.services.market_service import clear_symbol_cache
 
 logger = get_logger(__name__)
 
@@ -49,7 +50,7 @@ def ingest_symbol(
 
     Args:
         symbol:      Ticker, e.g. "AAPL" or "VCB"
-        interval:   "1d" (default) | "1h" | "15m" | "5m"
+        interval:   "1d" (the only interval the lakehouse ingests)
         start:      Start of date range (default: 730 days ago)
         end:        End of date range (default: now)
         source_name: Override DATA_SOURCE env var
@@ -244,7 +245,7 @@ def run_symbol_pipeline(
 
     Args:
         symbol:       Ticker, e.g. "AAPL"
-        interval:     "1d" | "1h" | "15m" | "5m"
+        interval:     "1d" (the only interval the lakehouse ingests)
         start/end:    Date range override
         source_name:  Override DATA_SOURCE
         ingest:       Fetch from provider first (default True)
@@ -282,6 +283,10 @@ def run_symbol_pipeline(
         gold_meta = {}
 
     finished = datetime.now(timezone.utc)
+
+    # The market read path memoises frames; drop them so the UI immediately sees
+    # the freshly written Silver/Gold data instead of a stale cached copy.
+    clear_symbol_cache()
 
     return {
         "pipeline_name": "stock_lakehouse_pipeline",

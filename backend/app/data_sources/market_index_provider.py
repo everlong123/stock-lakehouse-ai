@@ -9,6 +9,7 @@ import pandas as pd
 import requests
 from bs4 import BeautifulSoup
 
+from app.core.exceptions import DataSourceError
 from app.core.logging_config import get_logger
 
 logger = get_logger(__name__)
@@ -141,19 +142,16 @@ class MarketIndexProvider:
         }
 
     def get_marketBreadth(self, date: str | None = None) -> dict[str, Any]:
-        """Get market breadth (advance/decline, new high/low) - US markets."""
-        # This would ideally come from a real-time data provider
-        # For now, return placeholder structure
-        return {
-            "date": date or datetime.now(timezone.utc).strftime("%Y-%m-%d"),
-            "advances": 0,
-            "declines": 0,
-            "unchanged": 0,
-            "new_highs": 0,
-            "new_lows": 0,
-            "total_traded": 0,
-            "market_sentiment": "neutral",
-        }
+        """Get market breadth (advance/decline, new high/low) - US markets.
+
+        Not currently available: this requires a real-time tick-level feed which
+        the project does not ingest. Raising instead of returning zeros so callers
+        never mistake fabricated breadth for real data.
+        """
+        raise DataSourceError(
+            "Market breadth requires a real-time tick feed which is not available. "
+            "Use /market/indices/sectors for sector performance instead."
+        )
 
     def get_sector_performance(self) -> pd.DataFrame:
         """Get US sector performance via Yahoo Finance."""

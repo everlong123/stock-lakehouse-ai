@@ -7,7 +7,7 @@ from typing import Literal
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
 
-from app.core.constants import SUPPORTED_SYMBOLS
+from app.core.constants import SUPPORTED_INTERVALS, SUPPORTED_SYMBOLS
 from app.core.logging_config import get_logger
 from app.lakehouse.pipeline import LakehousePipeline, PipelineConfig, PipelineRun, run_pipeline
 
@@ -39,13 +39,21 @@ class PipelineRunRequest(BaseModel):
     )
     interval: str = Field(
         default="1d",
-        description="Data interval: 1d, 1h, 15m, 5m"
+        description="Data interval (only 1d supported in single-interval lakehouse).",
+        validate=(
+            lambda v: v in SUPPORTED_INTERVALS
+            or (_ for _ in ()).throw(
+                ValueError(
+                    f"Unsupported interval '{v}'. Supported: {SUPPORTED_INTERVALS}."
+                )
+            )
+        ),
     )
     lookback_days: int = Field(
-        default=730,
+        default=3650,
         ge=1,
         le=3650,
-        description="Number of days of historical data to fetch."
+        description="Number of days of historical data to fetch (5-10 years).",
     )
 
 
@@ -215,7 +223,7 @@ async def get_supported_symbols() -> dict:
     return {
         "symbols": SUPPORTED_SYMBOLS,
         "count": len(SUPPORTED_SYMBOLS),
-        "intervals": ["1d", "1h", "15m", "5m"],
+        "intervals": SUPPORTED_INTERVALS,
     }
 
 

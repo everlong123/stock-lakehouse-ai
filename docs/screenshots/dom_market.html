@@ -1,0 +1,1394 @@
+<!DOCTYPE html>
+<html lang="vi"><head>
+    <script type="module">import { injectIntoGlobalHook } from "/@react-refresh";
+injectIntoGlobalHook(window);
+window.$RefreshReg$ = () => {};
+window.$RefreshSig$ = () => (type) => type;</script>
+
+    <script type="module" src="/@vite/client"></script>
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Stock Lakehouse AI: phân tích và dự báo chứng khoán trên data lakehouse.">
+    <title>Stock Lakehouse AI · Demo đồ án</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;family=IBM+Plex+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+  <style type="text/css">:where(html[dir="ltr"]),:where([data-sonner-toaster][dir="ltr"]){--toast-icon-margin-start: -3px;--toast-icon-margin-end: 4px;--toast-svg-margin-start: -1px;--toast-svg-margin-end: 0px;--toast-button-margin-start: auto;--toast-button-margin-end: 0;--toast-close-button-start: 0;--toast-close-button-end: unset;--toast-close-button-transform: translate(-35%, -35%)}:where(html[dir="rtl"]),:where([data-sonner-toaster][dir="rtl"]){--toast-icon-margin-start: 4px;--toast-icon-margin-end: -3px;--toast-svg-margin-start: 0px;--toast-svg-margin-end: -1px;--toast-button-margin-start: 0;--toast-button-margin-end: auto;--toast-close-button-start: unset;--toast-close-button-end: 0;--toast-close-button-transform: translate(35%, -35%)}:where([data-sonner-toaster]){position:fixed;width:var(--width);font-family:ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica Neue,Arial,Noto Sans,sans-serif,Apple Color Emoji,Segoe UI Emoji,Segoe UI Symbol,Noto Color Emoji;--gray1: hsl(0, 0%, 99%);--gray2: hsl(0, 0%, 97.3%);--gray3: hsl(0, 0%, 95.1%);--gray4: hsl(0, 0%, 93%);--gray5: hsl(0, 0%, 90.9%);--gray6: hsl(0, 0%, 88.7%);--gray7: hsl(0, 0%, 85.8%);--gray8: hsl(0, 0%, 78%);--gray9: hsl(0, 0%, 56.1%);--gray10: hsl(0, 0%, 52.3%);--gray11: hsl(0, 0%, 43.5%);--gray12: hsl(0, 0%, 9%);--border-radius: 8px;box-sizing:border-box;padding:0;margin:0;list-style:none;outline:none;z-index:999999999;transition:transform .4s ease}:where([data-sonner-toaster][data-lifted="true"]){transform:translateY(-10px)}@media (hover: none) and (pointer: coarse){:where([data-sonner-toaster][data-lifted="true"]){transform:none}}:where([data-sonner-toaster][data-x-position="right"]){right:var(--offset-right)}:where([data-sonner-toaster][data-x-position="left"]){left:var(--offset-left)}:where([data-sonner-toaster][data-x-position="center"]){left:50%;transform:translate(-50%)}:where([data-sonner-toaster][data-y-position="top"]){top:var(--offset-top)}:where([data-sonner-toaster][data-y-position="bottom"]){bottom:var(--offset-bottom)}:where([data-sonner-toast]){--y: translateY(100%);--lift-amount: calc(var(--lift) * var(--gap));z-index:var(--z-index);position:absolute;opacity:0;transform:var(--y);filter:blur(0);touch-action:none;transition:transform .4s,opacity .4s,height .4s,box-shadow .2s;box-sizing:border-box;outline:none;overflow-wrap:anywhere}:where([data-sonner-toast][data-styled="true"]){padding:16px;background:var(--normal-bg);border:1px solid var(--normal-border);color:var(--normal-text);border-radius:var(--border-radius);box-shadow:0 4px 12px #0000001a;width:var(--width);font-size:13px;display:flex;align-items:center;gap:6px}:where([data-sonner-toast]:focus-visible){box-shadow:0 4px 12px #0000001a,0 0 0 2px #0003}:where([data-sonner-toast][data-y-position="top"]){top:0;--y: translateY(-100%);--lift: 1;--lift-amount: calc(1 * var(--gap))}:where([data-sonner-toast][data-y-position="bottom"]){bottom:0;--y: translateY(100%);--lift: -1;--lift-amount: calc(var(--lift) * var(--gap))}:where([data-sonner-toast]) :where([data-description]){font-weight:400;line-height:1.4;color:inherit}:where([data-sonner-toast]) :where([data-title]){font-weight:500;line-height:1.5;color:inherit}:where([data-sonner-toast]) :where([data-icon]){display:flex;height:16px;width:16px;position:relative;justify-content:flex-start;align-items:center;flex-shrink:0;margin-left:var(--toast-icon-margin-start);margin-right:var(--toast-icon-margin-end)}:where([data-sonner-toast][data-promise="true"]) :where([data-icon])>svg{opacity:0;transform:scale(.8);transform-origin:center;animation:sonner-fade-in .3s ease forwards}:where([data-sonner-toast]) :where([data-icon])>*{flex-shrink:0}:where([data-sonner-toast]) :where([data-icon]) svg{margin-left:var(--toast-svg-margin-start);margin-right:var(--toast-svg-margin-end)}:where([data-sonner-toast]) :where([data-content]){display:flex;flex-direction:column;gap:2px}[data-sonner-toast][data-styled=true] [data-button]{border-radius:4px;padding-left:8px;padding-right:8px;height:24px;font-size:12px;color:var(--normal-bg);background:var(--normal-text);margin-left:var(--toast-button-margin-start);margin-right:var(--toast-button-margin-end);border:none;cursor:pointer;outline:none;display:flex;align-items:center;flex-shrink:0;transition:opacity .4s,box-shadow .2s}:where([data-sonner-toast]) :where([data-button]):focus-visible{box-shadow:0 0 0 2px #0006}:where([data-sonner-toast]) :where([data-button]):first-of-type{margin-left:var(--toast-button-margin-start);margin-right:var(--toast-button-margin-end)}:where([data-sonner-toast]) :where([data-cancel]){color:var(--normal-text);background:rgba(0,0,0,.08)}:where([data-sonner-toast][data-theme="dark"]) :where([data-cancel]){background:rgba(255,255,255,.3)}:where([data-sonner-toast]) :where([data-close-button]){position:absolute;left:var(--toast-close-button-start);right:var(--toast-close-button-end);top:0;height:20px;width:20px;display:flex;justify-content:center;align-items:center;padding:0;color:var(--gray12);border:1px solid var(--gray4);transform:var(--toast-close-button-transform);border-radius:50%;cursor:pointer;z-index:1;transition:opacity .1s,background .2s,border-color .2s}[data-sonner-toast] [data-close-button]{background:var(--gray1)}:where([data-sonner-toast]) :where([data-close-button]):focus-visible{box-shadow:0 4px 12px #0000001a,0 0 0 2px #0003}:where([data-sonner-toast]) :where([data-disabled="true"]){cursor:not-allowed}:where([data-sonner-toast]):hover :where([data-close-button]):hover{background:var(--gray2);border-color:var(--gray5)}:where([data-sonner-toast][data-swiping="true"]):before{content:"";position:absolute;left:-50%;right:-50%;height:100%;z-index:-1}:where([data-sonner-toast][data-y-position="top"][data-swiping="true"]):before{bottom:50%;transform:scaleY(3) translateY(50%)}:where([data-sonner-toast][data-y-position="bottom"][data-swiping="true"]):before{top:50%;transform:scaleY(3) translateY(-50%)}:where([data-sonner-toast][data-swiping="false"][data-removed="true"]):before{content:"";position:absolute;inset:0;transform:scaleY(2)}:where([data-sonner-toast]):after{content:"";position:absolute;left:0;height:calc(var(--gap) + 1px);bottom:100%;width:100%}:where([data-sonner-toast][data-mounted="true"]){--y: translateY(0);opacity:1}:where([data-sonner-toast][data-expanded="false"][data-front="false"]){--scale: var(--toasts-before) * .05 + 1;--y: translateY(calc(var(--lift-amount) * var(--toasts-before))) scale(calc(-1 * var(--scale)));height:var(--front-toast-height)}:where([data-sonner-toast])>*{transition:opacity .4s}:where([data-sonner-toast][data-expanded="false"][data-front="false"][data-styled="true"])>*{opacity:0}:where([data-sonner-toast][data-visible="false"]){opacity:0;pointer-events:none}:where([data-sonner-toast][data-mounted="true"][data-expanded="true"]){--y: translateY(calc(var(--lift) * var(--offset)));height:var(--initial-height)}:where([data-sonner-toast][data-removed="true"][data-front="true"][data-swipe-out="false"]){--y: translateY(calc(var(--lift) * -100%));opacity:0}:where([data-sonner-toast][data-removed="true"][data-front="false"][data-swipe-out="false"][data-expanded="true"]){--y: translateY(calc(var(--lift) * var(--offset) + var(--lift) * -100%));opacity:0}:where([data-sonner-toast][data-removed="true"][data-front="false"][data-swipe-out="false"][data-expanded="false"]){--y: translateY(40%);opacity:0;transition:transform .5s,opacity .2s}:where([data-sonner-toast][data-removed="true"][data-front="false"]):before{height:calc(var(--initial-height) + 20%)}[data-sonner-toast][data-swiping=true]{transform:var(--y) translateY(var(--swipe-amount-y, 0px)) translate(var(--swipe-amount-x, 0px));transition:none}[data-sonner-toast][data-swiped=true]{user-select:none}[data-sonner-toast][data-swipe-out=true][data-y-position=bottom],[data-sonner-toast][data-swipe-out=true][data-y-position=top]{animation-duration:.2s;animation-timing-function:ease-out;animation-fill-mode:forwards}[data-sonner-toast][data-swipe-out=true][data-swipe-direction=left]{animation-name:swipe-out-left}[data-sonner-toast][data-swipe-out=true][data-swipe-direction=right]{animation-name:swipe-out-right}[data-sonner-toast][data-swipe-out=true][data-swipe-direction=up]{animation-name:swipe-out-up}[data-sonner-toast][data-swipe-out=true][data-swipe-direction=down]{animation-name:swipe-out-down}@keyframes swipe-out-left{0%{transform:var(--y) translate(var(--swipe-amount-x));opacity:1}to{transform:var(--y) translate(calc(var(--swipe-amount-x) - 100%));opacity:0}}@keyframes swipe-out-right{0%{transform:var(--y) translate(var(--swipe-amount-x));opacity:1}to{transform:var(--y) translate(calc(var(--swipe-amount-x) + 100%));opacity:0}}@keyframes swipe-out-up{0%{transform:var(--y) translateY(var(--swipe-amount-y));opacity:1}to{transform:var(--y) translateY(calc(var(--swipe-amount-y) - 100%));opacity:0}}@keyframes swipe-out-down{0%{transform:var(--y) translateY(var(--swipe-amount-y));opacity:1}to{transform:var(--y) translateY(calc(var(--swipe-amount-y) + 100%));opacity:0}}@media (max-width: 600px){[data-sonner-toaster]{position:fixed;right:var(--mobile-offset-right);left:var(--mobile-offset-left);width:100%}[data-sonner-toaster][dir=rtl]{left:calc(var(--mobile-offset-left) * -1)}[data-sonner-toaster] [data-sonner-toast]{left:0;right:0;width:calc(100% - var(--mobile-offset-left) * 2)}[data-sonner-toaster][data-x-position=left]{left:var(--mobile-offset-left)}[data-sonner-toaster][data-y-position=bottom]{bottom:var(--mobile-offset-bottom)}[data-sonner-toaster][data-y-position=top]{top:var(--mobile-offset-top)}[data-sonner-toaster][data-x-position=center]{left:var(--mobile-offset-left);right:var(--mobile-offset-right);transform:none}}[data-sonner-toaster][data-theme=light]{--normal-bg: #fff;--normal-border: var(--gray4);--normal-text: var(--gray12);--success-bg: hsl(143, 85%, 96%);--success-border: hsl(145, 92%, 91%);--success-text: hsl(140, 100%, 27%);--info-bg: hsl(208, 100%, 97%);--info-border: hsl(221, 91%, 91%);--info-text: hsl(210, 92%, 45%);--warning-bg: hsl(49, 100%, 97%);--warning-border: hsl(49, 91%, 91%);--warning-text: hsl(31, 92%, 45%);--error-bg: hsl(359, 100%, 97%);--error-border: hsl(359, 100%, 94%);--error-text: hsl(360, 100%, 45%)}[data-sonner-toaster][data-theme=light] [data-sonner-toast][data-invert=true]{--normal-bg: #000;--normal-border: hsl(0, 0%, 20%);--normal-text: var(--gray1)}[data-sonner-toaster][data-theme=dark] [data-sonner-toast][data-invert=true]{--normal-bg: #fff;--normal-border: var(--gray3);--normal-text: var(--gray12)}[data-sonner-toaster][data-theme=dark]{--normal-bg: #000;--normal-bg-hover: hsl(0, 0%, 12%);--normal-border: hsl(0, 0%, 20%);--normal-border-hover: hsl(0, 0%, 25%);--normal-text: var(--gray1);--success-bg: hsl(150, 100%, 6%);--success-border: hsl(147, 100%, 12%);--success-text: hsl(150, 86%, 65%);--info-bg: hsl(215, 100%, 6%);--info-border: hsl(223, 100%, 12%);--info-text: hsl(216, 87%, 65%);--warning-bg: hsl(64, 100%, 6%);--warning-border: hsl(60, 100%, 12%);--warning-text: hsl(46, 87%, 65%);--error-bg: hsl(358, 76%, 10%);--error-border: hsl(357, 89%, 16%);--error-text: hsl(358, 100%, 81%)}[data-sonner-toaster][data-theme=dark] [data-sonner-toast] [data-close-button]{background:var(--normal-bg);border-color:var(--normal-border);color:var(--normal-text)}[data-sonner-toaster][data-theme=dark] [data-sonner-toast] [data-close-button]:hover{background:var(--normal-bg-hover);border-color:var(--normal-border-hover)}[data-rich-colors=true][data-sonner-toast][data-type=success],[data-rich-colors=true][data-sonner-toast][data-type=success] [data-close-button]{background:var(--success-bg);border-color:var(--success-border);color:var(--success-text)}[data-rich-colors=true][data-sonner-toast][data-type=info],[data-rich-colors=true][data-sonner-toast][data-type=info] [data-close-button]{background:var(--info-bg);border-color:var(--info-border);color:var(--info-text)}[data-rich-colors=true][data-sonner-toast][data-type=warning],[data-rich-colors=true][data-sonner-toast][data-type=warning] [data-close-button]{background:var(--warning-bg);border-color:var(--warning-border);color:var(--warning-text)}[data-rich-colors=true][data-sonner-toast][data-type=error],[data-rich-colors=true][data-sonner-toast][data-type=error] [data-close-button]{background:var(--error-bg);border-color:var(--error-border);color:var(--error-text)}.sonner-loading-wrapper{--size: 16px;height:var(--size);width:var(--size);position:absolute;inset:0;z-index:10}.sonner-loading-wrapper[data-visible=false]{transform-origin:center;animation:sonner-fade-out .2s ease forwards}.sonner-spinner{position:relative;top:50%;left:50%;height:var(--size);width:var(--size)}.sonner-loading-bar{animation:sonner-spin 1.2s linear infinite;background:var(--gray11);border-radius:6px;height:8%;left:-10%;position:absolute;top:-3.9%;width:24%}.sonner-loading-bar:nth-child(1){animation-delay:-1.2s;transform:rotate(.0001deg) translate(146%)}.sonner-loading-bar:nth-child(2){animation-delay:-1.1s;transform:rotate(30deg) translate(146%)}.sonner-loading-bar:nth-child(3){animation-delay:-1s;transform:rotate(60deg) translate(146%)}.sonner-loading-bar:nth-child(4){animation-delay:-.9s;transform:rotate(90deg) translate(146%)}.sonner-loading-bar:nth-child(5){animation-delay:-.8s;transform:rotate(120deg) translate(146%)}.sonner-loading-bar:nth-child(6){animation-delay:-.7s;transform:rotate(150deg) translate(146%)}.sonner-loading-bar:nth-child(7){animation-delay:-.6s;transform:rotate(180deg) translate(146%)}.sonner-loading-bar:nth-child(8){animation-delay:-.5s;transform:rotate(210deg) translate(146%)}.sonner-loading-bar:nth-child(9){animation-delay:-.4s;transform:rotate(240deg) translate(146%)}.sonner-loading-bar:nth-child(10){animation-delay:-.3s;transform:rotate(270deg) translate(146%)}.sonner-loading-bar:nth-child(11){animation-delay:-.2s;transform:rotate(300deg) translate(146%)}.sonner-loading-bar:nth-child(12){animation-delay:-.1s;transform:rotate(330deg) translate(146%)}@keyframes sonner-fade-in{0%{opacity:0;transform:scale(.8)}to{opacity:1;transform:scale(1)}}@keyframes sonner-fade-out{0%{opacity:1;transform:scale(1)}to{opacity:0;transform:scale(.8)}}@keyframes sonner-spin{0%{opacity:1}to{opacity:.15}}@media (prefers-reduced-motion){[data-sonner-toast],[data-sonner-toast]>*,.sonner-loading-bar{transition:none!important;animation:none!important}}.sonner-loader{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);transform-origin:center;transition:opacity .2s,transform .2s}.sonner-loader[data-visible=false]{opacity:0;transform:scale(.8) translate(-50%,-50%)}
+</style><style type="text/css" data-vite-dev-id="D:/School/kltn/stock-lakehouse-ai/frontend/src/index.css">*, ::before, ::after {
+  --tw-border-spacing-x: 0;
+  --tw-border-spacing-y: 0;
+  --tw-translate-x: 0;
+  --tw-translate-y: 0;
+  --tw-rotate: 0;
+  --tw-skew-x: 0;
+  --tw-skew-y: 0;
+  --tw-scale-x: 1;
+  --tw-scale-y: 1;
+  --tw-pan-x:  ;
+  --tw-pan-y:  ;
+  --tw-pinch-zoom:  ;
+  --tw-scroll-snap-strictness: proximity;
+  --tw-gradient-from-position:  ;
+  --tw-gradient-via-position:  ;
+  --tw-gradient-to-position:  ;
+  --tw-ordinal:  ;
+  --tw-slashed-zero:  ;
+  --tw-numeric-figure:  ;
+  --tw-numeric-spacing:  ;
+  --tw-numeric-fraction:  ;
+  --tw-ring-inset:  ;
+  --tw-ring-offset-width: 0px;
+  --tw-ring-offset-color: #fff;
+  --tw-ring-color: rgb(59 130 246 / 0.5);
+  --tw-ring-offset-shadow: 0 0 #0000;
+  --tw-ring-shadow: 0 0 #0000;
+  --tw-shadow: 0 0 #0000;
+  --tw-shadow-colored: 0 0 #0000;
+  --tw-blur:  ;
+  --tw-brightness:  ;
+  --tw-contrast:  ;
+  --tw-grayscale:  ;
+  --tw-hue-rotate:  ;
+  --tw-invert:  ;
+  --tw-saturate:  ;
+  --tw-sepia:  ;
+  --tw-drop-shadow:  ;
+  --tw-backdrop-blur:  ;
+  --tw-backdrop-brightness:  ;
+  --tw-backdrop-contrast:  ;
+  --tw-backdrop-grayscale:  ;
+  --tw-backdrop-hue-rotate:  ;
+  --tw-backdrop-invert:  ;
+  --tw-backdrop-opacity:  ;
+  --tw-backdrop-saturate:  ;
+  --tw-backdrop-sepia:  ;
+  --tw-contain-size:  ;
+  --tw-contain-layout:  ;
+  --tw-contain-paint:  ;
+  --tw-contain-style:  ;
+}
+
+::backdrop {
+  --tw-border-spacing-x: 0;
+  --tw-border-spacing-y: 0;
+  --tw-translate-x: 0;
+  --tw-translate-y: 0;
+  --tw-rotate: 0;
+  --tw-skew-x: 0;
+  --tw-skew-y: 0;
+  --tw-scale-x: 1;
+  --tw-scale-y: 1;
+  --tw-pan-x:  ;
+  --tw-pan-y:  ;
+  --tw-pinch-zoom:  ;
+  --tw-scroll-snap-strictness: proximity;
+  --tw-gradient-from-position:  ;
+  --tw-gradient-via-position:  ;
+  --tw-gradient-to-position:  ;
+  --tw-ordinal:  ;
+  --tw-slashed-zero:  ;
+  --tw-numeric-figure:  ;
+  --tw-numeric-spacing:  ;
+  --tw-numeric-fraction:  ;
+  --tw-ring-inset:  ;
+  --tw-ring-offset-width: 0px;
+  --tw-ring-offset-color: #fff;
+  --tw-ring-color: rgb(59 130 246 / 0.5);
+  --tw-ring-offset-shadow: 0 0 #0000;
+  --tw-ring-shadow: 0 0 #0000;
+  --tw-shadow: 0 0 #0000;
+  --tw-shadow-colored: 0 0 #0000;
+  --tw-blur:  ;
+  --tw-brightness:  ;
+  --tw-contrast:  ;
+  --tw-grayscale:  ;
+  --tw-hue-rotate:  ;
+  --tw-invert:  ;
+  --tw-saturate:  ;
+  --tw-sepia:  ;
+  --tw-drop-shadow:  ;
+  --tw-backdrop-blur:  ;
+  --tw-backdrop-brightness:  ;
+  --tw-backdrop-contrast:  ;
+  --tw-backdrop-grayscale:  ;
+  --tw-backdrop-hue-rotate:  ;
+  --tw-backdrop-invert:  ;
+  --tw-backdrop-opacity:  ;
+  --tw-backdrop-saturate:  ;
+  --tw-backdrop-sepia:  ;
+  --tw-contain-size:  ;
+  --tw-contain-layout:  ;
+  --tw-contain-paint:  ;
+  --tw-contain-style:  ;
+}/*
+! tailwindcss v3.4.19 | MIT License | https://tailwindcss.com
+*//*
+1. Prevent padding and border from affecting element width. (https://github.com/mozdevs/cssremedy/issues/4)
+2. Allow adding a border to an element by just adding a border-width. (https://github.com/tailwindcss/tailwindcss/pull/116)
+*/
+
+*,
+::before,
+::after {
+  box-sizing: border-box; /* 1 */
+  border-width: 0; /* 2 */
+  border-style: solid; /* 2 */
+  border-color: #e5e7eb; /* 2 */
+}
+
+::before,
+::after {
+  --tw-content: '';
+}
+
+/*
+1. Use a consistent sensible line-height in all browsers.
+2. Prevent adjustments of font size after orientation changes in iOS.
+3. Use a more readable tab size.
+4. Use the user's configured `sans` font-family by default.
+5. Use the user's configured `sans` font-feature-settings by default.
+6. Use the user's configured `sans` font-variation-settings by default.
+7. Disable tap highlights on iOS
+*/
+
+html,
+:host {
+  line-height: 1.5; /* 1 */
+  -webkit-text-size-adjust: 100%; /* 2 */
+  -moz-tab-size: 4; /* 3 */
+  -o-tab-size: 4;
+     tab-size: 4; /* 3 */
+  font-family: IBM Plex Sans, system-ui, -apple-system, Segoe UI, sans-serif; /* 4 */
+  font-feature-settings: normal; /* 5 */
+  font-variation-settings: normal; /* 6 */
+  -webkit-tap-highlight-color: transparent; /* 7 */
+}
+
+/*
+1. Remove the margin in all browsers.
+2. Inherit line-height from `html` so users can set them as a class directly on the `html` element.
+*/
+
+body {
+  margin: 0; /* 1 */
+  line-height: inherit; /* 2 */
+}
+
+/*
+1. Add the correct height in Firefox.
+2. Correct the inheritance of border color in Firefox. (https://bugzilla.mozilla.org/show_bug.cgi?id=190655)
+3. Ensure horizontal rules are visible by default.
+*/
+
+hr {
+  height: 0; /* 1 */
+  color: inherit; /* 2 */
+  border-top-width: 1px; /* 3 */
+}
+
+/*
+Add the correct text decoration in Chrome, Edge, and Safari.
+*/
+
+abbr:where([title]) {
+  -webkit-text-decoration: underline dotted;
+          text-decoration: underline dotted;
+}
+
+/*
+Remove the default font size and weight for headings.
+*/
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-size: inherit;
+  font-weight: inherit;
+}
+
+/*
+Reset links to optimize for opt-in styling instead of opt-out.
+*/
+
+a {
+  color: inherit;
+  text-decoration: inherit;
+}
+
+/*
+Add the correct font weight in Edge and Safari.
+*/
+
+b,
+strong {
+  font-weight: bolder;
+}
+
+/*
+1. Use the user's configured `mono` font-family by default.
+2. Use the user's configured `mono` font-feature-settings by default.
+3. Use the user's configured `mono` font-variation-settings by default.
+4. Correct the odd `em` font sizing in all browsers.
+*/
+
+code,
+kbd,
+samp,
+pre {
+  font-family: IBM Plex Mono, ui-monospace, SFMono-Regular, Consolas, monospace; /* 1 */
+  font-feature-settings: normal; /* 2 */
+  font-variation-settings: normal; /* 3 */
+  font-size: 1em; /* 4 */
+}
+
+/*
+Add the correct font size in all browsers.
+*/
+
+small {
+  font-size: 80%;
+}
+
+/*
+Prevent `sub` and `sup` elements from affecting the line height in all browsers.
+*/
+
+sub,
+sup {
+  font-size: 75%;
+  line-height: 0;
+  position: relative;
+  vertical-align: baseline;
+}
+
+sub {
+  bottom: -0.25em;
+}
+
+sup {
+  top: -0.5em;
+}
+
+/*
+1. Remove text indentation from table contents in Chrome and Safari. (https://bugs.chromium.org/p/chromium/issues/detail?id=999088, https://bugs.webkit.org/show_bug.cgi?id=201297)
+2. Correct table border color inheritance in all Chrome and Safari. (https://bugs.chromium.org/p/chromium/issues/detail?id=935729, https://bugs.webkit.org/show_bug.cgi?id=195016)
+3. Remove gaps between table borders by default.
+*/
+
+table {
+  text-indent: 0; /* 1 */
+  border-color: inherit; /* 2 */
+  border-collapse: collapse; /* 3 */
+}
+
+/*
+1. Change the font styles in all browsers.
+2. Remove the margin in Firefox and Safari.
+3. Remove default padding in all browsers.
+*/
+
+button,
+input,
+optgroup,
+select,
+textarea {
+  font-family: inherit; /* 1 */
+  font-feature-settings: inherit; /* 1 */
+  font-variation-settings: inherit; /* 1 */
+  font-size: 100%; /* 1 */
+  font-weight: inherit; /* 1 */
+  line-height: inherit; /* 1 */
+  letter-spacing: inherit; /* 1 */
+  color: inherit; /* 1 */
+  margin: 0; /* 2 */
+  padding: 0; /* 3 */
+}
+
+/*
+Remove the inheritance of text transform in Edge and Firefox.
+*/
+
+button,
+select {
+  text-transform: none;
+}
+
+/*
+1. Correct the inability to style clickable types in iOS and Safari.
+2. Remove default button styles.
+*/
+
+button,
+input:where([type='button']),
+input:where([type='reset']),
+input:where([type='submit']) {
+  -webkit-appearance: button; /* 1 */
+  background-color: transparent; /* 2 */
+  background-image: none; /* 2 */
+}
+
+/*
+Use the modern Firefox focus style for all focusable elements.
+*/
+
+:-moz-focusring {
+  outline: auto;
+}
+
+/*
+Remove the additional `:invalid` styles in Firefox. (https://github.com/mozilla/gecko-dev/blob/2f9eacd9d3d995c937b4251a5557d95d494c9be1/layout/style/res/forms.css#L728-L737)
+*/
+
+:-moz-ui-invalid {
+  box-shadow: none;
+}
+
+/*
+Add the correct vertical alignment in Chrome and Firefox.
+*/
+
+progress {
+  vertical-align: baseline;
+}
+
+/*
+Correct the cursor style of increment and decrement buttons in Safari.
+*/
+
+::-webkit-inner-spin-button,
+::-webkit-outer-spin-button {
+  height: auto;
+}
+
+/*
+1. Correct the odd appearance in Chrome and Safari.
+2. Correct the outline style in Safari.
+*/
+
+[type='search'] {
+  -webkit-appearance: textfield; /* 1 */
+  outline-offset: -2px; /* 2 */
+}
+
+/*
+Remove the inner padding in Chrome and Safari on macOS.
+*/
+
+::-webkit-search-decoration {
+  -webkit-appearance: none;
+}
+
+/*
+1. Correct the inability to style clickable types in iOS and Safari.
+2. Change font properties to `inherit` in Safari.
+*/
+
+::-webkit-file-upload-button {
+  -webkit-appearance: button; /* 1 */
+  font: inherit; /* 2 */
+}
+
+/*
+Add the correct display in Chrome and Safari.
+*/
+
+summary {
+  display: list-item;
+}
+
+/*
+Removes the default spacing and border for appropriate elements.
+*/
+
+blockquote,
+dl,
+dd,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+hr,
+figure,
+p,
+pre {
+  margin: 0;
+}
+
+fieldset {
+  margin: 0;
+  padding: 0;
+}
+
+legend {
+  padding: 0;
+}
+
+ol,
+ul,
+menu {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+/*
+Reset default styling for dialogs.
+*/
+dialog {
+  padding: 0;
+}
+
+/*
+Prevent resizing textareas horizontally by default.
+*/
+
+textarea {
+  resize: vertical;
+}
+
+/*
+1. Reset the default placeholder opacity in Firefox. (https://github.com/tailwindlabs/tailwindcss/issues/3300)
+2. Set the default placeholder color to the user's configured gray 400 color.
+*/
+
+input::-moz-placeholder, textarea::-moz-placeholder {
+  opacity: 1; /* 1 */
+  color: #9ca3af; /* 2 */
+}
+
+input::placeholder,
+textarea::placeholder {
+  opacity: 1; /* 1 */
+  color: #9ca3af; /* 2 */
+}
+
+/*
+Set the default cursor for buttons.
+*/
+
+button,
+[role="button"] {
+  cursor: pointer;
+}
+
+/*
+Make sure disabled buttons don't get the pointer cursor.
+*/
+:disabled {
+  cursor: default;
+}
+
+/*
+1. Make replaced elements `display: block` by default. (https://github.com/mozdevs/cssremedy/issues/14)
+2. Add `vertical-align: middle` to align replaced elements more sensibly by default. (https://github.com/jensimmons/cssremedy/issues/14#issuecomment-634934210)
+   This can trigger a poorly considered lint error in some tools but is included by design.
+*/
+
+img,
+svg,
+video,
+canvas,
+audio,
+iframe,
+embed,
+object {
+  display: block; /* 1 */
+  vertical-align: middle; /* 2 */
+}
+
+/*
+Constrain images and videos to the parent width and preserve their intrinsic aspect ratio. (https://github.com/mozdevs/cssremedy/issues/14)
+*/
+
+img,
+video {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Make elements with the HTML hidden attribute stay hidden by default */
+[hidden]:where(:not([hidden="until-found"])) {
+  display: none;
+}
+.static {
+  position: static;
+}
+.absolute {
+  position: absolute;
+}
+.relative {
+  position: relative;
+}
+.sticky {
+  position: sticky;
+}
+.-right-2 {
+  right: -0.5rem;
+}
+.left-0\.5 {
+  left: 0.125rem;
+}
+.left-4 {
+  left: 1rem;
+}
+.top-0 {
+  top: 0px;
+}
+.top-0\.5 {
+  top: 0.125rem;
+}
+.top-1\/2 {
+  top: 50%;
+}
+.z-20 {
+  z-index: 20;
+}
+.mb-1 {
+  margin-bottom: 0.25rem;
+}
+.mb-1\.5 {
+  margin-bottom: 0.375rem;
+}
+.mb-2 {
+  margin-bottom: 0.5rem;
+}
+.mb-3 {
+  margin-bottom: 0.75rem;
+}
+.mb-6 {
+  margin-bottom: 1.5rem;
+}
+.ml-9 {
+  margin-left: 2.25rem;
+}
+.ml-auto {
+  margin-left: auto;
+}
+.mt-0\.5 {
+  margin-top: 0.125rem;
+}
+.mt-1 {
+  margin-top: 0.25rem;
+}
+.mt-1\.5 {
+  margin-top: 0.375rem;
+}
+.mt-2 {
+  margin-top: 0.5rem;
+}
+.mt-3 {
+  margin-top: 0.75rem;
+}
+.mt-4 {
+  margin-top: 1rem;
+}
+.block {
+  display: block;
+}
+.flex {
+  display: flex;
+}
+.inline-flex {
+  display: inline-flex;
+}
+.table {
+  display: table;
+}
+.grid {
+  display: grid;
+}
+.hidden {
+  display: none;
+}
+.h-1\.5 {
+  height: 0.375rem;
+}
+.h-10 {
+  height: 2.5rem;
+}
+.h-2 {
+  height: 0.5rem;
+}
+.h-4 {
+  height: 1rem;
+}
+.h-40 {
+  height: 10rem;
+}
+.h-44 {
+  height: 11rem;
+}
+.h-5 {
+  height: 1.25rem;
+}
+.h-56 {
+  height: 14rem;
+}
+.h-7 {
+  height: 1.75rem;
+}
+.h-72 {
+  height: 18rem;
+}
+.h-8 {
+  height: 2rem;
+}
+.h-80 {
+  height: 20rem;
+}
+.h-9 {
+  height: 2.25rem;
+}
+.h-\[calc\(100vh-12rem\)\] {
+  height: calc(100vh - 12rem);
+}
+.h-full {
+  height: 100%;
+}
+.h-screen {
+  height: 100vh;
+}
+.max-h-40 {
+  max-height: 10rem;
+}
+.max-h-\[440px\] {
+  max-height: 440px;
+}
+.max-h-\[480px\] {
+  max-height: 480px;
+}
+.min-h-\[40vh\] {
+  min-height: 40vh;
+}
+.min-h-screen {
+  min-height: 100vh;
+}
+.w-1\.5 {
+  width: 0.375rem;
+}
+.w-2 {
+  width: 0.5rem;
+}
+.w-32 {
+  width: 8rem;
+}
+.w-4 {
+  width: 1rem;
+}
+.w-5 {
+  width: 1.25rem;
+}
+.w-60 {
+  width: 15rem;
+}
+.w-7 {
+  width: 1.75rem;
+}
+.w-8 {
+  width: 2rem;
+}
+.w-9 {
+  width: 2.25rem;
+}
+.w-full {
+  width: 100%;
+}
+.min-w-0 {
+  min-width: 0px;
+}
+.min-w-\[120px\] {
+  min-width: 120px;
+}
+.min-w-full {
+  min-width: 100%;
+}
+.max-w-2xl {
+  max-width: 42rem;
+}
+.max-w-3xl {
+  max-width: 48rem;
+}
+.max-w-md {
+  max-width: 28rem;
+}
+.flex-1 {
+  flex: 1 1 0%;
+}
+.shrink-0 {
+  flex-shrink: 0;
+}
+.-translate-y-1\/2 {
+  --tw-translate-y: -50%;
+  transform: translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y));
+}
+@keyframes pulse {
+
+  50% {
+    opacity: .5;
+  }
+}
+.animate-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+@keyframes spin {
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+.grid-cols-1 {
+  grid-template-columns: repeat(1, minmax(0, 1fr));
+}
+.grid-cols-2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.flex-col {
+  flex-direction: column;
+}
+.flex-wrap {
+  flex-wrap: wrap;
+}
+.items-start {
+  align-items: flex-start;
+}
+.items-end {
+  align-items: flex-end;
+}
+.items-center {
+  align-items: center;
+}
+.justify-start {
+  justify-content: flex-start;
+}
+.justify-end {
+  justify-content: flex-end;
+}
+.justify-center {
+  justify-content: center;
+}
+.justify-between {
+  justify-content: space-between;
+}
+.gap-1 {
+  gap: 0.25rem;
+}
+.gap-1\.5 {
+  gap: 0.375rem;
+}
+.gap-2 {
+  gap: 0.5rem;
+}
+.gap-2\.5 {
+  gap: 0.625rem;
+}
+.gap-3 {
+  gap: 0.75rem;
+}
+.gap-4 {
+  gap: 1rem;
+}
+.space-y-1 > :not([hidden]) ~ :not([hidden]) {
+  --tw-space-y-reverse: 0;
+  margin-top: calc(0.25rem * calc(1 - var(--tw-space-y-reverse)));
+  margin-bottom: calc(0.25rem * var(--tw-space-y-reverse));
+}
+.space-y-2 > :not([hidden]) ~ :not([hidden]) {
+  --tw-space-y-reverse: 0;
+  margin-top: calc(0.5rem * calc(1 - var(--tw-space-y-reverse)));
+  margin-bottom: calc(0.5rem * var(--tw-space-y-reverse));
+}
+.space-y-4 > :not([hidden]) ~ :not([hidden]) {
+  --tw-space-y-reverse: 0;
+  margin-top: calc(1rem * calc(1 - var(--tw-space-y-reverse)));
+  margin-bottom: calc(1rem * var(--tw-space-y-reverse));
+}
+.space-y-6 > :not([hidden]) ~ :not([hidden]) {
+  --tw-space-y-reverse: 0;
+  margin-top: calc(1.5rem * calc(1 - var(--tw-space-y-reverse)));
+  margin-bottom: calc(1.5rem * var(--tw-space-y-reverse));
+}
+.overflow-auto {
+  overflow: auto;
+}
+.overflow-hidden {
+  overflow: hidden;
+}
+.overflow-x-auto {
+  overflow-x: auto;
+}
+.overflow-y-auto {
+  overflow-y: auto;
+}
+.truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.whitespace-nowrap {
+  white-space: nowrap;
+}
+.whitespace-pre-wrap {
+  white-space: pre-wrap;
+}
+.break-words {
+  overflow-wrap: break-word;
+}
+.rounded {
+  border-radius: 0.25rem;
+}
+.rounded-full {
+  border-radius: 9999px;
+}
+.rounded-lg {
+  border-radius: 10px;
+}
+.rounded-md {
+  border-radius: 8px;
+}
+.border {
+  border-width: 1px;
+}
+.border-b {
+  border-bottom-width: 1px;
+}
+.border-r {
+  border-right-width: 1px;
+}
+.border-t {
+  border-top-width: 1px;
+}
+.border-dashed {
+  border-style: dashed;
+}
+.border-border {
+  border-color: hsl(var(--border));
+}
+.border-down\/30 {
+  border-color: hsl(var(--down) / 0.3);
+}
+.border-foreground {
+  border-color: hsl(var(--foreground));
+}
+.border-input {
+  border-color: hsl(var(--input));
+}
+.border-primary\/30 {
+  border-color: hsl(var(--primary) / 0.3);
+}
+.border-up\/30 {
+  border-color: hsl(var(--up) / 0.3);
+}
+.border-warn\/30 {
+  border-color: hsl(var(--warn) / 0.3);
+}
+.bg-background {
+  background-color: hsl(var(--background));
+}
+.bg-card {
+  background-color: hsl(var(--card));
+}
+.bg-down {
+  background-color: hsl(var(--down));
+}
+.bg-down\/10 {
+  background-color: hsl(var(--down) / 0.1);
+}
+.bg-down\/5 {
+  background-color: hsl(var(--down) / 0.05);
+}
+.bg-foreground {
+  background-color: hsl(var(--foreground));
+}
+.bg-muted {
+  background-color: hsl(var(--muted));
+}
+.bg-muted\/30 {
+  background-color: hsl(var(--muted) / 0.3);
+}
+.bg-muted\/40 {
+  background-color: hsl(var(--muted) / 0.4);
+}
+.bg-primary {
+  background-color: hsl(var(--primary));
+}
+.bg-primary\/10 {
+  background-color: hsl(var(--primary) / 0.1);
+}
+.bg-transparent {
+  background-color: transparent;
+}
+.bg-up {
+  background-color: hsl(var(--up));
+}
+.bg-up\/10 {
+  background-color: hsl(var(--up) / 0.1);
+}
+.bg-warn\/10 {
+  background-color: hsl(var(--warn) / 0.1);
+}
+.bg-white {
+  --tw-bg-opacity: 1;
+  background-color: rgb(255 255 255 / var(--tw-bg-opacity, 1));
+}
+.p-0 {
+  padding: 0px;
+}
+.p-2 {
+  padding: 0.5rem;
+}
+.p-3 {
+  padding: 0.75rem;
+}
+.p-4 {
+  padding: 1rem;
+}
+.p-6 {
+  padding: 1.5rem;
+}
+.p-0\.5 {
+  padding: 0.125rem;
+}
+.px-2 {
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+}
+.px-2\.5 {
+  padding-left: 0.625rem;
+  padding-right: 0.625rem;
+}
+.px-3 {
+  padding-left: 0.75rem;
+  padding-right: 0.75rem;
+}
+.px-3\.5 {
+  padding-left: 0.875rem;
+  padding-right: 0.875rem;
+}
+.px-4 {
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+.px-5 {
+  padding-left: 1.25rem;
+  padding-right: 1.25rem;
+}
+.px-6 {
+  padding-left: 1.5rem;
+  padding-right: 1.5rem;
+}
+.px-8 {
+  padding-left: 2rem;
+  padding-right: 2rem;
+}
+.py-0\.5 {
+  padding-top: 0.125rem;
+  padding-bottom: 0.125rem;
+}
+.py-1 {
+  padding-top: 0.25rem;
+  padding-bottom: 0.25rem;
+}
+.py-1\.5 {
+  padding-top: 0.375rem;
+  padding-bottom: 0.375rem;
+}
+.py-12 {
+  padding-top: 3rem;
+  padding-bottom: 3rem;
+}
+.py-2 {
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+}
+.py-2\.5 {
+  padding-top: 0.625rem;
+  padding-bottom: 0.625rem;
+}
+.py-3 {
+  padding-top: 0.75rem;
+  padding-bottom: 0.75rem;
+}
+.py-4 {
+  padding-top: 1rem;
+  padding-bottom: 1rem;
+}
+.py-6 {
+  padding-top: 1.5rem;
+  padding-bottom: 1.5rem;
+}
+.pb-12 {
+  padding-bottom: 3rem;
+}
+.pb-4 {
+  padding-bottom: 1rem;
+}
+.pr-1 {
+  padding-right: 0.25rem;
+}
+.pt-6 {
+  padding-top: 1.5rem;
+}
+.text-left {
+  text-align: left;
+}
+.text-center {
+  text-align: center;
+}
+.text-right {
+  text-align: right;
+}
+.font-mono {
+  font-family: IBM Plex Mono, ui-monospace, SFMono-Regular, Consolas, monospace;
+}
+.text-\[10px\] {
+  font-size: 10px;
+}
+.text-\[11px\] {
+  font-size: 11px;
+}
+.text-\[12px\] {
+  font-size: 12px;
+}
+.text-\[13px\] {
+  font-size: 13px;
+}
+.text-\[14px\] {
+  font-size: 14px;
+}
+.text-\[20px\] {
+  font-size: 20px;
+}
+.text-\[22px\] {
+  font-size: 22px;
+}
+.text-\[24px\] {
+  font-size: 24px;
+}
+.text-\[28px\] {
+  font-size: 28px;
+}
+.text-base {
+  font-size: 1rem;
+  line-height: 1.5rem;
+}
+.text-lg {
+  font-size: 1.125rem;
+  line-height: 1.75rem;
+}
+.text-sm {
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+.text-xs {
+  font-size: 0.75rem;
+  line-height: 1rem;
+}
+.font-medium {
+  font-weight: 500;
+}
+.font-semibold {
+  font-weight: 600;
+}
+.uppercase {
+  text-transform: uppercase;
+}
+.leading-none {
+  line-height: 1;
+}
+.leading-relaxed {
+  line-height: 1.625;
+}
+.leading-tight {
+  line-height: 1.25;
+}
+.tracking-tight {
+  letter-spacing: -0.025em;
+}
+.tracking-wider {
+  letter-spacing: 0.05em;
+}
+.text-background {
+  color: hsl(var(--background));
+}
+.text-down {
+  color: hsl(var(--down));
+}
+.text-foreground {
+  color: hsl(var(--foreground));
+}
+.text-muted-foreground {
+  color: hsl(var(--muted-foreground));
+}
+.text-primary {
+  color: hsl(var(--primary));
+}
+.text-up {
+  color: hsl(var(--up));
+}
+.text-warn {
+  color: hsl(var(--warn));
+}
+.text-white {
+  --tw-text-opacity: 1;
+  color: rgb(255 255 255 / var(--tw-text-opacity, 1));
+}
+.text-primary-foreground {
+  color: hsl(var(--primary-foreground));
+}
+.underline-offset-4 {
+  text-underline-offset: 4px;
+}
+.accent-primary {
+  accent-color: hsl(var(--primary));
+}
+.outline-none {
+  outline: 2px solid transparent;
+  outline-offset: 2px;
+}
+.outline {
+  outline-style: solid;
+}
+.filter {
+  filter: var(--tw-blur) var(--tw-brightness) var(--tw-contrast) var(--tw-grayscale) var(--tw-hue-rotate) var(--tw-invert) var(--tw-saturate) var(--tw-sepia) var(--tw-drop-shadow);
+}
+.transition-colors {
+  transition-property: color, background-color, border-color, text-decoration-color, fill, stroke;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+.transition-transform {
+  transition-property: transform;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+
+:root {
+  --background: 0 0% 100%;
+  --foreground: 220 18% 12%;
+
+  --card: 0 0% 100%;
+  --card-foreground: 220 18% 12%;
+
+  --muted: 220 14% 96%;
+  --muted-foreground: 220 10% 38%;
+
+  --border: 220 14% 88%;
+  --input: 220 14% 84%;
+
+  --primary: 168 76% 32%;
+  --primary-foreground: 0 0% 100%;
+
+  --accent: 220 14% 94%;
+  --accent-foreground: 220 18% 14%;
+
+  --up: 152 60% 32%;
+  --down: 0 64% 48%;
+  --warn: 32 88% 44%;
+}
+
+* { box-sizing: border-box; }
+html, body, #root { min-height: 100%; }
+body {
+  margin: 0;
+  background: hsl(var(--background));
+  color: hsl(var(--foreground));
+  font-family: "Be Vietnam Pro", "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  letter-spacing: 0;
+}
+
+::-moz-selection {
+  background: hsl(168 76% 32% / 0.18);
+  color: hsl(220 18% 12%);
+}
+
+::selection {
+  background: hsl(168 76% 32% / 0.18);
+  color: hsl(220 18% 12%);
+}
+
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: hsl(220 10% 80%);
+  border-radius: 999px;
+  border: 2px solid hsl(var(--background));
+}
+::-webkit-scrollbar-thumb:hover { background: hsl(220 10% 65%); }
+
+.skeleton-bar {
+  background: hsl(220 14% 92%);
+}
+
+.placeholder\:text-muted-foreground::-moz-placeholder {
+  color: hsl(var(--muted-foreground));
+}
+
+.placeholder\:text-muted-foreground::placeholder {
+  color: hsl(var(--muted-foreground));
+}
+
+.hover\:border-foreground\/40:hover {
+  border-color: hsl(var(--foreground) / 0.4);
+}
+
+.hover\:bg-accent:hover {
+  background-color: hsl(var(--accent));
+}
+
+.hover\:bg-down\/90:hover {
+  background-color: hsl(var(--down) / 0.9);
+}
+
+.hover\:bg-foreground\/90:hover {
+  background-color: hsl(var(--foreground) / 0.9);
+}
+
+.hover\:bg-muted:hover {
+  background-color: hsl(var(--muted));
+}
+
+.hover\:bg-muted\/30:hover {
+  background-color: hsl(var(--muted) / 0.3);
+}
+
+.hover\:bg-muted\/40:hover {
+  background-color: hsl(var(--muted) / 0.4);
+}
+
+.hover\:text-foreground:hover {
+  color: hsl(var(--foreground));
+}
+
+.hover\:underline:hover {
+  text-decoration-line: underline;
+}
+
+.focus\:border-foreground:focus {
+  border-color: hsl(var(--foreground));
+}
+
+.focus\:ring-2:focus {
+  --tw-ring-offset-shadow: var(--tw-ring-inset) 0 0 0 var(--tw-ring-offset-width) var(--tw-ring-offset-color);
+  --tw-ring-shadow: var(--tw-ring-inset) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color);
+  box-shadow: var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow, 0 0 #0000);
+}
+
+.focus\:ring-primary\/40:focus {
+  --tw-ring-color: hsl(var(--primary) / 0.4);
+}
+
+.focus-visible\:outline-none:focus-visible {
+  outline: 2px solid transparent;
+  outline-offset: 2px;
+}
+
+.focus-visible\:ring-2:focus-visible {
+  --tw-ring-offset-shadow: var(--tw-ring-inset) 0 0 0 var(--tw-ring-offset-width) var(--tw-ring-offset-color);
+  --tw-ring-shadow: var(--tw-ring-inset) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color);
+  box-shadow: var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow, 0 0 #0000);
+}
+
+.focus-visible\:ring-primary:focus-visible {
+  --tw-ring-color: hsl(var(--primary));
+}
+
+.focus-visible\:ring-offset-2:focus-visible {
+  --tw-ring-offset-width: 2px;
+}
+
+.focus-visible\:ring-offset-background:focus-visible {
+  --tw-ring-offset-color: hsl(var(--background));
+}
+
+.disabled\:pointer-events-none:disabled {
+  pointer-events: none;
+}
+
+.disabled\:opacity-50:disabled {
+  opacity: 0.5;
+}
+
+@media (min-width: 640px) {
+
+  .sm\:grid-cols-2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 768px) {
+
+  .md\:col-span-2 {
+    grid-column: span 2 / span 2;
+  }
+
+  .md\:block {
+    display: block;
+  }
+
+  .md\:flex {
+    display: flex;
+  }
+
+  .md\:grid-cols-2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .md\:grid-cols-3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .md\:grid-cols-4 {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .md\:grid-cols-5 {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+
+  .md\:flex-col {
+    flex-direction: column;
+  }
+}
+
+@media (min-width: 1280px) {
+
+  .xl\:col-span-2 {
+    grid-column: span 2 / span 2;
+  }
+
+  .xl\:col-span-3 {
+    grid-column: span 3 / span 3;
+  }
+
+  .xl\:grid-cols-2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .xl\:grid-cols-3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .xl\:grid-cols-4 {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .xl\:grid-cols-5 {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+}</style></head>
+  <body>
+    <div id="root"><div class="flex min-h-screen bg-background text-foreground"><aside class="sticky top-0 hidden h-screen w-60 shrink-0 border-r border-border bg-card md:flex md:flex-col"><div class="flex items-center gap-3 border-b border-border px-5 py-4"><div class="flex h-9 w-9 items-center justify-center rounded-md bg-foreground text-background"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-database"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M3 5V19A9 3 0 0 0 21 19V5"></path><path d="M3 12A9 3 0 0 0 21 12"></path></svg></div><div class="min-w-0"><div class="truncate text-[14px] font-semibold leading-tight text-foreground">Stock Lakehouse AI</div><div class="truncate font-mono text-[10px] uppercase tracking-wider text-muted-foreground">AI / Medallion / VN</div></div></div><nav class="flex-1 overflow-y-auto p-2"><div class="mb-2"><div class="px-3 py-1 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Tổng quan</div><a class="flex items-center gap-3 rounded-md px-3 py-1.5 text-[13px] font-medium text-muted-foreground hover:bg-muted hover:text-foreground" href="/"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-layout-dashboard shrink-0 text-muted-foreground"><rect width="7" height="9" x="3" y="3" rx="1"></rect><rect width="7" height="5" x="14" y="3" rx="1"></rect><rect width="7" height="9" x="14" y="12" rx="1"></rect><rect width="7" height="5" x="3" y="16" rx="1"></rect></svg><span class="truncate">Dashboard</span></a></div><div class="mb-2"><div class="px-3 py-1 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Dữ liệu</div><a aria-current="page" class="flex items-center gap-3 rounded-md px-3 py-1.5 text-[13px] font-medium bg-muted text-foreground" href="/market"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chart-candlestick shrink-0 text-muted-foreground"><path d="M9 5v4"></path><rect width="4" height="6" x="7" y="9" rx="1"></rect><path d="M9 15v2"></path><path d="M17 3v2"></path><rect width="4" height="8" x="15" y="5" rx="1"></rect><path d="M17 13v3"></path><path d="M3 3v16a2 2 0 0 0 2 2h16"></path></svg><span class="truncate">Dữ liệu thị trường</span></a><a class="flex items-center gap-3 rounded-md px-3 py-1.5 text-[13px] font-medium text-muted-foreground hover:bg-muted hover:text-foreground" href="/analysis"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-activity shrink-0 text-muted-foreground"><path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2"></path></svg><span class="truncate">Phân tích kỹ thuật</span></a></div><div class="mb-2"><div class="px-3 py-1 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Mô hình</div><a class="flex items-center gap-3 rounded-md px-3 py-1.5 text-[13px] font-medium text-muted-foreground hover:bg-muted hover:text-foreground" href="/forecast"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chart-line shrink-0 text-muted-foreground"><path d="M3 3v16a2 2 0 0 0 2 2h16"></path><path d="m19 9-5 5-4-4-3 3"></path></svg><span class="truncate">Dự báo</span></a><a class="flex items-center gap-3 rounded-md px-3 py-1.5 text-[13px] font-medium text-muted-foreground hover:bg-muted hover:text-foreground" href="/backtesting"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-test-tubes shrink-0 text-muted-foreground"><path d="M9 2v17.5A2.5 2.5 0 0 1 6.5 22A2.5 2.5 0 0 1 4 19.5V2"></path><path d="M20 2v17.5a2.5 2.5 0 0 1-2.5 2.5a2.5 2.5 0 0 1-2.5-2.5V2"></path><path d="M3 2h7"></path><path d="M14 2h7"></path><path d="M9 16H4"></path><path d="M20 16h-5"></path></svg><span class="truncate">Backtest</span></a></div><div class="mb-2"><div class="px-3 py-1 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Agent</div><a class="flex items-center gap-3 rounded-md px-3 py-1.5 text-[13px] font-medium text-muted-foreground hover:bg-muted hover:text-foreground" href="/agent"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-waves shrink-0 text-muted-foreground"><path d="M2 6c.6.5 1.2 1 2.5 1C7 7 7 5 9.5 5c2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"></path><path d="M2 12c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"></path><path d="M2 18c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"></path></svg><span class="truncate">AI Agent</span></a></div><div class="mb-2"><div class="px-3 py-1 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Hệ thống</div><a class="flex items-center gap-3 rounded-md px-3 py-1.5 text-[13px] font-medium text-muted-foreground hover:bg-muted hover:text-foreground" href="/system"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-server shrink-0 text-muted-foreground"><rect width="20" height="8" x="2" y="2" rx="2" ry="2"></rect><rect width="20" height="8" x="2" y="14" rx="2" ry="2"></rect><line x1="6" x2="6.01" y1="6" y2="6"></line><line x1="6" x2="6.01" y1="18" y2="18"></line></svg><span class="truncate">Trạng thái hệ thống</span></a></div></nav><div class="border-t border-border p-3"><div class="flex items-start gap-2 rounded-md bg-muted px-3 py-2 text-[11px] leading-relaxed text-muted-foreground"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-bot mt-0.5 shrink-0"><path d="M12 8V4H8"></path><rect width="16" height="12" x="4" y="8" rx="2"></rect><path d="M2 14h2"></path><path d="M20 14h2"></path><path d="M15 13v2"></path><path d="M9 13v2"></path></svg><div><div class="font-semibold text-foreground">Prototype học thuật</div>Dữ liệu minh hoạ. Không đặt lệnh thật.</div></div></div></aside><div class="flex min-w-0 flex-1 flex-col"><header class="sticky top-0 z-20 flex flex-wrap items-center gap-3 border-b border-border bg-card px-8 py-3"><select class="h-9 rounded-md border border-border bg-background px-2 text-sm outline-none focus:ring-2 focus:ring-primary/40" aria-label="Symbol"><option value="VCB">VCB</option><option value="TCB">TCB</option><option value="MBB">MBB</option><option value="FPT">FPT</option><option value="HPG">HPG</option><option value="VHM">VHM</option><option value="VNM">VNM</option><option value="MSN">MSN</option><option value="MWG">MWG</option><option value="VIC">VIC</option><option value="VRE">VRE</option><option value="SSI">SSI</option><option value="VND">VND</option><option value="CTG">CTG</option><option value="BID">BID</option><option value="ACB">ACB</option><option value="HDB">HDB</option><option value="TPB">TPB</option><option value="VPB">VPB</option><option value="GAS">GAS</option></select><input class="rounded-md border border-input bg-card px-3 text-sm outline-none placeholder:text-muted-foreground focus:border-foreground h-9 w-32 font-mono" placeholder="TICKER" value="VCB"><select class="h-9 rounded-md border border-border bg-background px-2 text-sm outline-none focus:ring-2 focus:ring-primary/40" aria-label="Interval"><option value="1d">1d</option><option value="1h">1h</option><option value="15m">15m</option><option value="5m">5m</option></select><button class="inline-flex items-center justify-center gap-2 rounded-md font-medium whitespace-nowrap disabled:pointer-events-none disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background bg-foreground text-background hover:bg-foreground/90 h-8 px-2.5 text-xs"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-refresh-cw"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path><path d="M21 3v5h-5"></path><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"></path><path d="M8 16H3v5"></path></svg>Làm mới</button><div class="ml-auto flex items-center gap-3"><div class="flex items-center rounded-md border border-border bg-card p-0.5" role="group" aria-label="Language"><button type="button" aria-pressed="true" class="inline-flex items-center gap-1 rounded px-2 py-0.5 font-mono text-[11px] font-semibold uppercase tracking-wider transition-colors bg-primary text-primary-foreground"><svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-languages"><path d="m5 8 6 6"></path><path d="m4 14 6-6 2-3"></path><path d="M2 5h12"></path><path d="M7 2h1"></path><path d="m22 22-5-10-5 10"></path><path d="M14 18h6"></path></svg>VI</button><button type="button" aria-pressed="false" class="inline-flex items-center gap-1 rounded px-2 py-0.5 font-mono text-[11px] font-semibold uppercase tracking-wider transition-colors text-muted-foreground hover:text-foreground">EN</button></div><div class="flex items-center gap-2 font-mono text-[11px] uppercase tracking-wider text-muted-foreground"><span class="h-2 w-2 rounded-full bg-up" aria-hidden="true"></span>Lakehouse live</div></div></header><main class="flex-1 overflow-auto px-8 pb-12 pt-6"><div class="space-y-6"><div class="mb-6 flex flex-wrap items-end justify-between gap-4 border-b border-border pb-4"><div class="min-w-0"><div class="mb-1 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">02 · 1500 bars</div><h1 class="text-[22px] font-semibold leading-tight tracking-tight text-foreground">Dữ liệu thị trường</h1><p class="mt-1 max-w-3xl text-sm leading-relaxed text-muted-foreground">Dữ liệu OHLCV thô từ Bronze layer · interval 1d</p></div><div class="flex items-center gap-2"><a href="http://127.0.0.1:8000/api/v1/stocks/VCB/csv?interval=1d"><button class="inline-flex items-center justify-center gap-2 rounded-md font-medium whitespace-nowrap disabled:pointer-events-none disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background border border-border bg-card text-foreground hover:bg-muted h-8 px-2.5 text-xs"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-download"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" x2="12" y1="15" y2="3"></line></svg>CSV</button></a></div></div><div class="grid gap-4 xl:grid-cols-4"><div class="space-y-4 xl:col-span-3"><div class="grid grid-cols-2 gap-3 md:grid-cols-4"><div class="rounded-md border border-border bg-card p-3"><div class="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Nguồn</div><div class="mt-1.5 font-mono text-lg font-semibold text-foreground">gold</div></div><div class="rounded-md border border-border bg-card p-3"><div class="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Số phiên</div><div class="mt-1.5 font-mono text-lg font-semibold text-foreground">1,500</div></div><div class="rounded-md border border-border bg-card p-3"><div class="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Giá đóng cuối</div><div class="mt-1.5 font-mono text-lg font-semibold text-foreground">57,400.00 ₫</div></div><div class="rounded-md border border-border bg-card p-3"><div class="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Khối lượng cuối</div><div class="mt-1.5 font-mono text-lg font-semibold text-foreground">1.43M</div></div></div><div class="rounded-md border border-border bg-card"><div class="flex items-center justify-between border-b border-border px-4 py-3"><h3 class="text-sm font-semibold text-foreground">Nến · 180 phiên gần nhất</h3><span class="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">1d</span></div><div class="px-2 py-3"><div class="w-full overflow-x-auto"><svg width="1440" height="340" class="min-w-full"><g><line x1="40" x2="1440" y1="24" y2="24" stroke="hsl(220 14% 92%)" stroke-dasharray="3 3"></line><text x="4" y="28" font-size="10" fill="hsl(220 10% 50%)" font-family="IBM Plex Mono">78150</text></g><g><line x1="40" x2="1440" y1="97" y2="97" stroke="hsl(220 14% 92%)" stroke-dasharray="3 3"></line><text x="4" y="101" font-size="10" fill="hsl(220 10% 50%)" font-family="IBM Plex Mono">71763</text></g><g><line x1="40" x2="1440" y1="170" y2="170" stroke="hsl(220 14% 92%)" stroke-dasharray="3 3"></line><text x="4" y="174" font-size="10" fill="hsl(220 10% 50%)" font-family="IBM Plex Mono">65375</text></g><g><line x1="40" x2="1440" y1="243" y2="243" stroke="hsl(220 14% 92%)" stroke-dasharray="3 3"></line><text x="4" y="247" font-size="10" fill="hsl(220 10% 50%)" font-family="IBM Plex Mono">58988</text></g><g><line x1="40" x2="1440" y1="316" y2="316" stroke="hsl(220 14% 92%)" stroke-dasharray="3 3"></line><text x="4" y="320" font-size="10" fill="hsl(220 10% 50%)" font-family="IBM Plex Mono">52600</text></g><g><line x1="43.861111111111114" x2="43.861111111111114" y1="146.4" y2="175.8857142857143" stroke="hsl(152 60% 32%)" stroke-width="1"></line><rect x="40.861111111111114" y="146.4" width="6" height="29.485714285714295" fill="hsl(152 60% 32%)" rx="1"></rect></g><g><line x1="51.583333333333336" x2="51.583333333333336" y1="93.14285714285714" y2="128.34285714285716" stroke="hsl(152 60% 32%)" stroke-width="1"></line><rect x="48.583333333333336" y="93.14285714285714" width="6" height="31.771428571428572" fill="hsl(152 60% 32%)" rx="1"></rect></g><g><line x1="59.30555555555556" x2="59.30555555555556" y1="55.77142857142857" y2="103.42857142857143" stroke="hsl(0 64% 48%)" stroke-width="1"></line><rect x="56.30555555555556" y="75.08571428571429" width="6" height="3.3142857142857167" fill="hsl(0 64% 48%)" rx="1"></rect></g><g><line x1="67.02777777777777" x2="67.02777777777777" y1="24" y2="88.68571428571428" stroke="hsl(152 60% 32%)" stroke-width="1"></line><rect x="64.02777777777777" y="55.77142857142857" width="6" height="32.91428571428571" fill="hsl(152 60% 32%)" rx="1"></rect></g><g><line x1="74.75" x2="74.75" y1="68.22857142857143" y2="102.28571428571428" stroke="hsl(0 64% 48%)" stroke-width="1"></line><rect x="71.75" y="78.4" width="6" height="23.885714285714272" fill="hsl(0 64% 48%)" rx="1"></rect></g><g><line x1="82.47222222222223" x2="82.47222222222223" y1="55.77142857142857" y2="101.14285714285714" stroke="hsl(152 60% 32%)" stroke-width="1"></line><rect x="79.47222222222223" y="89.82857142857144" width="6" height="1.5" fill="hsl(152 60% 32%)" rx="1"></rect></g><g><line x1="90.19444444444444" x2="90.19444444444444" y1="84.11428571428571" y2="105.60000000000001" stroke="hsl(0 64% 48%)" stroke-width="1"></line><rect x="87.19444444444444" y="89.82857142857144" width="6" height="3.3142857142857025" fill="hsl(0 64% 48%)" rx="1"></rect></g><g><line x1="97.91666666666666" x2="97.91666666666666" y1="67.08571428571429" y2="100" stroke="hsl(0 64% 48%)" stroke-width="1"></line><rect x="94.91666666666666" y="78.4" width="6" height="5.714285714285708" fill="hsl(0 64% 48%)" rx="1"></rect></g><g><line x1="105.63888888888889" x2="105.63888888888889" y1="82.97142857142858" y2="104.57142857142857" stroke="hsl(152 60% 32%)" stroke-width="1"></line><rect x="102.63888888888889" y="92" width="6" height="1.5" fill="hsl(152 60% 32%)" rx="1"></rect></g><g><line x1="113.36111111111111" x2="113.36111111111111" y1="56.91428571428572" y2="117.02857142857144" stroke="hsl(0 64% 48%)" stroke-width="1"></line><rect x="110.36111111111111" y="85.25714285714287" width="6" height="27.19999999999999" fill="hsl(0 64% 48%)" rx="1"></rect></g><g><line x1="121.08333333333333" x2="121.08333333333333" y1="112.45714285714286" y2="140.8" stroke="hsl(0 64% 48%)" stroke-width="1"></line><rect x="118.08333333333333" y="112.45714285714286" width="6" height="27.19999999999999" fill="hsl(0 64% 48%)" rx="1"></rect></g><g><line x1="128.80555555555554" x2="128.80555555555554" y1="111.31428571428572" y2="138.51428571428573" stroke="hsl(152 60% 32%)" stroke-width="1"></line><rect x="125.80555555555554" y="128.34285714285716" width="6" height="7.8857142857143" fill="hsl(152 60% 32%)" rx="1"></rect></g><g><line x1="136.52777777777777" x2="136.52777777777777" y1="106.74285714285715" y2="145.37142857142857" stroke="hsl(152 60% 32%)" stroke-width="1"></line><rect x="133.52777777777777" y="117.02857142857144" width="6" height="10.171428571428564" fill="hsl(152 60% 32%)" rx="1"></rect></g><g><line x1="144.25" x2="144.25" y1="90.97142857142858" y2="130.62857142857143" stroke="hsl(0 64% 48%)" stroke-width="1"></line><rect x="141.25" y="111.31428571428572" width="6" height="17.02857142857144" fill="hsl(0 64% 48%)" rx="1"></rect></g><g><line x1="151.97222222222223" x2="151.97222222222223" y1="114.74285714285715" y2="139.65714285714284" stroke="hsl(152 60% 32%)" stroke-width="1"></line><rect x="148.97222222222223" y="126.05714285714285" width="6" height="5.714285714285722" fill="hsl(152 60% 32%)" rx="1"></rect></g><g><line x1="159.69444444444446" x2="159.69444444444446" y1="102.28571428571428" y2="128.34285714285716" stroke="hsl(0 64% 48%)" stroke-width="1"></line><rect x="156.69444444444446" y="117.02857142857144" width="6" height="1.5" fill="hsl(0 64% 48%)" rx="1"></rect></g><g><line x1="167.41666666666669" x2="167.41666666666669" y1="106.74285714285715" y2="131.77142857142857" stroke="hsl(152 60% 32%)" stroke-width="1"></line><rect x="164.41666666666669" y="106.74285714285715" width="6" height="11.42857142857143" fill="hsl(152 60% 32%)" rx="1"></rect></g><g><line x1="175.13888888888889" x2="175.13888888888889" y1="86.4" y2="109.02857142857144" stroke="hsl(0 64% 48%)" stroke-width="1"></line><rect x="172.13888888888889" y="96.57142857142857" width="6" height="6.857142857142861" fill="hsl(0 64% 48%)" rx="1"></rect></g><g><line x1="182.86111111111111" x2="182.86111111111111" y1="101.14285714285714" y2="118.17142857142858" stroke="hsl(0 64% 48%)" stroke-width="1"></line><rect x="179.86111111111111" y="101.14285714285714" width="6" height="13.600000000000009" fill="hsl(0 64% 48%)" rx="1"></rect></g><g><line x1="190.58333333333334" x2="190.58333333333334" y1="114.74285714285715" y2="141.94285714285715" stroke="hsl(0 64% 48%)" stroke-width="1"></line><rect x="187.58333333333334" y="115.88571428571429" width="6" height="26.057142857142864" fill="hsl(0 64% 48%)" rx="1"></rect></g><g><line x1="198.30555555555557" x2="198.30555555555557" y1="147.54285714285714" y2="181.6" stroke="hsl(0 64% 48%)" stroke-width="1"></line><rect x="195.30555555555557" y="147.54285714285714" width="6" height="31.771428571428572" fill="hsl(0 64% 48%)" rx="1"></rect></g><g><line x1="206.02777777777777" x2="206.02777777777777" y1="169.14285714285714" y2="189.4857142857143" stroke="hsl(0 64% 48%)" stroke-width="1"></line><rect x="203.02777777777777" y="174.74285714285725" width="6" height="5.714285714285722" fill="hsl(0 64% 48%)" rx="1"></rect></g><g><line x1="213.75" x2="213.75" y1="174.74285714285725" y2="207.65714285714284" stroke="hsl(0 64% 48%)" stroke-width="1"></line><rect x="210.75" y="186.17142857142858" width="6" height="15.771428571428544" fill="hsl(0 64% 48%)" rx="1"></rect></g><g><line x1="221.47222222222223" x2="221.47222222222223" y1="162.28571428571428" y2="197.4857142857143" stroke="hsl(152 60% 32%)" stroke-width="1"></line><rect x="218.47222222222223" y="183.8857142857143" width="6" height="7.885714285714272" fill="hsl(152 60% 32%)" rx="1"></rect></g><g><line x1="229.19444444444446" x2="229.19444444444446" y1="174.74285714285725" y2="189.4857142857143" stroke="hsl(0 64% 48%)" stroke-width="1"></line><rect x="226.19444444444446" y="174.74285714285725" width="6" height="14.742857142857048" fill="hsl(0 64% 48%)" rx="1"></rect></g><g><line x1="236.91666666666666" x2="236.91666666666666" y1="179.31428571428572" y2="191.77142857142857" stroke="hsl(0 64% 48%)" stroke-width="1"></line><rect x="233.91666666666666" y="183.8857142857143" width="6" height="3.3142857142857167" fill="hsl(0 64% 48%)" rx="1"></rect></g><g><line x1="244.63888888888889" x2="244.63888888888889" y1="161.14285714285714" y2="185.02857142857144" stroke="hsl(152 60% 32%)" stroke-width="1"></line><rect x="241.63888888888889" y="164.57142857142856" width="6" height="15.885714285714414" fill="hsl(152 60% 32%)" rx="1"></rect></g><g><line x1="252.36111111111111" x2="252.36111111111111" y1="162.28571428571428" y2="181.6" stroke="hsl(0 64% 48%)" stroke-width="1"></line><rect x="249.36111111111111" y="162.28571428571428" width="6" height="18.17142857142869" fill="hsl(0 64% 48%)" rx="1"></rect></g><g><line x1="260.08333333333337" x2="260.08333333333337" y1="163.42857142857142" y2="183.8857142857143" stroke="hsl(152 60% 32%)" stroke-width="1"></line><rect x="257.08333333333337" y="179.31428571428572" width="6" height="1.5" fill="hsl(152 60% 32%)" rx="1"></rect></g><g><line x1="267.80555555555554" x2="267.80555555555554" y1="170.28571428571436" y2="180.45714285714297" stroke="hsl(152 60% 32%)" stroke-width="1"></line><rect x="264.80555555555554" y="175.8857142857143" width="6" height="2.2857142857142776" fill="hsl(152 60% 32%)" rx="1"></rect></g><g><line x1="275.52777777777777" x2="275.52777777777777" y1="164.57142857142856" y2="182.74285714285705" stroke="hsl(0 64% 48%)" stroke-width="1"></line><rect x="272.52777777777777" y="174.74285714285725" width="6" height="6.8571428571427475" fill="hsl(0 64% 48%)" rx="1"></rect></g><g><line x1="283.25" x2="283.25" y1="192.9142857142857" y2="204.22857142857143" stroke="hsl(152 60% 32%)" stroke-width="1"></line><rect x="280.25" y="204.22857142857143" width="6" height="1.5" fill="hsl(152 60% 32%)" rx="1"></rect></g><g><line x1="290.97222222222223" x2="290.97222222222223" y1="195.20000000000002" y2="221.25714285714287" stroke="hsl(0 64% 48%)" stroke-width="1"></line><rect x="287.97222222222223" y="204.22857142857143" width="6" height="14.742857142857133" fill="hsl(0 64% 48%)" rx="1"></rect></g><g><line x1="298.69444444444446" x2="298.69444444444446" y1="200.79999999999998" y2="217.82857142857142" stroke="hsl(152 60% 32%)" stroke-width="1"></line><rect x="295.69444444444446" y="203.08571428571426" width="6" height="13.600000000000023" fill="hsl(152 60% 32%)" rx="1"></rect></g><g><line x1="306.4166666666667" x2="306.4166666666667" y1="195.20000000000002" y2="208.79999999999998" stroke="hsl(0 64% 48%)" stroke-width="1"></line><rect x="303.4166666666667" y="195.20000000000002" width="6" height="13.599999999999966" fill="hsl(0 64% 48%)" rx="1"></rect></g><g><line x1="314.1388888888889" x2="314.1388888888889" y1="200.79999999999998" y2="218.97142857142856" stroke="hsl(0 64% 48%)" stroke-width="1"></line><rect x="311.1388888888889" y="214.4" width="6" height="4.571428571428555" fill="hsl(0 64% 48%)" rx="1"></rect></g><g><line x1="321.86111111111114" x2="321.86111111111114" y1="240.57142857142858" y2="267.7714285714286" stroke="hsl(0 64% 48%)" stroke-width="1"></line><rect x="318.86111111111114" y="266.6285714285714" width="6" height="1.5" fill="hsl(0 64% 48%)" rx="1"></rect></g><g><line x1="329.5833333333333" x2="329.5833333333333" y1="226.97142857142856" y2="250.74285714285716" stroke="hsl(152 60% 32%)" stroke-width="1"></line><rect x="326.5833333333333" y="232.57142857142858" width="6" height="6.857142857142861" fill="hsl(152 60% 32%)" rx="1"></rect></g><g><line x1="337.30555555555554" x2="337.30555555555554" y1="223.54285714285714" y2="237.14285714285714" stroke="hsl(0 64% 48%)" stroke-width="1"></line><rect x="334.30555555555554" y="231.42857142857144" width="6" height="1.5" fill="hsl(0 64% 48%)" rx="1"></rect></g><g><line x1="345.02777777777777" x2="345.02777777777777" y1="233.71428571428572" y2="242.74285714285716" stroke="hsl(0 64% 48%)" stroke-width="1"></line><rect x="342.02777777777777" y="234.85714285714286" width="6" height="4.571428571428584" fill="hsl(0 64% 48%)" rx="1"></rect></g><g><line x1="352.75" x2="352.75" y1="236" y2="249.60000000000002" stroke="hsl(0 64% 48%)" stroke-width="1"></line><rect x="349.75" y="246.17142857142858" width="6" height="2.285714285714306" fill="hsl(0 64% 48%)" rx="1"></rect></g><g><line x1="360.47222222222223" x2="360.47222222222223" y1="239.42857142857144" y2="253.02857142857144" stroke="hsl(0 64% 48%)" stroke-width="1"></line><rect x="357.47222222222223" y="245.02857142857144" width="6" height="5.714285714285722" fill="hsl(0 64% 48%)" rx="1"></rect></g><g><line x1="368.19444444444446" x2="368.19444444444446" y1="231.42857142857144" y2="243.8857142857143" stroke="hsl(152 60% 32%)" stroke-width="1"></line><rect x="365.19444444444446" y="231.42857142857144" width="6" height="11.314285714285717" fill="hsl(152 60% 32%)" rx="1"></rect></g><g><line x1="375.9166666666667" x2="375.9166666666667" y1="214.4" y2="237.14285714285714" stroke="hsl(0 64% 48%)" stroke-width="1"></line><rect x="372.9166666666667" y="226.97142857142856" width="6" height="4.457142857142884" fill="hsl(0 64% 48%)" rx="1"></rect></g><g><line x1="383.6388888888889" x2="383.6388888888889" y1="237.14285714285714" y2="248.45714285714288" stroke="hsl(152 60% 32%)" stroke-width="1"></line><rect x="380.6388888888889" y="239.42857142857144" width="6" height="1.5" fill="hsl(152 60% 32%)" rx="1"></rect></g><g><line x1="391.36111111111114" x2="391.36111111111114" y1="239.42857142857144" y2="259.7714285714286" stroke="hsl(0 64% 48%)" stroke-width="1"></line><rect x="388.36111111111114" y="239.42857142857144" width="6" height="20.342857142857156" fill="hsl(0 64% 48%)" rx="1"></rect></g><g><line x1="399.0833333333333" x2="399.0833333333333" y1="256.34285714285716" y2="276.8" stroke="hsl(0 64% 48%)" stroke-width="1"></line><rect x="396.0833333333333" y="262.0571428571428" width="6" height="2.2857142857143344" fill="hsl(0 64% 48%)" rx="1"></rect></g><g><line x1="406.80555555555554" x2="406.80555555555554" y1="248.45714285714288" y2="259.7714285714286" stroke="hsl(0 64% 48%)" stroke-width="1"></line><rect x="403.80555555555554" y="248.45714285714288" width="6" height="9.028571428571382" fill="hsl(0 64% 48%)" rx="1"></rect></g><g><line x1="414.52777777777777" x2="414.52777777777777" y1="247.31428571428572" y2="259.7714285714286" stroke="hsl(0 64% 48%)" stroke-width="1"></line><rect x="411.52777777777777" y="250.74285714285716" width="6" height="4.457142857142827" fill="hsl(0 64% 48%)" rx="1"></rect></g><g><line x1="422.25" x2="422.25" y1="253.02857142857144" y2="265.48571428571427" stroke="hsl(0 64% 48%)" stroke-width="1"></line><rect x="419.25" y="254.17142857142858" width="6" height="6.742857142857133" fill="hsl(0 64% 48%)" rx="1"></rect></g><g><line x1="429.97222222222223" x2="429.97222222222223" y1="248.45714285714288" y2="260.9142857142857" stroke="hsl(152 60% 32%)" stroke-width="1"></line><rect x="426.97222222222223" y="250.74285714285716" width="6" height="9.02857142857144" fill="hsl(152 60% 32%)" rx="1"></rect></g><g><line x1="437.69444444444446" x2="437.69444444444446" y1="254.17142857142858" y2="262.0571428571428" stroke="hsl(152 60% 32%)" stroke-width="1"></line><rect x="434.69444444444446" y="259.7714285714286" width="6" height="1.5" fill="hsl(152 60% 32%)" rx="1"></rect></g><g><line x1="445.4166666666667" x2="445.4166666666667" y1="249.60000000000002" y2="259.7714285714286" stroke="hsl(0 64% 48%)" stroke-width="1"></line><rect x="442.4166666666667" y="257.48571428571427" width="6" height="1.5" fill="hsl(0 64% 48%)" rx="1"></rect></g><g><line x1="453.1388888888889" x2="453.1388888888889" y1="246.17142857142858" y2="254.17142857142858" stroke="hsl(152 60% 32%)" stroke-width="1"></line><rect x="450.1388888888889" y="248.45714285714288" width="6" height="1.5" fill="hsl(152 60% 32%)" rx="1"></rect></g><g><line x1="460.86111111111114" x2="460.86111111111114" y1="250.74285714285716" y2="258.6285714285714" stroke="hsl(0 64% 48%)" stroke-width="1"></line><rect x="457.86111111111114" y="251.8857142857143" width="6" height="5.599999999999966" fill="hsl(0 64% 48%)" rx="1"></rect></g><g><line x1="468.5833333333333" x2="468.5833333333333" y1="254.17142857142858" y2="263.2" stroke="hsl(0 64% 48%)" stroke-width="1"></line><rect x="465.5833333333333" y="256.34285714285716" width="6" height="6.857142857142833" fill="hsl(0 64% 48%)" rx="1"></rect></g><g><line x1="476.30555555555554" x2="476.30555555555554" y1="257.48571428571427" y2="263.2" stroke="hsl(152 60% 32%)" stroke-width="1"></line><rect x="473.30555555555554" y="259.7714285714286" width="6" height="2.2857142857142208" fill="hsl(152 60% 32%)" rx="1"></rect></g><g><line x1="484.02777777777777" x2="484.02777777777777" y1="256.34285714285716" y2="263.2" stroke="hsl(152 60% 32%)" stroke-width="1"></line><rect x="481.02777777777777" y="259.7714285714286" width="6" height="1.5" fill="hsl(152 60% 32%)" rx="1"></rect></g><g><line x1="491.75" x2="491.75" y1="233.71428571428572" y2="250.74285714285716" stroke="hsl(152 60% 32%)" stroke-width="1"></line><rect x="488.75" y="234.85714285714286" width="6" height="11.314285714285717" fill="hsl(152 60% 32%)" rx="1"></rect></g><g><line x1="499.47222222222223" x2="499.47222222222223" y1="236" y2="245.02857142857144" stroke="hsl(0 64% 48%)" stroke-width="1"></line><rect x="496.47222222222223" y="237.14285714285714" width="6" height="6.7428571428571615" fill="hsl(0 64% 48%)" rx="1"></rect></g><g><line x1="507.19444444444446" x2="507.19444444444446" y1="225.82857142857142" y2="241.60000000000002" stroke="hsl(152 60% 32%)" stroke-width="1"></line><rect x="504.19444444444446" y="239.42857142857144" width="6" height="2.171428571428578" fill="hsl(152 60% 32%)" rx="1"></rect></g><g><line x1="514.9166666666667" x2="514.9166666666667" y1="242.74285714285716" y2="248.45714285714288" stroke="hsl(0 64% 48%)" stroke-width="1"></line><rect x="511.91666666666674" y="242.74285714285716" width="6" height="3.4285714285714164" fill="hsl(0 64% 48%)" rx="1"></rect></g><g><line x1="522.6388888888889" x2="522.6388888888889" y1="239.42857142857144" y2="247.31428571428572" stroke="hsl(0 64% 48%)" stroke-width="1"></line><rect x="519.6388888888889" y="240.57142857142858" width="6" height="4.4571428571428555" fill="hsl(0 64% 48%)" rx="1"></rect></g><g><line x1="530.3611111111111" x2="530.3611111111111" y1="231.42857142857144" y2="241.60000000000002" stroke="hsl(152 60% 32%)" stroke-width="1"></line><rect x="527.3611111111111" y="238.28571428571428" width="6" height="2.285714285714306" fill="hsl(152 60% 32%)" rx="1"></rect></g><g><line x1="538.0833333333333" x2="538.0833333333333" y1="236" y2="245.02857142857144" stroke="hsl(0 64% 48%)" stroke-width="1"></line><rect x="535.0833333333333" y="237.14285714285714" width="6" height="6.7428571428571615" fill="hsl(0 64% 48%)" rx="1"></rect></g><g><line x1="545.8055555555555" x2="545.8055555555555" y1="238.28571428571428" y2="243.8857142857143" stroke="hsl(152 60% 32%)" stroke-width="1"></line><rect x="542.8055555555555" y="242.74285714285716" width="6" height="1.5" fill="hsl(152 60% 32%)" rx="1"></rect></g><g><line x1="553.5277777777778" x2="553.5277777777778" y1="231.42857142857144" y2="242.74285714285716" stroke="hsl(152 60% 32%)" stroke-width="1"></line><rect x="550.5277777777778" y="236" width="6" height="5.600000000000023" fill="hsl(152 60% 32%)" rx="1"></rect></g><g><line x1="561.25" x2="561.25" y1="230.28571428571428" y2="241.60000000000002" stroke="hsl(0 64% 48%)" stroke-width="1"></line><rect x="558.25" y="232.57142857142858" width="6" height="9.02857142857144" fill="hsl(0 64% 48%)" rx="1"></rect></g><g><line x1="568.9722222222223" x2="568.9722222222223" y1="239.42857142857144" y2="246.17142857142858" stroke="hsl(0 64% 48%)" stroke-width="1"></line><rect x="565.9722222222223" y="241.60000000000002" width="6" height="2.2857142857142776" fill="hsl(0 64% 48%)" rx="1"></rect></g><g><line x1="576.6944444444445" x2="576.6944444444445" y1="197.4857142857143" y2="241.60000000000002" stroke="hsl(152 60% 32%)" stroke-width="1"></line><rect x="573.6944444444445" y="205.37142857142857" width="6" height="35.20000000000002" fill="hsl(152 60% 32%)" rx="1"></rect></g><g><line x1="584.4166666666666" x2="584.4166666666666" y1="203.08571428571426" y2="230.28571428571428" stroke="hsl(0 64% 48%)" stroke-width="1"></line><rect x="581.4166666666666" y="203.08571428571426" width="6" height="27.200000000000017" fill="hsl(0 64% 48%)" rx="1"></rect></g><g><line x1="592.1388888888889" x2="592.1388888888889" y1="220.1142857142857" y2="239.42857142857144" stroke="hsl(0 64% 48%)" stroke-width="1"></line><rect x="589.1388888888889" y="228" width="6" height="11.428571428571445" fill="hsl(0 64% 48%)" rx="1"></rect></g><g><line x1="599.8611111111111" x2="599.8611111111111" y1="231.42857142857144" y2="242.74285714285716" stroke="hsl(0 64% 48%)" stroke-width="1"></line><rect x="596.8611111111111" y="238.28571428571428" width="6" height="1.5" fill="hsl(0 64% 48%)" rx="1"></rect></g><g><line x1="607.5833333333334" x2="607.5833333333334" y1="223.54285714285714" y2="237.14285714285714" stroke="hsl(152 60% 32%)" stroke-width="1"></line><rect x="604.5833333333334" y="229.14285714285714" width="6" height="2.285714285714306" fill="hsl(152 60% 32%)" rx="1"></rect></g><g><line x1="615.3055555555555" x2="615.3055555555555" y1="229.14285714285714" y2="240.57142857142858" stroke="hsl(0 64% 48%)" stroke-width="1"></line><rect x="612.3055555555555" y="230.28571428571428" width="6" height="8" fill="hsl(0 64% 48%)" rx="1"></rect></g><g><line x1="623.0277777777778" x2="623.0277777777778" y1="231.42857142857144" y2="240.57142857142858" stroke="hsl(152 60% 32%)" stroke-width="1"></line><rect x="620.0277777777778" y="231.42857142857144" width="6" height="3.4285714285714164" fill="hsl(152 60% 32%)" rx="1"></rect></g><g><line x1="630.75" x2="630.75" y1="224.68571428571428" y2="233.71428571428572" stroke="hsl(0 64% 48%)" stroke-width="1"></line><rect x="627.75" y="226.97142857142856" width="6" height="6.7428571428571615" fill="hsl(0 64% 48%)" rx="1"></rect></g><g><line x1="638.4722222222223" x2="638.4722222222223" y1="217.82857142857142" y2="233.71428571428572" stroke="hsl(152 60% 32%)" stroke-width="1"></line><rect x="635.4722222222223" y="229.14285714285714" width="6" height="2.285714285714306" fill="hsl(152 60% 32%)" rx="1"></rect></g><g><line x1="646.1944444444445" x2="646.1944444444445" y1="224.68571428571428" y2="234.85714285714286" stroke="hsl(0 64% 48%)" stroke-width="1"></line><rect x="643.1944444444445" y="225.82857142857142" width="6" height="7.8857142857143" fill="hsl(0 64% 48%)" rx="1"></rect></g><g><line x1="653.9166666666666" x2="653.9166666666666" y1="231.42857142857144" y2="242.74285714285716" stroke="hsl(0 64% 48%)" stroke-width="1"></line><rect x="650.9166666666666" y="233.71428571428572" width="6" height="4.571428571428555" fill="hsl(0 64% 48%)" rx="1"></rect></g><g><line x1="661.6388888888889" x2="661.6388888888889" y1="222.4" y2="246.17142857142858" stroke="hsl(152 60% 32%)" stroke-width="1"></line><rect x="658.6388888888889" y="236" width="6" height="4.571428571428584" fill="hsl(152 60% 32%)" rx="1"></rect></g><g><line x1="669.3611111111111" x2="669.3611111111111" y1="220.1142857142857" y2="237.14285714285714" stroke="hsl(152 60% 32%)" stroke-width="1"></line><rect x="666.3611111111111" y="225.82857142857142" width="6" height="5.600000000000023" fill="hsl(152 60% 32%)" rx="1"></rect></g><g><line x1="677.0833333333334" x2="677.0833333333334" y1="217.82857142857142" y2="229.14285714285714" stroke="hsl(0 64% 48%)" stroke-width="1"></line><rect x="674.0833333333334" y="222.4" width="6" height="6.742857142857133" fill="hsl(0 64% 48%)" rx="1"></rect></g><g><line x1="684.8055555555555" x2="684.8055555555555" y1="197.4857142857143" y2="233.71428571428572" stroke="hsl(152 60% 32%)" stroke-width="1"></line><rect x="681.8055555555555" y="200.79999999999998" width="6" height="28.342857142857156" fill="hsl(152 60% 32%)" rx="1"></rect></g><g><line x1="692.5277777777778" x2="692.5277777777778" y1="180.45714285714297" y2="207.65714285714284" stroke="hsl(152 60% 32%)" stroke-width="1"></line><rect x="689.5277777777778" y="187.20000000000002" width="6" height="11.428571428571416" fill="hsl(152 60% 32%)" rx="1"></rect></g><g><line x1="700.25" x2="700.25" y1="183.8857142857143" y2="216.68571428571428" stroke="hsl(152 60% 32%)" stroke-width="1"></line><rect x="697.25" y="185.02857142857144" width="6" height="10.171428571428578" fill="hsl(152 60% 32%)" rx="1"></rect></g><g><line x1="707.9722222222223" x2="707.9722222222223" y1="166.85714285714286" y2="194.05714285714288" stroke="hsl(152 60% 32%)" stroke-width="1"></line><rect x="704.9722222222223" y="181.6" width="6" height="3.428571428571445" fill="hsl(152 60% 32%)" rx="1"></rect></g><g><line x1="715.6944444444445" x2="715.6944444444445" y1="181.6" y2="199.77142857142857" stroke="hsl(0 64% 48%)" stroke-width="1"></line><rect x="712.6944444444445" y="181.6" width="6" height="15.8857142857143" fill="hsl(0 64% 48%)" rx="1"></rect></g><g><line x1="723.4166666666666" x2="723.4166666666666" y1="191.77142857142857" y2="213.37142857142857" stroke="hsl(152 60% 32%)" stroke-width="1"></line><rect x="720.4166666666666" y="195.20000000000002" width="6" height="5.599999999999966" fill="hsl(152 60% 32%)" rx="1"></rect></g><g><line x1="731.1388888888889" x2="731.1388888888889" y1="187.20000000000002" y2="199.77142857142857" stroke="hsl(152 60% 32%)" stroke-width="1"></line><rect x="728.1388888888889" y="187.20000000000002" width="6" height="12.571428571428555" fill="hsl(152 60% 32%)" rx="1"></rect></g><g><line x1="738.8611111111111" x2="738.8611111111111" y1="186.17142857142858" y2="194.05714285714288" stroke="hsl(0 64% 48%)" stroke-width="1"></line><rect x="735.8611111111111" y="187.20000000000002" width="6" height="2.2857142857142776" fill="hsl(0 64% 48%)" rx="1"></rect></g><g><line x1="746.5833333333334" x2="746.5833333333334" y1="189.4857142857143" y2="205.37142857142857" stroke="hsl(0 64% 48%)" stroke-width="1"></line><rect x="743.5833333333334" y="189.4857142857143" width="6" height="15.885714285714272" fill="hsl(0 64% 48%)" rx="1"></rect></g><g><line x1="754.3055555555555" x2="754.3055555555555" y1="203.08571428571426" y2="216.68571428571428" stroke="hsl(0 64% 48%)" stroke-width="1"></line><rect x="751.3055555555555" y="203.08571428571426" width="6" height="11.314285714285745" fill="hsl(0 64% 48%)" rx="1"></rect></g><g><line x1="762.0277777777778" x2="762.0277777777778" y1="205.37142857142857" y2="217.82857142857142" stroke="hsl(0 64% 48%)" stroke-width="1"></line><rect x="759.0277777777778" y="211.08571428571426" width="6" height="1.5" fill="hsl(0 64% 48%)" rx="1"></rect></g><g><line x1="769.75" x2="769.75" y1="206.5142857142857" y2="218.97142857142856" stroke="hsl(0 64% 48%)" stroke-width="1"></line><rect x="766.75" y="211.08571428571426" width="6" height="7.8857142857143" fill="hsl(0 64% 48%)" rx="1"></rect></g><g><line x1="777.4722222222223" x2="777.4722222222223" y1="208.79999999999998" y2="221.25714285714287" stroke="hsl(152 60% 32%)" stroke-width="1"></line><rect x="774.4722222222223" y="215.54285714285714" width="6" height="2.2857142857142776" fill="hsl(152 60% 32%)" rx="1"></rect></g><g><line x1="785.1944444444445" x2="785.1944444444445" y1="208.79999999999998" y2="217.82857142857142" stroke="hsl(152 60% 32%)" stroke-width="1"></line><rect x="782.1944444444445" y="212.22857142857143" width="6" height="4.4571428571428555" fill="hsl(152 60% 32%)" rx="1"></rect></g><g><line x1="792.9166666666666" x2="792.9166666666666" y1="208.79999999999998" y2="218.97142857142856" stroke="hsl(0 64% 48%)" stroke-width="1"></line><rect x="789.9166666666666" y="209.94285714285712" width="6" height="7.8857142857143" fill="hsl(0 64% 48%)" rx="1"></rect></g><g><line x1="800.6388888888889" x2="800.6388888888889" y1="213.37142857142857" y2="226.97142857142856" stroke="hsl(152 60% 32%)" stroke-width="1"></line><rect x="797.6388888888889" y="222.4" width="6" height="1.5" fill="hsl(152 60% 32%)" rx="1"></rect></g><g><line x1="808.3611111111111" x2="808.3611111111111" y1="217.82857142857142" y2="225.82857142857142" stroke="hsl(152 60% 32%)" stroke-width="1"></line><rect x="805.3611111111111" y="220.1142857142857" width="6" height="2.285714285714306" fill="hsl(152 60% 32%)" rx="1"></rect></g><g><line x1="816.0833333333334" x2="816.0833333333334" y1="212.22857142857143" y2="218.97142857142856" stroke="hsl(152 60% 32%)" stroke-width="1"></line><rect x="813.0833333333334" y="217.82857142857142" width="6" height="1.5" fill="hsl(152 60% 32%)" rx="1"></rect></g><g><line x1="823.8055555555555" x2="823.8055555555555" y1="215.54285714285714" y2="222.4" stroke="hsl(152 60% 32%)" stroke-width="1"></line><rect x="820.8055555555555" y="218.97142857142856" width="6" height="1.5" fill="hsl(152 60% 32%)" rx="1"></rect></g><g><line x1="831.5277777777778" x2="831.5277777777778" y1="213.37142857142857" y2="218.97142857142856" stroke="hsl(0 64% 48%)" stroke-width="1"></line><rect x="828.5277777777778" y="215.54285714285714" width="6" height="3.4285714285714164" fill="hsl(0 64% 48%)" rx="1"></rect></g><g><line x1="839.25" x2="839.25" y1="209.94285714285712" y2="218.97142857142856" stroke="hsl(0 64% 48%)" stroke-width="1"></line><rect x="836.25" y="211.08571428571426" width="6" height="7.8857142857143" fill="hsl(0 64% 48%)" rx="1"></rect></g><g><line x1="846.9722222222223" x2="846.9722222222223" y1="211.08571428571426" y2="218.97142857142856" stroke="hsl(152 60% 32%)" stroke-width="1"></line><rect x="843.9722222222223" y="216.68571428571428" width="6" height="1.5" fill="hsl(152 60% 32%)" rx="1"></rect></g><g><line x1="854.6944444444445" x2="854.6944444444445" y1="209.94285714285712" y2="218.97142857142856" stroke="hsl(152 60% 32%)" stroke-width="1"></line><rect x="851.6944444444445" y="212.22857142857143" width="6" height="4.4571428571428555" fill="hsl(152 60% 32%)" rx="1"></rect></g><g><line x1="862.4166666666666" x2="862.4166666666666" y1="209.94285714285712" y2="218.97142857142856" stroke="hsl(0 64% 48%)" stroke-width="1"></line><rect x="859.4166666666666" y="211.08571428571426" width="6" height="7.8857142857143" fill="hsl(0 64% 48%)" rx="1"></rect></g><g><line x1="870.1388888888889" x2="870.1388888888889" y1="215.54285714285714" y2="223.54285714285714" stroke="hsl(0 64% 48%)" stroke-width="1"></line><rect x="867.1388888888889" y="215.54285714285714" width="6" height="2.2857142857142776" fill="hsl(0 64% 48%)" rx="1"></rect></g><g><line x1="877.8611111111111" x2="877.8611111111111" y1="216.68571428571428" y2="223.54285714285714" stroke="hsl(0 64% 48%)" stroke-width="1"></line><rect x="874.8611111111111" y="217.82857142857142" width="6" height="4.571428571428584" fill="hsl(0 64% 48%)" rx="1"></rect></g><g><line x1="885.5833333333334" x2="885.5833333333334" y1="207.65714285714284" y2="222.4" stroke="hsl(0 64% 48%)" stroke-width="1"></line><rect x="882.5833333333334" y="217.82857142857142" width="6" height="4.571428571428584" fill="hsl(0 64% 48%)" rx="1"></rect></g><g><line x1="893.3055555555555" x2="893.3055555555555" y1="218.97142857142856" y2="225.82857142857142" stroke="hsl(0 64% 48%)" stroke-width="1"></line><rect x="890.3055555555555" y="221.25714285714287" width="6" height="4.571428571428555" fill="hsl(0 64% 48%)" rx="1"></rect></g><g><line x1="901.0277777777778" x2="901.0277777777778" y1="222.4" y2="228" stroke="hsl(0 64% 48%)" stroke-width="1"></line><rect x="898.0277777777778" y="224.68571428571428" width="6" height="3.3142857142857167" fill="hsl(0 64% 48%)" rx="1"></rect></g><g><line x1="908.75" x2="908.75" y1="220.1142857142857" y2="228" stroke="hsl(152 60% 32%)" stroke-width="1"></line><rect x="905.75" y="221.25714285714287" width="6" height="4.571428571428555" fill="hsl(152 60% 32%)" rx="1"></rect></g><g><line x1="916.4722222222223" x2="916.4722222222223" y1="212.22857142857143" y2="221.25714285714287" stroke="hsl(152 60% 32%)" stroke-width="1"></line><rect x="913.4722222222223" y="214.4" width="6" height="4.571428571428555" fill="hsl(152 60% 32%)" rx="1"></rect></g><g><line x1="924.1944444444445" x2="924.1944444444445" y1="207.65714285714284" y2="215.54285714285714" stroke="hsl(152 60% 32%)" stroke-width="1"></line><rect x="921.1944444444445" y="212.22857142857143" width="6" height="1.5" fill="hsl(152 60% 32%)" rx="1"></rect></g><g><line x1="931.9166666666666" x2="931.9166666666666" y1="203.08571428571426" y2="213.37142857142857" stroke="hsl(152 60% 32%)" stroke-width="1"></line><rect x="928.9166666666666" y="203.08571428571426" width="6" height="6.857142857142861" fill="hsl(152 60% 32%)" rx="1"></rect></g><g><line x1="939.6388888888889" x2="939.6388888888889" y1="201.94285714285712" y2="213.37142857142857" stroke="hsl(0 64% 48%)" stroke-width="1"></line><rect x="936.6388888888889" y="203.08571428571426" width="6" height="10.285714285714306" fill="hsl(0 64% 48%)" rx="1"></rect></g><g><line x1="947.3611111111111" x2="947.3611111111111" y1="209.94285714285712" y2="214.4" stroke="hsl(0 64% 48%)" stroke-width="1"></line><rect x="944.3611111111111" y="211.08571428571426" width="6" height="3.314285714285745" fill="hsl(0 64% 48%)" rx="1"></rect></g><g><line x1="955.0833333333334" x2="955.0833333333334" y1="208.79999999999998" y2="229.14285714285714" stroke="hsl(0 64% 48%)" stroke-width="1"></line><rect x="952.0833333333334" y="214.4" width="6" height="9.142857142857139" fill="hsl(0 64% 48%)" rx="1"></rect></g><g><line x1="962.8055555555555" x2="962.8055555555555" y1="220.1142857142857" y2="226.97142857142856" stroke="hsl(152 60% 32%)" stroke-width="1"></line><rect x="959.8055555555555" y="222.4" width="6" height="1.5" fill="hsl(152 60% 32%)" rx="1"></rect></g><g><line x1="970.5277777777778" x2="970.5277777777778" y1="216.68571428571428" y2="224.68571428571428" stroke="hsl(152 60% 32%)" stroke-width="1"></line><rect x="967.5277777777778" y="218.97142857142856" width="6" height="3.428571428571445" fill="hsl(152 60% 32%)" rx="1"></rect></g><g><line x1="978.25" x2="978.25" y1="220.1142857142857" y2="225.82857142857142" stroke="hsl(0 64% 48%)" stroke-width="1"></line><rect x="975.25" y="222.4" width="6" height="2.2857142857142776" fill="hsl(0 64% 48%)" rx="1"></rect></g><g><line x1="985.9722222222223" x2="985.9722222222223" y1="220.1142857142857" y2="231.42857142857144" stroke="hsl(0 64% 48%)" stroke-width="1"></line><rect x="982.9722222222223" y="224.68571428571428" width="6" height="6.7428571428571615" fill="hsl(0 64% 48%)" rx="1"></rect></g><g><line x1="993.6944444444445" x2="993.6944444444445" y1="231.42857142857144" y2="250.74285714285716" stroke="hsl(0 64% 48%)" stroke-width="1"></line><rect x="990.6944444444445" y="231.42857142857144" width="6" height="18.171428571428578" fill="hsl(0 64% 48%)" rx="1"></rect></g><g><line x1="1001.4166666666666" x2="1001.4166666666666" y1="242.74285714285716" y2="253.02857142857144" stroke="hsl(152 60% 32%)" stroke-width="1"></line><rect x="998.4166666666666" y="246.17142857142858" width="6" height="3.428571428571445" fill="hsl(152 60% 32%)" rx="1"></rect></g><g><line x1="1009.1388888888889" x2="1009.1388888888889" y1="243.8857142857143" y2="251.8857142857143" stroke="hsl(152 60% 32%)" stroke-width="1"></line><rect x="1006.1388888888889" y="246.17142857142858" width="6" height="1.5" fill="hsl(152 60% 32%)" rx="1"></rect></g><g><line x1="1016.8611111111111" x2="1016.8611111111111" y1="239.42857142857144" y2="255.2" stroke="hsl(152 60% 32%)" stroke-width="1"></line><rect x="1013.8611111111111" y="243.8857142857143" width="6" height="3.4285714285714164" fill="hsl(152 60% 32%)" rx="1"></rect></g><g><line x1="1024.5833333333335" x2="1024.5833333333335" y1="245.02857142857144" y2="254.17142857142858" stroke="hsl(0 64% 48%)" stroke-width="1"></line><rect x="1021.5833333333335" y="245.02857142857144" width="6" height="9.142857142857139" fill="hsl(0 64% 48%)" rx="1"></rect></g><g><line x1="1032.3055555555557" x2="1032.3055555555557" y1="250.74285714285716" y2="279.0857142857143" stroke="hsl(0 64% 48%)" stroke-width="1"></line><rect x="1029.3055555555557" y="250.74285714285716" width="6" height="23.771428571428572" fill="hsl(0 64% 48%)" rx="1"></rect></g><g><line x1="1040.0277777777778" x2="1040.0277777777778" y1="268.8" y2="275.65714285714284" stroke="hsl(152 60% 32%)" stroke-width="1"></line><rect x="1037.0277777777778" y="274.51428571428573" width="6" height="1.5" fill="hsl(152 60% 32%)" rx="1"></rect></g><g><line x1="1047.75" x2="1047.75" y1="269.9428571428572" y2="299.4285714285714" stroke="hsl(0 64% 48%)" stroke-width="1"></line><rect x="1044.75" y="273.37142857142857" width="6" height="26.05714285714282" fill="hsl(0 64% 48%)" rx="1"></rect></g><g><line x1="1055.4722222222222" x2="1055.4722222222222" y1="289.7142857142857" y2="316" stroke="hsl(0 64% 48%)" stroke-width="1"></line><rect x="1052.4722222222222" y="298.85714285714283" width="6" height="1.5" fill="hsl(0 64% 48%)" rx="1"></rect></g><g><line x1="1063.1944444444443" x2="1063.1944444444443" y1="285.14285714285717" y2="309.14285714285717" stroke="hsl(152 60% 32%)" stroke-width="1"></line><rect x="1060.1944444444443" y="298.85714285714283" width="6" height="1.5" fill="hsl(152 60% 32%)" rx="1"></rect></g><g><line x1="1070.9166666666667" x2="1070.9166666666667" y1="290.85714285714283" y2="305.7142857142857" stroke="hsl(0 64% 48%)" stroke-width="1"></line><rect x="1067.9166666666667" y="294.2857142857143" width="6" height="5.714285714285722" fill="hsl(0 64% 48%)" rx="1"></rect></g><g><line x1="1078.638888888889" x2="1078.638888888889" y1="293.14285714285717" y2="308" stroke="hsl(152 60% 32%)" stroke-width="1"></line><rect x="1075.638888888889" y="298.85714285714283" width="6" height="4.571428571428612" fill="hsl(152 60% 32%)" rx="1"></rect></g><g><line x1="1086.361111111111" x2="1086.361111111111" y1="292" y2="300" stroke="hsl(152 60% 32%)" stroke-width="1"></line><rect x="1083.361111111111" y="293.14285714285717" width="6" height="4.571428571428555" fill="hsl(152 60% 32%)" rx="1"></rect></g><g><line x1="1094.0833333333333" x2="1094.0833333333333" y1="269.1428571428571" y2="292" stroke="hsl(152 60% 32%)" stroke-width="1"></line><rect x="1091.0833333333333" y="271.42857142857144" width="6" height="17.14285714285711" fill="hsl(152 60% 32%)" rx="1"></rect></g><g><line x1="1101.8055555555557" x2="1101.8055555555557" y1="226.85714285714286" y2="262.2857142857143" stroke="hsl(152 60% 32%)" stroke-width="1"></line><rect x="1098.8055555555557" y="239.42857142857144" width="6" height="18.285714285714278" fill="hsl(152 60% 32%)" rx="1"></rect></g><g><line x1="1109.5277777777778" x2="1109.5277777777778" y1="220" y2="239.42857142857144" stroke="hsl(152 60% 32%)" stroke-width="1"></line><rect x="1106.5277777777778" y="222.28571428571428" width="6" height="13.714285714285722" fill="hsl(152 60% 32%)" rx="1"></rect></g><g><line x1="1117.25" x2="1117.25" y1="221.14285714285714" y2="236" stroke="hsl(0 64% 48%)" stroke-width="1"></line><rect x="1114.25" y="221.14285714285714" width="6" height="10.285714285714306" fill="hsl(0 64% 48%)" rx="1"></rect></g><g><line x1="1124.9722222222222" x2="1124.9722222222222" y1="224.57142857142858" y2="240.57142857142858" stroke="hsl(0 64% 48%)" stroke-width="1"></line><rect x="1121.9722222222222" y="229.14285714285714" width="6" height="10.285714285714306" fill="hsl(0 64% 48%)" rx="1"></rect></g><g><line x1="1132.6944444444446" x2="1132.6944444444446" y1="237.14285714285714" y2="248.57142857142858" stroke="hsl(0 64% 48%)" stroke-width="1"></line><rect x="1129.6944444444446" y="237.14285714285714" width="6" height="5.714285714285722" fill="hsl(0 64% 48%)" rx="1"></rect></g><g><line x1="1140.4166666666667" x2="1140.4166666666667" y1="222.28571428571428" y2="246.28571428571428" stroke="hsl(152 60% 32%)" stroke-width="1"></line><rect x="1137.4166666666667" y="234.85714285714286" width="6" height="11.428571428571416" fill="hsl(152 60% 32%)" rx="1"></rect></g><g><line x1="1148.138888888889" x2="1148.138888888889" y1="225.71428571428572" y2="233.71428571428572" stroke="hsl(152 60% 32%)" stroke-width="1"></line><rect x="1145.138888888889" y="228" width="6" height="1.5" fill="hsl(152 60% 32%)" rx="1"></rect></g><g><line x1="1155.861111111111" x2="1155.861111111111" y1="222.28571428571428" y2="236" stroke="hsl(0 64% 48%)" stroke-width="1"></line><rect x="1152.861111111111" y="225.71428571428572" width="6" height="8" fill="hsl(0 64% 48%)" rx="1"></rect></g><g><line x1="1163.5833333333333" x2="1163.5833333333333" y1="228" y2="236" stroke="hsl(0 64% 48%)" stroke-width="1"></line><rect x="1160.5833333333333" y="232.57142857142858" width="6" height="2.2857142857142776" fill="hsl(0 64% 48%)" rx="1"></rect></g><g><line x1="1171.3055555555557" x2="1171.3055555555557" y1="225.71428571428572" y2="241.71428571428572" stroke="hsl(0 64% 48%)" stroke-width="1"></line><rect x="1168.3055555555557" y="232.57142857142858" width="6" height="4.571428571428555" fill="hsl(0 64% 48%)" rx="1"></rect></g><g><line x1="1179.0277777777778" x2="1179.0277777777778" y1="236" y2="248.57142857142858" stroke="hsl(0 64% 48%)" stroke-width="1"></line><rect x="1176.0277777777778" y="237.14285714285714" width="6" height="11.428571428571445" fill="hsl(0 64% 48%)" rx="1"></rect></g><g><line x1="1186.75" x2="1186.75" y1="244" y2="252" stroke="hsl(0 64% 48%)" stroke-width="1"></line><rect x="1183.75" y="250.85714285714286" width="6" height="1.5" fill="hsl(0 64% 48%)" rx="1"></rect></g><g><line x1="1194.4722222222222" x2="1194.4722222222222" y1="242.85714285714286" y2="257.7142857142857" stroke="hsl(0 64% 48%)" stroke-width="1"></line><rect x="1191.4722222222222" y="252" width="6" height="2.2857142857142776" fill="hsl(0 64% 48%)" rx="1"></rect></g><g><line x1="1202.1944444444446" x2="1202.1944444444446" y1="252" y2="263.42857142857144" stroke="hsl(0 64% 48%)" stroke-width="1"></line><rect x="1199.1944444444446" y="254.28571428571428" width="6" height="6.857142857142833" fill="hsl(0 64% 48%)" rx="1"></rect></g><g><line x1="1209.9166666666667" x2="1209.9166666666667" y1="253.14285714285714" y2="262.2857142857143" stroke="hsl(152 60% 32%)" stroke-width="1"></line><rect x="1206.9166666666667" y="256.57142857142856" width="6" height="1.5" fill="hsl(152 60% 32%)" rx="1"></rect></g><g><line x1="1217.638888888889" x2="1217.638888888889" y1="241.71428571428572" y2="260" stroke="hsl(152 60% 32%)" stroke-width="1"></line><rect x="1214.638888888889" y="241.71428571428572" width="6" height="14.857142857142833" fill="hsl(152 60% 32%)" rx="1"></rect></g><g><line x1="1225.361111111111" x2="1225.361111111111" y1="225.71428571428572" y2="240.57142857142858" stroke="hsl(0 64% 48%)" stroke-width="1"></line><rect x="1222.361111111111" y="229.14285714285714" width="6" height="11.428571428571445" fill="hsl(0 64% 48%)" rx="1"></rect></g><g><line x1="1233.0833333333333" x2="1233.0833333333333" y1="229.14285714285714" y2="240.57142857142858" stroke="hsl(152 60% 32%)" stroke-width="1"></line><rect x="1230.0833333333333" y="238.28571428571428" width="6" height="1.5" fill="hsl(152 60% 32%)" rx="1"></rect></g><g><line x1="1240.8055555555557" x2="1240.8055555555557" y1="228" y2="240.57142857142858" stroke="hsl(152 60% 32%)" stroke-width="1"></line><rect x="1237.8055555555557" y="228" width="6" height="12.571428571428584" fill="hsl(152 60% 32%)" rx="1"></rect></g><g><line x1="1248.5277777777778" x2="1248.5277777777778" y1="215.42857142857144" y2="231.42857142857144" stroke="hsl(0 64% 48%)" stroke-width="1"></line><rect x="1245.5277777777778" y="225.71428571428572" width="6" height="4.571428571428555" fill="hsl(0 64% 48%)" rx="1"></rect></g><g><line x1="1256.25" x2="1256.25" y1="225.71428571428572" y2="233.71428571428572" stroke="hsl(0 64% 48%)" stroke-width="1"></line><rect x="1253.25" y="229.14285714285714" width="6" height="1.5" fill="hsl(0 64% 48%)" rx="1"></rect></g><g><line x1="1263.9722222222222" x2="1263.9722222222222" y1="233.71428571428572" y2="246.28571428571428" stroke="hsl(0 64% 48%)" stroke-width="1"></line><rect x="1260.9722222222222" y="236" width="6" height="10.285714285714278" fill="hsl(0 64% 48%)" rx="1"></rect></g><g><line x1="1271.6944444444446" x2="1271.6944444444446" y1="239.42857142857144" y2="247.42857142857144" stroke="hsl(152 60% 32%)" stroke-width="1"></line><rect x="1268.6944444444446" y="244" width="6" height="1.5" fill="hsl(152 60% 32%)" rx="1"></rect></g><g><line x1="1279.4166666666667" x2="1279.4166666666667" y1="241.71428571428572" y2="254.28571428571428" stroke="hsl(0 64% 48%)" stroke-width="1"></line><rect x="1276.4166666666667" y="242.85714285714286" width="6" height="11.428571428571416" fill="hsl(0 64% 48%)" rx="1"></rect></g><g><line x1="1287.138888888889" x2="1287.138888888889" y1="250.85714285714286" y2="255.42857142857144" stroke="hsl(152 60% 32%)" stroke-width="1"></line><rect x="1284.138888888889" y="253.14285714285714" width="6" height="1.5" fill="hsl(152 60% 32%)" rx="1"></rect></g><g><line x1="1294.861111111111" x2="1294.861111111111" y1="239.42857142857144" y2="252" stroke="hsl(152 60% 32%)" stroke-width="1"></line><rect x="1291.861111111111" y="246.28571428571428" width="6" height="3.428571428571445" fill="hsl(152 60% 32%)" rx="1"></rect></g><g><line x1="1302.5833333333333" x2="1302.5833333333333" y1="238.28571428571428" y2="248.57142857142858" stroke="hsl(152 60% 32%)" stroke-width="1"></line><rect x="1299.5833333333333" y="242.85714285714286" width="6" height="3.4285714285714164" fill="hsl(152 60% 32%)" rx="1"></rect></g><g><line x1="1310.3055555555557" x2="1310.3055555555557" y1="242.85714285714286" y2="252" stroke="hsl(0 64% 48%)" stroke-width="1"></line><rect x="1307.3055555555557" y="244" width="6" height="8" fill="hsl(0 64% 48%)" rx="1"></rect></g><g><line x1="1318.0277777777778" x2="1318.0277777777778" y1="245.14285714285714" y2="254.28571428571428" stroke="hsl(152 60% 32%)" stroke-width="1"></line><rect x="1315.0277777777778" y="248.57142857142858" width="6" height="3.4285714285714164" fill="hsl(152 60% 32%)" rx="1"></rect></g><g><line x1="1325.75" x2="1325.75" y1="231.42857142857144" y2="247.42857142857144" stroke="hsl(152 60% 32%)" stroke-width="1"></line><rect x="1322.75" y="231.42857142857144" width="6" height="16" fill="hsl(152 60% 32%)" rx="1"></rect></g><g><line x1="1333.4722222222222" x2="1333.4722222222222" y1="228" y2="239.42857142857144" stroke="hsl(0 64% 48%)" stroke-width="1"></line><rect x="1330.4722222222222" y="230.28571428571428" width="6" height="9.142857142857167" fill="hsl(0 64% 48%)" rx="1"></rect></g><g><line x1="1341.1944444444446" x2="1341.1944444444446" y1="231.42857142857144" y2="245.14285714285714" stroke="hsl(152 60% 32%)" stroke-width="1"></line><rect x="1338.1944444444446" y="236" width="6" height="6.857142857142861" fill="hsl(152 60% 32%)" rx="1"></rect></g><g><line x1="1348.9166666666667" x2="1348.9166666666667" y1="220" y2="233.71428571428572" stroke="hsl(0 64% 48%)" stroke-width="1"></line><rect x="1345.9166666666667" y="231.42857142857144" width="6" height="1.5" fill="hsl(0 64% 48%)" rx="1"></rect></g><g><line x1="1356.638888888889" x2="1356.638888888889" y1="229.14285714285714" y2="245.14285714285714" stroke="hsl(0 64% 48%)" stroke-width="1"></line><rect x="1353.638888888889" y="229.14285714285714" width="6" height="14.857142857142861" fill="hsl(0 64% 48%)" rx="1"></rect></g><g><line x1="1364.361111111111" x2="1364.361111111111" y1="238.28571428571428" y2="245.14285714285714" stroke="hsl(0 64% 48%)" stroke-width="1"></line><rect x="1361.361111111111" y="241.71428571428572" width="6" height="2.2857142857142776" fill="hsl(0 64% 48%)" rx="1"></rect></g><g><line x1="1372.0833333333333" x2="1372.0833333333333" y1="240.57142857142858" y2="248.57142857142858" stroke="hsl(0 64% 48%)" stroke-width="1"></line><rect x="1369.0833333333333" y="244" width="6" height="4.571428571428584" fill="hsl(0 64% 48%)" rx="1"></rect></g><g><line x1="1379.8055555555557" x2="1379.8055555555557" y1="246.28571428571428" y2="253.14285714285714" stroke="hsl(0 64% 48%)" stroke-width="1"></line><rect x="1376.8055555555557" y="247.42857142857144" width="6" height="5.714285714285694" fill="hsl(0 64% 48%)" rx="1"></rect></g><g><line x1="1387.5277777777778" x2="1387.5277777777778" y1="248.57142857142858" y2="257.7142857142857" stroke="hsl(0 64% 48%)" stroke-width="1"></line><rect x="1384.5277777777778" y="252" width="6" height="2.2857142857142776" fill="hsl(0 64% 48%)" rx="1"></rect></g><g><line x1="1395.25" x2="1395.25" y1="249.71428571428572" y2="258.8571428571429" stroke="hsl(152 60% 32%)" stroke-width="1"></line><rect x="1392.25" y="250.85714285714286" width="6" height="3.4285714285714164" fill="hsl(152 60% 32%)" rx="1"></rect></g><g><line x1="1402.9722222222222" x2="1402.9722222222222" y1="249.71428571428572" y2="255.42857142857144" stroke="hsl(0 64% 48%)" stroke-width="1"></line><rect x="1399.9722222222222" y="250.85714285714286" width="6" height="3.4285714285714164" fill="hsl(0 64% 48%)" rx="1"></rect></g><g><line x1="1410.6944444444446" x2="1410.6944444444446" y1="248.57142857142858" y2="254.28571428571428" stroke="hsl(0 64% 48%)" stroke-width="1"></line><rect x="1407.6944444444446" y="250.85714285714286" width="6" height="3.4285714285714164" fill="hsl(0 64% 48%)" rx="1"></rect></g><g><line x1="1418.4166666666667" x2="1418.4166666666667" y1="252" y2="258.8571428571429" stroke="hsl(0 64% 48%)" stroke-width="1"></line><rect x="1415.4166666666667" y="254.28571428571428" width="6" height="4.571428571428612" fill="hsl(0 64% 48%)" rx="1"></rect></g><g><line x1="1426.138888888889" x2="1426.138888888889" y1="258.8571428571429" y2="263.42857142857144" stroke="hsl(0 64% 48%)" stroke-width="1"></line><rect x="1423.138888888889" y="258.8571428571429" width="6" height="2.2857142857142208" fill="hsl(0 64% 48%)" rx="1"></rect></g></svg></div></div></div><div class="overflow-hidden rounded-md border border-border bg-card"><div class="border-b border-border px-4 py-3"><h3 class="text-sm font-semibold text-foreground">Bảng dữ liệu · 80 phiên cuối</h3></div><div class="max-h-[480px] overflow-auto"><table class="min-w-full text-left text-sm"><thead class="sticky top-0 border-b border-border font-mono text-[10px] uppercase tracking-wider text-muted-foreground"><tr><th class="px-3 py-2 font-semibold">Thời gian</th><th class="px-3 py-2 font-semibold">Mở</th><th class="px-3 py-2 font-semibold">Cao</th><th class="px-3 py-2 font-semibold">Thấp</th><th class="px-3 py-2 font-semibold">Đóng</th><th class="px-3 py-2 font-semibold">Khối lượng</th></tr></thead><tbody><tr class="border-t border-border hover:bg-muted/40"><td class="px-3 py-2 font-mono text-xs">2026-10-02 00:00</td><td class="px-3 py-2 font-mono">57,600.00</td><td class="px-3 py-2 font-mono text-up">57,600.00</td><td class="px-3 py-2 font-mono text-down">57,200.00</td><td class="px-3 py-2 font-mono font-semibold">57,400.00</td><td class="px-3 py-2 font-mono text-muted-foreground">1.43M</td></tr><tr class="border-t border-border hover:bg-muted/40"><td class="px-3 py-2 font-mono text-xs">2026-10-01 00:00</td><td class="px-3 py-2 font-mono">58,000.00</td><td class="px-3 py-2 font-mono text-up">58,200.00</td><td class="px-3 py-2 font-mono text-down">57,600.00</td><td class="px-3 py-2 font-mono font-semibold">57,600.00</td><td class="px-3 py-2 font-mono text-muted-foreground">3.17M</td></tr><tr class="border-t border-border hover:bg-muted/40"><td class="px-3 py-2 font-mono text-xs">2026-09-30 00:00</td><td class="px-3 py-2 font-mono">58,300.00</td><td class="px-3 py-2 font-mono text-up">58,500.00</td><td class="px-3 py-2 font-mono text-down">58,000.00</td><td class="px-3 py-2 font-mono font-semibold">58,000.00</td><td class="px-3 py-2 font-mono text-muted-foreground">2.23M</td></tr><tr class="border-t border-border hover:bg-muted/40"><td class="px-3 py-2 font-mono text-xs">2026-09-29 00:00</td><td class="px-3 py-2 font-mono">58,300.00</td><td class="px-3 py-2 font-mono text-up">58,400.00</td><td class="px-3 py-2 font-mono text-down">57,900.00</td><td class="px-3 py-2 font-mono font-semibold">58,000.00</td><td class="px-3 py-2 font-mono text-muted-foreground">2.50M</td></tr><tr class="border-t border-border hover:bg-muted/40"><td class="px-3 py-2 font-mono text-xs">2026-09-28 00:00</td><td class="px-3 py-2 font-mono">58,000.00</td><td class="px-3 py-2 font-mono text-up">58,400.00</td><td class="px-3 py-2 font-mono text-down">57,600.00</td><td class="px-3 py-2 font-mono font-semibold">58,300.00</td><td class="px-3 py-2 font-mono text-muted-foreground">3.82M</td></tr><tr class="border-t border-border hover:bg-muted/40"><td class="px-3 py-2 font-mono text-xs">2026-09-25 00:00</td><td class="px-3 py-2 font-mono">58,200.00</td><td class="px-3 py-2 font-mono text-up">58,500.00</td><td class="px-3 py-2 font-mono text-down">57,700.00</td><td class="px-3 py-2 font-mono font-semibold">58,000.00</td><td class="px-3 py-2 font-mono text-muted-foreground">4.39M</td></tr><tr class="border-t border-border hover:bg-muted/40"><td class="px-3 py-2 font-mono text-xs">2026-09-24 00:00</td><td class="px-3 py-2 font-mono">58,600.00</td><td class="px-3 py-2 font-mono text-up">58,700.00</td><td class="px-3 py-2 font-mono text-down">58,100.00</td><td class="px-3 py-2 font-mono font-semibold">58,100.00</td><td class="px-3 py-2 font-mono text-muted-foreground">4.19M</td></tr><tr class="border-t border-border hover:bg-muted/40"><td class="px-3 py-2 font-mono text-xs">2026-09-23 00:00</td><td class="px-3 py-2 font-mono">58,900.00</td><td class="px-3 py-2 font-mono text-up">59,200.00</td><td class="px-3 py-2 font-mono text-down">58,500.00</td><td class="px-3 py-2 font-mono font-semibold">58,500.00</td><td class="px-3 py-2 font-mono text-muted-foreground">4.08M</td></tr><tr class="border-t border-border hover:bg-muted/40"><td class="px-3 py-2 font-mono text-xs">2026-09-22 00:00</td><td class="px-3 py-2 font-mono">59,100.00</td><td class="px-3 py-2 font-mono text-up">59,400.00</td><td class="px-3 py-2 font-mono text-down">58,800.00</td><td class="px-3 py-2 font-mono font-semibold">58,900.00</td><td class="px-3 py-2 font-mono text-muted-foreground">2.57M</td></tr><tr class="border-t border-border hover:bg-muted/40"><td class="px-3 py-2 font-mono text-xs">2026-09-21 00:00</td><td class="px-3 py-2 font-mono">60,200.00</td><td class="px-3 py-2 font-mono text-up">60,200.00</td><td class="px-3 py-2 font-mono text-down">58,800.00</td><td class="px-3 py-2 font-mono font-semibold">58,900.00</td><td class="px-3 py-2 font-mono text-muted-foreground">5.48M</td></tr><tr class="border-t border-border hover:bg-muted/40"><td class="px-3 py-2 font-mono text-xs">2026-09-18 00:00</td><td class="px-3 py-2 font-mono">60,000.00</td><td class="px-3 py-2 font-mono text-up">61,000.00</td><td class="px-3 py-2 font-mono text-down">59,800.00</td><td class="px-3 py-2 font-mono font-semibold">59,900.00</td><td class="px-3 py-2 font-mono text-muted-foreground">10.36M</td></tr><tr class="border-t border-border hover:bg-muted/40"><td class="px-3 py-2 font-mono text-xs">2026-09-17 00:00</td><td class="px-3 py-2 font-mono">59,000.00</td><td class="px-3 py-2 font-mono text-up">60,000.00</td><td class="px-3 py-2 font-mono text-down">58,800.00</td><td class="px-3 py-2 font-mono font-semibold">59,600.00</td><td class="px-3 py-2 font-mono text-muted-foreground">5.40M</td></tr><tr class="border-t border-border hover:bg-muted/40"><td class="px-3 py-2 font-mono text-xs">2026-09-16 00:00</td><td class="px-3 py-2 font-mono">60,100.00</td><td class="px-3 py-2 font-mono text-up">60,300.00</td><td class="px-3 py-2 font-mono text-down">59,300.00</td><td class="px-3 py-2 font-mono font-semibold">59,300.00</td><td class="px-3 py-2 font-mono text-muted-foreground">2.88M</td></tr><tr class="border-t border-border hover:bg-muted/40"><td class="px-3 py-2 font-mono text-xs">2026-09-15 00:00</td><td class="px-3 py-2 font-mono">58,600.00</td><td class="px-3 py-2 font-mono text-up">60,000.00</td><td class="px-3 py-2 font-mono text-down">58,600.00</td><td class="px-3 py-2 font-mono font-semibold">60,000.00</td><td class="px-3 py-2 font-mono text-muted-foreground">9.55M</td></tr><tr class="border-t border-border hover:bg-muted/40"><td class="px-3 py-2 font-mono text-xs">2026-09-14 00:00</td><td class="px-3 py-2 font-mono">58,200.00</td><td class="px-3 py-2 font-mono text-up">58,800.00</td><td class="px-3 py-2 font-mono text-down">58,000.00</td><td class="px-3 py-2 font-mono font-semibold">58,500.00</td><td class="px-3 py-2 font-mono text-muted-foreground">4.82M</td></tr><tr class="border-t border-border hover:bg-muted/40"><td class="px-3 py-2 font-mono text-xs">2026-09-11 00:00</td><td class="px-3 py-2 font-mono">58,900.00</td><td class="px-3 py-2 font-mono text-up">59,000.00</td><td class="px-3 py-2 font-mono text-down">58,200.00</td><td class="px-3 py-2 font-mono font-semibold">58,200.00</td><td class="px-3 py-2 font-mono text-muted-foreground">4.37M</td></tr><tr class="border-t border-border hover:bg-muted/40"><td class="px-3 py-2 font-mono text-xs">2026-09-10 00:00</td><td class="px-3 py-2 font-mono">58,700.00</td><td class="px-3 py-2 font-mono text-up">59,400.00</td><td class="px-3 py-2 font-mono text-down">58,500.00</td><td class="px-3 py-2 font-mono font-semibold">59,000.00</td><td class="px-3 py-2 font-mono text-muted-foreground">3.07M</td></tr><tr class="border-t border-border hover:bg-muted/40"><td class="px-3 py-2 font-mono text-xs">2026-09-09 00:00</td><td class="px-3 py-2 font-mono">58,400.00</td><td class="px-3 py-2 font-mono text-up">59,300.00</td><td class="px-3 py-2 font-mono text-down">58,200.00</td><td class="px-3 py-2 font-mono font-semibold">58,700.00</td><td class="px-3 py-2 font-mono text-muted-foreground">5.32M</td></tr><tr class="border-t border-border hover:bg-muted/40"><td class="px-3 py-2 font-mono text-xs">2026-09-08 00:00</td><td class="px-3 py-2 font-mono">58,000.00</td><td class="px-3 py-2 font-mono text-up">58,300.00</td><td class="px-3 py-2 font-mono text-down">57,900.00</td><td class="px-3 py-2 font-mono font-semibold">58,100.00</td><td class="px-3 py-2 font-mono text-muted-foreground">2.87M</td></tr><tr class="border-t border-border hover:bg-muted/40"><td class="px-3 py-2 font-mono text-xs">2026-09-07 00:00</td><td class="px-3 py-2 font-mono">59,000.00</td><td class="px-3 py-2 font-mono text-up">59,100.00</td><td class="px-3 py-2 font-mono text-down">58,000.00</td><td class="px-3 py-2 font-mono font-semibold">58,000.00</td><td class="px-3 py-2 font-mono text-muted-foreground">4.76M</td></tr><tr class="border-t border-border hover:bg-muted/40"><td class="px-3 py-2 font-mono text-xs">2026-09-04 00:00</td><td class="px-3 py-2 font-mono">58,900.00</td><td class="px-3 py-2 font-mono text-up">59,300.00</td><td class="px-3 py-2 font-mono text-down">58,600.00</td><td class="px-3 py-2 font-mono font-semibold">58,900.00</td><td class="px-3 py-2 font-mono text-muted-foreground">4.31M</td></tr><tr class="border-t border-border hover:bg-muted/40"><td class="px-3 py-2 font-mono text-xs">2026-09-03 00:00</td><td class="px-3 py-2 font-mono">59,600.00</td><td class="px-3 py-2 font-mono text-up">59,800.00</td><td class="px-3 py-2 font-mono text-down">58,700.00</td><td class="px-3 py-2 font-mono font-semibold">58,700.00</td><td class="px-3 py-2 font-mono text-muted-foreground">8.47M</td></tr><tr class="border-t border-border hover:bg-muted/40"><td class="px-3 py-2 font-mono text-xs">2026-08-28 00:00</td><td class="px-3 py-2 font-mono">60,200.00</td><td class="px-3 py-2 font-mono text-up">60,500.00</td><td class="px-3 py-2 font-mono text-down">59,800.00</td><td class="px-3 py-2 font-mono font-semibold">60,100.00</td><td class="px-3 py-2 font-mono text-muted-foreground">3.39M</td></tr><tr class="border-t border-border hover:bg-muted/40"><td class="px-3 py-2 font-mono text-xs">2026-08-27 00:00</td><td class="px-3 py-2 font-mono">60,500.00</td><td class="px-3 py-2 font-mono text-up">61,400.00</td><td class="px-3 py-2 font-mono text-down">60,000.00</td><td class="px-3 py-2 font-mono font-semibold">60,100.00</td><td class="px-3 py-2 font-mono text-muted-foreground">4.90M</td></tr><tr class="border-t border-border hover:bg-muted/40"><td class="px-3 py-2 font-mono text-xs">2026-08-26 00:00</td><td class="px-3 py-2 font-mono">59,200.00</td><td class="px-3 py-2 font-mono text-up">60,300.00</td><td class="px-3 py-2 font-mono text-down">59,200.00</td><td class="px-3 py-2 font-mono font-semibold">60,300.00</td><td class="px-3 py-2 font-mono text-muted-foreground">7.18M</td></tr><tr class="border-t border-border hover:bg-muted/40"><td class="px-3 py-2 font-mono text-xs">2026-08-25 00:00</td><td class="px-3 py-2 font-mono">59,300.00</td><td class="px-3 py-2 font-mono text-up">60,200.00</td><td class="px-3 py-2 font-mono text-down">59,200.00</td><td class="px-3 py-2 font-mono font-semibold">59,400.00</td><td class="px-3 py-2 font-mono text-muted-foreground">5.58M</td></tr><tr class="border-t border-border hover:bg-muted/40"><td class="px-3 py-2 font-mono text-xs">2026-08-24 00:00</td><td class="px-3 py-2 font-mono">60,200.00</td><td class="px-3 py-2 font-mono text-up">60,500.00</td><td class="px-3 py-2 font-mono text-down">59,200.00</td><td class="px-3 py-2 font-mono font-semibold">59,200.00</td><td class="px-3 py-2 font-mono text-muted-foreground">4.77M</td></tr><tr class="border-t border-border hover:bg-muted/40"><td class="px-3 py-2 font-mono text-xs">2026-08-21 00:00</td><td class="px-3 py-2 font-mono">57,800.00</td><td class="px-3 py-2 font-mono text-up">59,100.00</td><td class="px-3 py-2 font-mono text-down">57,500.00</td><td class="px-3 py-2 font-mono font-semibold">59,100.00</td><td class="px-3 py-2 font-mono text-muted-foreground">4.70M</td></tr><tr class="border-t border-border hover:bg-muted/40"><td class="px-3 py-2 font-mono text-xs">2026-08-20 00:00</td><td class="px-3 py-2 font-mono">57,800.00</td><td class="px-3 py-2 font-mono text-up">58,100.00</td><td class="px-3 py-2 font-mono text-down">57,300.00</td><td class="px-3 py-2 font-mono font-semibold">57,800.00</td><td class="px-3 py-2 font-mono text-muted-foreground">3.01M</td></tr><tr class="border-t border-border hover:bg-muted/40"><td class="px-3 py-2 font-mono text-xs">2026-08-19 00:00</td><td class="px-3 py-2 font-mono">58,000.00</td><td class="px-3 py-2 font-mono text-up">58,200.00</td><td class="px-3 py-2 font-mono text-down">57,200.00</td><td class="px-3 py-2 font-mono font-semibold">57,400.00</td><td class="px-3 py-2 font-mono text-muted-foreground">3.77M</td></tr><tr class="border-t border-border hover:bg-muted/40"><td class="px-3 py-2 font-mono text-xs">2026-08-18 00:00</td><td class="px-3 py-2 font-mono">58,200.00</td><td class="px-3 py-2 font-mono text-up">59,000.00</td><td class="px-3 py-2 font-mono text-down">57,700.00</td><td class="px-3 py-2 font-mono font-semibold">58,000.00</td><td class="px-3 py-2 font-mono text-muted-foreground">2.89M</td></tr><tr class="border-t border-border hover:bg-muted/40"><td class="px-3 py-2 font-mono text-xs">2026-08-17 00:00</td><td class="px-3 py-2 font-mono">58,300.00</td><td class="px-3 py-2 font-mono text-up">58,900.00</td><td class="px-3 py-2 font-mono text-down">58,200.00</td><td class="px-3 py-2 font-mono font-semibold">58,200.00</td><td class="px-3 py-2 font-mono text-muted-foreground">2.75M</td></tr><tr class="border-t border-border hover:bg-muted/40"><td class="px-3 py-2 font-mono text-xs">2026-08-14 00:00</td><td class="px-3 py-2 font-mono">59,500.00</td><td class="px-3 py-2 font-mono text-up">59,600.00</td><td class="px-3 py-2 font-mono text-down">58,500.00</td><td class="px-3 py-2 font-mono font-semibold">58,500.00</td><td class="px-3 py-2 font-mono text-muted-foreground">4.81M</td></tr><tr class="border-t border-border hover:bg-muted/40"><td class="px-3 py-2 font-mono text-xs">2026-08-13 00:00</td><td class="px-3 py-2 font-mono">59,900.00</td><td class="px-3 py-2 font-mono text-up">60,500.00</td><td class="px-3 py-2 font-mono text-down">59,100.00</td><td class="px-3 py-2 font-mono font-semibold">59,500.00</td><td class="px-3 py-2 font-mono text-muted-foreground">4.58M</td></tr><tr class="border-t border-border hover:bg-muted/40"><td class="px-3 py-2 font-mono text-xs">2026-08-12 00:00</td><td class="px-3 py-2 font-mono">59,900.00</td><td class="px-3 py-2 font-mono text-up">60,300.00</td><td class="px-3 py-2 font-mono text-down">59,600.00</td><td class="px-3 py-2 font-mono font-semibold">59,700.00</td><td class="px-3 py-2 font-mono text-muted-foreground">2.38M</td></tr><tr class="border-t border-border hover:bg-muted/40"><td class="px-3 py-2 font-mono text-xs">2026-08-11 00:00</td><td class="px-3 py-2 font-mono">60,500.00</td><td class="px-3 py-2 font-mono text-up">60,800.00</td><td class="px-3 py-2 font-mono text-down">59,600.00</td><td class="px-3 py-2 font-mono font-semibold">59,800.00</td><td class="px-3 py-2 font-mono text-muted-foreground">4.07M</td></tr><tr class="border-t border-border hover:bg-muted/40"><td class="px-3 py-2 font-mono text-xs">2026-08-10 00:00</td><td class="px-3 py-2 font-mono">60,300.00</td><td class="px-3 py-2 font-mono text-up">60,500.00</td><td class="px-3 py-2 font-mono text-down">59,800.00</td><td class="px-3 py-2 font-mono font-semibold">60,300.00</td><td class="px-3 py-2 font-mono text-muted-foreground">2.71M</td></tr><tr class="border-t border-border hover:bg-muted/40"><td class="px-3 py-2 font-mono text-xs">2026-08-07 00:00</td><td class="px-3 py-2 font-mono">58,700.00</td><td class="px-3 py-2 font-mono text-up">60,800.00</td><td class="px-3 py-2 font-mono text-down">58,700.00</td><td class="px-3 py-2 font-mono font-semibold">59,700.00</td><td class="px-3 py-2 font-mono text-muted-foreground">6.52M</td></tr><tr class="border-t border-border hover:bg-muted/40"><td class="px-3 py-2 font-mono text-xs">2026-08-06 00:00</td><td class="px-3 py-2 font-mono">59,500.00</td><td class="px-3 py-2 font-mono text-up">59,500.00</td><td class="px-3 py-2 font-mono text-down">58,500.00</td><td class="px-3 py-2 font-mono font-semibold">59,000.00</td><td class="px-3 py-2 font-mono text-muted-foreground">2.96M</td></tr><tr class="border-t border-border hover:bg-muted/40"><td class="px-3 py-2 font-mono text-xs">2026-08-05 00:00</td><td class="px-3 py-2 font-mono">60,200.00</td><td class="px-3 py-2 font-mono text-up">60,600.00</td><td class="px-3 py-2 font-mono text-down">59,200.00</td><td class="px-3 py-2 font-mono font-semibold">59,300.00</td><td class="px-3 py-2 font-mono text-muted-foreground">3.66M</td></tr><tr class="border-t border-border hover:bg-muted/40"><td class="px-3 py-2 font-mono text-xs">2026-08-04 00:00</td><td class="px-3 py-2 font-mono">60,900.00</td><td class="px-3 py-2 font-mono text-up">60,900.00</td><td class="px-3 py-2 font-mono text-down">59,600.00</td><td class="px-3 py-2 font-mono font-semibold">60,000.00</td><td class="px-3 py-2 font-mono text-muted-foreground">5.09M</td></tr><tr class="border-t border-border hover:bg-muted/40"><td class="px-3 py-2 font-mono text-xs">2026-08-03 00:00</td><td class="px-3 py-2 font-mono">59,600.00</td><td class="px-3 py-2 font-mono text-up">61,000.00</td><td class="px-3 py-2 font-mono text-down">59,300.00</td><td class="px-3 py-2 font-mono font-semibold">60,800.00</td><td class="px-3 py-2 font-mono text-muted-foreground">7.64M</td></tr><tr class="border-t border-border hover:bg-muted/40"><td class="px-3 py-2 font-mono text-xs">2026-07-31 00:00</td><td class="px-3 py-2 font-mono">57,700.00</td><td class="px-3 py-2 font-mono text-up">60,400.00</td><td class="px-3 py-2 font-mono text-down">57,300.00</td><td class="px-3 py-2 font-mono font-semibold">59,300.00</td><td class="px-3 py-2 font-mono text-muted-foreground">18.31M</td></tr><tr class="border-t border-border hover:bg-muted/40"><td class="px-3 py-2 font-mono text-xs">2026-07-30 00:00</td><td class="px-3 py-2 font-mono">55,000.00</td><td class="px-3 py-2 font-mono text-up">56,700.00</td><td class="px-3 py-2 font-mono text-down">54,700.00</td><td class="px-3 py-2 font-mono font-semibold">56,500.00</td><td class="px-3 py-2 font-mono text-muted-foreground">5.43M</td></tr><tr class="border-t border-border hover:bg-muted/40"><td class="px-3 py-2 font-mono text-xs">2026-07-29 00:00</td><td class="px-3 py-2 font-mono">54,200.00</td><td class="px-3 py-2 font-mono text-up">54,700.00</td><td class="px-3 py-2 font-mono text-down">54,000.00</td><td class="px-3 py-2 font-mono font-semibold">54,600.00</td><td class="px-3 py-2 font-mono text-muted-foreground">2.07M</td></tr><tr class="border-t border-border hover:bg-muted/40"><td class="px-3 py-2 font-mono text-xs">2026-07-28 00:00</td><td class="px-3 py-2 font-mono">53,700.00</td><td class="px-3 py-2 font-mono text-up">54,600.00</td><td class="px-3 py-2 font-mono text-down">53,300.00</td><td class="px-3 py-2 font-mono font-semibold">54,100.00</td><td class="px-3 py-2 font-mono text-muted-foreground">2.61M</td></tr><tr class="border-t border-border hover:bg-muted/40"><td class="px-3 py-2 font-mono text-xs">2026-07-27 00:00</td><td class="px-3 py-2 font-mono">54,500.00</td><td class="px-3 py-2 font-mono text-up">54,800.00</td><td class="px-3 py-2 font-mono text-down">53,500.00</td><td class="px-3 py-2 font-mono font-semibold">54,000.00</td><td class="px-3 py-2 font-mono text-muted-foreground">2.58M</td></tr><tr class="border-t border-border hover:bg-muted/40"><td class="px-3 py-2 font-mono text-xs">2026-07-24 00:00</td><td class="px-3 py-2 font-mono">54,000.00</td><td class="px-3 py-2 font-mono text-up">55,300.00</td><td class="px-3 py-2 font-mono text-down">53,200.00</td><td class="px-3 py-2 font-mono font-semibold">54,100.00</td><td class="px-3 py-2 font-mono text-muted-foreground">2.50M</td></tr><tr class="border-t border-border hover:bg-muted/40"><td class="px-3 py-2 font-mono text-xs">2026-07-23 00:00</td><td class="px-3 py-2 font-mono">54,100.00</td><td class="px-3 py-2 font-mono text-up">54,900.00</td><td class="px-3 py-2 font-mono text-down">52,600.00</td><td class="px-3 py-2 font-mono font-semibold">54,000.00</td><td class="px-3 py-2 font-mono text-muted-foreground">7.44M</td></tr><tr class="border-t border-border hover:bg-muted/40"><td class="px-3 py-2 font-mono text-xs">2026-07-22 00:00</td><td class="px-3 py-2 font-mono">56,330.00</td><td class="px-3 py-2 font-mono text-up">56,630.00</td><td class="px-3 py-2 font-mono text-down">54,050.00</td><td class="px-3 py-2 font-mono font-semibold">54,050.00</td><td class="px-3 py-2 font-mono text-muted-foreground">9.17M</td></tr><tr class="border-t border-border hover:bg-muted/40"><td class="px-3 py-2 font-mono text-xs">2026-07-21 00:00</td><td class="px-3 py-2 font-mono">56,230.00</td><td class="px-3 py-2 font-mono text-up">56,730.00</td><td class="px-3 py-2 font-mono text-down">56,130.00</td><td class="px-3 py-2 font-mono font-semibold">56,230.00</td><td class="px-3 py-2 font-mono text-muted-foreground">3.41M</td></tr><tr class="border-t border-border hover:bg-muted/40"><td class="px-3 py-2 font-mono text-xs">2026-07-20 00:00</td><td class="px-3 py-2 font-mono">58,310.00</td><td class="px-3 py-2 font-mono text-up">58,310.00</td><td class="px-3 py-2 font-mono text-down">55,830.00</td><td class="px-3 py-2 font-mono font-semibold">56,230.00</td><td class="px-3 py-2 font-mono text-muted-foreground">8.54M</td></tr><tr class="border-t border-border hover:bg-muted/40"><td class="px-3 py-2 font-mono text-xs">2026-07-17 00:00</td><td class="px-3 py-2 font-mono">58,810.00</td><td class="px-3 py-2 font-mono text-up">58,810.00</td><td class="px-3 py-2 font-mono text-down">58,010.00</td><td class="px-3 py-2 font-mono font-semibold">58,010.00</td><td class="px-3 py-2 font-mono text-muted-foreground">1.99M</td></tr><tr class="border-t border-border hover:bg-muted/40"><td class="px-3 py-2 font-mono text-xs">2026-07-16 00:00</td><td class="px-3 py-2 font-mono">58,610.00</td><td class="px-3 py-2 font-mono text-up">59,300.00</td><td class="px-3 py-2 font-mono text-down">57,920.00</td><td class="px-3 py-2 font-mono font-semibold">58,910.00</td><td class="px-3 py-2 font-mono text-muted-foreground">3.35M</td></tr><tr class="border-t border-border hover:bg-muted/40"><td class="px-3 py-2 font-mono text-xs">2026-07-15 00:00</td><td class="px-3 py-2 font-mono">58,710.00</td><td class="px-3 py-2 font-mono text-up">58,910.00</td><td class="px-3 py-2 font-mono text-down">58,210.00</td><td class="px-3 py-2 font-mono font-semibold">58,710.00</td><td class="px-3 py-2 font-mono text-muted-foreground">2.63M</td></tr><tr class="border-t border-border hover:bg-muted/40"><td class="px-3 py-2 font-mono text-xs">2026-07-14 00:00</td><td class="px-3 py-2 font-mono">58,410.00</td><td class="px-3 py-2 font-mono text-up">59,010.00</td><td class="px-3 py-2 font-mono text-down">58,110.00</td><td class="px-3 py-2 font-mono font-semibold">58,710.00</td><td class="px-3 py-2 font-mono text-muted-foreground">2.83M</td></tr><tr class="border-t border-border hover:bg-muted/40"><td class="px-3 py-2 font-mono text-xs">2026-07-13 00:00</td><td class="px-3 py-2 font-mono">60,000.00</td><td class="px-3 py-2 font-mono text-up">60,000.00</td><td class="px-3 py-2 font-mono text-down">58,310.00</td><td class="px-3 py-2 font-mono font-semibold">58,410.00</td><td class="px-3 py-2 font-mono text-muted-foreground">6.79M</td></tr><tr class="border-t border-border hover:bg-muted/40"><td class="px-3 py-2 font-mono text-xs">2026-07-10 00:00</td><td class="px-3 py-2 font-mono">60,590.00</td><td class="px-3 py-2 font-mono text-up">60,990.00</td><td class="px-3 py-2 font-mono text-down">60,000.00</td><td class="px-3 py-2 font-mono font-semibold">60,000.00</td><td class="px-3 py-2 font-mono text-muted-foreground">3.02M</td></tr><tr class="border-t border-border hover:bg-muted/40"><td class="px-3 py-2 font-mono text-xs">2026-07-09 00:00</td><td class="px-3 py-2 font-mono">60,790.00</td><td class="px-3 py-2 font-mono text-up">60,990.00</td><td class="px-3 py-2 font-mono text-down">60,490.00</td><td class="px-3 py-2 font-mono font-semibold">60,590.00</td><td class="px-3 py-2 font-mono text-muted-foreground">2.21M</td></tr><tr class="border-t border-border hover:bg-muted/40"><td class="px-3 py-2 font-mono text-xs">2026-07-08 00:00</td><td class="px-3 py-2 font-mono">60,790.00</td><td class="px-3 py-2 font-mono text-up">61,290.00</td><td class="px-3 py-2 font-mono text-down">60,590.00</td><td class="px-3 py-2 font-mono font-semibold">61,090.00</td><td class="px-3 py-2 font-mono text-muted-foreground">2.05M</td></tr><tr class="border-t border-border hover:bg-muted/40"><td class="px-3 py-2 font-mono text-xs">2026-07-07 00:00</td><td class="px-3 py-2 font-mono">60,690.00</td><td class="px-3 py-2 font-mono text-up">60,990.00</td><td class="px-3 py-2 font-mono text-down">60,390.00</td><td class="px-3 py-2 font-mono font-semibold">60,790.00</td><td class="px-3 py-2 font-mono text-muted-foreground">2.55M</td></tr><tr class="border-t border-border hover:bg-muted/40"><td class="px-3 py-2 font-mono text-xs">2026-07-06 00:00</td><td class="px-3 py-2 font-mono">61,490.00</td><td class="px-3 py-2 font-mono text-up">61,980.00</td><td class="px-3 py-2 font-mono text-down">60,200.00</td><td class="px-3 py-2 font-mono font-semibold">60,690.00</td><td class="px-3 py-2 font-mono text-muted-foreground">4.17M</td></tr><tr class="border-t border-border hover:bg-muted/40"><td class="px-3 py-2 font-mono text-xs">2026-07-03 00:00</td><td class="px-3 py-2 font-mono">61,780.00</td><td class="px-3 py-2 font-mono text-up">61,880.00</td><td class="px-3 py-2 font-mono text-down">61,490.00</td><td class="px-3 py-2 font-mono font-semibold">61,490.00</td><td class="px-3 py-2 font-mono text-muted-foreground">2.60M</td></tr><tr class="border-t border-border hover:bg-muted/40"><td class="px-3 py-2 font-mono text-xs">2026-07-02 00:00</td><td class="px-3 py-2 font-mono">62,480.00</td><td class="px-3 py-2 font-mono text-up">62,580.00</td><td class="px-3 py-2 font-mono text-down">61,580.00</td><td class="px-3 py-2 font-mono font-semibold">61,580.00</td><td class="px-3 py-2 font-mono text-muted-foreground">2.74M</td></tr><tr class="border-t border-border hover:bg-muted/40"><td class="px-3 py-2 font-mono text-xs">2026-07-01 00:00</td><td class="px-3 py-2 font-mono">61,880.00</td><td class="px-3 py-2 font-mono text-up">62,480.00</td><td class="px-3 py-2 font-mono text-down">61,580.00</td><td class="px-3 py-2 font-mono font-semibold">62,480.00</td><td class="px-3 py-2 font-mono text-muted-foreground">4.23M</td></tr><tr class="border-t border-border hover:bg-muted/40"><td class="px-3 py-2 font-mono text-xs">2026-06-30 00:00</td><td class="px-3 py-2 font-mono">61,680.00</td><td class="px-3 py-2 font-mono text-up">62,080.00</td><td class="px-3 py-2 font-mono text-down">61,390.00</td><td class="px-3 py-2 font-mono font-semibold">61,680.00</td><td class="px-3 py-2 font-mono text-muted-foreground">4.62M</td></tr><tr class="border-t border-border hover:bg-muted/40"><td class="px-3 py-2 font-mono text-xs">2026-06-29 00:00</td><td class="px-3 py-2 font-mono">61,090.00</td><td class="px-3 py-2 font-mono text-up">61,680.00</td><td class="px-3 py-2 font-mono text-down">60,890.00</td><td class="px-3 py-2 font-mono font-semibold">61,490.00</td><td class="px-3 py-2 font-mono text-muted-foreground">5.48M</td></tr><tr class="border-t border-border hover:bg-muted/40"><td class="px-3 py-2 font-mono text-xs">2026-06-26 00:00</td><td class="px-3 py-2 font-mono">60,490.00</td><td class="px-3 py-2 font-mono text-up">60,990.00</td><td class="px-3 py-2 font-mono text-down">60,300.00</td><td class="px-3 py-2 font-mono font-semibold">60,890.00</td><td class="px-3 py-2 font-mono text-muted-foreground">3.34M</td></tr><tr class="border-t border-border hover:bg-muted/40"><td class="px-3 py-2 font-mono text-xs">2026-06-25 00:00</td><td class="px-3 py-2 font-mono">60,590.00</td><td class="px-3 py-2 font-mono text-up">60,790.00</td><td class="px-3 py-2 font-mono text-down">60,300.00</td><td class="px-3 py-2 font-mono font-semibold">60,300.00</td><td class="px-3 py-2 font-mono text-muted-foreground">3.09M</td></tr><tr class="border-t border-border hover:bg-muted/40"><td class="px-3 py-2 font-mono text-xs">2026-06-24 00:00</td><td class="px-3 py-2 font-mono">60,890.00</td><td class="px-3 py-2 font-mono text-up">61,090.00</td><td class="px-3 py-2 font-mono text-down">60,490.00</td><td class="px-3 py-2 font-mono font-semibold">60,490.00</td><td class="px-3 py-2 font-mono text-muted-foreground">2.54M</td></tr><tr class="border-t border-border hover:bg-muted/40"><td class="px-3 py-2 font-mono text-xs">2026-06-23 00:00</td><td class="px-3 py-2 font-mono">61,190.00</td><td class="px-3 py-2 font-mono text-up">62,080.00</td><td class="px-3 py-2 font-mono text-down">60,790.00</td><td class="px-3 py-2 font-mono font-semibold">60,790.00</td><td class="px-3 py-2 font-mono text-muted-foreground">5.18M</td></tr><tr class="border-t border-border hover:bg-muted/40"><td class="px-3 py-2 font-mono text-xs">2026-06-22 00:00</td><td class="px-3 py-2 font-mono">61,190.00</td><td class="px-3 py-2 font-mono text-up">61,290.00</td><td class="px-3 py-2 font-mono text-down">60,690.00</td><td class="px-3 py-2 font-mono font-semibold">60,790.00</td><td class="px-3 py-2 font-mono text-muted-foreground">2.69M</td></tr><tr class="border-t border-border hover:bg-muted/40"><td class="px-3 py-2 font-mono text-xs">2026-06-19 00:00</td><td class="px-3 py-2 font-mono">61,390.00</td><td class="px-3 py-2 font-mono text-up">61,390.00</td><td class="px-3 py-2 font-mono text-down">60,690.00</td><td class="px-3 py-2 font-mono font-semibold">61,190.00</td><td class="px-3 py-2 font-mono text-muted-foreground">4.87M</td></tr><tr class="border-t border-border hover:bg-muted/40"><td class="px-3 py-2 font-mono text-xs">2026-06-18 00:00</td><td class="px-3 py-2 font-mono">61,780.00</td><td class="px-3 py-2 font-mono text-up">61,880.00</td><td class="px-3 py-2 font-mono text-down">61,090.00</td><td class="px-3 py-2 font-mono font-semibold">61,090.00</td><td class="px-3 py-2 font-mono text-muted-foreground">4.65M</td></tr><tr class="border-t border-border hover:bg-muted/40"><td class="px-3 py-2 font-mono text-xs">2026-06-17 00:00</td><td class="px-3 py-2 font-mono">61,290.00</td><td class="px-3 py-2 font-mono text-up">61,880.00</td><td class="px-3 py-2 font-mono text-down">61,090.00</td><td class="px-3 py-2 font-mono font-semibold">61,680.00</td><td class="px-3 py-2 font-mono text-muted-foreground">6.83M</td></tr><tr class="border-t border-border hover:bg-muted/40"><td class="px-3 py-2 font-mono text-xs">2026-06-16 00:00</td><td class="px-3 py-2 font-mono">61,290.00</td><td class="px-3 py-2 font-mono text-up">61,780.00</td><td class="px-3 py-2 font-mono text-down">61,090.00</td><td class="px-3 py-2 font-mono font-semibold">61,290.00</td><td class="px-3 py-2 font-mono text-muted-foreground">3.11M</td></tr><tr class="border-t border-border hover:bg-muted/40"><td class="px-3 py-2 font-mono text-xs">2026-06-15 00:00</td><td class="px-3 py-2 font-mono">61,780.00</td><td class="px-3 py-2 font-mono text-up">61,880.00</td><td class="px-3 py-2 font-mono text-down">61,090.00</td><td class="px-3 py-2 font-mono font-semibold">61,090.00</td><td class="px-3 py-2 font-mono text-muted-foreground">5.22M</td></tr><tr class="border-t border-border hover:bg-muted/40"><td class="px-3 py-2 font-mono text-xs">2026-06-12 00:00</td><td class="px-3 py-2 font-mono">61,390.00</td><td class="px-3 py-2 font-mono text-up">61,580.00</td><td class="px-3 py-2 font-mono text-down">61,090.00</td><td class="px-3 py-2 font-mono font-semibold">61,090.00</td><td class="px-3 py-2 font-mono text-muted-foreground">3.15M</td></tr><tr class="border-t border-border hover:bg-muted/40"><td class="px-3 py-2 font-mono text-xs">2026-06-11 00:00</td><td class="px-3 py-2 font-mono">60,990.00</td><td class="px-3 py-2 font-mono text-up">61,390.00</td><td class="px-3 py-2 font-mono text-down">60,790.00</td><td class="px-3 py-2 font-mono font-semibold">61,090.00</td><td class="px-3 py-2 font-mono text-muted-foreground">2.59M</td></tr><tr class="border-t border-border hover:bg-muted/40"><td class="px-3 py-2 font-mono text-xs">2026-06-10 00:00</td><td class="px-3 py-2 font-mono">61,090.00</td><td class="px-3 py-2 font-mono text-up">61,680.00</td><td class="px-3 py-2 font-mono text-down">61,090.00</td><td class="px-3 py-2 font-mono font-semibold">61,190.00</td><td class="px-3 py-2 font-mono text-muted-foreground">2.31M</td></tr></tbody></table></div></div></div><div class="rounded-md border border-border bg-card p-3"><div class="mb-3"><h3 class="text-sm font-semibold text-foreground">Chọn mã</h3></div><input class="h-9 w-full rounded-md border border-input bg-card px-3 text-sm outline-none placeholder:text-muted-foreground focus:border-foreground mb-3 font-mono" placeholder="Lọc mã CK..." value=""><div class="max-h-[440px] space-y-1 overflow-auto pr-1"><button class="flex w-full items-center justify-between rounded-md px-3 py-1.5 text-[13px] bg-foreground text-background"><span class="font-mono">VCB</span><span class="h-1.5 w-1.5 rounded-full bg-background"></span></button><button class="flex w-full items-center justify-between rounded-md px-3 py-1.5 text-[13px] text-foreground hover:bg-muted"><span class="font-mono">TCB</span></button><button class="flex w-full items-center justify-between rounded-md px-3 py-1.5 text-[13px] text-foreground hover:bg-muted"><span class="font-mono">MBB</span></button><button class="flex w-full items-center justify-between rounded-md px-3 py-1.5 text-[13px] text-foreground hover:bg-muted"><span class="font-mono">ACB</span></button><button class="flex w-full items-center justify-between rounded-md px-3 py-1.5 text-[13px] text-foreground hover:bg-muted"><span class="font-mono">BID</span></button><button class="flex w-full items-center justify-between rounded-md px-3 py-1.5 text-[13px] text-foreground hover:bg-muted"><span class="font-mono">SSI</span></button><button class="flex w-full items-center justify-between rounded-md px-3 py-1.5 text-[13px] text-foreground hover:bg-muted"><span class="font-mono">VND</span></button><button class="flex w-full items-center justify-between rounded-md px-3 py-1.5 text-[13px] text-foreground hover:bg-muted"><span class="font-mono">VHM</span></button><button class="flex w-full items-center justify-between rounded-md px-3 py-1.5 text-[13px] text-foreground hover:bg-muted"><span class="font-mono">VRE</span></button><button class="flex w-full items-center justify-between rounded-md px-3 py-1.5 text-[13px] text-foreground hover:bg-muted"><span class="font-mono">KDH</span></button><button class="flex w-full items-center justify-between rounded-md px-3 py-1.5 text-[13px] text-foreground hover:bg-muted"><span class="font-mono">FPT</span></button><button class="flex w-full items-center justify-between rounded-md px-3 py-1.5 text-[13px] text-foreground hover:bg-muted"><span class="font-mono">CMG</span></button><button class="flex w-full items-center justify-between rounded-md px-3 py-1.5 text-[13px] text-foreground hover:bg-muted"><span class="font-mono">MWG</span></button><button class="flex w-full items-center justify-between rounded-md px-3 py-1.5 text-[13px] text-foreground hover:bg-muted"><span class="font-mono">HPG</span></button><button class="flex w-full items-center justify-between rounded-md px-3 py-1.5 text-[13px] text-foreground hover:bg-muted"><span class="font-mono">GAS</span></button><button class="flex w-full items-center justify-between rounded-md px-3 py-1.5 text-[13px] text-foreground hover:bg-muted"><span class="font-mono">PLX</span></button><button class="flex w-full items-center justify-between rounded-md px-3 py-1.5 text-[13px] text-foreground hover:bg-muted"><span class="font-mono">POW</span></button><button class="flex w-full items-center justify-between rounded-md px-3 py-1.5 text-[13px] text-foreground hover:bg-muted"><span class="font-mono">VNM</span></button><button class="flex w-full items-center justify-between rounded-md px-3 py-1.5 text-[13px] text-foreground hover:bg-muted"><span class="font-mono">SAB</span></button><button class="flex w-full items-center justify-between rounded-md px-3 py-1.5 text-[13px] text-foreground hover:bg-muted"><span class="font-mono">MSN</span></button><button class="flex w-full items-center justify-between rounded-md px-3 py-1.5 text-[13px] text-foreground hover:bg-muted"><span class="font-mono">VIC</span></button><button class="flex w-full items-center justify-between rounded-md px-3 py-1.5 text-[13px] text-foreground hover:bg-muted"><span class="font-mono">VPB</span></button><button class="flex w-full items-center justify-between rounded-md px-3 py-1.5 text-[13px] text-foreground hover:bg-muted"><span class="font-mono">CTG</span></button><button class="flex w-full items-center justify-between rounded-md px-3 py-1.5 text-[13px] text-foreground hover:bg-muted"><span class="font-mono">TPB</span></button><button class="flex w-full items-center justify-between rounded-md px-3 py-1.5 text-[13px] text-foreground hover:bg-muted"><span class="font-mono">SHB</span></button><button class="flex w-full items-center justify-between rounded-md px-3 py-1.5 text-[13px] text-foreground hover:bg-muted"><span class="font-mono">STB</span></button><button class="flex w-full items-center justify-between rounded-md px-3 py-1.5 text-[13px] text-foreground hover:bg-muted"><span class="font-mono">PNJ</span></button><button class="flex w-full items-center justify-between rounded-md px-3 py-1.5 text-[13px] text-foreground hover:bg-muted"><span class="font-mono">HDB</span></button><button class="flex w-full items-center justify-between rounded-md px-3 py-1.5 text-[13px] text-foreground hover:bg-muted"><span class="font-mono">LPB</span></button><button class="flex w-full items-center justify-between rounded-md px-3 py-1.5 text-[13px] text-foreground hover:bg-muted"><span class="font-mono">MSB</span></button><button class="flex w-full items-center justify-between rounded-md px-3 py-1.5 text-[13px] text-foreground hover:bg-muted"><span class="font-mono">OCB</span></button><button class="flex w-full items-center justify-between rounded-md px-3 py-1.5 text-[13px] text-foreground hover:bg-muted"><span class="font-mono">REE</span></button><button class="flex w-full items-center justify-between rounded-md px-3 py-1.5 text-[13px] text-foreground hover:bg-muted"><span class="font-mono">NVL</span></button><button class="flex w-full items-center justify-between rounded-md px-3 py-1.5 text-[13px] text-foreground hover:bg-muted"><span class="font-mono">PDR</span></button><button class="flex w-full items-center justify-between rounded-md px-3 py-1.5 text-[13px] text-foreground hover:bg-muted"><span class="font-mono">BCM</span></button><button class="flex w-full items-center justify-between rounded-md px-3 py-1.5 text-[13px] text-foreground hover:bg-muted"><span class="font-mono">SBT</span></button><button class="flex w-full items-center justify-between rounded-md px-3 py-1.5 text-[13px] text-foreground hover:bg-muted"><span class="font-mono">IMP</span></button><button class="flex w-full items-center justify-between rounded-md px-3 py-1.5 text-[13px] text-foreground hover:bg-muted"><span class="font-mono">KDC</span></button><button class="flex w-full items-center justify-between rounded-md px-3 py-1.5 text-[13px] text-foreground hover:bg-muted"><span class="font-mono">PC1</span></button><button class="flex w-full items-center justify-between rounded-md px-3 py-1.5 text-[13px] text-foreground hover:bg-muted"><span class="font-mono">HDG</span></button><button class="flex w-full items-center justify-between rounded-md px-3 py-1.5 text-[13px] text-foreground hover:bg-muted"><span class="font-mono">DRC</span></button><button class="flex w-full items-center justify-between rounded-md px-3 py-1.5 text-[13px] text-foreground hover:bg-muted"><span class="font-mono">DXG</span></button><button class="flex w-full items-center justify-between rounded-md px-3 py-1.5 text-[13px] text-foreground hover:bg-muted"><span class="font-mono">IDJ</span></button><button class="flex w-full items-center justify-between rounded-md px-3 py-1.5 text-[13px] text-foreground hover:bg-muted"><span class="font-mono">ITA</span></button><button class="flex w-full items-center justify-between rounded-md px-3 py-1.5 text-[13px] text-foreground hover:bg-muted"><span class="font-mono">JVC</span></button><button class="flex w-full items-center justify-between rounded-md px-3 py-1.5 text-[13px] text-foreground hover:bg-muted"><span class="font-mono">LSG</span></button><button class="flex w-full items-center justify-between rounded-md px-3 py-1.5 text-[13px] text-foreground hover:bg-muted"><span class="font-mono">MSH</span></button><button class="flex w-full items-center justify-between rounded-md px-3 py-1.5 text-[13px] text-foreground hover:bg-muted"><span class="font-mono">NSC</span></button><button class="flex w-full items-center justify-between rounded-md px-3 py-1.5 text-[13px] text-foreground hover:bg-muted"><span class="font-mono">PVT</span></button><button class="flex w-full items-center justify-between rounded-md px-3 py-1.5 text-[13px] text-foreground hover:bg-muted"><span class="font-mono">MBC</span></button><button class="flex w-full items-center justify-between rounded-md px-3 py-1.5 text-[13px] text-foreground hover:bg-muted"><span class="font-mono">DIG</span></button><button class="flex w-full items-center justify-between rounded-md px-3 py-1.5 text-[13px] text-foreground hover:bg-muted"><span class="font-mono">FCN</span></button><button class="flex w-full items-center justify-between rounded-md px-3 py-1.5 text-[13px] text-foreground hover:bg-muted"><span class="font-mono">HCM</span></button><button class="flex w-full items-center justify-between rounded-md px-3 py-1.5 text-[13px] text-foreground hover:bg-muted"><span class="font-mono">CTC</span></button><button class="flex w-full items-center justify-between rounded-md px-3 py-1.5 text-[13px] text-foreground hover:bg-muted"><span class="font-mono">FPT</span></button><button class="flex w-full items-center justify-between rounded-md px-3 py-1.5 text-[13px] text-foreground hover:bg-muted"><span class="font-mono">SMT</span></button><button class="flex w-full items-center justify-between rounded-md px-3 py-1.5 text-[13px] text-foreground hover:bg-muted"><span class="font-mono">KSC</span></button><button class="flex w-full items-center justify-between rounded-md px-3 py-1.5 text-[13px] text-foreground hover:bg-muted"><span class="font-mono">VGC</span></button><button class="flex w-full items-center justify-between rounded-md px-3 py-1.5 text-[13px] text-foreground hover:bg-muted"><span class="font-mono">BVH</span></button></div></div></div></div></main></div></div><section aria-label="Notifications alt+T" tabindex="-1" aria-live="polite" aria-relevant="additions text" aria-atomic="false"></section></div>
+    <script type="module" src="/src/main.tsx?t=1791004633844"></script>
+  
+</body></html>

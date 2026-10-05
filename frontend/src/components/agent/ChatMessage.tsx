@@ -8,15 +8,15 @@ export function ChatMessage({ turn }: { turn: ChatTurn }) {
   return (
     <div className={cn("flex items-end gap-2.5", isUser ? "justify-end" : "justify-start")}>
       {!isUser ? (
-        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-foreground text-background">
+        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground">
           <Bot size={13} />
         </div>
       ) : null}
       <div
         className={cn(
-          "max-w-2xl rounded-md px-3 py-2 text-sm leading-relaxed",
+          "max-w-2xl rounded-md px-3 py-2 text-sm leading-relaxed shadow-sm",
           isUser
-            ? "bg-foreground text-background"
+            ? "bg-primary text-primary-foreground"
             : "border border-border bg-card text-foreground",
         )}
       >

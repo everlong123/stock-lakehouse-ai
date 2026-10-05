@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { ArrowDown, ArrowUp, Loader2, Play } from "lucide-react";
@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { useMarket } from "@/hooks/useMarket";
 import { useBacktest } from "@/hooks/useBacktest";
 import { STRATEGIES } from "@/utils/constants";
 import { formatNumber, formatPercent, formatPrice, shortDate } from "@/utils/format";
@@ -20,18 +21,22 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
 const DEFAULT_SYMBOLS = [
-  "VCB", "TCB", "MBB", "ACB", "BID", "FPT", "HPG", "VHM", "VNM", "VIC",
+  "AAPL", "MSFT", "GOOGL", "AMZN", "NVDA", "META", "TSLA", "AMD", "JPM", "V",
 ];
 
 const tooltipStyle = {
-  background: "white",
-  border: "1px solid hsl(220 14% 88%)",
+  background: "hsl(var(--card))",
+  border: "1px solid hsl(var(--border))",
   borderRadius: 6,
   fontSize: 12,
 };
 
 export function BacktestingPage() {
-  const [symbol, setSymbol] = useState("VCB");
+  const { symbol: ctxSymbol, setSymbol } = useMarket();
+  const [localSymbol, setLocalSymbol] = useState(ctxSymbol);
+  // Sync localSymbol when ctxSymbol changes (e.g., user changes symbol from Header)
+  useEffect(() => { setLocalSymbol(ctxSymbol); setSymbol(ctxSymbol); }, [ctxSymbol]);
+  const symbol = localSymbol || ctxSymbol;
   const [strategy, setStrategy] = useState("ma_crossover");
 
   const symbolsQuery = useQuery({
@@ -77,7 +82,7 @@ export function BacktestingPage() {
         actions={
           <select
             value={symbol}
-            onChange={(e) => setSymbol(e.target.value)}
+            onChange={(e) => { setLocalSymbol(e.target.value); setSymbol(e.target.value); }}
             className="h-9 rounded-md border border-input bg-card px-3 font-mono text-sm outline-none focus:border-foreground"
           >
             {availableSymbols.map((s) => (

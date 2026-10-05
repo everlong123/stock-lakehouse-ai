@@ -30,14 +30,14 @@ from app.core.logging_config import get_logger
 logger = get_logger(__name__)
 
 
-# Recommended fallback chains per interval (best → worst).  When a
-# chain is empty (no providers available), we raise DataSourceError.
+# Recommended fallback chains per interval.  For US daily bars we prefer
+# yahoo_http (direct v8 chart API, 10y+ history, no key) and fall through
+# to the official yfinance package, then Finnhub / Alpha Vantage (key-based),
+# finally web_scraper as a last resort.  Stooq is excluded from the daily
+# chain because their public CSV endpoint now requires a JS challenge that
+# cannot be solved from a server-side script.
 DEFAULT_CHAINS: dict[str, list[str]] = {
-    "1d": ["yahoo_http", "yfinance", "stooq", "finnhub", "alpha_vantage", "web_scraper"],
-    "1h": ["yahoo_http", "yfinance", "stooq", "finnhub", "web_scraper"],
-    "15m": ["yahoo_http", "yfinance", "finnhub", "web_scraper"],
-    "5m": ["yahoo_http", "yfinance", "web_scraper"],
-    "1m": ["yahoo_http", "yfinance"],
+    "1d": ["yahoo_http", "yfinance", "finnhub", "alpha_vantage", "web_scraper"],
 }
 
 

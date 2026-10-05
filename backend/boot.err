@@ -1,0 +1,21 @@
+INFO:     Started server process [3784]
+INFO:     Waiting for application startup.
+2026-10-05 23:59:14 | INFO | app.services.auto_refresh | AutoRefreshService started: on_start=False interval=21600s symbols=621 batch_size=20
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+2026-10-05 23:59:39 | INFO | app.lakehouse.storage_factory | Using MinIO storage backend.
+2026-10-05 23:59:39 | INFO | app.forecasting.linear_regression | Linear regression fitted on 328 rows and 22 features
+2026-10-05 23:59:39 | INFO | app.forecasting.trainer | Trained linear_regression for VCB: {'mae': 520.3633805128659, 'rmse': 731.2903039838517, 'mape': 0.8918566775808776, 'directional_accuracy': 0.6065573770491803}
+2026-10-05 23:59:47 | INFO | app.forecasting.linear_regression | Linear regression fitted on 328 rows and 22 features
+2026-10-05 23:59:47 | INFO | app.forecasting.trainer | Trained linear_regression for VNM: {'mae': 733.3590023569635, 'rmse': 939.8386256936786, 'mape': 1.2358895159728076, 'directional_accuracy': 0.45161290322580644}
+2026-10-05 23:59:47 | INFO | app.forecasting.linear_regression | Linear regression fitted on 329 rows and 22 features
+2026-10-05 23:59:47 | INFO | app.forecasting.trainer | Trained linear_regression for FPT: {'mae': 975.4719932686676, 'rmse': 1316.9807775915378, 'mape': 1.5320681386918822, 'directional_accuracy': 0.4153846153846154}
+2026-10-05 23:59:48 | INFO | app.forecasting.linear_regression | Linear regression fitted on 329 rows and 22 features
+2026-10-05 23:59:48 | INFO | app.forecasting.trainer | Trained linear_regression for HPG: {'mae': 253.5039059998642, 'rmse': 336.76654692441787, 'mape': 1.1763912050991099, 'directional_accuracy': 0.5967741935483871}
+2026-10-05 23:59:48 | INFO | app.forecasting.linear_regression | Linear regression fitted on 328 rows and 22 features
+2026-10-05 23:59:48 | INFO | app.forecasting.trainer | Trained linear_regression for MWG: {'mae': 999.7721938645919, 'rmse': 1408.6339254036516, 'mape': 1.3848134652007587, 'directional_accuracy': 0.6}
+2026-10-05 23:59:48 | INFO | app.forecasting.arima | ARIMA fitted with order=(5, 1, 0) on 363 observations
+2026-10-05 23:59:48 | INFO | app.forecasting.trainer | Trained arima for VCB: {'mae': 5812.787609120738, 'rmse': 6147.0221919659725, 'mape': 9.96600608388938, 'directional_accuracy': 0.4411764705882353}
+2026-10-05 23:59:48 | INFO | app.forecasting.arima | ARIMA fitted with order=(5, 1, 0) on 363 observations
+2026-10-05 23:59:48 | INFO | app.forecasting.trainer | Trained arima for VNM: {'mae': 8746.384546123021, 'rmse': 9075.172519920583, 'mape': 14.883480243069828, 'directional_accuracy': 0.43478260869565216}
+2026-10-06 00:02:23 | WARNING | app.main | Domain error: Unsupported model: lstm

@@ -3,8 +3,8 @@ import { EquityPoint } from "@/types/backtesting";
 import { shortDate } from "@/utils/format";
 
 const tooltipStyle = {
-  background: "white",
-  border: "1px solid hsl(220 14% 88%)",
+  background: "hsl(var(--card))",
+  border: "1px solid hsl(var(--border))",
   borderRadius: 6,
   fontSize: 12,
 };
@@ -21,9 +21,9 @@ export function EquityCurve({ data }: { data: EquityPoint[] }) {
           <Area
             type="monotone"
             dataKey="equity"
-            stroke="hsl(168 76% 32%)"
+            stroke="hsl(178 70% 24%)"
             strokeWidth={2}
-            fill="hsl(168 76% 32%)"
+            fill="hsl(178 70% 24%)"
             fillOpacity={0.08}
           />
         </AreaChart>

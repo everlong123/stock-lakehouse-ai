@@ -1,0 +1,63 @@
+INFO:     Started server process [6132]
+INFO:     Waiting for application startup.
+2026-10-05 11:23:19 | INFO | app.data_sources.factory | Using MultiSourceProvider (failover chain of real APIs).
+2026-10-05 11:23:19 | INFO | app.services.auto_refresh | AutoRefreshService started: on_start=True interval=21600s symbols=621 batch_size=20
+INFO:     Application startup complete.
+2026-10-05 11:23:19 | INFO | app.data_sources.factory | Using YahooHttpProvider (direct v8 chart API, browser UA).
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+2026-10-05 11:23:19 | INFO | app.data_sources.factory | Using YFinancePythonProvider (official yfinance package).
+2026-10-05 11:23:19 | INFO | app.data_sources.factory | Using FinnhubProvider (Free tier).
+2026-10-05 11:23:19 | INFO | app.data_sources.factory | Using AlphaVantageProvider.
+2026-10-05 11:23:19 | INFO | app.data_sources.factory | Using StockScraperProvider (HTTP scrape, no key).
+2026-10-05 11:23:19 | INFO | app.lakehouse.storage_factory | Using MinIO storage backend.
+2026-10-05 11:23:52 | INFO | app.data_sources.yahoo_http_provider | [yahoo_http] returned 1 rows for A (2026-10-02 -> 2026-10-02)
+2026-10-05 11:23:52 | INFO | app.data_sources.multi_source | [yahoo_http] returned 1 rows for A (1d)
+2026-10-05 11:23:52 | INFO | app.lakehouse.bronze | Bronze append complete: received=1 duplicates=1 paths=1
+2026-10-05 11:23:53 | INFO | app.data_sources.yahoo_http_provider | [yahoo_http] returned 1 rows for AAL (2026-10-02 -> 2026-10-02)
+2026-10-05 11:23:53 | INFO | app.data_sources.multi_source | [yahoo_http] returned 1 rows for AAL (1d)
+2026-10-05 11:23:53 | INFO | app.lakehouse.bronze | Bronze append complete: received=1 duplicates=1 paths=1
+2026-10-05 11:23:54 | INFO | app.data_sources.yahoo_http_provider | [yahoo_http] returned 1 rows for AAPL (2026-10-02 -> 2026-10-02)
+2026-10-05 11:23:54 | INFO | app.data_sources.multi_source | [yahoo_http] returned 1 rows for AAPL (1d)
+2026-10-05 11:23:54 | INFO | app.lakehouse.bronze | Bronze append complete: received=1 duplicates=1 paths=1
+2026-10-05 11:23:54 | INFO | app.data_sources.yahoo_http_provider | [yahoo_http] returned 1 rows for ABBV (2026-10-02 -> 2026-10-02)
+2026-10-05 11:23:54 | INFO | app.data_sources.multi_source | [yahoo_http] returned 1 rows for ABBV (1d)
+2026-10-05 11:23:55 | INFO | app.lakehouse.bronze | Bronze append complete: received=1 duplicates=1 paths=1
+2026-10-05 11:23:55 | INFO | app.data_sources.yahoo_http_provider | [yahoo_http] returned 1 rows for ABNB (2026-10-02 -> 2026-10-02)
+2026-10-05 11:23:55 | INFO | app.data_sources.multi_source | [yahoo_http] returned 1 rows for ABNB (1d)
+2026-10-05 11:23:55 | INFO | app.lakehouse.bronze | Bronze append complete: received=1 duplicates=1 paths=1
+2026-10-05 11:23:56 | INFO | app.data_sources.yahoo_http_provider | [yahoo_http] returned 1 rows for ABT (2026-10-02 -> 2026-10-02)
+2026-10-05 11:23:56 | INFO | app.data_sources.multi_source | [yahoo_http] returned 1 rows for ABT (1d)
+2026-10-05 11:23:56 | INFO | app.lakehouse.bronze | Bronze append complete: received=1 duplicates=1 paths=1
+2026-10-05 11:23:56 | INFO | app.data_sources.yahoo_http_provider | [yahoo_http] returned 1 rows for ACAD (2026-10-02 -> 2026-10-02)
+2026-10-05 11:23:56 | INFO | app.data_sources.multi_source | [yahoo_http] returned 1 rows for ACAD (1d)
+2026-10-05 11:23:57 | INFO | app.lakehouse.bronze | Bronze append complete: received=1 duplicates=1 paths=1
+2026-10-05 11:23:57 | INFO | app.data_sources.yahoo_http_provider | [yahoo_http] returned 1 rows for ACHC (2026-10-02 -> 2026-10-02)
+2026-10-05 11:23:57 | INFO | app.data_sources.multi_source | [yahoo_http] returned 1 rows for ACHC (1d)
+2026-10-05 11:23:57 | INFO | app.lakehouse.bronze | Bronze append complete: received=1 duplicates=1 paths=1
+2026-10-05 11:23:58 | INFO | app.data_sources.yahoo_http_provider | [yahoo_http] returned 1 rows for ACI (2026-10-02 -> 2026-10-02)
+2026-10-05 11:23:58 | INFO | app.data_sources.multi_source | [yahoo_http] returned 1 rows for ACI (1d)
+2026-10-05 11:23:58 | INFO | app.lakehouse.bronze | Bronze append complete: received=1 duplicates=1 paths=1
+2026-10-05 11:23:59 | INFO | app.data_sources.yahoo_http_provider | [yahoo_http] returned 1 rows for ACLS (2026-10-02 -> 2026-10-02)
+2026-10-05 11:23:59 | INFO | app.data_sources.multi_source | [yahoo_http] returned 1 rows for ACLS (1d)
+2026-10-05 11:23:59 | INFO | app.lakehouse.bronze | Bronze append complete: received=1 duplicates=1 paths=1
+2026-10-05 11:23:59 | INFO | app.data_sources.yahoo_http_provider | [yahoo_http] returned 1 rows for ADBE (2026-10-02 -> 2026-10-02)
+2026-10-05 11:23:59 | INFO | app.data_sources.multi_source | [yahoo_http] returned 1 rows for ADBE (1d)
+2026-10-05 11:23:59 | INFO | app.lakehouse.bronze | Bronze append complete: received=1 duplicates=1 paths=1
+2026-10-05 11:24:00 | INFO | app.data_sources.yahoo_http_provider | [yahoo_http] returned 1 rows for ADI (2026-10-02 -> 2026-10-02)
+2026-10-05 11:24:00 | INFO | app.data_sources.multi_source | [yahoo_http] returned 1 rows for ADI (1d)
+2026-10-05 11:24:00 | INFO | app.lakehouse.bronze | Bronze append complete: received=1 duplicates=1 paths=1
+2026-10-05 11:24:01 | INFO | app.data_sources.yahoo_http_provider | [yahoo_http] returned 1 rows for ADM (2026-10-02 -> 2026-10-02)
+2026-10-05 11:24:01 | INFO | app.data_sources.multi_source | [yahoo_http] returned 1 rows for ADM (1d)
+2026-10-05 11:24:01 | INFO | app.lakehouse.bronze | Bronze append complete: received=1 duplicates=1 paths=1
+2026-10-05 11:24:02 | INFO | app.data_sources.yahoo_http_provider | [yahoo_http] returned 1 rows for ADP (2026-10-02 -> 2026-10-02)
+2026-10-05 11:24:02 | INFO | app.data_sources.multi_source | [yahoo_http] returned 1 rows for ADP (1d)
+2026-10-05 11:24:02 | INFO | app.lakehouse.bronze | Bronze append complete: received=1 duplicates=1 paths=1
+2026-10-05 11:24:02 | INFO | app.data_sources.yahoo_http_provider | [yahoo_http] returned 1 rows for AEE (2026-10-02 -> 2026-10-02)
+2026-10-05 11:24:02 | INFO | app.data_sources.multi_source | [yahoo_http] returned 1 rows for AEE (1d)
+2026-10-05 11:24:03 | INFO | app.lakehouse.bronze | Bronze append complete: received=1 duplicates=1 paths=1
+2026-10-05 11:24:03 | INFO | app.data_sources.yahoo_http_provider | [yahoo_http] returned 1 rows for AEHR (2026-10-02 -> 2026-10-02)
+2026-10-05 11:24:03 | INFO | app.data_sources.multi_source | [yahoo_http] returned 1 rows for AEHR (1d)
+2026-10-05 11:24:03 | INFO | app.lakehouse.bronze | Bronze append complete: received=1 duplicates=1 paths=1
+2026-10-05 11:24:04 | INFO | app.data_sources.yahoo_http_provider | [yahoo_http] returned 1 rows for AEM (2026-10-02 -> 2026-10-02)
+2026-10-05 11:24:04 | INFO | app.data_sources.multi_source | [yahoo_http] returned 1 rows for AEM (1d)
+2026-10-05 11:24:04 | INFO | app.lakehouse.bronze | Bronze append complete: received=1 duplicates=1 paths=1

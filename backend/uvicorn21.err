@@ -1,0 +1,16 @@
+INFO:     Started server process [24436]
+INFO:     Waiting for application startup.
+2026-10-05 11:42:52 | INFO | app.services.auto_refresh | AutoRefreshService started: on_start=False interval=21600s symbols=621 batch_size=20
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+2026-10-05 11:43:07 | WARNING | app.database.session | MySQL connection check failed: (pymysql.err.OperationalError) (2013, 'Lost connection to MySQL server during query')
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2026-10-05 11:43:08 | WARNING | app.agent.llm_client | Transient LLM error (attempt 1/4), retrying in 1.6s: Gemini API error 429: { "error": { "code": 429, "message": "You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-a
+2026-10-05 11:43:11 | WARNING | app.agent.llm_client | Transient LLM error (attempt 2/4), retrying in 2.1s: Gemini API error 429: { "error": { "code": 429, "message": "You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-a
+2026-10-05 11:43:15 | WARNING | app.agent.llm_client | Transient LLM error (attempt 3/4), retrying in 5.1s: Gemini API error 429: { "error": { "code": 429, "message": "You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-a
+2026-10-05 11:43:21 | ERROR | app.agent.llm_client | LLM request failed (gemini) after 4 attempt(s): Gemini API error 429: {
+  "error": {
+    "code": 429,
+    "message": "You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-a
+2026-10-05 11:43:21 | WARNING | app.agent.agent | LLM path failed (LLM request failed: Gemini API error 429: { "error": { "code": 429, "message": "You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-a). Falling back to local tool router.
+2026-10-05 11:43:21 | INFO | app.lakehouse.storage_factory | Using MinIO storage backend.

@@ -61,14 +61,14 @@ class PipelineConfig:
     # Processing
     symbols: list[str] | None = None
     interval: str = "1d"
-    lookback_days: int = 730
+    lookback_days: int = 3650  # ~10 years of daily history
     
     # Quality
     skip_silver: bool = False
     skip_gold: bool = False
     
-    # Source
-    data_source: str = "yfinance"
+    # Source - default to multi_source so we failover across yfinance/yahoo_http/alpha_vantage/etc.
+    data_source: str = "multi_source"
 
 
 @dataclass

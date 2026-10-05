@@ -107,6 +107,10 @@ class BronzeLayer:
         return self.validate_schema(frame).sort_values("timestamp").reset_index(drop=True)
 
     def record_count(self, symbol: str | None = None) -> int:
+        """Count stored objects without downloading/parsing parquet payloads.
+
+        Reading every partition just to call len() is prohibitively slow once the
+        lakehouse holds hundreds of symbols, so we count keys in the bucket instead.
+        """
         prefix = f"symbol={symbol.upper()}" if symbol else ""
-        frame = self.storage.read_prefix(self.layer_name, prefix)
-        return int(len(frame))
+        return int(self.storage.count_objects(self.layer_name, prefix))

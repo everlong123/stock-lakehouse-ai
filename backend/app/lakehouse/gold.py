@@ -49,8 +49,9 @@ class GoldLayer:
         return frame.sort_values("timestamp").reset_index(drop=True)
 
     def record_count(self, symbol: str | None = None) -> int:
+        """Count stored objects without downloading/parsing parquet payloads."""
         prefix = f"symbol={symbol.upper()}" if symbol else ""
-        return int(len(self.storage.read_prefix(self.layer_name, prefix)))
+        return int(self.storage.count_objects(self.layer_name, prefix))
 
     def _transform_spark(self, frame: pd.DataFrame, spark) -> pd.DataFrame:
         """Apply Spark numeric casting then reuse Pandas feature builder for window features."""

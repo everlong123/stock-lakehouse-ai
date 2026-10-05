@@ -50,12 +50,20 @@ class StockAnalysisAgent:
                         }
                         for call in first["tool_calls"]
                     ],
+                    # Preserve Gemini 3.x thought_signature on round-trip.
+                    "raw_parts": first.get("raw_parts"),
                 }
             )
             for call in first["tool_calls"]:
                 try:
                     args = json.loads(call["arguments"] or "{}")
-                    if "symbol" not in args and default_symbol:
+                    if "symbol" in args:
+                        # Guard against the LLM inventing a ticker out of ordinary
+                        # prose (e.g. "con AI này" -> CON). Only trust its symbol
+                        # when the message actually looks like a market question.
+                        if not _is_valid_ticker(args.get("symbol")) or not _wants_symbol_resolution(user_message):
+                            args["symbol"] = default_symbol or "AAPL"
+                    elif default_symbol:
                         args["symbol"] = default_symbol
                     result = execute_tool(call["name"], args)
                     error = None
@@ -83,28 +91,36 @@ class StockAnalysisAgent:
         return {"assistant_message": content, "tools": tool_trace}
 
     def _local_reply(self, user_message: str, default_symbol: str | None) -> dict[str, Any]:
-        """Deterministic router so the thesis demo works without an API key."""
+        """Deterministic router so the thesis demo works without an API key.
+
+        This is the offline fallback only. Chitchat / small-talk should
+        normally be answered by the LLM. If we get here without an LLM,
+        we fall back to a minimal answer that tells the user what we can
+        do, plus a tool run if we can detect a finance intent.
+        """
         text = user_message.lower()
-        symbol = _extract_symbol(user_message, default_symbol)
         plan: list[tuple[str, dict[str, Any]]] = []
 
-        # Greetings - always respond with a friendly message first.
-        if any(word in text for word in ["xin chào", "chào bạn", "chào", "hello", "hi", "hey", "helo"]):
-            greeting = _get_greeting(user_message)
-            message = (
-                f"{greeting}\n\n"
-                "Đây là Stock Analysis AI Agent. Tôi có thể giúp bạn:\n"
-                "- Tra cứu giá, chỉ báo kỹ thuật (RSI, MACD, SMA...)\n"
-                "- So sánh mô hình dự báo (Linear Regression, ARIMA, LSTM)\n"
-                "- Chạy backtest (MA Crossover, RSI Strategy)\n"
-                "- Phân tích tin tức\n\n"
-                "Bạn muốn tìm hiểu về mã nào?"
-            )
-            return {"assistant_message": message, "tools": []}
+        # 1. Symbol: prefer what the user selected in the UI, then extract from message, then fallback.
+        has_intent = _has_finance_intent(text)
+        symbol = (
+            _extract_symbol(user_message, default_symbol)
+            if has_intent
+            else (default_symbol or "AAPL").upper()
+        )
 
-        if any(word in text for word in ["cảm ơn", "thanks", "thank you", "tạm biệt", "bye"]):
-            return {"assistant_message": _get_farewell(user_message), "tools": []}
-        elif any(word in text for word in ["so sánh", "compare", "mae", "rmse"]):
+        # 2. Respond to simple greetings without finance context
+        if _is_greeting(text):
+            greeting = (
+                f"Xin chào! Mình là trợ lý phân tích chứng khoán. "
+                f"Mã hiện tại: **{symbol}**. Bạn cần mình giúp gì?\n\n"
+                "Ví dụ: \"phân tích AAPL\", \"backtest MSFT\", \"RSI VCB\", "
+                "\"dự báo NVDA\", \"so sánh models GOOGL\"."
+            )
+            return {"assistant_message": greeting, "tools": []}
+
+        # 3. Intent-based tool routing
+        if any(word in text for word in ["so sánh", "compare", "mae", "rmse"]):
             plan.append(("compare_models", {"symbol": symbol}))
         elif any(word in text for word in ["dự báo", "forecast", "lstm", "arima", "linear"]):
             model = "lstm" if "lstm" in text else "arima" if "arima" in text else "linear_regression"
@@ -112,7 +128,11 @@ class StockAnalysisAgent:
         elif any(word in text for word in ["rsi", "macd", "sma", "ema", "bollinger", "chỉ báo", "kỹ thuật"]):
             plan.append(("query_stock_data", {"symbol": symbol}))
             plan.append(("calculate_indicators", {"symbol": symbol}))
-        else:
+        elif any(word in text for word in ["backtest", "walk-forward", "walkforward"]):
+            plan.append(("run_backtest", {"symbol": symbol, "strategy": "ma_crossover"}))
+        elif has_intent:
+            # Generic intent (e.g. "phân tích VCB", "giá FPT", "thị trường") —
+            # has intent but no specific tool keyword. Default to market summary.
             plan.append(("get_market_summary", {"symbol": symbol}))
 
         tools: list[dict[str, Any]] = []
@@ -126,41 +146,133 @@ class StockAnalysisAgent:
                 error = exc.message
             tools.append({"tool_name": name, "tool_arguments": args, "tool_result": result, "error": error})
             collected[name] = result
+
+        if not collected:
+            # Pure non-finance message and the LLM is unavailable (rate limit /
+            # outage). Answer naturally instead of leaking infrastructure detail.
+            return {"assistant_message": _offline_smalltalk(user_message, symbol), "tools": []}
+
         message = _render_local_answer(user_message, collected)
         return {"assistant_message": message, "tools": tools}
 
+def _offline_smalltalk(user_message: str, symbol: str) -> str:
+    """Friendly, non-repetitive reply used only while the LLM is unreachable.
+
+    We must not pretend a model is answering, and we must not spam the same
+    "no LLM configured" sentence on every message, so we vary the phrasing and
+    point the user at something we *can* do (real backend data).
+    """
+    text = user_message.lower().strip()
+    options = [
+        (
+            f"Phần mô hình ngôn ngữ đang tạm không dùng được (hết quota nhà cung cấp), "
+            f"nhưng dữ liệu backend vẫn chạy tốt. Bạn thử hỏi: "
+            f"\"phân tích kỹ thuật {symbol}\", \"RSI {symbol}\", \"backtest {symbol}\", "
+            f"\"dự báo {symbol}\" nhé."
+        ),
+        (
+            f"Mình không gọi được LLM lúc này nên chỉ chạy được tool dữ liệu thật: giá OHLCV, "
+            f"chỉ báo kỹ thuật, backtest và dự báo cho {symbol}. Bạn muốn tra mã nào?"
+        ),
+        (
+            f"Xin lỗi, LLM đang tạm không trả lời được. Để có kết quả ngay, hãy dùng lệnh cụ thể "
+            f"như \"so sánh model {symbol}\" hoặc \"tin tức {symbol}\" — mình sẽ chạy tool lấy "
+            f"số liệu thật từ lakehouse."
+        ),
+    ]
+    # Deterministic-but-varied: hash the message so the same question does not
+    # get a different answer each time, while different questions vary.
+    index = sum(ord(ch) for ch in text) % len(options)
+    return options[index]
+
+
+def _is_greeting(text: str) -> bool:
+    """Return True if the message is a simple greeting / chitchat."""
+    GREETING_PATTERNS = (
+        "xin chào", "chào", "hello", "hi", "hey", "alo", "chào buổi",
+        "good morning", "good afternoon", "good evening", "good day",
+        "bạn khỏe không", "bạn là ai", "giúp gì được", "làm gì", "có gì",
+    )
+    # Strip trailing punctuation to match bare words
+    stripped = text.rstrip(".,!?;:")
+    return any(p in stripped for p in GREETING_PATTERNS)
+
+
+def _wants_symbol_resolution(message: str) -> bool:
+    """Return True when the user's text actually names a tradeable ticker.
+
+    The LLM happily invents a ticker from ordinary words. We only let its
+    symbol choice stand if the message also contains a known symbol, or if the
+    user is clearly asking for market data.
+    """
+    upper = message.upper()
+    if any(re.search(rf"\b{re.escape(s)}\b", upper) for s in SUPPORTED_SYMBOLS):
+        return True
+    return _has_finance_intent(message.lower())
+
+
+def _is_valid_ticker(symbol: object) -> bool:
+    """Check whether a string is a real, supported ticker — not a noise word.
+
+    We require membership in SUPPORTED_SYMBOLS rather than a loose shape check.
+    The shape check let prose words like "AI" (from "con AI này") or "CON" pass,
+    which made tools run against symbols the lakehouse has never ingested.
+    """
+    if not isinstance(symbol, str):
+        return False
+    s = symbol.strip().upper()
+    if not s:
+        return False
+    if s in SUPPORTED_SYMBOLS:
+        return True
+    return False
+
 
 def _extract_symbol(text: str, default_symbol: str | None) -> str:
+    """Extract a ticker from a Vietnamese / English user question.
+
+    We only ever return a symbol the lakehouse actually supports. Earlier
+    versions fell back to "any 2-5 char uppercase token", which mis-read prose
+    ("con AI này" -> AI, "cảm giác" -> CON) and fired tools against symbols
+    that were never ingested. Better to fall back to the user's selection.
+    """
     upper = text.upper()
+
     for symbol in SUPPORTED_SYMBOLS:
-        if re.search(rf"\b{symbol}\b", upper):
+        if re.search(rf"\b{re.escape(symbol)}\b", upper):
             return symbol
-    match = re.search(r"\b([A-Z]{1,5})\b", upper)
-    if match and match.group(1) not in {"RSI", "MACD", "SMA", "EMA", "LSTM", "MA"}:
-        return match.group(1)
-    return (default_symbol or "AAPL").upper()
+
+    fallback = (default_symbol or "AAPL").upper()
+    return fallback if fallback in SUPPORTED_SYMBOLS else "AAPL"
 
 
-def _get_greeting(text: str) -> str:
-    text_lower = text.lower()
-    if "xin chào" in text_lower or "chào bạn" in text_lower:
-        return "Xin chào bạn! 👋"
-    if "chào buổi sáng" in text_lower or "good morning" in text_lower:
-        return "Chào buổi sáng! ☀️"
-    if "chào buổi chiều" in text_lower or "good afternoon" in text_lower:
-        return "Chào buổi chiều! 🌤️"
-    if "chào buổi tối" in text_lower or "good evening" in text_lower:
-        return "Chào buổi tối! 🌙"
-    return "Chào bạn! 👋"
+def _has_finance_intent(text: str) -> bool:
+    """Return True if the user is asking about a stock, indicator, or model.
 
-
-def _get_farewell(text: str) -> str:
-    text_lower = text.lower()
-    if "cảm ơn" in text_lower or "thanks" in text_lower or "thank you" in text_lower:
-        return "Không có gì! Cảm ơn bạn đã sử dụng. Hẹn gặp lại! 🙏"
-    if "tạm biệt" in text_lower or "bye" in text_lower:
-        return "Tạm biệt! Chúc bạn một ngày tốt lành! 👋"
-    return "Hẹn gặp lại! 👋"
+    Used as a guard so we don't accidentally fire a tool just because
+    the message contains a stray uppercase token (e.g. "bạn khoẻ ko"
+    contains "KO" but the user isn't asking about Coca-Cola).
+    """
+    keywords = (
+        # Vietnamese intent
+        "phân tích", "giá", "tin tức", "chỉ báo", "kỹ thuật", "cổ phiếu",
+        "cổ tức", "dự báo", "backtest", "so sánh", "mô hình", "lợi nhuận",
+        "doanh thu", "thị trường", "vn-index", "vnindex", "hose", "hnx",
+        "khối lượng", "thanh khoản", "tín hiệu", "ngành",
+        "open", "close", "high", "low", "volume",
+        # Indicators / models / strategies
+        "rsi", "macd", "sma", "ema", "bollinger", "atr", "adx", "obv", "vwap", "stoch",
+        "lstm", "arima", "linear", "regression", "xgboost", "model",
+        "ma crossover", "crossover", "rsi strategy",
+        # English verbs
+        "analyze", "analyse", "price", "chart", "forecast",
+        "compare", "backtest", "back-test", "show me", "tell me about",
+        "what about", "how is", "how's",
+    )
+    for kw in keywords:
+        if kw in text:
+            return True
+    return False
 
 
 def _render_local_answer(question: str, collected: dict[str, Any]) -> str:

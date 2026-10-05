@@ -24,8 +24,8 @@ interface PriceChartProps {
 }
 
 const tooltipStyle = {
-  background: "white",
-  border: "1px solid hsl(220 14% 88%)",
+  background: "hsl(var(--card))",
+  border: "1px solid hsl(var(--border))",
   borderRadius: 6,
   fontSize: 12,
 };

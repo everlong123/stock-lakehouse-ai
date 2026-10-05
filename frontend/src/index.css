@@ -2,28 +2,39 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+ * Theme: Broker-style teal palette
+ * Inspired by VNDirect / TCBS / SSI dashboards: white surfaces with
+ * a saturated teal brand color and clear up/down semantics.
+ */
 :root {
   --background: 0 0% 100%;
-  --foreground: 220 18% 12%;
+  --foreground: 220 22% 14%;
 
   --card: 0 0% 100%;
-  --card-foreground: 220 18% 12%;
+  --card-foreground: 220 22% 14%;
 
-  --muted: 220 14% 96%;
-  --muted-foreground: 220 10% 38%;
+  --muted: 210 20% 96%;
+  --muted-foreground: 220 12% 40%;
 
-  --border: 220 14% 88%;
-  --input: 220 14% 84%;
+  --border: 214 16% 88%;
+  --input: 214 16% 84%;
 
-  --primary: 168 76% 32%;
+  /* Brand: deep teal (≈ TCBS blue-teal) */
+  --primary: 178 70% 24%;
   --primary-foreground: 0 0% 100%;
 
-  --accent: 220 14% 94%;
-  --accent-foreground: 220 18% 14%;
+  /* Soft accent used for hover / selection */
+  --accent: 178 30% 94%;
+  --accent-foreground: 178 70% 20%;
 
-  --up: 152 60% 32%;
-  --down: 0 64% 48%;
-  --warn: 32 88% 44%;
+  /* Market semantics */
+  --up: 152 62% 32%;
+  --down: 0 66% 48%;
+  --warn: 32 92% 44%;
+
+  /* Body */
+  --body-font: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
 }
 
 * { box-sizing: border-box; }
@@ -32,25 +43,26 @@ body {
   margin: 0;
   background: hsl(var(--background));
   color: hsl(var(--foreground));
-  font-family: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-family: var(--body-font);
+  font-feature-settings: "cv11", "ss01", "ss03";
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  letter-spacing: 0;
+  letter-spacing: -0.005em;
 }
 
 ::selection {
-  background: hsl(168 76% 32% / 0.18);
-  color: hsl(220 18% 12%);
+  background: hsl(178 70% 24% / 0.18);
+  color: hsl(220 22% 14%);
 }
 
 ::-webkit-scrollbar { width: 10px; height: 10px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb {
-  background: hsl(220 10% 80%);
+  background: hsl(214 14% 80%);
   border-radius: 999px;
   border: 2px solid hsl(var(--background));
 }
-::-webkit-scrollbar-thumb:hover { background: hsl(220 10% 65%); }
+::-webkit-scrollbar-thumb:hover { background: hsl(214 14% 65%); }
 
 @layer components {
   .panel {
@@ -65,5 +77,13 @@ body {
 }
 
 .skeleton-bar {
-  background: hsl(220 14% 92%);
+  background: hsl(214 16% 92%);
+}
+
+/* Brand utility: replaces black "bg-foreground" markers with the teal brand. */
+@layer utilities {
+  .bg-brand { background-color: hsl(var(--primary)); }
+  .text-brand { color: hsl(var(--primary)); }
+  .bg-brand-soft { background-color: hsl(var(--accent)); }
+  .border-brand { border-color: hsl(var(--primary)); }
 }

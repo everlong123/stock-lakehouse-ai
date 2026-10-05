@@ -11,6 +11,7 @@ from app.backtesting.portfolio import Portfolio
 from app.backtesting.strategies import STRATEGY_MAP
 from app.core.exceptions import BacktestError
 from app.core.logging_config import get_logger
+from app.lakehouse.bronze import BronzeLayer
 from app.lakehouse.gold import GoldLayer
 from app.lakehouse.silver import SilverLayer
 
@@ -134,14 +135,12 @@ class BacktestEngine:
         if frame.empty:
             frame = SilverLayer().read(symbol)
         if frame.empty:
-            # Fallback: read raw OHLCV from MarketService (uses synthetic data when Bronze is empty)
-            from app.services.market_service import MarketService
-            try:
-                frame = MarketService().get_history(symbol)
-            except Exception as exc:
-                raise BacktestError(f"No market data available for {symbol}. Run the pipeline first. ({exc})")
+            frame = BronzeLayer().read(symbol)
         if frame.empty:
-            raise BacktestError(f"No market data available for {symbol}. Run the pipeline first.")
+            raise BacktestError(
+                f"No market data available for {symbol}. Run the lakehouse pipeline first "
+                f"(POST /api/v1/pipeline/run or wait for auto-refresh on startup)."
+            )
         frame = frame.sort_values("timestamp").reset_index(drop=True)
         if start_date:
             frame = frame[frame["timestamp"] >= pd.Timestamp(start_date, tz="UTC")]

@@ -1,0 +1,1304 @@
+INFO:     Started server process [29128]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+2026-10-03 13:09:20 | ERROR | app.agent.llm_client | LLM request failed (gemini)
+Traceback (most recent call last):
+  File "D:\School\kltn\stock-lakehouse-ai\backend\app\agent\llm_client.py", line 100, in _chat_gemini
+    with urllib.request.urlopen(req, timeout=settings.openai_timeout_seconds) as resp:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 216, in urlopen
+    return opener.open(url, data, timeout)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 525, in open
+    response = meth(req, response)
+               ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 634, in http_response
+    response = self.parent.error(
+               ^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 563, in error
+    return self._call_chain(*args)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 496, in _call_chain
+    result = func(*args)
+             ^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 643, in http_error_default
+    raise HTTPError(req.full_url, code, msg, hdrs, fp)
+urllib.error.HTTPError: HTTP Error 400: Bad Request
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "D:\School\kltn\stock-lakehouse-ai\backend\app\agent\llm_client.py", line 45, in chat
+    return self._chat_gemini(messages, tools)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\School\kltn\stock-lakehouse-ai\backend\app\agent\llm_client.py", line 104, in _chat_gemini
+    raise AgentError(f"Gemini API error {exc.code}: {err_body[:200]}") from exc
+app.core.exceptions.AgentError: Gemini API error 400: {
+  "error": {
+    "code": 400,
+    "message": "Invalid JSON payload received. Unknown name \"exclusiveMinimum\" at 'tools[0].function_declarations[6].parameters.properties[4].value': Cannot find fiel
+2026-10-03 13:09:20 | WARNING | app.agent.agent | LLM path failed (LLM request failed: Gemini API error 400: {
+  "error": {
+    "code": 400,
+    "message": "Invalid JSON payload received. Unknown name \"exclusiveMinimum\" at 'tools[0].function_declarations[6].parameters.properties[4].value': Cannot find fiel). Falling back to local tool router.
+2026-10-03 13:09:20 | INFO | app.lakehouse.storage_factory | Using MinIO storage backend.
+2026-10-03 13:09:21 | INFO | app.lakehouse.storage_factory | Using MinIO storage backend.
+2026-10-03 13:09:22 | ERROR | app.agent.llm_client | LLM request failed (gemini)
+Traceback (most recent call last):
+  File "D:\School\kltn\stock-lakehouse-ai\backend\app\agent\llm_client.py", line 100, in _chat_gemini
+    with urllib.request.urlopen(req, timeout=settings.openai_timeout_seconds) as resp:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 216, in urlopen
+    return opener.open(url, data, timeout)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 525, in open
+    response = meth(req, response)
+               ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 634, in http_response
+    response = self.parent.error(
+               ^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 563, in error
+    return self._call_chain(*args)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 496, in _call_chain
+    result = func(*args)
+             ^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 643, in http_error_default
+    raise HTTPError(req.full_url, code, msg, hdrs, fp)
+urllib.error.HTTPError: HTTP Error 400: Bad Request
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "D:\School\kltn\stock-lakehouse-ai\backend\app\agent\llm_client.py", line 45, in chat
+    return self._chat_gemini(messages, tools)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\School\kltn\stock-lakehouse-ai\backend\app\agent\llm_client.py", line 104, in _chat_gemini
+    raise AgentError(f"Gemini API error {exc.code}: {err_body[:200]}") from exc
+app.core.exceptions.AgentError: Gemini API error 400: {
+  "error": {
+    "code": 400,
+    "message": "Invalid JSON payload received. Unknown name \"exclusiveMinimum\" at 'tools[0].function_declarations[6].parameters.properties[4].value': Cannot find fiel
+2026-10-03 13:09:22 | WARNING | app.agent.agent | LLM path failed (LLM request failed: Gemini API error 400: {
+  "error": {
+    "code": 400,
+    "message": "Invalid JSON payload received. Unknown name \"exclusiveMinimum\" at 'tools[0].function_declarations[6].parameters.properties[4].value': Cannot find fiel). Falling back to local tool router.
+2026-10-03 13:09:22 | ERROR | app.agent.llm_client | LLM request failed (gemini)
+Traceback (most recent call last):
+  File "D:\School\kltn\stock-lakehouse-ai\backend\app\agent\llm_client.py", line 100, in _chat_gemini
+    with urllib.request.urlopen(req, timeout=settings.openai_timeout_seconds) as resp:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 216, in urlopen
+    return opener.open(url, data, timeout)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 525, in open
+    response = meth(req, response)
+               ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 634, in http_response
+    response = self.parent.error(
+               ^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 563, in error
+    return self._call_chain(*args)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 496, in _call_chain
+    result = func(*args)
+             ^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 643, in http_error_default
+    raise HTTPError(req.full_url, code, msg, hdrs, fp)
+urllib.error.HTTPError: HTTP Error 400: Bad Request
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "D:\School\kltn\stock-lakehouse-ai\backend\app\agent\llm_client.py", line 45, in chat
+    return self._chat_gemini(messages, tools)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\School\kltn\stock-lakehouse-ai\backend\app\agent\llm_client.py", line 104, in _chat_gemini
+    raise AgentError(f"Gemini API error {exc.code}: {err_body[:200]}") from exc
+app.core.exceptions.AgentError: Gemini API error 400: {
+  "error": {
+    "code": 400,
+    "message": "Invalid JSON payload received. Unknown name \"exclusiveMinimum\" at 'tools[0].function_declarations[6].parameters.properties[4].value': Cannot find fiel
+2026-10-03 13:09:22 | WARNING | app.agent.agent | LLM path failed (LLM request failed: Gemini API error 400: {
+  "error": {
+    "code": 400,
+    "message": "Invalid JSON payload received. Unknown name \"exclusiveMinimum\" at 'tools[0].function_declarations[6].parameters.properties[4].value': Cannot find fiel). Falling back to local tool router.
+2026-10-03 13:09:22 | INFO | app.lakehouse.storage_factory | Using MinIO storage backend.
+2026-10-03 13:09:24 | INFO | app.lakehouse.storage_factory | Using MinIO storage backend.
+2026-10-03 13:09:25 | ERROR | app.agent.llm_client | LLM request failed (gemini)
+Traceback (most recent call last):
+  File "D:\School\kltn\stock-lakehouse-ai\backend\app\agent\llm_client.py", line 100, in _chat_gemini
+    with urllib.request.urlopen(req, timeout=settings.openai_timeout_seconds) as resp:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 216, in urlopen
+    return opener.open(url, data, timeout)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 525, in open
+    response = meth(req, response)
+               ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 634, in http_response
+    response = self.parent.error(
+               ^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 563, in error
+    return self._call_chain(*args)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 496, in _call_chain
+    result = func(*args)
+             ^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 643, in http_error_default
+    raise HTTPError(req.full_url, code, msg, hdrs, fp)
+urllib.error.HTTPError: HTTP Error 400: Bad Request
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "D:\School\kltn\stock-lakehouse-ai\backend\app\agent\llm_client.py", line 45, in chat
+    return self._chat_gemini(messages, tools)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\School\kltn\stock-lakehouse-ai\backend\app\agent\llm_client.py", line 104, in _chat_gemini
+    raise AgentError(f"Gemini API error {exc.code}: {err_body[:200]}") from exc
+app.core.exceptions.AgentError: Gemini API error 400: {
+  "error": {
+    "code": 400,
+    "message": "Invalid JSON payload received. Unknown name \"exclusiveMinimum\" at 'tools[0].function_declarations[6].parameters.properties[4].value': Cannot find fiel
+2026-10-03 13:09:25 | WARNING | app.agent.agent | LLM path failed (LLM request failed: Gemini API error 400: {
+  "error": {
+    "code": 400,
+    "message": "Invalid JSON payload received. Unknown name \"exclusiveMinimum\" at 'tools[0].function_declarations[6].parameters.properties[4].value': Cannot find fiel). Falling back to local tool router.
+2026-10-03 13:09:25 | INFO | app.lakehouse.storage_factory | Using MinIO storage backend.
+2026-10-03 13:09:26 | INFO | app.lakehouse.storage_factory | Using MinIO storage backend.
+2026-10-03 13:09:27 | ERROR | app.agent.llm_client | LLM request failed (gemini)
+Traceback (most recent call last):
+  File "D:\School\kltn\stock-lakehouse-ai\backend\app\agent\llm_client.py", line 100, in _chat_gemini
+    with urllib.request.urlopen(req, timeout=settings.openai_timeout_seconds) as resp:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 216, in urlopen
+    return opener.open(url, data, timeout)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 525, in open
+    response = meth(req, response)
+               ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 634, in http_response
+    response = self.parent.error(
+               ^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 563, in error
+    return self._call_chain(*args)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 496, in _call_chain
+    result = func(*args)
+             ^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 643, in http_error_default
+    raise HTTPError(req.full_url, code, msg, hdrs, fp)
+urllib.error.HTTPError: HTTP Error 400: Bad Request
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "D:\School\kltn\stock-lakehouse-ai\backend\app\agent\llm_client.py", line 45, in chat
+    return self._chat_gemini(messages, tools)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\School\kltn\stock-lakehouse-ai\backend\app\agent\llm_client.py", line 104, in _chat_gemini
+    raise AgentError(f"Gemini API error {exc.code}: {err_body[:200]}") from exc
+app.core.exceptions.AgentError: Gemini API error 400: {
+  "error": {
+    "code": 400,
+    "message": "Invalid JSON payload received. Unknown name \"exclusiveMinimum\" at 'tools[0].function_declarations[6].parameters.properties[4].value': Cannot find fiel
+2026-10-03 13:09:27 | WARNING | app.agent.agent | LLM path failed (LLM request failed: Gemini API error 400: {
+  "error": {
+    "code": 400,
+    "message": "Invalid JSON payload received. Unknown name \"exclusiveMinimum\" at 'tools[0].function_declarations[6].parameters.properties[4].value': Cannot find fiel). Falling back to local tool router.
+2026-10-03 13:09:28 | ERROR | app.agent.llm_client | LLM request failed (gemini)
+Traceback (most recent call last):
+  File "D:\School\kltn\stock-lakehouse-ai\backend\app\agent\llm_client.py", line 100, in _chat_gemini
+    with urllib.request.urlopen(req, timeout=settings.openai_timeout_seconds) as resp:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 216, in urlopen
+    return opener.open(url, data, timeout)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 525, in open
+    response = meth(req, response)
+               ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 634, in http_response
+    response = self.parent.error(
+               ^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 563, in error
+    return self._call_chain(*args)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 496, in _call_chain
+    result = func(*args)
+             ^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 643, in http_error_default
+    raise HTTPError(req.full_url, code, msg, hdrs, fp)
+urllib.error.HTTPError: HTTP Error 400: Bad Request
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "D:\School\kltn\stock-lakehouse-ai\backend\app\agent\llm_client.py", line 45, in chat
+    return self._chat_gemini(messages, tools)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\School\kltn\stock-lakehouse-ai\backend\app\agent\llm_client.py", line 104, in _chat_gemini
+    raise AgentError(f"Gemini API error {exc.code}: {err_body[:200]}") from exc
+app.core.exceptions.AgentError: Gemini API error 400: {
+  "error": {
+    "code": 400,
+    "message": "Invalid JSON payload received. Unknown name \"exclusiveMinimum\" at 'tools[0].function_declarations[6].parameters.properties[4].value': Cannot find fiel
+2026-10-03 13:09:28 | WARNING | app.agent.agent | LLM path failed (LLM request failed: Gemini API error 400: {
+  "error": {
+    "code": 400,
+    "message": "Invalid JSON payload received. Unknown name \"exclusiveMinimum\" at 'tools[0].function_declarations[6].parameters.properties[4].value': Cannot find fiel). Falling back to local tool router.
+2026-10-03 13:09:28 | ERROR | app.agent.llm_client | LLM request failed (gemini)
+Traceback (most recent call last):
+  File "D:\School\kltn\stock-lakehouse-ai\backend\app\agent\llm_client.py", line 100, in _chat_gemini
+    with urllib.request.urlopen(req, timeout=settings.openai_timeout_seconds) as resp:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 216, in urlopen
+    return opener.open(url, data, timeout)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 525, in open
+    response = meth(req, response)
+               ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 634, in http_response
+    response = self.parent.error(
+               ^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 563, in error
+    return self._call_chain(*args)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 496, in _call_chain
+    result = func(*args)
+             ^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 643, in http_error_default
+    raise HTTPError(req.full_url, code, msg, hdrs, fp)
+urllib.error.HTTPError: HTTP Error 400: Bad Request
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "D:\School\kltn\stock-lakehouse-ai\backend\app\agent\llm_client.py", line 45, in chat
+    return self._chat_gemini(messages, tools)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\School\kltn\stock-lakehouse-ai\backend\app\agent\llm_client.py", line 104, in _chat_gemini
+    raise AgentError(f"Gemini API error {exc.code}: {err_body[:200]}") from exc
+app.core.exceptions.AgentError: Gemini API error 400: {
+  "error": {
+    "code": 400,
+    "message": "Invalid JSON payload received. Unknown name \"exclusiveMinimum\" at 'tools[0].function_declarations[6].parameters.properties[4].value': Cannot find fiel
+2026-10-03 13:09:28 | WARNING | app.agent.agent | LLM path failed (LLM request failed: Gemini API error 400: {
+  "error": {
+    "code": 400,
+    "message": "Invalid JSON payload received. Unknown name \"exclusiveMinimum\" at 'tools[0].function_declarations[6].parameters.properties[4].value': Cannot find fiel). Falling back to local tool router.
+2026-10-03 13:09:28 | INFO | app.lakehouse.storage_factory | Using MinIO storage backend.
+2026-10-03 13:09:29 | INFO | app.lakehouse.storage_factory | Using MinIO storage backend.
+2026-10-03 13:09:30 | ERROR | app.agent.llm_client | LLM request failed (gemini)
+Traceback (most recent call last):
+  File "D:\School\kltn\stock-lakehouse-ai\backend\app\agent\llm_client.py", line 100, in _chat_gemini
+    with urllib.request.urlopen(req, timeout=settings.openai_timeout_seconds) as resp:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 216, in urlopen
+    return opener.open(url, data, timeout)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 525, in open
+    response = meth(req, response)
+               ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 634, in http_response
+    response = self.parent.error(
+               ^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 563, in error
+    return self._call_chain(*args)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 496, in _call_chain
+    result = func(*args)
+             ^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 643, in http_error_default
+    raise HTTPError(req.full_url, code, msg, hdrs, fp)
+urllib.error.HTTPError: HTTP Error 400: Bad Request
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "D:\School\kltn\stock-lakehouse-ai\backend\app\agent\llm_client.py", line 45, in chat
+    return self._chat_gemini(messages, tools)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\School\kltn\stock-lakehouse-ai\backend\app\agent\llm_client.py", line 104, in _chat_gemini
+    raise AgentError(f"Gemini API error {exc.code}: {err_body[:200]}") from exc
+app.core.exceptions.AgentError: Gemini API error 400: {
+  "error": {
+    "code": 400,
+    "message": "Invalid JSON payload received. Unknown name \"exclusiveMinimum\" at 'tools[0].function_declarations[6].parameters.properties[4].value': Cannot find fiel
+2026-10-03 13:09:30 | WARNING | app.agent.agent | LLM path failed (LLM request failed: Gemini API error 400: {
+  "error": {
+    "code": 400,
+    "message": "Invalid JSON payload received. Unknown name \"exclusiveMinimum\" at 'tools[0].function_declarations[6].parameters.properties[4].value': Cannot find fiel). Falling back to local tool router.
+2026-10-03 13:09:30 | INFO | app.lakehouse.storage_factory | Using MinIO storage backend.
+2026-10-03 13:09:30 | INFO | app.lakehouse.storage_factory | Using MinIO storage backend.
+2026-10-03 13:09:30 | INFO | app.lakehouse.storage_factory | Using MinIO storage backend.
+2026-10-03 13:09:30 | INFO | app.lakehouse.storage_factory | Using MinIO storage backend.
+2026-10-03 13:09:30 | INFO | app.lakehouse.storage_factory | Using MinIO storage backend.
+2026-10-03 13:09:30 | INFO | app.lakehouse.storage_factory | Using MinIO storage backend.
+2026-10-03 13:09:31 | ERROR | app.agent.llm_client | LLM request failed (gemini)
+Traceback (most recent call last):
+  File "D:\School\kltn\stock-lakehouse-ai\backend\app\agent\llm_client.py", line 100, in _chat_gemini
+    with urllib.request.urlopen(req, timeout=settings.openai_timeout_seconds) as resp:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 216, in urlopen
+    return opener.open(url, data, timeout)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 525, in open
+    response = meth(req, response)
+               ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 634, in http_response
+    response = self.parent.error(
+               ^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 563, in error
+    return self._call_chain(*args)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 496, in _call_chain
+    result = func(*args)
+             ^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 643, in http_error_default
+    raise HTTPError(req.full_url, code, msg, hdrs, fp)
+urllib.error.HTTPError: HTTP Error 400: Bad Request
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "D:\School\kltn\stock-lakehouse-ai\backend\app\agent\llm_client.py", line 45, in chat
+    return self._chat_gemini(messages, tools)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\School\kltn\stock-lakehouse-ai\backend\app\agent\llm_client.py", line 104, in _chat_gemini
+    raise AgentError(f"Gemini API error {exc.code}: {err_body[:200]}") from exc
+app.core.exceptions.AgentError: Gemini API error 400: {
+  "error": {
+    "code": 400,
+    "message": "Invalid JSON payload received. Unknown name \"exclusiveMinimum\" at 'tools[0].function_declarations[6].parameters.properties[4].value': Cannot find fiel
+2026-10-03 13:09:31 | WARNING | app.agent.agent | LLM path failed (LLM request failed: Gemini API error 400: {
+  "error": {
+    "code": 400,
+    "message": "Invalid JSON payload received. Unknown name \"exclusiveMinimum\" at 'tools[0].function_declarations[6].parameters.properties[4].value': Cannot find fiel). Falling back to local tool router.
+2026-10-03 13:09:31 | INFO | app.lakehouse.storage_factory | Using MinIO storage backend.
+2026-10-03 13:09:32 | INFO | app.lakehouse.storage_factory | Using MinIO storage backend.
+2026-10-03 13:09:33 | ERROR | app.agent.llm_client | LLM request failed (gemini)
+Traceback (most recent call last):
+  File "D:\School\kltn\stock-lakehouse-ai\backend\app\agent\llm_client.py", line 100, in _chat_gemini
+    with urllib.request.urlopen(req, timeout=settings.openai_timeout_seconds) as resp:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 216, in urlopen
+    return opener.open(url, data, timeout)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 525, in open
+    response = meth(req, response)
+               ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 634, in http_response
+    response = self.parent.error(
+               ^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 563, in error
+    return self._call_chain(*args)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 496, in _call_chain
+    result = func(*args)
+             ^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 643, in http_error_default
+    raise HTTPError(req.full_url, code, msg, hdrs, fp)
+urllib.error.HTTPError: HTTP Error 400: Bad Request
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "D:\School\kltn\stock-lakehouse-ai\backend\app\agent\llm_client.py", line 45, in chat
+    return self._chat_gemini(messages, tools)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\School\kltn\stock-lakehouse-ai\backend\app\agent\llm_client.py", line 104, in _chat_gemini
+    raise AgentError(f"Gemini API error {exc.code}: {err_body[:200]}") from exc
+app.core.exceptions.AgentError: Gemini API error 400: {
+  "error": {
+    "code": 400,
+    "message": "Invalid JSON payload received. Unknown name \"exclusiveMinimum\" at 'tools[0].function_declarations[6].parameters.properties[4].value': Cannot find fiel
+2026-10-03 13:09:33 | WARNING | app.agent.agent | LLM path failed (LLM request failed: Gemini API error 400: {
+  "error": {
+    "code": 400,
+    "message": "Invalid JSON payload received. Unknown name \"exclusiveMinimum\" at 'tools[0].function_declarations[6].parameters.properties[4].value': Cannot find fiel). Falling back to local tool router.
+2026-10-03 13:09:33 | INFO | app.lakehouse.storage_factory | Using MinIO storage backend.
+2026-10-03 13:09:34 | INFO | app.lakehouse.storage_factory | Using MinIO storage backend.
+2026-10-03 13:09:36 | ERROR | app.agent.llm_client | LLM request failed (gemini)
+Traceback (most recent call last):
+  File "D:\School\kltn\stock-lakehouse-ai\backend\app\agent\llm_client.py", line 100, in _chat_gemini
+    with urllib.request.urlopen(req, timeout=settings.openai_timeout_seconds) as resp:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 216, in urlopen
+    return opener.open(url, data, timeout)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 525, in open
+    response = meth(req, response)
+               ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 634, in http_response
+    response = self.parent.error(
+               ^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 563, in error
+    return self._call_chain(*args)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 496, in _call_chain
+    result = func(*args)
+             ^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 643, in http_error_default
+    raise HTTPError(req.full_url, code, msg, hdrs, fp)
+urllib.error.HTTPError: HTTP Error 400: Bad Request
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "D:\School\kltn\stock-lakehouse-ai\backend\app\agent\llm_client.py", line 45, in chat
+    return self._chat_gemini(messages, tools)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\School\kltn\stock-lakehouse-ai\backend\app\agent\llm_client.py", line 104, in _chat_gemini
+    raise AgentError(f"Gemini API error {exc.code}: {err_body[:200]}") from exc
+app.core.exceptions.AgentError: Gemini API error 400: {
+  "error": {
+    "code": 400,
+    "message": "Invalid JSON payload received. Unknown name \"exclusiveMinimum\" at 'tools[0].function_declarations[6].parameters.properties[4].value': Cannot find fiel
+2026-10-03 13:09:36 | WARNING | app.agent.agent | LLM path failed (LLM request failed: Gemini API error 400: {
+  "error": {
+    "code": 400,
+    "message": "Invalid JSON payload received. Unknown name \"exclusiveMinimum\" at 'tools[0].function_declarations[6].parameters.properties[4].value': Cannot find fiel). Falling back to local tool router.
+2026-10-03 13:09:36 | INFO | app.lakehouse.storage_factory | Using MinIO storage backend.
+2026-10-03 13:09:36 | INFO | app.lakehouse.storage_factory | Using MinIO storage backend.
+2026-10-03 13:09:36 | INFO | app.lakehouse.storage_factory | Using MinIO storage backend.
+2026-10-03 13:09:36 | INFO | app.lakehouse.storage_factory | Using MinIO storage backend.
+2026-10-03 13:09:36 | INFO | app.lakehouse.storage_factory | Using MinIO storage backend.
+2026-10-03 13:09:36 | INFO | app.lakehouse.storage_factory | Using MinIO storage backend.
+2026-10-03 13:09:36 | ERROR | app.agent.llm_client | LLM request failed (gemini)
+Traceback (most recent call last):
+  File "D:\School\kltn\stock-lakehouse-ai\backend\app\agent\llm_client.py", line 100, in _chat_gemini
+    with urllib.request.urlopen(req, timeout=settings.openai_timeout_seconds) as resp:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 216, in urlopen
+    return opener.open(url, data, timeout)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 525, in open
+    response = meth(req, response)
+               ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 634, in http_response
+    response = self.parent.error(
+               ^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 563, in error
+    return self._call_chain(*args)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 496, in _call_chain
+    result = func(*args)
+             ^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 643, in http_error_default
+    raise HTTPError(req.full_url, code, msg, hdrs, fp)
+urllib.error.HTTPError: HTTP Error 400: Bad Request
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "D:\School\kltn\stock-lakehouse-ai\backend\app\agent\llm_client.py", line 45, in chat
+    return self._chat_gemini(messages, tools)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\School\kltn\stock-lakehouse-ai\backend\app\agent\llm_client.py", line 104, in _chat_gemini
+    raise AgentError(f"Gemini API error {exc.code}: {err_body[:200]}") from exc
+app.core.exceptions.AgentError: Gemini API error 400: {
+  "error": {
+    "code": 400,
+    "message": "Invalid JSON payload received. Unknown name \"exclusiveMinimum\" at 'tools[0].function_declarations[6].parameters.properties[4].value': Cannot find fiel
+2026-10-03 13:09:36 | WARNING | app.agent.agent | LLM path failed (LLM request failed: Gemini API error 400: {
+  "error": {
+    "code": 400,
+    "message": "Invalid JSON payload received. Unknown name \"exclusiveMinimum\" at 'tools[0].function_declarations[6].parameters.properties[4].value': Cannot find fiel). Falling back to local tool router.
+2026-10-03 13:09:36 | INFO | app.lakehouse.storage_factory | Using MinIO storage backend.
+2026-10-03 13:09:37 | INFO | app.lakehouse.storage_factory | Using MinIO storage backend.
+2026-10-03 13:09:39 | ERROR | app.agent.llm_client | LLM request failed (gemini)
+Traceback (most recent call last):
+  File "D:\School\kltn\stock-lakehouse-ai\backend\app\agent\llm_client.py", line 100, in _chat_gemini
+    with urllib.request.urlopen(req, timeout=settings.openai_timeout_seconds) as resp:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 216, in urlopen
+    return opener.open(url, data, timeout)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 525, in open
+    response = meth(req, response)
+               ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 634, in http_response
+    response = self.parent.error(
+               ^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 563, in error
+    return self._call_chain(*args)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 496, in _call_chain
+    result = func(*args)
+             ^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 643, in http_error_default
+    raise HTTPError(req.full_url, code, msg, hdrs, fp)
+urllib.error.HTTPError: HTTP Error 400: Bad Request
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "D:\School\kltn\stock-lakehouse-ai\backend\app\agent\llm_client.py", line 45, in chat
+    return self._chat_gemini(messages, tools)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\School\kltn\stock-lakehouse-ai\backend\app\agent\llm_client.py", line 104, in _chat_gemini
+    raise AgentError(f"Gemini API error {exc.code}: {err_body[:200]}") from exc
+app.core.exceptions.AgentError: Gemini API error 400: {
+  "error": {
+    "code": 400,
+    "message": "Invalid JSON payload received. Unknown name \"exclusiveMinimum\" at 'tools[0].function_declarations[6].parameters.properties[4].value': Cannot find fiel
+2026-10-03 13:09:39 | WARNING | app.agent.agent | LLM path failed (LLM request failed: Gemini API error 400: {
+  "error": {
+    "code": 400,
+    "message": "Invalid JSON payload received. Unknown name \"exclusiveMinimum\" at 'tools[0].function_declarations[6].parameters.properties[4].value': Cannot find fiel). Falling back to local tool router.
+2026-10-03 13:09:39 | INFO | app.lakehouse.storage_factory | Using MinIO storage backend.
+2026-10-03 13:09:40 | INFO | app.lakehouse.storage_factory | Using MinIO storage backend.
+2026-10-03 13:09:50 | ERROR | app.agent.llm_client | LLM request failed (gemini)
+Traceback (most recent call last):
+  File "D:\School\kltn\stock-lakehouse-ai\backend\app\agent\llm_client.py", line 100, in _chat_gemini
+    with urllib.request.urlopen(req, timeout=settings.openai_timeout_seconds) as resp:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 216, in urlopen
+    return opener.open(url, data, timeout)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 525, in open
+    response = meth(req, response)
+               ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 634, in http_response
+    response = self.parent.error(
+               ^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 563, in error
+    return self._call_chain(*args)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 496, in _call_chain
+    result = func(*args)
+             ^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 643, in http_error_default
+    raise HTTPError(req.full_url, code, msg, hdrs, fp)
+urllib.error.HTTPError: HTTP Error 400: Bad Request
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "D:\School\kltn\stock-lakehouse-ai\backend\app\agent\llm_client.py", line 45, in chat
+    return self._chat_gemini(messages, tools)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\School\kltn\stock-lakehouse-ai\backend\app\agent\llm_client.py", line 104, in _chat_gemini
+    raise AgentError(f"Gemini API error {exc.code}: {err_body[:200]}") from exc
+app.core.exceptions.AgentError: Gemini API error 400: {
+  "error": {
+    "code": 400,
+    "message": "Invalid JSON payload received. Unknown name \"exclusiveMinimum\" at 'tools[0].function_declarations[6].parameters.properties[4].value': Cannot find fiel
+2026-10-03 13:09:50 | WARNING | app.agent.agent | LLM path failed (LLM request failed: Gemini API error 400: {
+  "error": {
+    "code": 400,
+    "message": "Invalid JSON payload received. Unknown name \"exclusiveMinimum\" at 'tools[0].function_declarations[6].parameters.properties[4].value': Cannot find fiel). Falling back to local tool router.
+2026-10-03 13:09:59 | ERROR | app.agent.llm_client | LLM request failed (gemini)
+Traceback (most recent call last):
+  File "D:\School\kltn\stock-lakehouse-ai\backend\app\agent\llm_client.py", line 100, in _chat_gemini
+    with urllib.request.urlopen(req, timeout=settings.openai_timeout_seconds) as resp:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 216, in urlopen
+    return opener.open(url, data, timeout)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 525, in open
+    response = meth(req, response)
+               ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 634, in http_response
+    response = self.parent.error(
+               ^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 563, in error
+    return self._call_chain(*args)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 496, in _call_chain
+    result = func(*args)
+             ^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 643, in http_error_default
+    raise HTTPError(req.full_url, code, msg, hdrs, fp)
+urllib.error.HTTPError: HTTP Error 400: Bad Request
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "D:\School\kltn\stock-lakehouse-ai\backend\app\agent\llm_client.py", line 45, in chat
+    return self._chat_gemini(messages, tools)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\School\kltn\stock-lakehouse-ai\backend\app\agent\llm_client.py", line 104, in _chat_gemini
+    raise AgentError(f"Gemini API error {exc.code}: {err_body[:200]}") from exc
+app.core.exceptions.AgentError: Gemini API error 400: {
+  "error": {
+    "code": 400,
+    "message": "Invalid JSON payload received. Unknown name \"exclusiveMinimum\" at 'tools[0].function_declarations[6].parameters.properties[4].value': Cannot find fiel
+2026-10-03 13:09:59 | WARNING | app.agent.agent | LLM path failed (LLM request failed: Gemini API error 400: {
+  "error": {
+    "code": 400,
+    "message": "Invalid JSON payload received. Unknown name \"exclusiveMinimum\" at 'tools[0].function_declarations[6].parameters.properties[4].value': Cannot find fiel). Falling back to local tool router.
+2026-10-03 13:10:09 | ERROR | app.agent.llm_client | LLM request failed (gemini)
+Traceback (most recent call last):
+  File "D:\School\kltn\stock-lakehouse-ai\backend\app\agent\llm_client.py", line 100, in _chat_gemini
+    with urllib.request.urlopen(req, timeout=settings.openai_timeout_seconds) as resp:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 216, in urlopen
+    return opener.open(url, data, timeout)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 525, in open
+    response = meth(req, response)
+               ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 634, in http_response
+    response = self.parent.error(
+               ^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 563, in error
+    return self._call_chain(*args)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 496, in _call_chain
+    result = func(*args)
+             ^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 643, in http_error_default
+    raise HTTPError(req.full_url, code, msg, hdrs, fp)
+urllib.error.HTTPError: HTTP Error 400: Bad Request
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "D:\School\kltn\stock-lakehouse-ai\backend\app\agent\llm_client.py", line 45, in chat
+    return self._chat_gemini(messages, tools)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\School\kltn\stock-lakehouse-ai\backend\app\agent\llm_client.py", line 104, in _chat_gemini
+    raise AgentError(f"Gemini API error {exc.code}: {err_body[:200]}") from exc
+app.core.exceptions.AgentError: Gemini API error 400: {
+  "error": {
+    "code": 400,
+    "message": "Invalid JSON payload received. Unknown name \"exclusiveMinimum\" at 'tools[0].function_declarations[6].parameters.properties[4].value': Cannot find fiel
+2026-10-03 13:10:09 | WARNING | app.agent.agent | LLM path failed (LLM request failed: Gemini API error 400: {
+  "error": {
+    "code": 400,
+    "message": "Invalid JSON payload received. Unknown name \"exclusiveMinimum\" at 'tools[0].function_declarations[6].parameters.properties[4].value': Cannot find fiel). Falling back to local tool router.
+2026-10-03 13:10:09 | ERROR | app.agent.llm_client | LLM request failed (gemini)
+Traceback (most recent call last):
+  File "D:\School\kltn\stock-lakehouse-ai\backend\app\agent\llm_client.py", line 100, in _chat_gemini
+    with urllib.request.urlopen(req, timeout=settings.openai_timeout_seconds) as resp:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 216, in urlopen
+    return opener.open(url, data, timeout)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 525, in open
+    response = meth(req, response)
+               ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 634, in http_response
+    response = self.parent.error(
+               ^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 563, in error
+    return self._call_chain(*args)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 496, in _call_chain
+    result = func(*args)
+             ^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 643, in http_error_default
+    raise HTTPError(req.full_url, code, msg, hdrs, fp)
+urllib.error.HTTPError: HTTP Error 400: Bad Request
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "D:\School\kltn\stock-lakehouse-ai\backend\app\agent\llm_client.py", line 45, in chat
+    return self._chat_gemini(messages, tools)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\School\kltn\stock-lakehouse-ai\backend\app\agent\llm_client.py", line 104, in _chat_gemini
+    raise AgentError(f"Gemini API error {exc.code}: {err_body[:200]}") from exc
+app.core.exceptions.AgentError: Gemini API error 400: {
+  "error": {
+    "code": 400,
+    "message": "Invalid JSON payload received. Unknown name \"exclusiveMinimum\" at 'tools[0].function_declarations[6].parameters.properties[4].value': Cannot find fiel
+2026-10-03 13:10:09 | WARNING | app.agent.agent | LLM path failed (LLM request failed: Gemini API error 400: {
+  "error": {
+    "code": 400,
+    "message": "Invalid JSON payload received. Unknown name \"exclusiveMinimum\" at 'tools[0].function_declarations[6].parameters.properties[4].value': Cannot find fiel). Falling back to local tool router.
+2026-10-03 13:10:09 | ERROR | app.agent.llm_client | LLM request failed (gemini)
+Traceback (most recent call last):
+  File "D:\School\kltn\stock-lakehouse-ai\backend\app\agent\llm_client.py", line 100, in _chat_gemini
+    with urllib.request.urlopen(req, timeout=settings.openai_timeout_seconds) as resp:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 216, in urlopen
+    return opener.open(url, data, timeout)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 525, in open
+    response = meth(req, response)
+               ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 634, in http_response
+    response = self.parent.error(
+               ^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 563, in error
+    return self._call_chain(*args)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 496, in _call_chain
+    result = func(*args)
+             ^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 643, in http_error_default
+    raise HTTPError(req.full_url, code, msg, hdrs, fp)
+urllib.error.HTTPError: HTTP Error 400: Bad Request
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "D:\School\kltn\stock-lakehouse-ai\backend\app\agent\llm_client.py", line 45, in chat
+    return self._chat_gemini(messages, tools)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\School\kltn\stock-lakehouse-ai\backend\app\agent\llm_client.py", line 104, in _chat_gemini
+    raise AgentError(f"Gemini API error {exc.code}: {err_body[:200]}") from exc
+app.core.exceptions.AgentError: Gemini API error 400: {
+  "error": {
+    "code": 400,
+    "message": "Invalid JSON payload received. Unknown name \"exclusiveMinimum\" at 'tools[0].function_declarations[6].parameters.properties[4].value': Cannot find fiel
+2026-10-03 13:10:09 | WARNING | app.agent.agent | LLM path failed (LLM request failed: Gemini API error 400: {
+  "error": {
+    "code": 400,
+    "message": "Invalid JSON payload received. Unknown name \"exclusiveMinimum\" at 'tools[0].function_declarations[6].parameters.properties[4].value': Cannot find fiel). Falling back to local tool router.
+2026-10-03 13:10:10 | ERROR | app.agent.llm_client | LLM request failed (gemini)
+Traceback (most recent call last):
+  File "D:\School\kltn\stock-lakehouse-ai\backend\app\agent\llm_client.py", line 100, in _chat_gemini
+    with urllib.request.urlopen(req, timeout=settings.openai_timeout_seconds) as resp:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 216, in urlopen
+    return opener.open(url, data, timeout)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 525, in open
+    response = meth(req, response)
+               ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 634, in http_response
+    response = self.parent.error(
+               ^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 563, in error
+    return self._call_chain(*args)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 496, in _call_chain
+    result = func(*args)
+             ^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 643, in http_error_default
+    raise HTTPError(req.full_url, code, msg, hdrs, fp)
+urllib.error.HTTPError: HTTP Error 400: Bad Request
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "D:\School\kltn\stock-lakehouse-ai\backend\app\agent\llm_client.py", line 45, in chat
+    return self._chat_gemini(messages, tools)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\School\kltn\stock-lakehouse-ai\backend\app\agent\llm_client.py", line 104, in _chat_gemini
+    raise AgentError(f"Gemini API error {exc.code}: {err_body[:200]}") from exc
+app.core.exceptions.AgentError: Gemini API error 400: {
+  "error": {
+    "code": 400,
+    "message": "Invalid JSON payload received. Unknown name \"exclusiveMinimum\" at 'tools[0].function_declarations[6].parameters.properties[4].value': Cannot find fiel
+2026-10-03 13:10:10 | WARNING | app.agent.agent | LLM path failed (LLM request failed: Gemini API error 400: {
+  "error": {
+    "code": 400,
+    "message": "Invalid JSON payload received. Unknown name \"exclusiveMinimum\" at 'tools[0].function_declarations[6].parameters.properties[4].value': Cannot find fiel). Falling back to local tool router.
+2026-10-03 13:10:10 | INFO | app.lakehouse.storage_factory | Using MinIO storage backend.
+2026-10-03 13:10:11 | INFO | app.lakehouse.storage_factory | Using MinIO storage backend.
+2026-10-03 13:10:12 | ERROR | app.agent.llm_client | LLM request failed (gemini)
+Traceback (most recent call last):
+  File "D:\School\kltn\stock-lakehouse-ai\backend\app\agent\llm_client.py", line 100, in _chat_gemini
+    with urllib.request.urlopen(req, timeout=settings.openai_timeout_seconds) as resp:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 216, in urlopen
+    return opener.open(url, data, timeout)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 525, in open
+    response = meth(req, response)
+               ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 634, in http_response
+    response = self.parent.error(
+               ^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 563, in error
+    return self._call_chain(*args)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 496, in _call_chain
+    result = func(*args)
+             ^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 643, in http_error_default
+    raise HTTPError(req.full_url, code, msg, hdrs, fp)
+urllib.error.HTTPError: HTTP Error 400: Bad Request
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "D:\School\kltn\stock-lakehouse-ai\backend\app\agent\llm_client.py", line 45, in chat
+    return self._chat_gemini(messages, tools)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\School\kltn\stock-lakehouse-ai\backend\app\agent\llm_client.py", line 104, in _chat_gemini
+    raise AgentError(f"Gemini API error {exc.code}: {err_body[:200]}") from exc
+app.core.exceptions.AgentError: Gemini API error 400: {
+  "error": {
+    "code": 400,
+    "message": "Invalid JSON payload received. Unknown name \"exclusiveMinimum\" at 'tools[0].function_declarations[6].parameters.properties[4].value': Cannot find fiel
+2026-10-03 13:10:12 | WARNING | app.agent.agent | LLM path failed (LLM request failed: Gemini API error 400: {
+  "error": {
+    "code": 400,
+    "message": "Invalid JSON payload received. Unknown name \"exclusiveMinimum\" at 'tools[0].function_declarations[6].parameters.properties[4].value': Cannot find fiel). Falling back to local tool router.
+2026-10-03 13:10:12 | ERROR | app.agent.llm_client | LLM request failed (gemini)
+Traceback (most recent call last):
+  File "D:\School\kltn\stock-lakehouse-ai\backend\app\agent\llm_client.py", line 100, in _chat_gemini
+    with urllib.request.urlopen(req, timeout=settings.openai_timeout_seconds) as resp:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 216, in urlopen
+    return opener.open(url, data, timeout)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 525, in open
+    response = meth(req, response)
+               ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 634, in http_response
+    response = self.parent.error(
+               ^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 563, in error
+    return self._call_chain(*args)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 496, in _call_chain
+    result = func(*args)
+             ^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 643, in http_error_default
+    raise HTTPError(req.full_url, code, msg, hdrs, fp)
+urllib.error.HTTPError: HTTP Error 400: Bad Request
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "D:\School\kltn\stock-lakehouse-ai\backend\app\agent\llm_client.py", line 45, in chat
+    return self._chat_gemini(messages, tools)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\School\kltn\stock-lakehouse-ai\backend\app\agent\llm_client.py", line 104, in _chat_gemini
+    raise AgentError(f"Gemini API error {exc.code}: {err_body[:200]}") from exc
+app.core.exceptions.AgentError: Gemini API error 400: {
+  "error": {
+    "code": 400,
+    "message": "Invalid JSON payload received. Unknown name \"exclusiveMinimum\" at 'tools[0].function_declarations[6].parameters.properties[4].value': Cannot find fiel
+2026-10-03 13:10:12 | WARNING | app.agent.agent | LLM path failed (LLM request failed: Gemini API error 400: {
+  "error": {
+    "code": 400,
+    "message": "Invalid JSON payload received. Unknown name \"exclusiveMinimum\" at 'tools[0].function_declarations[6].parameters.properties[4].value': Cannot find fiel). Falling back to local tool router.
+2026-10-03 13:10:13 | ERROR | app.agent.llm_client | LLM request failed (gemini)
+Traceback (most recent call last):
+  File "D:\School\kltn\stock-lakehouse-ai\backend\app\agent\llm_client.py", line 100, in _chat_gemini
+    with urllib.request.urlopen(req, timeout=settings.openai_timeout_seconds) as resp:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 216, in urlopen
+    return opener.open(url, data, timeout)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 525, in open
+    response = meth(req, response)
+               ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 634, in http_response
+    response = self.parent.error(
+               ^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 563, in error
+    return self._call_chain(*args)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 496, in _call_chain
+    result = func(*args)
+             ^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 643, in http_error_default
+    raise HTTPError(req.full_url, code, msg, hdrs, fp)
+urllib.error.HTTPError: HTTP Error 400: Bad Request
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "D:\School\kltn\stock-lakehouse-ai\backend\app\agent\llm_client.py", line 45, in chat
+    return self._chat_gemini(messages, tools)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\School\kltn\stock-lakehouse-ai\backend\app\agent\llm_client.py", line 104, in _chat_gemini
+    raise AgentError(f"Gemini API error {exc.code}: {err_body[:200]}") from exc
+app.core.exceptions.AgentError: Gemini API error 400: {
+  "error": {
+    "code": 400,
+    "message": "Invalid JSON payload received. Unknown name \"exclusiveMinimum\" at 'tools[0].function_declarations[6].parameters.properties[4].value': Cannot find fiel
+2026-10-03 13:10:13 | WARNING | app.agent.agent | LLM path failed (LLM request failed: Gemini API error 400: {
+  "error": {
+    "code": 400,
+    "message": "Invalid JSON payload received. Unknown name \"exclusiveMinimum\" at 'tools[0].function_declarations[6].parameters.properties[4].value': Cannot find fiel). Falling back to local tool router.
+2026-10-03 13:10:13 | ERROR | app.agent.llm_client | LLM request failed (gemini)
+Traceback (most recent call last):
+  File "D:\School\kltn\stock-lakehouse-ai\backend\app\agent\llm_client.py", line 100, in _chat_gemini
+    with urllib.request.urlopen(req, timeout=settings.openai_timeout_seconds) as resp:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 216, in urlopen
+    return opener.open(url, data, timeout)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 525, in open
+    response = meth(req, response)
+               ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 634, in http_response
+    response = self.parent.error(
+               ^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 563, in error
+    return self._call_chain(*args)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 496, in _call_chain
+    result = func(*args)
+             ^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 643, in http_error_default
+    raise HTTPError(req.full_url, code, msg, hdrs, fp)
+urllib.error.HTTPError: HTTP Error 400: Bad Request
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "D:\School\kltn\stock-lakehouse-ai\backend\app\agent\llm_client.py", line 45, in chat
+    return self._chat_gemini(messages, tools)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\School\kltn\stock-lakehouse-ai\backend\app\agent\llm_client.py", line 104, in _chat_gemini
+    raise AgentError(f"Gemini API error {exc.code}: {err_body[:200]}") from exc
+app.core.exceptions.AgentError: Gemini API error 400: {
+  "error": {
+    "code": 400,
+    "message": "Invalid JSON payload received. Unknown name \"exclusiveMinimum\" at 'tools[0].function_declarations[6].parameters.properties[4].value': Cannot find fiel
+2026-10-03 13:10:13 | WARNING | app.agent.agent | LLM path failed (LLM request failed: Gemini API error 400: {
+  "error": {
+    "code": 400,
+    "message": "Invalid JSON payload received. Unknown name \"exclusiveMinimum\" at 'tools[0].function_declarations[6].parameters.properties[4].value': Cannot find fiel). Falling back to local tool router.
+2026-10-03 13:10:13 | INFO | app.lakehouse.storage_factory | Using MinIO storage backend.
+2026-10-03 13:10:13 | INFO | app.lakehouse.storage_factory | Using MinIO storage backend.
+2026-10-03 13:10:13 | INFO | app.lakehouse.storage_factory | Using MinIO storage backend.
+2026-10-03 13:10:13 | INFO | app.lakehouse.storage_factory | Using MinIO storage backend.
+2026-10-03 13:10:13 | INFO | app.lakehouse.storage_factory | Using MinIO storage backend.
+2026-10-03 13:10:13 | INFO | app.lakehouse.storage_factory | Using MinIO storage backend.
+2026-10-03 13:10:14 | ERROR | app.agent.llm_client | LLM request failed (gemini)
+Traceback (most recent call last):
+  File "D:\School\kltn\stock-lakehouse-ai\backend\app\agent\llm_client.py", line 100, in _chat_gemini
+    with urllib.request.urlopen(req, timeout=settings.openai_timeout_seconds) as resp:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 216, in urlopen
+    return opener.open(url, data, timeout)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 525, in open
+    response = meth(req, response)
+               ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 634, in http_response
+    response = self.parent.error(
+               ^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 563, in error
+    return self._call_chain(*args)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 496, in _call_chain
+    result = func(*args)
+             ^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 643, in http_error_default
+    raise HTTPError(req.full_url, code, msg, hdrs, fp)
+urllib.error.HTTPError: HTTP Error 400: Bad Request
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "D:\School\kltn\stock-lakehouse-ai\backend\app\agent\llm_client.py", line 45, in chat
+    return self._chat_gemini(messages, tools)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\School\kltn\stock-lakehouse-ai\backend\app\agent\llm_client.py", line 104, in _chat_gemini
+    raise AgentError(f"Gemini API error {exc.code}: {err_body[:200]}") from exc
+app.core.exceptions.AgentError: Gemini API error 400: {
+  "error": {
+    "code": 400,
+    "message": "Invalid JSON payload received. Unknown name \"exclusiveMinimum\" at 'tools[0].function_declarations[6].parameters.properties[4].value': Cannot find fiel
+2026-10-03 13:10:14 | WARNING | app.agent.agent | LLM path failed (LLM request failed: Gemini API error 400: {
+  "error": {
+    "code": 400,
+    "message": "Invalid JSON payload received. Unknown name \"exclusiveMinimum\" at 'tools[0].function_declarations[6].parameters.properties[4].value': Cannot find fiel). Falling back to local tool router.
+2026-10-03 13:10:14 | ERROR | app.agent.llm_client | LLM request failed (gemini)
+Traceback (most recent call last):
+  File "D:\School\kltn\stock-lakehouse-ai\backend\app\agent\llm_client.py", line 100, in _chat_gemini
+    with urllib.request.urlopen(req, timeout=settings.openai_timeout_seconds) as resp:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 216, in urlopen
+    return opener.open(url, data, timeout)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 525, in open
+    response = meth(req, response)
+               ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 634, in http_response
+    response = self.parent.error(
+               ^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 563, in error
+    return self._call_chain(*args)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 496, in _call_chain
+    result = func(*args)
+             ^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 643, in http_error_default
+    raise HTTPError(req.full_url, code, msg, hdrs, fp)
+urllib.error.HTTPError: HTTP Error 400: Bad Request
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "D:\School\kltn\stock-lakehouse-ai\backend\app\agent\llm_client.py", line 45, in chat
+    return self._chat_gemini(messages, tools)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\School\kltn\stock-lakehouse-ai\backend\app\agent\llm_client.py", line 104, in _chat_gemini
+    raise AgentError(f"Gemini API error {exc.code}: {err_body[:200]}") from exc
+app.core.exceptions.AgentError: Gemini API error 400: {
+  "error": {
+    "code": 400,
+    "message": "Invalid JSON payload received. Unknown name \"exclusiveMinimum\" at 'tools[0].function_declarations[6].parameters.properties[4].value': Cannot find fiel
+2026-10-03 13:10:14 | WARNING | app.agent.agent | LLM path failed (LLM request failed: Gemini API error 400: {
+  "error": {
+    "code": 400,
+    "message": "Invalid JSON payload received. Unknown name \"exclusiveMinimum\" at 'tools[0].function_declarations[6].parameters.properties[4].value': Cannot find fiel). Falling back to local tool router.
+2026-10-03 13:10:14 | INFO | app.lakehouse.storage_factory | Using MinIO storage backend.
+2026-10-03 13:10:14 | INFO | app.lakehouse.storage_factory | Using MinIO storage backend.
+2026-10-03 13:10:14 | INFO | app.lakehouse.storage_factory | Using MinIO storage backend.
+2026-10-03 13:10:14 | INFO | app.lakehouse.storage_factory | Using MinIO storage backend.
+2026-10-03 13:10:14 | INFO | app.lakehouse.storage_factory | Using MinIO storage backend.
+2026-10-03 13:10:14 | INFO | app.lakehouse.storage_factory | Using MinIO storage backend.
+2026-10-03 13:10:15 | ERROR | app.agent.llm_client | LLM request failed (gemini)
+Traceback (most recent call last):
+  File "D:\School\kltn\stock-lakehouse-ai\backend\app\agent\llm_client.py", line 100, in _chat_gemini
+    with urllib.request.urlopen(req, timeout=settings.openai_timeout_seconds) as resp:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 216, in urlopen
+    return opener.open(url, data, timeout)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 525, in open
+    response = meth(req, response)
+               ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 634, in http_response
+    response = self.parent.error(
+               ^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 563, in error
+    return self._call_chain(*args)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 496, in _call_chain
+    result = func(*args)
+             ^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 643, in http_error_default
+    raise HTTPError(req.full_url, code, msg, hdrs, fp)
+urllib.error.HTTPError: HTTP Error 400: Bad Request
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "D:\School\kltn\stock-lakehouse-ai\backend\app\agent\llm_client.py", line 45, in chat
+    return self._chat_gemini(messages, tools)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\School\kltn\stock-lakehouse-ai\backend\app\agent\llm_client.py", line 104, in _chat_gemini
+    raise AgentError(f"Gemini API error {exc.code}: {err_body[:200]}") from exc
+app.core.exceptions.AgentError: Gemini API error 400: {
+  "error": {
+    "code": 400,
+    "message": "Invalid JSON payload received. Unknown name \"exclusiveMinimum\" at 'tools[0].function_declarations[6].parameters.properties[4].value': Cannot find fiel
+2026-10-03 13:10:15 | WARNING | app.agent.agent | LLM path failed (LLM request failed: Gemini API error 400: {
+  "error": {
+    "code": 400,
+    "message": "Invalid JSON payload received. Unknown name \"exclusiveMinimum\" at 'tools[0].function_declarations[6].parameters.properties[4].value': Cannot find fiel). Falling back to local tool router.
+2026-10-03 13:10:15 | ERROR | app.agent.llm_client | LLM request failed (gemini)
+Traceback (most recent call last):
+  File "D:\School\kltn\stock-lakehouse-ai\backend\app\agent\llm_client.py", line 100, in _chat_gemini
+    with urllib.request.urlopen(req, timeout=settings.openai_timeout_seconds) as resp:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 216, in urlopen
+    return opener.open(url, data, timeout)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 525, in open
+    response = meth(req, response)
+               ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 634, in http_response
+    response = self.parent.error(
+               ^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 563, in error
+    return self._call_chain(*args)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 496, in _call_chain
+    result = func(*args)
+             ^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 643, in http_error_default
+    raise HTTPError(req.full_url, code, msg, hdrs, fp)
+urllib.error.HTTPError: HTTP Error 400: Bad Request
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "D:\School\kltn\stock-lakehouse-ai\backend\app\agent\llm_client.py", line 45, in chat
+    return self._chat_gemini(messages, tools)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\School\kltn\stock-lakehouse-ai\backend\app\agent\llm_client.py", line 104, in _chat_gemini
+    raise AgentError(f"Gemini API error {exc.code}: {err_body[:200]}") from exc
+app.core.exceptions.AgentError: Gemini API error 400: {
+  "error": {
+    "code": 400,
+    "message": "Invalid JSON payload received. Unknown name \"exclusiveMinimum\" at 'tools[0].function_declarations[6].parameters.properties[4].value': Cannot find fiel
+2026-10-03 13:10:15 | WARNING | app.agent.agent | LLM path failed (LLM request failed: Gemini API error 400: {
+  "error": {
+    "code": 400,
+    "message": "Invalid JSON payload received. Unknown name \"exclusiveMinimum\" at 'tools[0].function_declarations[6].parameters.properties[4].value': Cannot find fiel). Falling back to local tool router.
+2026-10-03 13:10:15 | ERROR | app.agent.llm_client | LLM request failed (gemini)
+Traceback (most recent call last):
+  File "D:\School\kltn\stock-lakehouse-ai\backend\app\agent\llm_client.py", line 100, in _chat_gemini
+    with urllib.request.urlopen(req, timeout=settings.openai_timeout_seconds) as resp:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 216, in urlopen
+    return opener.open(url, data, timeout)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 525, in open
+    response = meth(req, response)
+               ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 634, in http_response
+    response = self.parent.error(
+               ^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 563, in error
+    return self._call_chain(*args)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 496, in _call_chain
+    result = func(*args)
+             ^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 643, in http_error_default
+    raise HTTPError(req.full_url, code, msg, hdrs, fp)
+urllib.error.HTTPError: HTTP Error 400: Bad Request
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "D:\School\kltn\stock-lakehouse-ai\backend\app\agent\llm_client.py", line 45, in chat
+    return self._chat_gemini(messages, tools)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\School\kltn\stock-lakehouse-ai\backend\app\agent\llm_client.py", line 104, in _chat_gemini
+    raise AgentError(f"Gemini API error {exc.code}: {err_body[:200]}") from exc
+app.core.exceptions.AgentError: Gemini API error 400: {
+  "error": {
+    "code": 400,
+    "message": "Invalid JSON payload received. Unknown name \"exclusiveMinimum\" at 'tools[0].function_declarations[6].parameters.properties[4].value': Cannot find fiel
+2026-10-03 13:10:15 | WARNING | app.agent.agent | LLM path failed (LLM request failed: Gemini API error 400: {
+  "error": {
+    "code": 400,
+    "message": "Invalid JSON payload received. Unknown name \"exclusiveMinimum\" at 'tools[0].function_declarations[6].parameters.properties[4].value': Cannot find fiel). Falling back to local tool router.
+2026-10-03 13:10:15 | INFO | app.lakehouse.storage_factory | Using MinIO storage backend.
+2026-10-03 13:10:16 | INFO | app.lakehouse.storage_factory | Using MinIO storage backend.
+2026-10-03 13:11:19 | ERROR | app.agent.llm_client | LLM request failed (gemini)
+Traceback (most recent call last):
+  File "D:\School\kltn\stock-lakehouse-ai\backend\app\agent\llm_client.py", line 100, in _chat_gemini
+    with urllib.request.urlopen(req, timeout=settings.openai_timeout_seconds) as resp:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 216, in urlopen
+    return opener.open(url, data, timeout)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 525, in open
+    response = meth(req, response)
+               ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 634, in http_response
+    response = self.parent.error(
+               ^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 563, in error
+    return self._call_chain(*args)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 496, in _call_chain
+    result = func(*args)
+             ^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 643, in http_error_default
+    raise HTTPError(req.full_url, code, msg, hdrs, fp)
+urllib.error.HTTPError: HTTP Error 400: Bad Request
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "D:\School\kltn\stock-lakehouse-ai\backend\app\agent\llm_client.py", line 45, in chat
+    return self._chat_gemini(messages, tools)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\School\kltn\stock-lakehouse-ai\backend\app\agent\llm_client.py", line 104, in _chat_gemini
+    raise AgentError(f"Gemini API error {exc.code}: {err_body[:200]}") from exc
+app.core.exceptions.AgentError: Gemini API error 400: {
+  "error": {
+    "code": 400,
+    "message": "Invalid JSON payload received. Unknown name \"exclusiveMinimum\" at 'tools[0].function_declarations[6].parameters.properties[4].value': Cannot find fiel
+2026-10-03 13:11:19 | WARNING | app.agent.agent | LLM path failed (LLM request failed: Gemini API error 400: {
+  "error": {
+    "code": 400,
+    "message": "Invalid JSON payload received. Unknown name \"exclusiveMinimum\" at 'tools[0].function_declarations[6].parameters.properties[4].value': Cannot find fiel). Falling back to local tool router.
+2026-10-03 13:11:30 | ERROR | app.agent.llm_client | LLM request failed (gemini)
+Traceback (most recent call last):
+  File "D:\School\kltn\stock-lakehouse-ai\backend\app\agent\llm_client.py", line 100, in _chat_gemini
+    with urllib.request.urlopen(req, timeout=settings.openai_timeout_seconds) as resp:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 216, in urlopen
+    return opener.open(url, data, timeout)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 525, in open
+    response = meth(req, response)
+               ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 634, in http_response
+    response = self.parent.error(
+               ^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 563, in error
+    return self._call_chain(*args)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 496, in _call_chain
+    result = func(*args)
+             ^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 643, in http_error_default
+    raise HTTPError(req.full_url, code, msg, hdrs, fp)
+urllib.error.HTTPError: HTTP Error 400: Bad Request
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "D:\School\kltn\stock-lakehouse-ai\backend\app\agent\llm_client.py", line 45, in chat
+    return self._chat_gemini(messages, tools)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\School\kltn\stock-lakehouse-ai\backend\app\agent\llm_client.py", line 104, in _chat_gemini
+    raise AgentError(f"Gemini API error {exc.code}: {err_body[:200]}") from exc
+app.core.exceptions.AgentError: Gemini API error 400: {
+  "error": {
+    "code": 400,
+    "message": "Invalid JSON payload received. Unknown name \"exclusiveMinimum\" at 'tools[0].function_declarations[6].parameters.properties[4].value': Cannot find fiel
+2026-10-03 13:11:30 | WARNING | app.agent.agent | LLM path failed (LLM request failed: Gemini API error 400: {
+  "error": {
+    "code": 400,
+    "message": "Invalid JSON payload received. Unknown name \"exclusiveMinimum\" at 'tools[0].function_declarations[6].parameters.properties[4].value': Cannot find fiel). Falling back to local tool router.
+2026-10-03 13:11:30 | INFO | app.lakehouse.storage_factory | Using MinIO storage backend.
+2026-10-03 13:11:31 | INFO | app.lakehouse.storage_factory | Using MinIO storage backend.
+2026-10-03 13:11:38 | ERROR | app.agent.llm_client | LLM request failed (gemini)
+Traceback (most recent call last):
+  File "D:\School\kltn\stock-lakehouse-ai\backend\app\agent\llm_client.py", line 100, in _chat_gemini
+    with urllib.request.urlopen(req, timeout=settings.openai_timeout_seconds) as resp:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 216, in urlopen
+    return opener.open(url, data, timeout)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 525, in open
+    response = meth(req, response)
+               ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 634, in http_response
+    response = self.parent.error(
+               ^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 563, in error
+    return self._call_chain(*args)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 496, in _call_chain
+    result = func(*args)
+             ^^^^^^^^^^^
+  File "C:\Users\acer\AppData\Local\Programs\Python\Python311\Lib\urllib\request.py", line 643, in http_error_default
+    raise HTTPError(req.full_url, code, msg, hdrs, fp)
+urllib.error.HTTPError: HTTP Error 400: Bad Request
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "D:\School\kltn\stock-lakehouse-ai\backend\app\agent\llm_client.py", line 45, in chat
+    return self._chat_gemini(messages, tools)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\School\kltn\stock-lakehouse-ai\backend\app\agent\llm_client.py", line 104, in _chat_gemini
+    raise AgentError(f"Gemini API error {exc.code}: {err_body[:200]}") from exc
+app.core.exceptions.AgentError: Gemini API error 400: {
+  "error": {
+    "code": 400,
+    "message": "Invalid JSON payload received. Unknown name \"exclusiveMinimum\" at 'tools[0].function_declarations[6].parameters.properties[4].value': Cannot find fiel
+2026-10-03 13:11:38 | WARNING | app.agent.agent | LLM path failed (LLM request failed: Gemini API error 400: {
+  "error": {
+    "code": 400,
+    "message": "Invalid JSON payload received. Unknown name \"exclusiveMinimum\" at 'tools[0].function_declarations[6].parameters.properties[4].value': Cannot find fiel). Falling back to local tool router.
+2026-10-03 13:11:38 | INFO | app.lakehouse.storage_factory | Using MinIO storage backend.
+2026-10-03 13:11:39 | INFO | app.lakehouse.storage_factory | Using MinIO storage backend.
+2026-10-03 13:12:03 | INFO | app.lakehouse.storage_factory | Using MinIO storage backend.
+2026-10-03 13:12:04 | INFO | app.lakehouse.storage_factory | Using MinIO storage backend.
+2026-10-03 13:12:05 | INFO | app.lakehouse.storage_factory | Using MinIO storage backend.
+2026-10-03 13:12:06 | INFO | app.lakehouse.storage_factory | Using MinIO storage backend.
+2026-10-03 13:12:06 | INFO | app.lakehouse.storage_factory | Using MinIO storage backend.
+2026-10-03 13:12:06 | INFO | app.lakehouse.storage_factory | Using MinIO storage backend.
+2026-10-03 13:12:08 | INFO | app.lakehouse.storage_factory | Using MinIO storage backend.
+2026-10-03 13:12:09 | INFO | app.lakehouse.storage_factory | Using MinIO storage backend.
+2026-10-03 13:12:09 | INFO | app.lakehouse.storage_factory | Using MinIO storage backend.
+2026-10-03 13:12:10 | INFO | app.lakehouse.storage_factory | Using MinIO storage backend.
+2026-10-03 13:12:24 | INFO | app.lakehouse.storage_factory | Using MinIO storage backend.
+2026-10-03 13:12:42 | INFO | app.lakehouse.storage_factory | Using MinIO storage backend.

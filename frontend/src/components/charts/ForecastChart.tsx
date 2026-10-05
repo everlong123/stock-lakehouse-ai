@@ -3,8 +3,8 @@ import { ForecastPoint } from "@/types/forecasting";
 import { shortDate } from "@/utils/format";
 
 const tooltipStyle = {
-  background: "white",
-  border: "1px solid hsl(220 14% 88%)",
+  background: "hsl(var(--card))",
+  border: "1px solid hsl(var(--border))",
   borderRadius: 6,
   fontSize: 12,
 };
@@ -22,7 +22,7 @@ export function ForecastChart({ data }: { data: ForecastPoint[] }) {
           <Line
             type="monotone"
             dataKey="actual"
-            stroke="hsl(220 18% 30%)"
+            stroke="hsl(220 22% 14%)"
             strokeWidth={2}
             dot={false}
             name="ACTUAL"
@@ -30,10 +30,10 @@ export function ForecastChart({ data }: { data: ForecastPoint[] }) {
           <Line
             type="monotone"
             dataKey="predicted"
-            stroke="hsl(168 76% 32%)"
+            stroke="hsl(178 70% 24%)"
             strokeWidth={2}
             strokeDasharray="6 3"
-            dot={{ r: 3, fill: "hsl(168 76% 32%)" }}
+            dot={{ r: 3, fill: "hsl(178 70% 24%)" }}
             name="PREDICTED"
           />
         </LineChart>

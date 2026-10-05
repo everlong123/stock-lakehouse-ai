@@ -71,9 +71,10 @@ services:
       - "9092:9092"
       - "9094:9094"
     volumes:
-      - kafka_data:/bitnami/kafka
+      # apache/kafka image stores data at /var/lib/kafka/data (NOT /bitnami/kafka)
+      - kafka_data:/var/lib/kafka/data
     healthcheck:
-      test: ["CMD-SHELL", "kafka-topics.sh --bootstrap-server localhost:9092 --list"]
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list"]
       interval: 30s
       timeout: 10s
       retries: 5

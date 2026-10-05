@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 from fastapi import APIRouter
@@ -50,6 +51,10 @@ def system_status() -> dict:
     iceberg_ok = _probe_http(f"{settings.iceberg_catalog_uri}/v1/config", expect_status=[200, 400, 404, 405])
     kafka_ok = _probe_tcp(settings.kafka_bootstrap_servers.split(",")[0].strip()) if settings.use_kafka else False
 
+    # Each record_count lists every object key in a bucket, so run the three in
+    # parallel instead of serially to keep this page responsive.
+    counts = _layer_counts()
+
     payload = {
         "backend_api": {"label": "Backend API", "status": "online"},
         "mysql": {"label": "MySQL", "status": "connected" if mysql_ok else "disconnected"},
@@ -70,16 +75,31 @@ def system_status() -> dict:
             "label": "AI Agent",
             "status": agent_status,
         },
-        "counts": {
-            "bronze": BronzeLayer().record_count(),
-            "silver": SilverLayer().record_count(),
-            "gold": GoldLayer().record_count(),
-        },
+        "counts": counts,
         "storage_backend": storage.backend_name,
         "use_spark": settings.use_spark,
         "last_pipeline_run": _last_pipeline_run(),
     }
     return ok(payload)
+
+
+def _layer_counts() -> dict[str, int]:
+    """Count objects per layer concurrently, tolerating individual failures."""
+    layers = {
+        "bronze": BronzeLayer,
+        "silver": SilverLayer,
+        "gold": GoldLayer,
+    }
+    counts: dict[str, int] = {}
+    with ThreadPoolExecutor(max_workers=len(layers)) as pool:
+        futures = {name: pool.submit(cls().record_count) for name, cls in layers.items()}
+        for name, future in futures.items():
+            try:
+                counts[name] = int(future.result(timeout=20))
+            except Exception as exc:
+                logger.warning("record_count failed for %s: %s", name, exc)
+                counts[name] = -1
+    return counts
 
 
 def _probe_http(url: str, expect_status: list[int]) -> bool:
@@ -110,7 +130,12 @@ def _probe_tcp(endpoint: str) -> bool:
 
 
 def _last_pipeline_run() -> dict | None:
-    """Find the most recent pipeline run metadata JSON file."""
+    """Find the most recent pipeline run metadata JSON file.
+
+    Only the dedicated ``pipeline_runs`` directory and the data root itself are
+    scanned (non-recursively). A recursive walk over the data root used to traverse
+    the entire lakehouse tree and took ~11s on the System Status page.
+    """
     candidates = [
         Path(settings.data_root_path) / "pipeline_runs",
         Path(settings.data_root_path),
@@ -120,10 +145,13 @@ def _last_pipeline_run() -> dict | None:
     try:
         latest: tuple[float, Path] | None = None
         for base in candidates:
-            if not base.exists():
+            if not base.is_dir():
                 continue
-            for path in base.rglob("pipeline_run_*.json"):
-                mtime = path.stat().st_mtime
+            for path in base.glob("pipeline_run_*.json"):
+                try:
+                    mtime = path.stat().st_mtime
+                except OSError:
+                    continue
                 if latest is None or mtime > latest[0]:
                     latest = (mtime, path)
         if not latest:

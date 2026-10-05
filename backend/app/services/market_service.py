@@ -1,23 +1,56 @@
-"""Market data service reading from Gold/Silver/Bronze.
+"""Market data service — reads OHLCV strictly from the lakehouse (Gold → Silver → Bronze).
 
-When the lakehouse is empty (e.g. demo without a pre-populated Bronze layer),
-the service generates deterministic synthetic OHLCV data so the UI is still
-usable. Synthetic data is clearly marked via `source_layer = 'synthetic_demo'`.
+NO synthetic / sample / fallback data. If a symbol has no data in any layer,
+`NotFoundError` is raised so the UI surfaces a clear "no data" state instead of
+showing fake numbers.
 """
 
 from __future__ import annotations
 
-import math
-from datetime import datetime, timedelta, timezone
+import threading
+from datetime import datetime
+from functools import lru_cache
 
-import numpy as np
 import pandas as pd
 
-from app.core.constants import SUPPORTED_SYMBOLS
-from app.core.exceptions import NotFoundError
+from app.core.constants import SUPPORTED_INTERVALS
+from app.core.exceptions import DataValidationError, NotFoundError
 from app.lakehouse.bronze import BronzeLayer
 from app.lakehouse.gold import GoldLayer
 from app.lakehouse.silver import SilverLayer
+
+# Reading a symbol downloads every one of its year/month parquet partitions from
+# MinIO, so a long-history ticker (e.g. "M" spans 2016-2026 => ~120 objects) took
+# over two minutes per request. A small LRU cache keeps repeat views fast while
+# bounding memory: MAX_CACHE_SYMBOLS is deliberately small because this process
+# also hosts the FastAPI app and the host has no pagefile.
+MAX_CACHE_SYMBOLS = 24
+_cache_lock = threading.Lock()
+
+
+@lru_cache(maxsize=MAX_CACHE_SYMBOLS)
+def _load_symbol_frame(symbol: str) -> tuple[pd.DataFrame, str]:
+    """Load one symbol from Gold -> Silver -> Bronze, memoised across requests.
+
+    Returns:
+        (frame, source_layer). Callers must treat the frame as read-only;
+        `get_history` copies before adding columns.
+    """
+    frame = GoldLayer().read(symbol)
+    source_layer = "gold"
+    if frame.empty:
+        frame = SilverLayer().read(symbol)
+        source_layer = "silver"
+    if frame.empty:
+        frame = BronzeLayer().read(symbol)
+        source_layer = "bronze"
+    return frame, source_layer
+
+
+def clear_symbol_cache() -> None:
+    """Drop memoised symbol frames (call after a pipeline run writes new data)."""
+    with _cache_lock:
+        _load_symbol_frame.cache_clear()
 
 
 class MarketService:
@@ -30,17 +63,22 @@ class MarketService:
         end: datetime | None = None,
         interval: str = "1d",
     ) -> pd.DataFrame:
-        frame = GoldLayer().read(symbol)
-        source_layer = "gold"
+        symbol = symbol.upper()
+        # The lakehouse is single-interval: only daily bars are ever written, so
+        # there is no interval-keyed partition to read from. Previously the value
+        # was echoed back into the `interval` column while actually serving daily
+        # bars, which silently mislabelled the payload.
+        if interval not in SUPPORTED_INTERVALS:
+            raise DataValidationError(
+                f"Unsupported interval '{interval}'. This lakehouse ingests "
+                f"{SUPPORTED_INTERVALS} only; no data exists for other intervals."
+            )
+        frame, source_layer = _load_symbol_frame(symbol)
         if frame.empty:
-            frame = SilverLayer().read(symbol)
-            source_layer = "silver"
-        if frame.empty:
-            frame = BronzeLayer().read(symbol)
-            source_layer = "bronze"
-        if frame.empty:
-            frame = self._synthetic_history(symbol, interval=interval)
-            source_layer = "synthetic_demo"
+            raise NotFoundError(
+                f"No lakehouse data for {symbol}. The auto-refresh service may still "
+                f"be ingesting this symbol, or it is unavailable from the data provider."
+            )
         frame = frame.sort_values("timestamp")
         if start:
             frame = frame[frame["timestamp"] >= pd.Timestamp(start, tz="UTC")]
@@ -91,53 +129,3 @@ class MarketService:
                 }
             )
         return records
-
-    def _synthetic_history(self, symbol: str, interval: str = "1d", n_bars: int = 252) -> pd.DataFrame:
-        """Generate deterministic synthetic OHLCV so demo UI works without a populated lakehouse."""
-        # Deterministic seed per symbol so each refresh gives the same series
-        seed = sum(ord(c) for c in symbol.upper())
-        rng = np.random.default_rng(seed)
-        # Base price depends on whether symbol is "high-priced" (US big tech) or "low" (VN banks)
-        base_price = 95 + (seed % 60) if symbol.upper() not in {
-            "VCB", "TCB", "MBB", "ACB", "BID", "FPT", "HPG", "VHM", "VNM",
-        } else 25 + (seed % 30)
-        # Random walk
-        returns = rng.normal(loc=0.0006, scale=0.018, size=n_bars)
-        # Add a sine wave so charts look interesting
-        wave = np.array([math.sin(i / 18.0) * 0.003 for i in range(n_bars)])
-        prices = base_price * np.exp(np.cumsum(returns + wave))
-        opens = np.concatenate([[prices[0]], prices[:-1]])
-        closes = prices
-        # Daily range
-        daily_range = np.abs(rng.normal(loc=0.012, scale=0.006, size=n_bars)) * prices
-        high = np.maximum(opens, closes) + daily_range * 0.55
-        low = np.minimum(opens, closes) - daily_range * 0.55
-        volume = rng.integers(low=800_000, high=8_000_000, size=n_bars).astype(float)
-
-        # Time index
-        now_utc = datetime.now(timezone.utc)
-        if interval == "1d":
-            # Use pandas.Timestamp so we can call .normalize() in one place
-            end_ts = pd.Timestamp(now_utc).normalize()
-            idx = pd.date_range(end=end_ts, periods=n_bars, freq="B")
-        elif interval == "1h":
-            idx = pd.date_range(end=now_utc, periods=n_bars, freq="h")
-        elif interval == "15m":
-            idx = pd.date_range(end=now_utc, periods=n_bars, freq="15min")
-        else:
-            idx = pd.date_range(end=now_utc, periods=n_bars, freq="5min")
-
-        return pd.DataFrame(
-            {
-                "symbol": symbol.upper(),
-                "timestamp": idx.tz_localize("UTC") if idx.tz is None else idx,
-                "open": opens,
-                "high": high,
-                "low": low,
-                "close": closes,
-                "adj_close": closes,
-                "volume": volume,
-                "source": "synthetic_demo",
-                "ingestion_time": datetime.now(timezone.utc),
-            }
-        )

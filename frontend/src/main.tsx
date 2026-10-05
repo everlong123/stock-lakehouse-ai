@@ -6,6 +6,7 @@ import { Toaster } from "sonner";
 import App from "@/App";
 import { ErrorBoundary } from "@/components/common/ErrorBoundary";
 import { MarketProvider } from "@/hooks/useMarket";
+import { I18nProvider } from "@/lib/i18n";
 import "@/index.css";
 
 const queryClient = new QueryClient({
@@ -19,20 +20,22 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
         <BrowserRouter>
-          <MarketProvider>
-            <App />
-            <Toaster
-              position="top-right"
-              toastOptions={{
-                style: {
-                  background: "white",
-                  border: "1px solid hsl(220 14% 88%)",
-                  color: "hsl(220 18% 12%)",
-                  fontFamily: '"IBM Plex Sans", system-ui, sans-serif',
-                },
-              }}
-            />
-          </MarketProvider>
+          <I18nProvider>
+            <MarketProvider>
+              <App />
+              <Toaster
+                position="top-right"
+                toastOptions={{
+                  style: {
+                    background: "hsl(var(--card))",
+                    border: "1px solid hsl(var(--border))",
+                    color: "hsl(var(--foreground))",
+                    fontFamily: '"Inter", system-ui, sans-serif',
+                  },
+                }}
+              />
+            </MarketProvider>
+          </I18nProvider>
         </BrowserRouter>
       </QueryClientProvider>
     </ErrorBoundary>

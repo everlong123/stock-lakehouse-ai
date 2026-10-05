@@ -348,7 +348,7 @@ class MacroDataProvider:
         if not fx.empty:
             latest_fx = fx.iloc[-1]
             summary["exchange_rate"] = {
-                "usd_vnd": latest_fx.get("mid_rate") or 25000,
+                "usd_vnd": latest_fx.get("mid_rate"),
                 "timestamp": str(latest_fx.get("timestamp", "")),
             }
         
@@ -357,7 +357,7 @@ class MacroDataProvider:
         if not gold.empty:
             latest_gold = gold[gold["location"] == "WORLD"].iloc[-1] if len(gold[gold["location"] == "WORLD"]) > 0 else gold.iloc[-1]
             summary["gold"] = {
-                "price_usd_oz": latest_gold.get("buy_price", 2000),
+                "price_usd_oz": latest_gold.get("buy_price"),
                 "timestamp": str(latest_gold.get("timestamp", "")),
             }
         
@@ -366,7 +366,7 @@ class MacroDataProvider:
         if not oil.empty:
             latest_oil = oil.iloc[-1]
             summary["oil"] = {
-                "wti_usd_barrel": latest_oil.get("price", 80),
+                "wti_usd_barrel": latest_oil.get("price"),
                 "timestamp": str(latest_oil.get("timestamp", "")),
             }
         

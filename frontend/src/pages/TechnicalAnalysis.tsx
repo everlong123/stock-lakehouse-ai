@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { fetchIndicators } from "@/api/indicators";
 import { fetchSymbols } from "@/api/stocks";
 import { errorMessage } from "@/api/client";
@@ -16,14 +16,16 @@ import { Badge } from "@/components/ui/badge";
 import { useMarket } from "@/hooks/useMarket";
 
 const DEFAULT_SYMBOLS = [
-  "VCB", "TCB", "MBB", "ACB", "BID", "SSI", "VND", "VHM", "VRE", "KDH",
-  "FPT", "CMG", "MWG", "HPG", "GAS", "PLX", "POW", "VNM", "SAB", "MSN",
-  "VIC", "VPB", "CTG", "TPB", "SHB", "STB", "PNJ", "HDB", "LPB", "MSB",
+  "AAPL", "MSFT", "GOOGL", "AMZN", "NVDA", "META", "TSLA", "AMD", "JPM", "V",
+  "JNJ", "WMT", "UNH", "XOM", "CVX", "BAC", "KO", "PEP", "DIS", "NFLX",
+  "CRM", "ORCL", "ADBE", "INTC", "CSCO", "IBM", "QCOM", "TXN", "AVGO", "COST",
 ];
 
 export function TechnicalAnalysisPage() {
   const { symbol: ctxSymbol, setSymbol } = useMarket();
   const [localSymbol, setLocalSymbol] = useState(ctxSymbol);
+  // Sync localSymbol when ctxSymbol changes (e.g., user changes symbol from Header)
+  useEffect(() => { setLocalSymbol(ctxSymbol); }, [ctxSymbol]);
 
   const symbolsQuery = useQuery({
     queryKey: ["symbols"],

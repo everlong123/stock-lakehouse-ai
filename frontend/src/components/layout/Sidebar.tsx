@@ -11,18 +11,26 @@ import {
   Waves,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useI18n, t } from "@/lib/i18n";
 
-const items = [
-  { to: "/",            label: "Dashboard",          icon: LayoutDashboard, group: "Overview" },
-  { to: "/market",      label: "Market Data",        icon: CandlestickChart, group: "Data" },
-  { to: "/analysis",    label: "Technical Analysis", icon: Activity,        group: "Data" },
-  { to: "/forecast",    label: "Forecasting",        icon: LineChart,       group: "Models" },
-  { to: "/backtesting", label: "Backtesting",        icon: TestTubes,       group: "Models" },
-  { to: "/agent",       label: "AI Agent",           icon: Waves,           group: "Agent" },
-  { to: "/system",      label: "System Status",      icon: Server,          group: "Platform" },
+const ITEMS = [
+  { to: "/",            labelKey: "nav.dashboard",    icon: LayoutDashboard, groupKey: "nav.overview" },
+  { to: "/market",      labelKey: "nav.market",       icon: CandlestickChart, groupKey: "nav.data"     },
+  { to: "/analysis",    labelKey: "nav.analysis",     icon: Activity,        groupKey: "nav.data"     },
+  { to: "/forecast",    labelKey: "nav.forecast",     icon: LineChart,       groupKey: "nav.models"   },
+  { to: "/backtesting", labelKey: "nav.backtesting",  icon: TestTubes,       groupKey: "nav.models"   },
+  { to: "/agent",       labelKey: "nav.agent_full",   icon: Waves,           groupKey: "nav.agent"    },
+  { to: "/system",      labelKey: "nav.system",       icon: Server,          groupKey: "nav.platform" },
 ];
 
 export function Sidebar() {
+  const { locale } = useI18n();
+  const items = ITEMS.map((item) => ({
+    to: item.to,
+    icon: item.icon,
+    group: t(item.groupKey, locale),
+    label: t(item.labelKey, locale),
+  }));
   const groups = items.reduce<Record<string, typeof items>>((acc, item) => {
     (acc[item.group] ??= []).push(item);
     return acc;
@@ -31,15 +39,15 @@ export function Sidebar() {
   return (
     <aside className="sticky top-0 hidden h-screen w-60 shrink-0 border-r border-border bg-card md:flex md:flex-col">
       <div className="flex items-center gap-3 border-b border-border px-5 py-4">
-        <div className="flex h-9 w-9 items-center justify-center rounded-md bg-foreground text-background">
+        <div className="flex h-9 w-9 items-center justify-center rounded-md bg-primary text-primary-foreground">
           <Database size={16} />
         </div>
         <div className="min-w-0">
           <div className="truncate text-[14px] font-semibold leading-tight text-foreground">
-            Stock Lakehouse
+            {t("app.title", locale)}
           </div>
           <div className="truncate font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-            AI / Medallion / VN
+            {t("app.subtitle", locale)}
           </div>
         </div>
       </div>
@@ -82,8 +90,10 @@ export function Sidebar() {
         <div className="flex items-start gap-2 rounded-md bg-muted px-3 py-2 text-[11px] leading-relaxed text-muted-foreground">
           <Bot size={12} className="mt-0.5 shrink-0" />
           <div>
-            <div className="font-semibold text-foreground">Prototype hoc thuat</div>
-            Du lieu minh hoa. Khong dat lenh that.
+            <div className="font-semibold text-foreground">
+              {t("app.disclaimer_title", locale)}
+            </div>
+            {t("app.disclaimer_body", locale)}
           </div>
         </div>
       </div>

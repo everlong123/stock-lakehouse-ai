@@ -26,6 +26,7 @@ def get_engine() -> Engine:
             settings.sqlalchemy_url,
             pool_pre_ping=True,
             pool_recycle=3600,
+            connect_args={"connect_timeout": 2},
             echo=False,
             future=True,
         )
@@ -60,15 +61,28 @@ def get_db() -> Generator[Session, None, None]:
 
 
 def check_database_connection() -> bool:
-    """Return True when MySQL is reachable."""
+    """Return True when MySQL is reachable. Cached for 5s to avoid per-request timeouts."""
+    import time
+    now = time.time()
+    cached = _DB_HEALTH_CACHE.get("value")
+    cached_at = _DB_HEALTH_CACHE.get("at", 0.0)
+    if cached is not None and (now - cached_at) < 5.0:
+        return cached
     try:
         engine = get_engine()
         with engine.connect() as connection:
             connection.execute(text("SELECT 1"))
+        _DB_HEALTH_CACHE["value"] = True
+        _DB_HEALTH_CACHE["at"] = now
         return True
     except Exception as exc:
         logger.warning("MySQL connection check failed: %s", exc)
+        _DB_HEALTH_CACHE["value"] = False
+        _DB_HEALTH_CACHE["at"] = now
         return False
+
+
+_DB_HEALTH_CACHE: dict[str, float] = {}
 
 
 def require_database() -> None:

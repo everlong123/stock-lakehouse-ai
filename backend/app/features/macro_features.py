@@ -32,21 +32,13 @@ def add_macro_features(df: pd.DataFrame, macro_data: dict | None = None) -> pd.D
         if "oil" in macro_data:
             result["wti_usd_barrel"] = macro_data["oil"].get("wti_usd_barrel")
 
-    # Add placeholder macro features if not provided
-    # In production, these would come from actual macro data
-    if "usd_vnd" not in result.columns:
-        result["usd_vnd"] = 25000  # Default USD/VND rate
-
-    if "gold_usd_oz" not in result.columns:
-        result["gold_usd_oz"] = 2000  # Default gold price
-
-    if "wti_usd_barrel" not in result.columns:
-        result["wti_usd_barrel"] = 80  # Default oil price
-
-    # Computed macro features
-    result["macro_normalized"] = (
-        result["close"] / result["usd_vnd"] * 1000  # VND normalized price
-    )
+    # No fabricated macro values. If a macro series was not supplied we leave the
+    # column out entirely so downstream models never see invented prices.
+    computed = None
+    if "usd_vnd" in result.columns:
+        computed = result["close"] / result["usd_vnd"] * 1000
+    if computed is not None:
+        result["macro_normalized"] = computed
 
     return result
 
