@@ -178,7 +178,7 @@ REST        LSTM        Linear     ARIMA          (Vite)
 | File | Dòng | Mô tả |
 |------|-------|--------|
 | `config.py` | 149 | `Settings` class — đọc `.env`, tất cả config runtime. Singleton qua `@lru_cache`. |
-| `constants.py` | 194 | `SUPPORTED_SYMBOLS` (60+ US), `VN_HOSE_SYMBOLS` (53 mã VN), `OHLCV_COLUMNS`, feature columns, split ratios |
+| `constants.py` | 740+ | `GLOBAL_SYMBOLS` (958 ticker đa quốc gia), `SUPPORTED_SYMBOLS` (621 US), `MARKET_INDEXES`, `CRYPTO_SYMBOLS`, `OHLCV_COLUMNS`, feature columns, split ratios |
 | `exceptions.py` | 44 | Custom exceptions: `DataSourceError`, `StorageError`, `ModelTrainingError`, … |
 | `logging_config.py` | 39 | JSON structured logging qua `structlog` |
 | `security.py` | 14 | JWT helpers (reserved for future auth) |

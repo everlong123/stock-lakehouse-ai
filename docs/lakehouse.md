@@ -53,7 +53,31 @@ USE_ICEBERG=false  # Default nếu chưa có Iceberg catalog
 data/bronze/symbol=AAPL/year=2026/month=10/part-001.parquet
 ```
 
-Engine đọc/ghi Parquet là **Pandas** (in-process). Dữ liệu hiện tại ~250.000 rows, Pandas xử lý thoải mái.
+Engine đọc/ghi Parquet là **Pandas** (in-process). Dữ liệu hiện tại ~1.1M rows trên 884 symbols, Pandas xử lý thoải mái.
+
+---
+
+## Universe & Coverage (cập nhật 06/10/2026)
+
+Project ingest **958 tickers** trên **GLOBAL_SYMBOLS** (US + EU + JP + HK + KR + TW + CN + IN + BR + CA + AU + VN), 5 năm daily history qua Yahoo Finance v8 chart API (không cần `yfinance` package).
+
+| Khu vực | Số mã | Ví dụ |
+|---------|-------|--------|
+| 🇺🇸 US (S&P 500 / NASDAQ-100 / sector ETFs) | ~300 | AAPL, MSFT, NVDA, XLK |
+| 🇪🇺 Europe (DE / FR / UK / NL / ES / IT / CH) | ~95 | SAP.DE, MC.PA, SHEL.L, ASML.AS |
+| 🇯🇵 Japan (TSE Top 40) | ~40 | 7203.T, 6758.T, 9984.T |
+| 🇭🇰 Hong Kong (Hang Seng) | ~20 | 0700.HK, 9988.HK, 3690.HK |
+| 🇨🇳 China (ADRs) | ~22 | BABA, JD, PDD, NIO, XPEV |
+| 🇰🇷 South Korea (KOSPI top) | ~20 | 005930.KS, 000660.KS, 035420.KS |
+| 🇹🇼 Taiwan (TWSE top) | ~20 | 2330.TW, 2317.TW, 2454.TW |
+| 🇮🇳 India (ADRs) | ~8 | INFY, IBN, HDB |
+| 🇧🇷 Brazil / LatAm (ADRs) | ~10 | VALE, ITUB, PBR |
+| 🇨🇦 Canada (TSX) | ~19 | SHOP, RY.TO, ENB.TO |
+| 🇦🇺 Australia (ASX) | ~20 | BHP.AX, CBA.AX, CSL.AX |
+| 🇻🇳 Vietnam (HOSE/HNX/UPCOM) | ~50 | VCB, FPT, HPG, VNM |
+| 📊 Sector / Thematic ETFs (US) | ~85 | XLK, XLE, XLV, GLD, TLT, ARKK, SOXL |
+
+**Tổng: 958 ticker trong `GLOBAL_SYMBOLS`. Hiện có 917 ticker với 5 năm daily history thật trong Bronze (còn ~40 ticker delisted/renamed không có data trên Yahoo). ~1.1M daily rows qua 3 tầng. API `/stocks/symbols` enumerate từ MinIO bucket (fallback `GLOBAL_SYMBOLS` nếu bucket trống).**
 
 ---
 

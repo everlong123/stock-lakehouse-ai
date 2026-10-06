@@ -19,3 +19,9 @@ INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
 2026-10-05 23:59:48 | INFO | app.forecasting.arima | ARIMA fitted with order=(5, 1, 0) on 363 observations
 2026-10-05 23:59:48 | INFO | app.forecasting.trainer | Trained arima for VNM: {'mae': 8746.384546123021, 'rmse': 9075.172519920583, 'mape': 14.883480243069828, 'directional_accuracy': 0.43478260869565216}
 2026-10-06 00:02:23 | WARNING | app.main | Domain error: Unsupported model: lstm
+2026-10-06 00:04:42 | INFO | openai._base_client | Retrying request to /chat/completions in 0.420072 seconds
+2026-10-06 00:04:44 | INFO | openai._base_client | Retrying request to /chat/completions in 0.993747 seconds
+2026-10-06 00:04:47 | ERROR | app.agent.llm_client | LLM request failed (openai) after 1 attempt(s): Connection error.
+2026-10-06 00:04:47 | WARNING | app.agent.agent | LLM path failed (LLM request failed: Connection error.). Falling back to local tool router.
+2026-10-06 00:06:33 | INFO | httpx | HTTP Request: POST http://127.0.0.1:11434/v1/chat/completions "HTTP/1.1 200 OK"
+2026-10-06 00:07:40 | INFO | httpx | HTTP Request: POST http://127.0.0.1:11434/v1/chat/completions "HTTP/1.1 200 OK"

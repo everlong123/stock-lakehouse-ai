@@ -7,7 +7,7 @@ from typing import Literal
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
 
-from app.core.constants import SUPPORTED_INTERVALS, SUPPORTED_SYMBOLS
+from app.core.constants import SUPPORTED_INTERVALS, GLOBAL_SYMBOLS
 from app.core.logging_config import get_logger
 from app.lakehouse.pipeline import LakehousePipeline, PipelineConfig, PipelineRun, run_pipeline
 
@@ -102,7 +102,7 @@ async def run_lakehouse_pipeline(request: PipelineRunRequest) -> PipelineRunResp
     This ingests raw data from sources, cleans it, and engineers features.
     """
     # Build config
-    symbols = request.symbols or SUPPORTED_SYMBOLS
+    symbols = request.symbols or GLOBAL_SYMBOLS
     config = PipelineConfig(
         use_minio=request.use_minio,
         symbols=symbols,
@@ -221,8 +221,8 @@ async def get_storage_status() -> StorageStatusResponse:
 async def get_supported_symbols() -> dict:
     """Get list of supported symbols."""
     return {
-        "symbols": SUPPORTED_SYMBOLS,
-        "count": len(SUPPORTED_SYMBOLS),
+        "symbols": GLOBAL_SYMBOLS,
+        "count": len(GLOBAL_SYMBOLS),
         "intervals": SUPPORTED_INTERVALS,
     }
 

@@ -6,7 +6,7 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.core.constants import SUPPORTED_SYMBOLS
+from app.core.constants import GLOBAL_SYMBOLS
 from app.forecasting.predictor import FORECAST_DISCLAIMER, RISK_ASSESSMENT_DISCLAIMER, GENERAL_DISCLAIMER
 from app.services.backtest_service import BacktestService
 from app.services.forecasting_service import ForecastingService
@@ -99,7 +99,7 @@ class MarketSummaryOutput(BaseModel):
 
 def _normalize_symbol(symbol: str) -> str:
     value = symbol.upper().strip()
-    if value not in SUPPORTED_SYMBOLS:
+    if value not in GLOBAL_SYMBOLS:
         # Allow unknown tickers if lakehouse already has data.
         return value
     return value

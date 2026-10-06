@@ -7,7 +7,7 @@ from fastapi.responses import StreamingResponse
 
 from app.api.dependencies import get_market_service
 from app.core.config import settings
-from app.core.constants import SUPPORTED_SYMBOLS
+from app.core.constants import GLOBAL_SYMBOLS
 from app.core.logging_config import get_logger
 from app.lakehouse.storage_factory import get_storage_backend
 from app.schemas.common import ok
@@ -35,9 +35,9 @@ def _available_symbols() -> list[str]:
                     symbols.add(sym)
         if not symbols:
             logger.warning("No symbols found in bronze, falling back to constants")
-            return list(SUPPORTED_SYMBOLS)
-        # preserve canonical order from SUPPORTED_SYMBOLS so UI lists are stable
-        canonical = [s for s in SUPPORTED_SYMBOLS if s in symbols]
+            return list(GLOBAL_SYMBOLS)
+        # preserve canonical order from GLOBAL_SYMBOLS so UI lists are stable
+        canonical = [s for s in GLOBAL_SYMBOLS if s in symbols]
         extras = sorted(symbols - set(canonical))
         return canonical + extras
     except Exception as exc:

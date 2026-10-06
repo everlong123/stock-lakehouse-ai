@@ -1,0 +1,40 @@
+# ── Backend ──────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+env/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+htmlcov/
+.coverage
+.tox/
+.cache/
+coverage.xml
+*.log
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# Local data & secrets
+data/
+logs/
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+
+# OS
+.DS_Store
+Thumbs.db

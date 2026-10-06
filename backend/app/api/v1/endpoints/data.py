@@ -3,7 +3,7 @@
 from fastapi import APIRouter
 
 from app.schemas.common import ok
-from app.core.constants import SUPPORTED_SYMBOLS
+from app.core.constants import GLOBAL_SYMBOLS
 from app.services.data_ingestion_service import get_ingestion_service
 
 router = APIRouter(prefix="/data", tags=["data"])
@@ -18,8 +18,8 @@ router = APIRouter(prefix="/data", tags=["data"])
 def get_supported_stocks() -> dict:
     """Get list of supported US stocks."""
     return ok({
-        "symbols": SUPPORTED_SYMBOLS,
-        "count": len(SUPPORTED_SYMBOLS),
+        "symbols": GLOBAL_SYMBOLS,
+        "count": len(GLOBAL_SYMBOLS),
     })
 
 

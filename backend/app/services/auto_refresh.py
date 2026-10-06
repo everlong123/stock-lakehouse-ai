@@ -30,7 +30,7 @@ import pandas as pd
 
 from app.core.config import settings
 from app.core.logging_config import get_logger
-from app.core.constants import SUPPORTED_SYMBOLS
+from app.core.constants import GLOBAL_SYMBOLS
 from app.data_sources.factory import get_data_provider
 from app.lakehouse.bronze import BronzeLayer
 from app.lakehouse.silver import SilverLayer
@@ -68,7 +68,7 @@ class AutoRefreshService:
         if raw:
             self._symbols = [s.strip().upper() for s in raw.split(",") if s.strip()]
         else:
-            self._symbols = list(SUPPORTED_SYMBOLS)
+            self._symbols = list(GLOBAL_SYMBOLS)
 
         self._thread: threading.Thread | None = None
         self._stop_event = threading.Event()
@@ -160,9 +160,10 @@ class AutoRefreshService:
                     idx + 1, len(target_symbols),
                 )
 
-        # Rebuild Silver + Gold for symbols that got new data
+        # Rebuild Silver + Gold for ALL target_symbols (idempotent rebuild covers
+        # symbols that previously got skipped because Bronze had no new data).
         silver_done, gold_done = 0, 0
-        for sym in symbols_with_new_data:
+        for sym in target_symbols:
             if self._stop_event.is_set():
                 break
             try:

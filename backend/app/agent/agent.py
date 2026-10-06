@@ -9,7 +9,7 @@ from typing import Any
 from app.agent.llm_client import LLMClient
 from app.agent.prompts import SYSTEM_PROMPT
 from app.agent.tool_registry import execute_tool, openai_tools
-from app.core.constants import SUPPORTED_SYMBOLS
+from app.core.constants import GLOBAL_SYMBOLS
 from app.core.exceptions import AgentError, StockLakehouseError
 from app.core.logging_config import get_logger
 
@@ -206,7 +206,7 @@ def _wants_symbol_resolution(message: str) -> bool:
     user is clearly asking for market data.
     """
     upper = message.upper()
-    if any(re.search(rf"\b{re.escape(s)}\b", upper) for s in SUPPORTED_SYMBOLS):
+    if any(re.search(rf"\b{re.escape(s)}\b", upper) for s in GLOBAL_SYMBOLS):
         return True
     return _has_finance_intent(message.lower())
 
@@ -214,7 +214,7 @@ def _wants_symbol_resolution(message: str) -> bool:
 def _is_valid_ticker(symbol: object) -> bool:
     """Check whether a string is a real, supported ticker — not a noise word.
 
-    We require membership in SUPPORTED_SYMBOLS rather than a loose shape check.
+    We require membership in GLOBAL_SYMBOLS rather than a loose shape check.
     The shape check let prose words like "AI" (from "con AI này") or "CON" pass,
     which made tools run against symbols the lakehouse has never ingested.
     """
@@ -223,7 +223,7 @@ def _is_valid_ticker(symbol: object) -> bool:
     s = symbol.strip().upper()
     if not s:
         return False
-    if s in SUPPORTED_SYMBOLS:
+    if s in GLOBAL_SYMBOLS:
         return True
     return False
 
@@ -238,12 +238,12 @@ def _extract_symbol(text: str, default_symbol: str | None) -> str:
     """
     upper = text.upper()
 
-    for symbol in SUPPORTED_SYMBOLS:
+    for symbol in GLOBAL_SYMBOLS:
         if re.search(rf"\b{re.escape(symbol)}\b", upper):
             return symbol
 
     fallback = (default_symbol or "AAPL").upper()
-    return fallback if fallback in SUPPORTED_SYMBOLS else "AAPL"
+    return fallback if fallback in GLOBAL_SYMBOLS else "AAPL"
 
 
 def _has_finance_intent(text: str) -> bool:

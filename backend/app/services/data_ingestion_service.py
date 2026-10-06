@@ -8,7 +8,7 @@ from typing import Any
 import pandas as pd
 
 from app.core.logging_config import get_logger
-from app.core.constants import SUPPORTED_SYMBOLS
+from app.core.constants import GLOBAL_SYMBOLS
 from app.data_sources import (
     FundamentalDataProvider,
     MacroDataProvider,
@@ -37,7 +37,7 @@ class DataIngestionService:
     def ingest_us_stocks(self, symbols: list[str] | None = None) -> dict[str, int]:
         """Ingest US stock data for given symbols or default symbols."""
         if symbols is None:
-            symbols = SUPPORTED_SYMBOLS
+            symbols = GLOBAL_SYMBOLS
         
         results = {}
         for symbol in symbols:
@@ -61,7 +61,7 @@ class DataIngestionService:
     
     def ingest_all_stocks(self) -> dict[str, int]:
         """Ingest all supported US stocks."""
-        return self.ingest_us_stocks(SUPPORTED_SYMBOLS)
+        return self.ingest_us_stocks(GLOBAL_SYMBOLS)
     
     # =====================
     # Fundamental Data
@@ -282,7 +282,7 @@ class DataIngestionService:
         
         # 2. Fundamental
         try:
-            symbols = list(SUPPORTED_SYMBOLS[:10])  # First 10 for demo
+            symbols = list(GLOBAL_SYMBOLS[:10])  # First 10 for demo
             summary["fundamental"] = self.ingest_fundamental(symbols)
         except Exception as e:
             summary["errors"].append(f"Fundamental: {e}")

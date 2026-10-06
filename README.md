@@ -298,11 +298,14 @@ npm run preview     # preview production build
 
 | Source | Key? | Dùng cho | Cách lấy |
 |--------|------|----------|----------|
-| yfinance | Không | US stocks + crypto + indexes | `pip install yfinance` (đã có sẵn) |
+| Yahoo Finance (HTTP v8) | Không | **958 ticker toàn cầu** (US + EU + JP + HK + KR + TW + CN + IN + BR + CA + AU + VN), 5 năm daily | Đã có sẵn (yfinance cũng dùng được) |
+| yfinance (Python) | Không | US stocks + crypto + indexes | `pip install yfinance` (đã có sẵn) |
 | Finnhub | Có (free) | US stocks + WS streaming | <https://finnhub.io/> |
 | Alpha Vantage | Có (free) | Fallback daily OHLCV | <https://www.alphavantage.co/support/#api-key> |
 | SSI iBoard | Không | Cổ phiếu VN (HOSE/HNX/UPCOM) | Public API của SSI |
 | Multi-source | Auto | Failover chain | Set `DATA_SOURCE=multi_source` |
+
+**Universe hiện tại (06/10/2026):** 917 symbols với 5 năm daily history qua 3 tầng Bronze-Silver-Gold (~1.1M rows). Xem chi tiết tại [`docs/lakehouse.md`](docs/lakehouse.md) → section "Universe & Coverage".
 
 ### Storage
 

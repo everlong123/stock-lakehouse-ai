@@ -629,6 +629,89 @@ US_SYMBOLS: list[str] = [
     "ZTS",
 ]
 
+
+# ── Global universe — 500+ tickers across regions/sectors ──────────────
+# Curated for daily Yahoo Finance coverage (5-year history).
+# Mix: US large/mid-cap, EU blue-chips, Japan/HK/China ADRs, EM, sectors ETFs.
+GLOBAL_SYMBOLS: list[str] = list(US_SYMBOLS) + [
+    # ── Europe (Germany) ───────────────────────────────────────────────
+    "ADS.DE", "ALV.DE", "BAS.DE", "BAYN.DE", "BMW.DE", "BNR.DE", "CON.DE",
+    "DB1.DE", "DBK.DE", "DHL.DE", "DTE.DE", "EOAN.DE", "FRE.DE", "HEIA.DE",
+    "HEN3.DE", "IFX.DE", "LIN.DE", "MBG.DE", "MRK.DE", "MTX.DE", "MUV2.DE",
+    "P911.DE", "PAH3.DE", "QIA.DE", "RWE.DE", "SAP.DE", "SIE.DE", "VOW3.DE",
+    "VNA.DE", "ZAL.DE",
+
+    # ── Europe (France) ────────────────────────────────────────────────
+    "AI.PA", "AIR.PA", "BNP.PA", "BN.PA", "CA.PA", "CAP.PA", "CS.PA",
+    "DG.PA", "EL.PA", "ENGI.PA", "EN.PA", "GLE.PA", "HO.PA", "MC.PA",
+    "ML.PA", "OR.PA", "PUB.PA", "RNO.PA", "SAF.PA", "SAN.PA", "SGO.PA",
+    "STLA.PA", "SU.PA", "TTE.PA", "VIE.PA", "VIV.PA",
+
+    # ── Europe (UK / Netherlands / Spain / Italy / Switzerland) ───────
+    "SHEL.L", "AZN.L", "HSBA.L", "BP.L", "ULVR.L", "DGE.L", "GSK.L",
+    "RIO.L", "BARC.L", "LSEG.L", "LLOY.L", "NG.L", "REL.L", "TSCO.L",
+    "VOD.L", "PRTY.L", "ASML.AS", "AD.AS", "INGA.AS", "PHIA.AS", "UNA.AS",
+    "SAN.MC", "IBE.MC", "ITX.MC", "TEF.MC", "ENI.MI", "ISP.MI", "ENEL.MI",
+    "RACE.MI", "NESN.SW", "NOVN.SW", "ROG.SW", "UBSG.SW", "ABBN.SW",
+
+    # ── Japan (Yahoo uses .T suffix) ───────────────────────────────────
+    "7203.T", "6758.T", "9984.T", "8306.T", "6861.T", "7974.T", "9433.T",
+    "8035.T", "4063.T", "6501.T", "7267.T", "7751.T", "6902.T", "6367.T",
+    "7741.T", "4502.T", "4503.T", "2802.T", "2914.T", "3407.T", "4452.T",
+    "9020.T", "9022.T", "6098.T", "4661.T", "6954.T", "6981.T", "6594.T",
+    "9432.T", "9434.T", "4689.T", "9613.T", "3659.T", "9983.T", "3382.T",
+    "8411.T", "8316.T", "6752.T", "7269.T", "8801.T",
+
+    # ── Hong Kong ──────────────────────────────────────────────────────
+    "0700.HK", "9988.HK", "3690.HK", "9618.HK", "1810.HK", "0941.HK",
+    "1299.HK", "0005.HK", "0001.HK", "0016.HK", "0027.HK", "0066.HK",
+    "0388.HK", "1398.HK", "0939.HK", "3988.HK", "2628.HK", "823.HK",
+    "2388.HK", "0023.HK",
+
+    # ── China (ADRs) ───────────────────────────────────────────────────
+    "BABA", "JD", "PDD", "BIDU", "NIO", "XPEV", "LI", "TME", "BILI",
+    "NTES", "ZTO", "YUMC", "EDU", "TAL", "VIPS", "KC", "FUTU", "TIGR",
+    "ACH", "YMM", "NOAH",
+
+    # ── India (ADRs) ───────────────────────────────────────────────────
+    "INFY", "WIT", "IBN", "HDB", "RDY", "TTM", "SIFY", "MMYT",
+
+    # ── Brazil / LatAm (ADRs) ──────────────────────────────────────────
+    "VALE", "ITUB", "BBD", "PBR", "ABV", "ERJ", "GOL", "BSBR", "SBSA",
+    "UGP", "LMT", "STNE",
+
+    # ── Canada ──────────────────────────────────────────────────────────
+    "SHOP", "RY.TO", "TD.TO", "ENB.TO", "BNS.TO", "BMO.TO", "CNR.TO",
+    "CP.TO", "L.TO", "SU.TO", "BAM.TO", "MFC.TO", "FNV.TO", "ABX.TO",
+    "GOLD", "TRI.TO", "WCN.TO", "QSR.TO", "MG.TO",
+
+    # ── Australia ──────────────────────────────────────────────────────
+    "BHP.AX", "CBA.AX", "CSL.AX", "NAB.AX", "WBC.AX", "ANZ.AX", "WES.AX",
+    "MQG.AX", "FMG.AX", "TLS.AX", "WOW.AX", "COL.AX", "IAG.AX", "JHX.AX",
+    "STO.AX", "NCM.AX", "WPL.AX", "RIO.AX", "TWE.AX", "REA.AX",
+
+    # ── South Korea (Yahoo .KS suffix) ──────────────────────────────────
+    "005930.KS", "000660.KS", "035420.KS", "051910.KS", "005380.KS",
+    "006400.KS", "035720.KS", "028260.KS", "068270.KS", "003550.KS",
+    "015760.KS", "033780.KS", "096770.KS", "017670.KS", "066570.KS",
+    "003490.KS", "034730.KS", "032830.KS", "009150.KS", "010950.KS",
+
+    # ── Taiwan ──────────────────────────────────────────────────────────
+    "2330.TW", "2317.TW", "2454.TW", "2308.TW", "2881.TW", "2882.TW",
+    "2885.TW", "2886.TW", "2891.TW", "2883.TW", "1101.TW", "1301.TW",
+    "1303.TW", "1326.TW", "1590.TW", "2379.TW", "3008.TW", "3034.TW",
+    "3037.TW", "3711.TW",
+
+    # ── Sector / Thematic ETFs (US) ────────────────────────────────────
+    "XLK", "XLF", "XLE", "XLV", "XLY", "XLP", "XLI", "XLU", "XLB", "XLRE",
+    "XLC", "VGT", "VHT", "VFH", "VDE", "VCR", "VDC", "VIS", "VPU", "VAW",
+    "VNQ", "ARKK", "ARKW", "SOXL", "SOXS", "TQQQ", "SQQQ", "UVXY", "VXX",
+    "GLD", "SLV", "USO", "UNG", "DBA", "DBC", "BNO", "AGG", "TLT", "SHY",
+    "IEF", "LQD", "HYG", "JNK", "MUB", "BIL", "TIP", "SCHD", "VYM", "DGRO",
+    "SPYV", "QUAL", "MTUM", "VLUE", "USMV", "VTV", "VUG", "IVW", "IWF",
+    "IWD", "IWB", "IWM", "IWO", "IWN", "IWS", "IWP", "IWR", "IWV",
+]
+
 # All non-VN, non-crypto, non-index supported symbols = US_SYMBOLS
 SUPPORTED_SYMBOLS: list[str] = list(US_SYMBOLS)
 
@@ -645,8 +728,8 @@ CRYPTO_SYMBOLS: list[str] = [
     "ETH-USD",  # Ethereum
 ]
 
-# All available symbols
-ALL_SYMBOLS: list[str] = SUPPORTED_SYMBOLS + MARKET_INDEXES + CRYPTO_SYMBOLS
+# All available symbols — global universe (500+ tickers across regions/sectors).
+ALL_SYMBOLS: list[str] = list(GLOBAL_SYMBOLS) + MARKET_INDEXES + CRYPTO_SYMBOLS
 
 # Intervals - only 1d is collected (single-interval lakehouse)
 SUPPORTED_INTERVALS: list[str] = ["1d"]

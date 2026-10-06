@@ -139,6 +139,7 @@ Python / config chịu trách nhiệm implementation.
 
 | Component             | File                                                  | Vai trò |
 |-----------------------|-------------------------------------------------------|---------|
+| **API entrypoint**    | `backend/app/main.py`                                 | FastAPI app, lifespan, CORS, exception handlers. |
 | **App shell**         | `frontend/src/App.tsx`                                | Routes + layout. |
 | **API client**        | `frontend/src/api/*.ts`                               | Axios wrapper gọi `/api/v1`. |
 | **Dashboard page**    | `frontend/src/pages/Dashboard.tsx`                    | Giá + indicator + chart. |
@@ -148,8 +149,10 @@ Python / config chịu trách nhiệm implementation.
 | **Backtest page**     | `frontend/src/pages/Backtesting.tsx`                  | MA/RSI strategy + metrics. |
 | **Agent page**        | `frontend/src/pages/Agent.tsx`                        | Chat với AI Agent. |
 | **Status page**       | `frontend/src/pages/SystemStatus.tsx`                 | Health check tổng. |
-| **Vite config**       | `frontend/vite.config.ts`                             | Proxy `/api/v1` -> `127.0.0.1:8000`. |
+| **Vite config**       | `frontend/vite.config.ts`                             | Proxy `/api/v1` -> `127.0.0.1:8000` (local dev). |
 | **Env**               | `frontend/.env` (`VITE_API_BASE_URL`)                 | API base URL. |
+| **Dockerfile**        | `frontend/Dockerfile`                                 | Multi-stage Vite build → nginx:alpine. |
+| **Nginx config**      | `frontend/nginx.conf`                                 | SPA fallback + reverse-proxy `/api/*` → backend. |
 
 ---
 
@@ -207,5 +210,9 @@ Với config mặc định (`scripts/ingest_historical.py --years 10`):
 | **minio**     | `quay.io/minio/minio:latest`   | 9000, 9001   | Object storage + Console UI |
 | **iceberg-rest** | `tabulario/iceberg-rest:0.9.0` | 8181       | Iceberg REST Catalog |
 | **kafka**     | `apache/kafka:3.8.0` (KRaft)   | 9092, 9094   | Streaming backbone |
+| **backend**   | `stock-lakehouse-backend:latest` (custom multi-stage) | 8000 | FastAPI + Uvicorn |
+| **frontend**  | `stock-lakehouse-frontend:latest` (Vite + nginx) | 8081 | React SPA, proxies `/api/*` → `backend:8000` |
 
-> Không có Spark / Jupyter / Adminer / Kafka UI services. Frontend và backend Python chạy local (không qua Docker).
+> Cả backend và frontend đều đã đóng gói Docker (multi-stage build). Chạy
+> end-to-end bằng `docker compose up -d` từ thư mục repo, sau đó mở
+> <http://localhost:8081>. Backend API trực tiếp tại <http://localhost:8000/api/v1/docs>.
