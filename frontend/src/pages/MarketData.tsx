@@ -43,11 +43,21 @@ export function MarketDataPage() {
   );
   if (query.isLoading) return <Loading />;
   if (query.isError)
-    return <ErrorState message={errorMessage(query.error, t("dashboard.err_connect", locale))} />;
+    return (
+      <ErrorState
+        message={errorMessage(query.error, t("dashboard.err_connect", locale))}
+        onRetry={() => query.refetch()}
+      />
+    );
 
   const rows = query.data?.rows ?? [];
   if (!rows.length)
-    return <EmptyState message={`${t("market.empty", locale)} ${localSymbol || ctxSymbol}.`} />;
+    return (
+      <EmptyState
+        message={`${t("market.empty", locale)} ${localSymbol || ctxSymbol}.`}
+        hint="Chọn mã khác trong sidebar, hoặc chạy ingest để nạp dữ liệu."
+      />
+    );
 
   const latest = query.data?.latest;
   const headerStats = [

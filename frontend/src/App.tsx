@@ -4,6 +4,7 @@ import { AIAgentPage } from "@/pages/AIAgent";
 import { BacktestingPage } from "@/pages/Backtesting";
 import { DashboardPage } from "@/pages/Dashboard";
 import { ForecastingPage } from "@/pages/Forecasting";
+import { LiveStreamPage } from "@/pages/LiveStream";
 import { MarketDataPage } from "@/pages/MarketData";
 import { SystemStatusPage } from "@/pages/SystemStatus";
 import { TechnicalAnalysisPage } from "@/pages/TechnicalAnalysis";
@@ -18,6 +19,7 @@ export default function App() {
         <Route path="/forecast" element={<ForecastingPage />} />
         <Route path="/backtesting" element={<BacktestingPage />} />
         <Route path="/agent" element={<AIAgentPage />} />
+        <Route path="/stream" element={<LiveStreamPage />} />
         <Route path="/system" element={<SystemStatusPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>

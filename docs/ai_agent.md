@@ -30,7 +30,6 @@ Các kết quả phân tích và dự báo không phải khuyến nghị đầu 
 | Provider | Key | Free? | Ghi chú |
 |----------|-----|-------|---------|
 | **Gemini** | `GEMINI_API_KEY` | Có (60 req/min) | Khuyến nghị - lấy key tại <https://aistudio.google.com/apikey> |
-| **OpenAI** | `OPENAI_API_KEY` | Không | Tốn phí, fallback option |
 | **Local router** | (không cần) | Miễn phí | Auto-fallback khi không có key - vẫn gọi đúng tools |
 
 ```bash
@@ -42,7 +41,7 @@ GEMINI_MODEL=gemini-2.0-flash-exp
 
 ## Local Tool Router (fallback)
 
-Nếu `GEMINI_API_KEY` (và `OPENAI_API_KEY`) trống, agent tự dùng **local tool router**:
+Nếu `GEMINI_API_KEY` trống, agent tự dùng **local tool router**:
 
 - Phân tích câu hỏi bằng keyword matching.
 - Chọn tool phù hợp, gọi backend API.

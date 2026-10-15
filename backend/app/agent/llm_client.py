@@ -1,4 +1,4 @@
-"""LLM client supporting OpenAI, Gemini Free API, and offline heuristic fallback."""
+"""LLM client supporting the Gemini Free API with offline heuristic fallback."""
 
 from __future__ import annotations
 
@@ -26,12 +26,22 @@ _BACKOFF_CAP_SECONDS = 20.0
 _MIN_INTERVAL_SECONDS = float(os.getenv("LLM_MIN_INTERVAL_SECONDS", "4.0"))
 _request_lock = threading.Lock()
 _last_request_at = 0.0
+_last_request_failed_quota = False  # skip throttle after hard-quota failures
 
 
 def _throttle() -> None:
-    """Block until enough time has passed since the previous LLM request."""
-    global _last_request_at
+    """Block until enough time has passed since the previous LLM request.
+
+    Skip the wait when the previous request failed with an exhausted quota
+    (hard 429) — retrying immediately will also fail, and waiting 4 s just
+    wastes the user's time without improving the outcome.
+    """
+    global _last_request_at, _last_request_failed_quota
     if _MIN_INTERVAL_SECONDS <= 0:
+        return
+    if _last_request_failed_quota:
+        _last_request_failed_quota = False
+        _last_request_at = time.monotonic()
         return
     with _request_lock:
         now = time.monotonic()
@@ -127,6 +137,56 @@ def _short(exc: Exception | None) -> str:
     return text if len(text) <= 220 else text[:220] + "…"
 
 
+# Fallback chain for the Gemini free tier. When a model is overloaded
+# ("experiencing high demand"), a sibling Flash model usually has capacity.
+# Keep the list short — every extra candidate burns another HTTPS round-trip
+# on the failure path.
+_GEMINI_FALLBACK_MODELS: tuple[str, ...] = (
+    "gemini-flash-latest",
+    "gemini-3-flash",
+    "gemini-3.5-flash-lite",
+    "gemini-3.8-flash",
+    "gemini-pro-latest",
+)
+
+
+def _gemini_model_candidates(primary: str) -> list[str]:
+    """Return the configured model plus any fallbacks, deduplicated and in order."""
+    seen: set[str] = set()
+    chain: list[str] = []
+    for name in (primary, *_GEMINI_FALLBACK_MODELS):
+        if name and name not in seen:
+            chain.append(name)
+            seen.add(name)
+    return chain
+
+
+def _parse_gemini_response(body: str) -> dict[str, Any]:
+    """Decode a Gemini generateContent response into the internal shape."""
+    data = json.loads(body)
+    candidate = (data.get("candidates") or [{}])[0]
+    content_obj = candidate.get("content") or {}
+    parts = content_obj.get("parts") or []
+
+    text_parts: list[str] = []
+    tool_calls: list[dict[str, Any]] = []
+    for idx, part in enumerate(parts):
+        text = part.get("text")
+        if text:
+            text_parts.append(text)
+        function_call = part.get("functionCall")
+        if function_call:
+            name = function_call.get("name") or ""
+            args_raw = function_call.get("args") or {}
+            tool_calls.append({
+                "id": f"call_{idx}",
+                "name": name,
+                "arguments": json.dumps(args_raw, ensure_ascii=False),
+            })
+
+    return {"content": "\n".join(text_parts), "tool_calls": tool_calls, "raw_parts": parts}
+
+
 class LLMClient:
     """Multi-provider LLM client. Falls back to local router if no provider configured."""
 
@@ -140,15 +200,11 @@ class LLMClient:
         explicit = settings.llm_provider.lower().strip()
         if explicit == "gemini" and settings.gemini_api_key.strip():
             return "gemini"
-        if explicit == "openai" and settings.openai_api_key.strip():
-            return "openai"
         if explicit == "local":
             return "local"
-        # Auto-detect
+        # Auto-detect: prefer Gemini if a key is present, else fall back to local.
         if settings.gemini_api_key.strip():
             return "gemini"
-        if settings.openai_api_key.strip():
-            return "openai"
         return "local"
 
     def chat(self, messages: list[dict[str, Any]], tools: list[dict[str, Any]]) -> dict[str, Any]:
@@ -163,9 +219,7 @@ class LLMClient:
         for attempt in range(1, _MAX_ATTEMPTS + 1):
             _throttle()
             try:
-                if provider == "gemini":
-                    return self._chat_gemini(messages, tools)
-                return self._chat_openai(messages, tools)
+                return self._chat_gemini(messages, tools)
             except Exception as exc:
                 last_exc = exc
                 # An exhausted quota will still be exhausted in 2 seconds, so
@@ -174,6 +228,9 @@ class LLMClient:
                     logger.error(
                         "LLM quota exhausted (%s), not retrying: %s", provider, _short(exc)
                     )
+                    # Mark so the next request skips the throttle wait.
+                    import app.agent.llm_client as llm_module
+                    llm_module._last_request_failed_quota = True
                     raise AgentError(f"LLM quota exhausted: {_short(exc)}") from exc
                 if not _is_transient_error(exc) or attempt == _MAX_ATTEMPTS:
                     logger.error(
@@ -190,33 +247,6 @@ class LLMClient:
 
         raise AgentError(f"LLM request failed: {_short(last_exc)}") from last_exc
 
-    # ── OpenAI-compatible (works for OpenAI, OpenAI-compatible routers) ───────
-    def _chat_openai(self, messages: list[dict[str, Any]], tools: list[dict[str, Any]]) -> dict[str, Any]:
-        from openai import OpenAI
-
-        client = OpenAI(
-            api_key=settings.openai_api_key,
-            base_url=settings.openai_base_url,
-            timeout=settings.openai_timeout_seconds,
-        )
-        response = client.chat.completions.create(
-            model=settings.openai_model,
-            messages=messages,
-            tools=tools,
-            tool_choice="auto",
-            temperature=0.2,
-        )
-        message = response.choices[0].message
-        tool_calls = []
-        if message.tool_calls:
-            for call in message.tool_calls:
-                tool_calls.append({
-                    "id": call.id,
-                    "name": call.function.name,
-                    "arguments": call.function.arguments,
-                })
-        return {"content": message.content or "", "tool_calls": tool_calls}
-
     # ── Gemini Free API (Google AI Studio) ────────────────────────────────────
     def _chat_gemini(self, messages: list[dict[str, Any]], tools: list[dict[str, Any]]) -> dict[str, Any]:
         import urllib.request
@@ -227,48 +257,52 @@ class LLMClient:
         # Convert tools + contents to Gemini request payload
         gemini_tools = _convert_to_gemini_tools(tools, system_text, contents)
 
-        url = (
-            f"{settings.gemini_base_url.rstrip('/')}/models/"
-            f"{settings.gemini_model}:generateContent?key={settings.gemini_api_key}"
-        )
         payload = json.dumps(gemini_tools).encode("utf-8")
-        req = urllib.request.Request(
-            url,
-            data=payload,
-            headers={"Content-Type": "application/json"},
-            method="POST",
-        )
-        try:
-            with urllib.request.urlopen(req, timeout=settings.openai_timeout_seconds) as resp:
-                body = resp.read().decode("utf-8")
-        except urllib.error.HTTPError as exc:
-            err_body = exc.read().decode("utf-8", errors="replace")
-            raise AgentError(f"Gemini API error {exc.code}: {err_body[:200]}") from exc
-        except urllib.error.URLError as exc:
-            raise AgentError(f"Gemini network error: {exc.reason}") from exc
-
-        data = json.loads(body)
-        candidate = (data.get("candidates") or [{}])[0]
-        content_obj = candidate.get("content") or {}
-        parts = content_obj.get("parts") or []
-
-        text_parts: list[str] = []
-        tool_calls: list[dict[str, Any]] = []
-        for idx, part in enumerate(parts):
-            text = part.get("text")
-            if text:
-                text_parts.append(text)
-            function_call = part.get("functionCall")
-            if function_call:
-                name = function_call.get("name") or ""
-                args_raw = function_call.get("args") or {}
-                tool_calls.append({
-                    "id": f"call_{idx}",
-                    "name": name,
-                    "arguments": json.dumps(args_raw, ensure_ascii=False),
-                })
-
-        return {"content": "\n".join(text_parts), "tool_calls": tool_calls, "raw_parts": parts}
+        # Try the configured model first, then walk a small fallback list so a
+        # single overloaded model ("experiencing high demand") does not freeze
+        # the whole agent. The order is fast → cheap → smallest fallback.
+        candidates = _gemini_model_candidates(settings.gemini_model)
+        last_exc: Exception | None = None
+        for model_name in candidates:
+            url = (
+                f"{settings.gemini_base_url.rstrip('/')}/models/"
+                f"{model_name}:generateContent?key={settings.gemini_api_key}"
+            )
+            req = urllib.request.Request(
+                url,
+                data=payload,
+                headers={"Content-Type": "application/json"},
+                method="POST",
+            )
+            try:
+                with urllib.request.urlopen(req, timeout=settings.gemini_timeout_seconds) as resp:
+                    body = resp.read().decode("utf-8")
+                if model_name != settings.gemini_model:
+                    logger.info("Gemini fallback succeeded with model %s", model_name)
+                return _parse_gemini_response(body)
+            except urllib.error.HTTPError as exc:
+                err_body = exc.read().decode("utf-8", errors="replace")
+                wrapped = AgentError(f"Gemini API error {exc.code}: {err_body[:200]}")
+                # Only fall through to the next model on transient capacity
+                # errors. Hard-quota errors should bubble up immediately.
+                if _is_hard_quota_error(wrapped) or exc.code in (400, 401, 403):
+                    import app.agent.llm_client as llm_module
+                    llm_module._last_request_failed_quota = True
+                    raise wrapped from exc
+                last_exc = wrapped
+                logger.warning(
+                    "Gemini model %s returned %d, trying next candidate: %s",
+                    model_name, exc.code, _short(wrapped),
+                )
+                continue
+            except urllib.error.URLError as exc:
+                last_exc = AgentError(f"Gemini network error: {exc.reason}")
+                logger.warning("Gemini model %s network error: %s", model_name, exc.reason)
+                continue
+        # All candidates exhausted.
+        raise AgentError(
+            f"Gemini all models failed (tried {len(candidates)}): {_short(last_exc)}"
+        ) from last_exc
 
 
 def _convert_to_gemini_contents(messages: list[dict[str, Any]]) -> tuple[str, list[dict[str, Any]]]:

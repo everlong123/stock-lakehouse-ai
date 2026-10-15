@@ -1,4 +1,4 @@
-"""MinIO object storage backend."""
+                               """MinIO object storage backend."""
 
 from __future__ import annotations
 
@@ -25,6 +25,9 @@ LAYER_BUCKETS = {
     "models": settings.minio_bucket_models,
     "backtests": settings.minio_bucket_backtests,
     "quality": settings.minio_bucket_silver,
+    "silver_news": settings.minio_bucket_silver_news,
+    "silver_fundamentals": settings.minio_bucket_silver_fundamentals,
+    "gold_features": settings.minio_bucket_gold_features,
 }
 
 
@@ -40,9 +43,12 @@ class MinioStorageBackend(StorageBackend):
             raise StorageError("minio package is not installed.") from exc
         import urllib3
 
+        # Larger pool so list_objects on different buckets can run in parallel
+        # (the System Status page counts all 3 layers concurrently).
         http_client = urllib3.PoolManager(
-            timeout=urllib3.Timeout(connect=2.0, read=30.0),
-            retries=urllib3.util.retry.Retry(total=2),
+            timeout=15,
+            maxsize=10,
+            retries=urllib3.util.retry.Retry(total=1, status_forcelist=(502, 503, 504)),
         )
         self.client = Minio(
             settings.minio_endpoint,

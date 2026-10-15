@@ -21,6 +21,11 @@ LAYER_FOLDERS = {
     "models": "models",
     "backtests": "backtests",
     "quality": "quality",
+    # Secondary layers from specialised Lakehouse modules. Each lives under
+    # its own subfolder so reads via ``read_prefix`` stay scoped.
+    "silver_news": "silver_news",
+    "silver_fundamentals": "silver_fundamentals",
+    "gold_features": "gold_features",
 }
 
 

@@ -34,7 +34,11 @@ class NewsSilverLayer:
         self.storage = storage or get_storage_backend()
 
     def append(self, frame: pd.DataFrame, lineage: dict | None = None) -> dict:
-        """Append cleaned news records."""
+        """Append cleaned news records.
+
+        Reads existing partitions first and deduplicates on (symbol, url)
+        so re-running the news pipeline never overwrites history.
+        """
         if frame.empty:
             return {"records_written": 0}
 
@@ -51,38 +55,64 @@ class NewsSilverLayer:
         clean["title_length"] = clean["title"].str.len()
         clean["has_content"] = clean["content"].str.len() > 0
 
-        # Partition by date for efficient querying
+        # Partition by date for efficient querying. Use a Hive-style path
+        # ending in ``.parquet`` so the generic storage backends (which glob
+        # for ``*.parquet``) can still find the file when reading back.
         clean["date_partition"] = clean["published_date"].dt.strftime("%Y-%m-%d")
 
-        # Write by date partition
-        partitions = {}
+        partitions: dict[str, pd.DataFrame] = {}
         for date, group in clean.groupby("date_partition"):
-            partitions[f"date={date}"] = group.drop(columns=["date_partition"])
+            partitions[f"date={date}/part-001.parquet"] = group.drop(columns=["date_partition"])
 
-        written_paths = []
+        written_paths: list[str] = []
+        records_added = 0
+        duplicates_seen = 0
         for relative_path, group in partitions.items():
-            path = self.storage.write_parquet(self.layer_name, relative_path, group)
+            existing = pd.DataFrame()
+            if self.storage.exists(self.layer_name, relative_path):
+                try:
+                    existing = self.storage.read_parquet(self.layer_name, relative_path)
+                except Exception as exc:  # corrupted partition shouldn't kill the append
+                    logger.warning("News silver read failed for %s: %s", relative_path, exc)
+            combined = pd.concat([existing, group], ignore_index=True)
+            before = len(combined)
+            combined = combined.drop_duplicates(subset=["symbol", "url"], keep="last")
+            duplicates_seen += int(before - len(combined))
+            path = self.storage.write_parquet(self.layer_name, relative_path, combined)
             written_paths.append(path)
+            records_added += int(len(group) - max(0, before - len(combined)))
 
         metadata = {
             "layer": self.layer_name,
             "records_written": int(len(clean)),
+            "records_added": records_added,
+            "duplicate_count": duplicates_seen,
             "symbols": clean["symbol"].unique().tolist(),
             "date_range": {
                 "min": str(clean["published_date"].min()),
                 "max": str(clean["published_date"].max()),
             },
+            "paths": written_paths,
             "lineage": lineage or {},
             "ingestion_time": datetime.now(timezone.utc).isoformat(),
         }
 
-        logger.info(f"News Silver append: {len(clean)} records, {len(written_paths)} partitions")
+        logger.info(
+            "News Silver append: %s new, %s duplicates, %s partitions",
+            records_added,
+            duplicates_seen,
+            len(written_paths),
+        )
         return metadata
 
     def read_by_symbol(self, symbol: str, days: int = 30) -> pd.DataFrame:
         """Read news for a symbol within days."""
         symbol = symbol.upper()
-        frame = self.storage.read_prefix(self.layer_name, "date=")
+        # Read every date partition under the news layer; the layer's
+        # ``read_prefix`` impl globs for ``*.parquet`` so we point at the
+        # layer root with an empty prefix instead of a non-existent
+        # ``date=`` directory.
+        frame = self.storage.read_prefix(self.layer_name, "")
 
         if frame.empty:
             return frame
@@ -98,7 +128,7 @@ class NewsSilverLayer:
 
     def read_market_news(self, days: int = 7) -> pd.DataFrame:
         """Read general market news (symbol = MARKET)."""
-        frame = self.storage.read_prefix(self.layer_name, "date=")
+        frame = self.storage.read_prefix(self.layer_name, "")
 
         if frame.empty:
             return frame

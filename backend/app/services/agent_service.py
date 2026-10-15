@@ -44,6 +44,12 @@ class AgentService:
             "session_id": session_id,
             "assistant_message": result.get("assistant_message"),
             "tools": tools,
+            # Forward UI hints the offline / LLM path computed: the chat
+            # front-end surfaces them as quick-reply chips + a citation
+            # badge ("Đã gọi N tool"). Stripping them here would silently
+            # break the UX even though the agent already produced them.
+            "suggested_questions": result.get("suggested_questions") or [],
+            "tool_count": result.get("tool_count"),
         }
 
     def history(self, session_id: str, db: Session | None = None) -> list[dict]:

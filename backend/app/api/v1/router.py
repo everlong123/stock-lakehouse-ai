@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter
 
-from app.api.v1.endpoints import agent, backtesting, dashboard, data, forecasting, health, indicators, market, pipeline, stocks
+from app.api.v1.endpoints import agent, backtesting, dashboard, data, forecasting, health, indicators, market, pipeline, stocks, stream
 from app.api.v1.endpoints import admin as admin_endpoints
 
 api_router = APIRouter()
@@ -16,4 +16,5 @@ api_router.include_router(backtesting.router)
 api_router.include_router(agent.router)
 api_router.include_router(data.router)
 api_router.include_router(market.router)
+api_router.include_router(stream.router)
 api_router.include_router(admin_endpoints.router)

@@ -33,7 +33,10 @@ class DashboardService:
         if "rsi_14" in history.columns and pd.notna(last["rsi_14"]):
             rsi_value = float(last["rsi_14"])
         summary = describe_indicators(last) if "sma_20" in history.columns else {}
-        candles = self.market.to_records(history, limit=250)
+        # 2500 daily bars ≈ 10 years of trading days, which is the full
+        # lookback supported by the data sources. The previous cap of 250
+        # only returned ~1 year, so long-term trends (2016-2026) were hidden.
+        candles = self.market.to_records(history, limit=2500)
         prediction = None
         models = list_trained_models(symbol)
         if models:

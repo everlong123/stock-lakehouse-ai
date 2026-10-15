@@ -23,9 +23,14 @@ logger = get_logger(__name__)
 
 
 def _prepare_supervised(frame: pd.DataFrame, feature_cols: list[str]) -> pd.DataFrame:
-    needed = feature_cols + ["target_close_next", "timestamp", "close"]
-    present = [col for col in needed if col in frame.columns]
-    clean = frame.loc[:, ~frame.columns.duplicated()][present].dropna(subset=feature_cols + ["target_close_next"]).copy()
+    # Dedupe while preserving order — `close` already lives inside
+    # `feature_cols` for Linear/LSTM, so appending it again would create
+    # duplicate columns that blow up narwhals/polars validation later.
+    needed: list[str] = []
+    for col in feature_cols + ["target_close_next", "timestamp", "close"]:
+        if col in frame.columns and col not in needed:
+            needed.append(col)
+    clean = frame[needed].dropna(subset=feature_cols + ["target_close_next"]).copy()
     if clean.empty:
         raise ModelTrainingError("No supervised rows remain after dropping indicator warmup and target NaNs.")
     return clean
@@ -48,6 +53,15 @@ def train_model(
         )
 
     model_name = model_name.lower()
+    if model_name not in MODEL_CLASSES:
+        # LSTM is lazy-loaded because importing torch on Windows sometimes
+        # trips a DLL error (LoadLibrary failed). Lazy-load it here so the
+        # /forecast/train endpoint works for LSTM too, matching load_model.
+        if model_name == "lstm":
+            from app.forecasting.model_registry import _lazy_load_lstm
+            lstm_cls = _lazy_load_lstm()
+            if lstm_cls is not None:
+                MODEL_CLASSES["lstm"] = lstm_cls
     if model_name not in MODEL_CLASSES:
         raise ModelTrainingError(f"Unsupported model: {model_name}")
 

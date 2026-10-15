@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Literal
 
 from fastapi import APIRouter, HTTPException, Query
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from app.core.constants import SUPPORTED_INTERVALS, GLOBAL_SYMBOLS
 from app.core.logging_config import get_logger
@@ -40,14 +40,6 @@ class PipelineRunRequest(BaseModel):
     interval: str = Field(
         default="1d",
         description="Data interval (only 1d supported in single-interval lakehouse).",
-        validate=(
-            lambda v: v in SUPPORTED_INTERVALS
-            or (_ for _ in ()).throw(
-                ValueError(
-                    f"Unsupported interval '{v}'. Supported: {SUPPORTED_INTERVALS}."
-                )
-            )
-        ),
     )
     lookback_days: int = Field(
         default=3650,
@@ -55,6 +47,15 @@ class PipelineRunRequest(BaseModel):
         le=3650,
         description="Number of days of historical data to fetch (5-10 years).",
     )
+
+    @field_validator("interval")
+    @classmethod
+    def _validate_interval(cls, value: str) -> str:
+        if value not in SUPPORTED_INTERVALS:
+            raise ValueError(
+                f"Unsupported interval '{value}'. Supported: {SUPPORTED_INTERVALS}."
+            )
+        return value
 
 
 class PipelineRunResponse(BaseModel):

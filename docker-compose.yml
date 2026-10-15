@@ -1,7 +1,45 @@
+# Stock Lakehouse Platform — Modern Compose Stack
+#
+# Chạy theo profile:
+#   docker compose --profile infra up -d   (chỉ MySQL/MinIO/Kafka/Iceberg)
+#   docker compose --profile app  up -d   (backend + frontend, kèm infra)
+#   docker compose --profile all  up -d   (mọi thứ, mặc định cho demo)
+#
+# Hoặc dùng Makefile:
+#   make up-infra / up-app / up-all / down / logs / health
+#
+# DATA PERSISTENCE (since 2026-10-14)
+# -----------------------------------
+# Migration away from Docker Desktop:
+#   * The 56 GB ext4 data disk that used to live in
+#     D:\DockerDesktopWSL\disk\docker_data.vhdx has been renamed to
+#     D:\DockerDesktopWSL_BACKUP\disk\docker_data.vhdx for safekeeping.
+#   * Docker Engine is now installed natively inside the Ubuntu-24.04 WSL2
+#     distro (no Docker Desktop service, no host-services IPC bridge — the
+#     old crash mode).
+#   * Bind mounts live under /var/lib/docker-data inside the WSL2 ext4 root
+#     (NOT under /mnt/d, because writing 11 GB of Parquet from a Docker
+#     container through the 9P/NTFS bridge is ~20 MB/min — ext4→ext4 is
+#     ~1 GB/min). The data still appears under the project in
+#     \\wsl$\Ubuntu-24.04\var\lib\docker-data\... if you need to inspect
+#     it from Windows.
+#
+# Old named volumes (mysql_data, minio_data, ...) were restored from the
+# vhdx backup via qemu-nbd and rsync; see scripts/migrate-old-volumes.sh.
+
+# Mỗi service liệt kê TẤT CẢ profiles nó thuộc về.
+# Mục đích: khi gọi --profile app, các infra services vẫn được
+# pull vào config (để resolve depends_on của backend/frontend).
+
 services:
-  # ── Database (lưu pipeline metadata, AI chat history) ─────────────────────
+  # ════════════════════════════════════════════════════════════════════════════
+  # INFRASTRUCTURE — hạ tầng dữ liệu (MySQL, Object Storage, Streaming, Catalog)
+  # Profiles: infra, app, all (cần ở app để backend.depends_on resolve)
+  # ════════════════════════════════════════════════════════════════════════════
+
   mysql:
-    image: mysql:8.4
+    profiles: ["infra", "app", "all"]
+    image: mirror.gcr.io/library/mysql:8.4
     container_name: stock-lakehouse-mysql
     restart: unless-stopped
     environment:
@@ -11,18 +49,25 @@ services:
       - "3307:3306"
     command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
     volumes:
-      - mysql_data:/var/lib/mysql
+      # MySQL data restored from Docker Desktop backup vhdx on 2026-10-14.
+      # Host path is the WSL2 ext4 root (fast I/O); survives because Docker
+      # Engine inside WSL2 sees the same filesystem across reboots.
+      - /var/lib/docker-data/mysql:/var/lib/mysql
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-p123456"]
       interval: 10s
       timeout: 5s
       retries: 10
+      start_period: 30s
     networks:
       - app_net
 
-  # ── Object Storage (S3-compatible) ─────────────────────────────────────────
   minio:
-    image: quay.io/minio/minio:latest
+    profiles: ["infra", "app", "all"]
+    build:
+      context: ./minio
+      dockerfile: Dockerfile
+    image: stock-lakehouse-minio:latest
     container_name: stock-lakehouse-minio
     restart: unless-stopped
     command: server /data --console-address ":9001"
@@ -33,13 +78,24 @@ services:
       - "9000:9000"
       - "9001:9001"
     volumes:
-      - minio_data:/data
+      # MinIO Bronze/Silver/Gold Parquet data. The 11 GB legacy dataset
+      # is copied once from the Docker Desktop backup vhdx into this
+      # directory by the `minio-data-restore` one-shot container (see
+      # below). After that copy completes, the bind mount below is the
+      # authoritative copy and the vhdx backup is just a safety net.
+      - /var/lib/docker-data/minio:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
     networks:
       - app_net
 
-  # ── Apache Iceberg REST Catalog ─────────────────────────────────────────────
   iceberg-rest:
-    image: tabulario/iceberg-rest:0.9.0
+    profiles: ["infra", "app", "all"]
+    image: mirror.gcr.io/tabulario/iceberg-rest:0.9.0
     container_name: stock-lakehouse-iceberg-rest
     restart: unless-stopped
     environment:
@@ -52,15 +108,16 @@ services:
     ports:
       - "8181:8181"
     volumes:
-      - iceberg_rest_data:/var/lib/iceberg
+      - /var/lib/docker-data/iceberg-rest:/var/lib/iceberg
     depends_on:
-      - minio
+      minio:
+        condition: service_healthy
     networks:
       - app_net
 
-  # ── Apache Kafka (Real-time Streaming) ─────────────────────────────────────
   kafka:
-    image: apache/kafka:3.8.0
+    profiles: ["infra", "app", "all"]
+    image: mirror.gcr.io/apache/kafka:3.8.0
     container_name: stock-lakehouse-kafka
     restart: unless-stopped
     environment:
@@ -73,21 +130,31 @@ services:
       KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: "1"
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: "1"
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: "1"
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: "0"
     ports:
       - "9092:9092"
       - "9094:9094"
     volumes:
-      - kafka_data:/var/lib/kafka/data
+      - /var/lib/docker-data/kafka:/var/lib/kafka/data
     healthcheck:
-      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list"]
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list >/dev/null 2>&1"]
       interval: 30s
       timeout: 10s
       retries: 5
+      start_period: 30s
     networks:
       - app_net
 
-  # ── Backend API (FastAPI) ──────────────────────────────────────────────────
+  # ════════════════════════════════════════════════════════════════════════════
+  # APPLICATION — Backend API + Frontend SPA
+  # Profile: app | all
+  # ════════════════════════════════════════════════════════════════════════════
+
   backend:
+    profiles: ["app", "all"]
     build:
       context: ./backend
       dockerfile: Dockerfile
@@ -95,9 +162,6 @@ services:
     container_name: stock-lakehouse-backend
     restart: unless-stopped
     environment:
-      # The .env file on the host is loaded by Settings(BaseSettings) via env_file,
-      # but we also pass the most critical overrides here so the container is
-      # self-sufficient when started on its own.
       APP_ENV: production
       MYSQL_HOST: mysql
       MYSQL_PORT: "3306"
@@ -108,15 +172,13 @@ services:
       MINIO_ENDPOINT: minio:9000
       MINIO_ACCESS_KEY: minioadmin
       MINIO_SECRET_KEY: minioadmin
-      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
-      USE_KAFKA: "false"
-      USE_ICEBERG: "false"
+      KAFKA_BOOTSTRAP_SERVERS: "${KAFKA_BOOTSTRAP_SERVERS:-kafka:9092}"
+      USE_KAFKA: "${USE_KAFKA:-true}"
+      USE_ICEBERG: "${USE_ICEBERG:-false}"
       DATA_SOURCE: multi_source
       CORS_ORIGINS: "http://localhost,http://127.0.0.1,http://localhost:80,http://127.0.0.1:80"
-      # Optional - leave blank for local-router fallback:
-      LLM_PROVIDER: local
-      GEMINI_API_KEY: ""
-      OPENAI_API_KEY: ""
+      LLM_PROVIDER: gemini
+      GEMINI_API_KEY: "${GEMINI_API_KEY:-AQ.Ab8RN6Ic6DWpYWtAXDsR4vWki5tSS-LG6s5LK0P9K1iHEjeLfw}"
     env_file:
       - path: ./backend/.env
         required: false
@@ -133,14 +195,89 @@ services:
       mysql:
         condition: service_healthy
       minio:
-        condition: service_started
+        condition: service_healthy
       kafka:
-        condition: service_started
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8000/api/v1/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
     networks:
       - app_net
 
-  # ── Frontend (Vite + React) ────────────────────────────────────────────────
+  stream-publisher:
+    profiles: ["app", "all"]
+    image: stock-lakehouse-backend:latest
+    container_name: stock-lakehouse-stream-publisher
+    # 'on-failure' (not 'unless-stopped') so a missing FINNHUB_API_KEY does not
+    # silently keep a half-broken container running. The container will keep
+    # crashing-and-restarting until a real key is set in backend/.env.
+    restart: on-failure
+    depends_on:
+      kafka:
+        condition: service_healthy
+      backend:
+        condition: service_started
+    environment:
+      # Re-use the backend image so we don't have to ship a second Dockerfile.
+      # The publisher only needs Kafka + Finnhub; MySQL/MinIO are unused here.
+      APP_ENV: production
+      USE_KAFKA: "true"
+      KAFKA_BOOTSTRAP_SERVERS: "kafka:9092"
+      USE_ICEBERG: "false"
+      FINNHUB_API_KEY: "${FINNHUB_API_KEY:-}"   # REQUIRED — read from .env
+      CRAWL_SYMBOLS: "${STREAM_SYMBOLS:-AAPL,MSFT,GOOGL,NVDA,TSLA}"
+      LOG_LEVEL: INFO
+    command: ["python", "-m", "app.streaming.stream_publisher"]
+    healthcheck:
+      # This check fails (and restarts the container) when the WS connection
+      # is not alive. We rely on the in-process WS heartbeat for the real
+      # liveness signal; this just guarantees the process is up.
+      test: ["CMD-SHELL", "python -c \"from kafka import KafkaConsumer; c=KafkaConsumer(bootstrap_servers=['kafka:9092']); c.close(); print('ok')\""]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    networks:
+      - app_net
+
+  vn-stream-publisher:
+    profiles: ["app", "all"]
+    image: stock-lakehouse-backend:latest
+    container_name: stock-lakehouse-vn-stream-publisher
+    # 'on-failure' (not 'unless-stopped') so a misconfiguration does not
+    # silently keep a half-broken container running. Note: SSI iBoard
+    # WebSocket is FREE and does NOT require an API key.
+    restart: on-failure
+    depends_on:
+      kafka:
+        condition: service_healthy
+      backend:
+        condition: service_started
+    environment:
+      APP_ENV: production
+      USE_KAFKA: "true"
+      KAFKA_BOOTSTRAP_SERVERS: "kafka:9092"
+      USE_ICEBERG: "false"
+      VN_WS_SYMBOLS: "${VN_WS_SYMBOLS:-FPT,VNM,VCB,HPG,MWG,VIC,VHM,MSN,BID,CTG}"
+      VN_WS_BOARDS: "${VN_WS_BOARDS:-MAIN,HNX,UPCOM}"
+      VN_WS_DEAD_MAN_SECONDS: "${VN_WS_DEAD_MAN_SECONDS:-60}"
+      VN_WS_ENABLED: "${VN_WS_ENABLED:-true}"
+      LOG_LEVEL: INFO
+    command: ["python", "-m", "app.streaming.vn_stream_publisher"]
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"from kafka import KafkaConsumer; c=KafkaConsumer(bootstrap_servers=['kafka:9092']); c.close(); print('ok')\""]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    networks:
+      - app_net
+
   frontend:
+    profiles: ["app", "all"]
     build:
       context: ./frontend
       dockerfile: Dockerfile
@@ -153,16 +290,64 @@ services:
       # 8080 is occupied on this host (Cursor AgentService); use 8081.
       - "8081:80"
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:80/ >/dev/null 2>&1 || exit 1"]
+      interval: 20s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
     networks:
       - app_net
 
-# ── Networks ───────────────────────────────────────────────────────────────
+  # One-shot: copy MinIO data from the legacy Docker Desktop backup vhdx
+  # into /var/lib/docker-data/minio so the MinIO service can serve it.
+  # Why a container and not a host-level rsync: the host-level rsync from
+  # the nbd-mounted vhdx caused the WSL2 distro to crash repeatedly
+  # (WSL_E_USER_NOT_FOUND / catastrophic failure). Running rsync inside a
+  # container keeps the heavy I/O away from the WSL2 control plane and
+  # the WSL2 instance stays up reliably.
+  #
+  # Usage:
+  #   wsl -d Ubuntu-24.04 -- qemu-nbd -c /dev/nbd0 /mnt/d/DockerDesktopWSL_BACKUP/disk/docker_data.vhdx
+  #   wsl -d Ubuntu-24.04 -- mount -o ro /dev/nbd0 /mnt/backup-data
+  #   docker compose --profile all up minio-data-restore
+  #
+  # After it finishes, this container exits 0 and you can start the
+  # stock-lakehouse-ai stack normally.
+  minio-data-restore:
+    profiles: ["restore"]
+    image: alpine:3.19
+    container_name: stock-lakehouse-minio-restore
+    restart: "no"
+    command:
+      - /bin/sh
+      - -c
+      - |
+        set -e
+        if [ -f /dst/.minio.sys/format.json ]; then
+          echo "[minio-data-restore] destination already populated; skipping"
+          exit 0
+        fi
+        echo "[minio-data-restore] starting rsync from /src to /dst"
+        apk add --no-cache rsync >/dev/null
+        rsync -a --info=progress2 /src/ /dst/ 2>&1
+        echo "[minio-data-restore] done"
+    volumes:
+      - /mnt/backup-data/data/docker/volumes/stock-lakehouse-ai_minio_data/_data:/src:ro
+      - /var/lib/docker-data/minio:/dst
+
+# ── Networks ────────────────────────────────────────────────────────────────
 networks:
   app_net:
     driver: bridge
 
-# ── Volumes ────────────────────────────────────────────────────────────────
+# ── Volumes (legacy named volumes) ─────────────────────────────────────────
+# All stateful services now use bind mounts on /var/lib/docker-data instead.
+# The named volumes below are kept ONLY for backward compatibility with
+# `docker compose down -v` and any external tooling that references them by
+# name. They are empty unless something in this file still mounts them.
 volumes:
   mysql_data:
   minio_data:

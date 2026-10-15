@@ -123,8 +123,8 @@ REST        LSTM        Linear     ARIMA          (Vite)
 | File | Dòng | Mô tả |
 |------|-------|--------|
 | `agent.py` | 198 | AI Agent orchestrator — chọn Gemini Free hoặc local tool router |
-| `llm_client.py` | 183 | Gemini / OpenAI adapter — unified interface |
-| `tool_registry.py` | 136 | Wire 14+ tools vào OpenAI function-calling format |
+| `llm_client.py` | 183 | Gemini Free API adapter — fallback chain + throttle |
+| `tool_registry.py` | 136 | Wire 14+ tools vào function-calling JSON schema |
 | `prompts.py` | 11 | System prompt cho Agent |
 | `tools/stock_tools.py` | 159 | **Thực thi**: query_stock_data, get_market_summary, calculate_indicators, forecast_stock, compare_models, run_backtest |
 | `tools/news_tools.py` | 90 | News/sentiment wrappers |
@@ -391,6 +391,8 @@ result = run_symbol_pipeline("VCB", ingest=True, skip_silver=True, skip_gold=Tru
 | `kafka_producer.py` | 382 | `StockKafkaProducer` — publish OHLCV raw → Kafka topic |
 | `kafka_consumer.py` | 339 | `StockKafkaConsumer` — consume → Lakehouse |
 | `stream_publisher.py` | 272 | `StreamPublisher` — gom tick thành 1s candle → Kafka |
+| `services/stream_service.py` | 235 | In-memory cache + Kafka bridge → REST (`/stream/latest`) |
+| `api/v1/endpoints/stream.py` | 75 | REST: latest / history / stats / ingest |
 
 **Luồng real-time:**
 ```

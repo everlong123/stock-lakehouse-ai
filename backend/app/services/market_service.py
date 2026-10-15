@@ -111,10 +111,14 @@ class MarketService:
             "interval": interval,
         }
 
-    def to_records(self, frame: pd.DataFrame, limit: int = 1500) -> list[dict]:
-        subset = frame.tail(limit)
+    def to_records(self, frame: pd.DataFrame, limit: int = 5000) -> list[dict]:
+        # Cap payload to avoid huge JSON responses on long histories. Default
+        # raised from 1500 → 5000 to cover ~20 years of 1d bars for a single
+        # symbol, which is enough for any backtest chart in the UI.
+        if limit is not None and limit > 0 and len(frame) > limit:
+            frame = frame.tail(limit)
         records = []
-        for row in subset.itertuples(index=False):
+        for row in frame.itertuples(index=False):
             records.append(
                 {
                     "symbol": str(getattr(row, "symbol", "")),

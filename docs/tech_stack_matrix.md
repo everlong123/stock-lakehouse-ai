@@ -120,7 +120,7 @@ Python / config chịu trách nhiệm implementation.
 | Component             | File                                          | Vai trò |
 |-----------------------|-----------------------------------------------|---------|
 | **Agent core**        | `backend/app/agent/agent.py`                  | Orchestrator (Gemini + local router fallback). |
-| **LLM client**        | `backend/app/agent/llm_client.py`             | OpenAI-compatible streaming (Gemini, OpenAI). |
+| **LLM client**        | `backend/app/agent/llm_client.py`             | Gemini Free API client with fallback chain + retry/backoff. |
 | **Prompts**           | `backend/app/agent/prompts.py`                | System instructions. |
 | **Tool registry**     | `backend/app/agent/tool_registry.py`          | 9+ tool definitions. |
 | **Stock tools**       | `backend/app/agent/tools/stock_tools.py`      | Latest price, history, compare. |

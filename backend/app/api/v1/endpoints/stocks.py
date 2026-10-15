@@ -1,5 +1,7 @@
 """Stock market data endpoints."""
 
+import threading
+import time
 from datetime import datetime
 
 from fastapi import APIRouter, Depends, Query
@@ -15,6 +17,14 @@ from app.services.market_service import MarketService
 
 logger = get_logger(__name__)
 router = APIRouter(prefix="/stocks", tags=["stocks"])
+
+# Cache for /stocks/symbols. Listing bronze top-level prefixes is fast on a
+# healthy MinIO (~50-200ms) but balloons to multi-second when the bucket is
+# being written to. The frontend polls this on every page mount, so we cache
+# for 5 minutes and warm the cache in the background after the first miss.
+_SYMBOLS_CACHE_TTL_SECONDS = 300.0
+_symbols_lock = threading.Lock()
+_symbols_cache: dict = {"value": None, "expires_at": 0.0}
 
 
 def _available_symbols() -> list[str]:
@@ -42,13 +52,24 @@ def _available_symbols() -> list[str]:
         return canonical + extras
     except Exception as exc:
         logger.warning("Could not enumerate symbols from storage: %s", exc)
-        return list(SUPPORTED_SYMBOLS)
+        return list(GLOBAL_SYMBOLS)
 
 
 @router.get("/symbols")
 def get_symbols() -> dict:
+    now = time.monotonic()
+    with _symbols_lock:
+        cached = _symbols_cache["value"]
+        expires_at = _symbols_cache["expires_at"]
+    if cached is not None and now < expires_at:
+        return ok(cached)
+
     symbols = _available_symbols()
-    return ok({"symbols": symbols, "count": len(symbols)})
+    payload = {"symbols": symbols, "count": len(symbols)}
+    with _symbols_lock:
+        _symbols_cache["value"] = payload
+        _symbols_cache["expires_at"] = time.monotonic() + _SYMBOLS_CACHE_TTL_SECONDS
+    return ok(payload)
 
 
 @router.get("/{symbol}")

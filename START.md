@@ -1,47 +1,22 @@
-# Quick Start (one-liner)
+# Quick Start
 
-The repo now ships with `start-all.{ps1,bat}` and `stop-all.{ps1,bat}` at the project root.
+> 📖 **Đọc `LOCAL_DEV.md` trước** — nó là source of truth cho mọi thứ liên quan đến
+> setup, troubleshooting, và quyết định local vs Docker.
 
-## Recommended: double-click
-
-Just double-click **`start-all.bat`**. Two cmd windows will pop up:
-- `Stock-LH-Backend` — FastAPI on :8000
-- `Stock-LH-Frontend` — Vite on :5173
-
-Then open <http://127.0.0.1:5173> in your browser.
-
-To stop: double-click `stop-all.bat`.
-
-## From PowerShell
+## 1 lệnh để chạy local
 
 ```powershell
-cd D:\School\kltn\stock-lakehouse-ai
-powershell -ExecutionPolicy Bypass -File .\start-all.ps1
-# ...
-powershell -ExecutionPolicy Bypass -File .\stop-all.ps1
+# Từ D:\School\kltn\stock-lakehouse-ai
+.\start-all.bat
 ```
 
-## Manual (no scripts)
+2 cửa sổ cmd bật lên (backend :8000 + frontend :5173).
 
-Open **two** separate PowerShell windows:
+Mở: **http://127.0.0.1:5173**
 
-```powershell
-# Window 1 - backend
-cd D:\School\kltn\stock-lakehouse-ai\backend
-.\.venv\Scripts\python.exe -m uvicorn app.main:app --host 127.0.0.1 --port 8000
-```
+Tắt: `.\stop-all.bat`
 
-```powershell
-# Window 2 - frontend
-cd D:\School\kltn\stock-lakehouse-ai\frontend
-npm run dev
-```
+## Khi nào dùng Docker
 
-## URL map
-
-| Service  | URL                          |
-|----------|------------------------------|
-| Frontend | http://127.0.0.1:5173        |
-| Agent UI | http://127.0.0.1:5173/agent  |
-| Backend  | http://127.0.0.1:8000        |
-| API docs | http://127.0.0.1:8000/docs   |
+Code đã ổn định (≥ 1 ngày không regress) thì mới chạy Docker. Xem
+`LOCAL_DEV.md` mục "Từ local sang Docker" để biết chi tiết.

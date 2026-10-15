@@ -61,7 +61,7 @@ export function TechnicalAnalysisPage() {
   if (query.isLoading) return <Loading />;
   if (query.isError)
     return <ErrorState message={errorMessage(query.error, "Khong ket noi duoc backend API.")} />;
-  if (!series.length) return <EmptyState message="Khong co du lieu cho ma nay." />;
+  if (!series.length) return <EmptyState message="Không có dữ liệu cho mã này." />;
 
   const summary = (query.data?.summary as Record<string, string>) || {};
 
@@ -77,7 +77,7 @@ export function TechnicalAnalysisPage() {
     <div className="space-y-6">
       <PageTitle
         title="Technical analysis"
-        subtitle="Chi bao ky thuat mo ta qua khu. Khong phai khuyen nghi giao dich."
+        subtitle="Chỉ báo kỹ thuật mô tả quá khứ. Không phải khuyến nghị giao dịch."
         meta={`03 · ${localSymbol}`}
         actions={
           <select
@@ -187,7 +187,7 @@ export function TechnicalAnalysisPage() {
               {label}
             </div>
             <p className="mt-2 text-sm leading-relaxed text-foreground">
-              {summary[key] || "Chua du du lieu de mo ta."}
+              {summary[key] || "Chưa đủ dữ liệu để mô tả."}
             </p>
           </div>
         ))}

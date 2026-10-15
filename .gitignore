@@ -48,6 +48,13 @@ backend/data/backtests/**
 backend/logs/*.log
 backend/logs/*.log.*
 *.log
+*.err
+*.out
+uvicorn*.err
+uvicorn*.out
+vite*.err
+vite*.out
+vite_dev.*
 
 # IDE
 .idea/
@@ -62,3 +69,13 @@ metastore_db/
 
 # OS
 desktop.ini
+
+# Debug / one-off scripts (kept locally, not committed)
+debug_*.py
+scratch_*.py
+*_scratch.py
+test_*.py
+
+# MySQL dumps (use proper migration instead)
+*_pre_refactor.sql
+*_dump.sql

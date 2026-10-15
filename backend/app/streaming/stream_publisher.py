@@ -17,6 +17,13 @@ Free tier specifics:
 - ~50 messages/second across all symbols
 - One simultaneous WS connection
 
+⚠️  Data-integrity note:
+This service does NOT support a synthetic / random-walk fallback. The
+constructor raises ``ValueError`` for any provider other than ``finnhub``,
+and ``start()`` raises ``RuntimeError`` if ``FINNHUB_API_KEY`` is missing.
+Fake data must never enter the lakehouse — every record stored in Bronze
+must trace back to a real exchange tick.
+
 Usage::
 
     from app.streaming.stream_publisher import StreamPublisher
@@ -53,6 +60,7 @@ from app.streaming.kafka_producer import (
     StockKafkaProducer,
     TOPIC_OHLCV_RAW,
 )
+from app.streaming.rest_poller import FinnhubRestPoller
 
 logger = get_logger(__name__)
 
@@ -67,6 +75,8 @@ class StreamPublisher:
         topic: str = TOPIC_OHLCV_RAW,
         flush_interval_seconds: float = 1.0,
         batch_size: int = 100,
+        provider: str | None = None,
+        enable_rest_poller: bool | None = None,
     ) -> None:
         self.symbols = [s.upper() for s in (symbols or settings.crawl_symbols.split(","))]
         self.bootstrap_servers = bootstrap_servers or settings.kafka_bootstrap_servers or DEFAULT_BOOTSTRAP_SERVERS
@@ -74,11 +84,29 @@ class StreamPublisher:
         self.flush_interval_seconds = flush_interval_seconds
         self.batch_size = batch_size
 
+        # provider: only 'finnhub' (WebSocket). We deliberately do NOT support
+        # a synthetic / random-walk fallback — fake data must never enter the
+        # lakehouse. If no API key is configured, start() will raise.
+        self.provider = (provider or "finnhub").lower()
+        if self.provider != "finnhub":
+            raise ValueError(
+                f"Unsupported stream provider '{self.provider}'. Only 'finnhub' "
+                f"is allowed — synthetic data is not permitted in this project."
+            )
+
         self._producer = StockKafkaProducer(bootstrap_servers=self.bootstrap_servers)
         self._client: FinnhubWebSocketClient | None = None
-        self._thread: threading.Thread | None = None
+        self._rest_poller: FinnhubRestPoller | None = None
         self._flush_thread: threading.Thread | None = None
         self._running = False
+
+        # REST poller is OFF by default. The Finnhub free tier no longer
+        # exposes ``/stock/candle`` (removed 2025-04), so the legacy poller
+        # just spams 401s. Users who still have a paid plan can opt back in
+        # via the constructor flag or the ``US_REST_POLLER_ENABLED`` env.
+        if enable_rest_poller is None:
+            enable_rest_poller = settings.us_rest_poller_enabled
+        self.enable_rest_poller = bool(enable_rest_poller)
 
         # Per-symbol 1-second OHLCV aggregation buffer
         self._buffers: dict[str, dict] = defaultdict(self._new_bar)
@@ -116,7 +144,8 @@ class StreamPublisher:
 
         if not settings.finnhub_api_key:
             raise RuntimeError(
-                "Finnhub API key is not configured. Set FINNHUB_API_KEY in .env."
+                "FINNHUB_API_KEY is required — synthetic data is not allowed. "
+                "Get a free key at https://finnhub.io/ and set it in backend/.env."
             )
 
         self._running = True
@@ -127,16 +156,49 @@ class StreamPublisher:
         )
         self._client.connect(blocking=False)
 
+        # REST poller — fetches real 1-minute bars from Finnhub HTTP every
+        # 60s. Always-on alongside the WS so the lakehouse keeps ingesting
+        # real data when the WS is silent (off-hours, weekends, holidays).
+        # Both paths write to the same Kafka topic, so downstream consumers
+        # don't need to know which source produced a given bar — they just
+        # see ``source = "finnhub_ws"`` or ``source = "finnhub_rest"``.
+        #
+        # NOTE: The Finnhub free tier removed ``/stock/candle`` access in
+        # April 2025 (https://github.com/finnhubio/Finnhub-API/issues/546),
+        # so this poller is OFF by default. Set ``enable_rest_poller=True``
+        # or ``US_REST_POLLER_ENABLED=true`` if you have a paid plan, or
+        # use :class:`YFinanceEodPoller` for a free alternative.
+        if self.enable_rest_poller:
+            self._rest_poller = FinnhubRestPoller(
+                symbols=self.symbols,
+                kafka_topic=self.topic,
+                bootstrap_servers=self.bootstrap_servers,
+            )
+            try:
+                self._rest_poller.start()
+            except Exception as exc:  # noqa: BLE001
+                # Poller failure must not kill the WS path.
+                logger.warning("REST poller failed to start: %s", exc)
+                self._rest_poller = None
+        else:
+            logger.info(
+                "StreamPublisher: REST poller disabled "
+                "(Finnhub free tier no longer supports /stock/candle). "
+                "Use YFinanceEodPoller for free 1d bars."
+            )
+
         self._flush_thread = threading.Thread(
             target=self._flush_loop, daemon=True, name="stream-publisher-flush"
         )
         self._flush_thread.start()
 
         logger.info(
-            "StreamPublisher started: symbols=%d topic=%s broker=%s",
+            "StreamPublisher started: provider=%s symbols=%d topic=%s broker=%s rest_poller=%s",
+            self.provider,
             len(self.symbols),
             self.topic,
             self.bootstrap_servers,
+            "on" if self._rest_poller is not None else "off",
         )
 
     def stop(self) -> None:
@@ -144,6 +206,9 @@ class StreamPublisher:
         if self._client is not None:
             self._client.stop()
             self._client = None
+        if self._rest_poller is not None:
+            self._rest_poller.stop()
+            self._rest_poller = None
         if self._flush_thread is not None:
             self._flush_thread.join(timeout=5)
             self._flush_thread = None

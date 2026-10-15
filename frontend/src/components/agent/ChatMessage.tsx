@@ -1,6 +1,7 @@
 import { Bot, User } from "lucide-react";
 import { ChatTurn } from "@/types/agent";
 import { cn } from "@/lib/utils";
+import { Markdown } from "@/components/agent/Markdown";
 
 export function ChatMessage({ turn }: { turn: ChatTurn }) {
   const isUser = turn.role === "user";
@@ -20,7 +21,11 @@ export function ChatMessage({ turn }: { turn: ChatTurn }) {
             : "border border-border bg-card text-foreground",
         )}
       >
-        <div className="whitespace-pre-wrap break-words">{turn.content}</div>
+        {isUser ? (
+          <div className="whitespace-pre-wrap break-words">{turn.content}</div>
+        ) : (
+          <Markdown source={turn.content} />
+        )}
       </div>
       {isUser ? (
         <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground">

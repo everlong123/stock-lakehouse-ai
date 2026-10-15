@@ -550,10 +550,8 @@ ALPHA_VANTAGE_API_KEY=<key-từ-alphavantage.co>
 LLM_PROVIDER=gemini
 GEMINI_API_KEY=<key-từ-aistudio.google.com/apikey>
 GEMINI_MODEL=gemini-2.0-flash-exp
-
-# --- Fallback OpenAI (optional) ---
-OPENAI_API_KEY=
-OPENAI_MODEL=gpt-4o-mini
+# Nếu để trống GEMINI_API_KEY, agent tự fallback về local tool router
+# (keyword routing, vẫn gọi đúng tools nhưng không qua LLM sinh tự do).
 ```
 
 Xem đầy đủ biến ở `.env.example` (root) hoặc `backend/.env.example`.

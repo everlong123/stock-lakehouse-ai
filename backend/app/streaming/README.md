@@ -89,3 +89,31 @@ python scripts/run_stream_consumer.py --topic stock-ohlcv-raw
 ```
 
 You can inspect the topic via the Kafka CLI (`kafka-topics.sh --bootstrap-server localhost:9094 --list`) or any Kafka client (kcat, kafkacat, Conduktor).
+
+## In-memory stream cache (Live Stream page)
+
+When `USE_KAFKA=true` the FastAPI lifespan spins up a background Kafka
+consumer (`app/services/stream_service.py`) that keeps the last 240 bars per
+symbol in a thread-safe cache. The frontend's **Live Stream** page polls
+that cache via REST, so the data path is:
+
+```
+   producer / publish_bar
+            │
+            ▼
+   topic stock-ohlcv-raw  ──►  StockKafkaConsumer  ──►  StreamCache
+                                                         │
+                                                         ▼
+                                              GET /api/v1/stream/latest
+                                              GET /api/v1/stream/history
+                                              GET /api/v1/stream/stats
+                                              POST /api/v1/stream/ingest
+                                                         │
+                                                         ▼
+                                                  Live Stream page
+```
+
+The cache works even when Kafka is disabled. `POST /api/v1/stream/ingest`
+records bars directly into the cache (and publishes to Kafka if it is up),
+which is how the "Demo ingest" buttons on the Live Stream page drive the
+charts without requiring a running broker.

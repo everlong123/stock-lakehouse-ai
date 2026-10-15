@@ -69,7 +69,7 @@ export function BacktestingPage() {
       });
       toast.success("Backtest hoan tat (lich su).");
     } catch (error) {
-      toast.error(errorMessage(error, "Backtest that bai."));
+      toast.error(errorMessage(error, "Backtest thất bại."));
     }
   };
 
@@ -77,7 +77,7 @@ export function BacktestingPage() {
     <div className="space-y-6">
       <PageTitle
         title="Backtesting"
-        subtitle="Danh gia hieu suat lich su gia dinh. Khong chung minh chien luoc se sinh loi trong tuong lai."
+        subtitle="Đánh giá hiệu suất lịch sử giả định. Không chứng minh chiến lược sẽ sinh lời trong tương lai."
         meta="05 · Models"
         actions={
           <select
@@ -190,7 +190,7 @@ export function BacktestingPage() {
               {run.isPending ? (
                 <>
                   <Loader2 size={14} className="animate-spin" />
-                  Dang chay backtest
+                  Đang chạy backtest
                 </>
               ) : (
                 <>
@@ -201,7 +201,7 @@ export function BacktestingPage() {
             </Button>
           </div>
         </div>
-        {run.isError ? <ErrorState message={errorMessage(run.error, "Backtest that bai.")} /> : null}
+        {run.isError ? <ErrorState message={errorMessage(run.error, "Backtest thất bại.")} /> : null}
       </div>
 
       {result ? (
@@ -295,7 +295,7 @@ export function BacktestingPage() {
           </div>
         </>
       ) : (
-        <EmptyState message="Chay backtest de xem equity curve, drawdown va danh sach trades." />
+        <EmptyState message="Chạy backtest để xem equity curve, drawdown và danh sách trades." />
       )}
     </div>
   );

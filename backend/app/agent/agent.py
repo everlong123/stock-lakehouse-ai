@@ -83,12 +83,89 @@ class StockAnalysisAgent:
                     }
                 )
             second = self.llm.chat(messages, openai_tools())
-            content = second.get("content") or "Đã lấy dữ liệu từ tool nhưng mô hình không trả lời được."
+            if second and second.get("content"):
+                content = second["content"]
+            else:
+                # Model didn't produce text after seeing tool results.
+                # Synthesise a brief answer from the tool traces instead of
+                # failing silently.
+                tool_names = [t["tool_name"] for t in tool_trace]
+                if "forecast_stock" in tool_names:
+                    ft = next(t for t in tool_trace if t["tool_name"] == "forecast_stock")
+                    r = ft.get("tool_result") or {}
+                    metrics = r.get("metrics") or {}
+                    result_symbol = r.get("symbol") or default_symbol or "AAPL"
+                    model_name = r.get("model_name") or "model"
+                    content = (
+                        f"Dự báo **{model_name}** cho **{result_symbol}**: "
+                        f"MAE={metrics.get('mae', 'N/A')}, RMSE={metrics.get('rmse', 'N/A')}, "
+                        f"MAPE={metrics.get('mape', 'N/A')}%, "
+                        f"Directional Accuracy={metrics.get('directional_accuracy', 'N/A')}%. "
+                        f"{r.get('disclaimer', '')}"
+                    )
+                elif "run_backtest" in tool_names:
+                    bt = next(t for t in tool_trace if t["tool_name"] == "run_backtest")
+                    r = bt.get("tool_result") or {}
+                    result_symbol = r.get("symbol") or default_symbol or "AAPL"
+                    content = (
+                        f"Backtest **{r.get('strategy', 'strategy')}** cho **{result_symbol}**: "
+                        f"Total Return={r.get('total_return', 0):.2%}, "
+                        f"Win Rate={r.get('win_rate', 0):.2%}, Sharpe={r.get('sharpe_ratio', 0):.2f}, "
+                        f"Max Drawdown={r.get('maximum_drawdown', 0):.2%}, "
+                        f"Trades={r.get('number_of_trades', 0)}. "
+                        f"{r.get('disclaimer', '')}"
+                    )
+                elif "calculate_indicators" in tool_names:
+                    ci = next(t for t in tool_trace if t["tool_name"] == "calculate_indicators")
+                    r = ci.get("tool_result") or {}
+                    content = (
+                        f"Chỉ báo kỹ thuật: "
+                        f"RSI={r.get('rsi')}, MACD={r.get('macd')}, "
+                        f"SMA20={r.get('sma_20')}, SMA50={r.get('sma_50')}, "
+                        f"EMA12={r.get('ema_12')}, EMA26={r.get('ema_26')}. "
+                        f"{r.get('summary', {}).get('trend', '')}"
+                    )
+                elif "compare_models" in tool_names:
+                    cm = next(t for t in tool_trace if t["tool_name"] == "compare_models")
+                    r = cm.get("tool_result") or {}
+                    lines = [f"So sánh model cho **{r.get('symbol', default_symbol or 'AAPL')}**:"]
+                    for item in r.get("models") or []:
+                        lines.append(
+                            f"- {item.get('model_name')}: MAE={item.get('mae')}, "
+                            f"RMSE={item.get('rmse')}, MAPE={item.get('mape')}%, "
+                            f"DA={item.get('directional_accuracy')}%"
+                        )
+                    if not r.get("models"):
+                        lines.append("Chưa có mô hình nào được train cho symbol này.")
+                    content = "\n".join(lines)
+                elif "query_stock_data" in tool_names or "get_market_summary" in tool_names:
+                    qs = next((t for t in tool_trace if t["tool_name"] in ("query_stock_data", "get_market_summary")), None)
+                    r = qs.get("tool_result") or {}
+                    content = (
+                        f"**{r.get('symbol', default_symbol or 'AAPL')}**: "
+                        f"Close={r.get('last_close') or r.get('close')}, "
+                        f"Change={r.get('change_pct', 0):.2%}, "
+                        f"Volume={r.get('volume', 0):,.0f}."
+                    )
+                elif tool_trace:
+                    content = f"Đã chạy tool thành công: {', '.join(tool_names)}."
+                else:
+                    content = "Không có dữ liệu trả về."
         else:
             content = first.get("content") or ""
             if not content:
                 raise AgentError("LLM returned an empty response.")
-        return {"assistant_message": content, "tools": tool_trace}
+        # Heuristic follow-ups: the LLM path can't cheaply ask the LLM
+        # "give me 3 follow-ups", so we mirror the offline path's logic.
+        return {
+            "assistant_message": content,
+            "tools": tool_trace,
+            "suggested_questions": _follow_up_suggestions(
+                default_symbol or "AAPL",
+                [(t["tool_name"], t["tool_arguments"]) for t in tool_trace],
+            ),
+            "tool_count": len(tool_trace),
+        }
 
     def _local_reply(self, user_message: str, default_symbol: str | None) -> dict[str, Any]:
         """Deterministic router so the thesis demo works without an API key.
@@ -97,6 +174,11 @@ class StockAnalysisAgent:
         normally be answered by the LLM. If we get here without an LLM,
         we fall back to a minimal answer that tells the user what we can
         do, plus a tool run if we can detect a finance intent.
+
+        Supports multi-tool chaining: a single Vietnamese question can
+        trigger both ``query_stock_data`` and ``calculate_indicators`` in
+        one pass, so the offline demo matches what the LLM would have
+        returned (fewer round-trips, richer answer).
         """
         text = user_message.lower()
         plan: list[tuple[str, dict[str, Any]]] = []
@@ -117,19 +199,36 @@ class StockAnalysisAgent:
                 "Ví dụ: \"phân tích AAPL\", \"backtest MSFT\", \"RSI VCB\", "
                 "\"dự báo NVDA\", \"so sánh models GOOGL\"."
             )
-            return {"assistant_message": greeting, "tools": []}
+            return {
+                "assistant_message": greeting,
+                "tools": [],
+                "suggested_questions": _greeting_suggestions(symbol),
+            }
 
-        # 3. Intent-based tool routing
+        # 3. Intent-based tool routing.
+        # We allow multi-tool plans: a single "phân tích VCB" fires both
+        # market data + indicators in one call, so the demo feels responsive
+        # even without the LLM summarising in a second pass.
         if any(word in text for word in ["so sánh", "compare", "mae", "rmse"]):
             plan.append(("compare_models", {"symbol": symbol}))
         elif any(word in text for word in ["dự báo", "forecast", "lstm", "arima", "linear"]):
             model = "lstm" if "lstm" in text else "arima" if "arima" in text else "linear_regression"
             plan.append(("forecast_stock", {"symbol": symbol, "model_name": model}))
-        elif any(word in text for word in ["rsi", "macd", "sma", "ema", "bollinger", "chỉ báo", "kỹ thuật"]):
+        elif any(word in text for word in ["backtest", "walk-forward", "walkforward"]):
+            strategy = "rsi_strategy" if "rsi" in text else "ma_crossover"
+            plan.append(("run_backtest", {"symbol": symbol, "strategy": strategy}))
+        elif any(word in text for word in ["tin tức", "tin tuc", "news", "sentiment"]):
+            plan.append(("get_sentiment_summary", {"symbol": symbol}))
+        elif any(
+            word in text
+            for word in ["rsi", "macd", "sma", "ema", "bollinger", "chỉ báo", "kỹ thuật"]
+        ):
+            # "Phân tích kỹ thuật VCB" — chain market data + indicators so
+            # the assistant has both to summarise.
             plan.append(("query_stock_data", {"symbol": symbol}))
             plan.append(("calculate_indicators", {"symbol": symbol}))
-        elif any(word in text for word in ["backtest", "walk-forward", "walkforward"]):
-            plan.append(("run_backtest", {"symbol": symbol, "strategy": "ma_crossover"}))
+        elif any(word in text for word in ["tài chính", "doanh thu", "lợi nhuận", "cổ tức", "fundamental"]):
+            plan.append(("get_fundamental_metrics", {"symbol": symbol}))
         elif has_intent:
             # Generic intent (e.g. "phân tích VCB", "giá FPT", "thị trường") —
             # has intent but no specific tool keyword. Default to market summary.
@@ -150,10 +249,19 @@ class StockAnalysisAgent:
         if not collected:
             # Pure non-finance message and the LLM is unavailable (rate limit /
             # outage). Answer naturally instead of leaking infrastructure detail.
-            return {"assistant_message": _offline_smalltalk(user_message, symbol), "tools": []}
+            return {
+                "assistant_message": _offline_smalltalk(user_message, symbol),
+                "tools": [],
+                "suggested_questions": _fallback_suggestions(symbol),
+            }
 
         message = _render_local_answer(user_message, collected)
-        return {"assistant_message": message, "tools": tools}
+        return {
+            "assistant_message": message,
+            "tools": tools,
+            "suggested_questions": _follow_up_suggestions(symbol, plan),
+            "tool_count": len(plan),
+        }
 
 def _offline_smalltalk(user_message: str, symbol: str) -> str:
     """Friendly, non-repetitive reply used only while the LLM is unreachable.
@@ -188,10 +296,14 @@ def _offline_smalltalk(user_message: str, symbol: str) -> str:
 
 def _is_greeting(text: str) -> bool:
     """Return True if the message is a simple greeting / chitchat."""
+    # Both diacritics and ASCII fallbacks — user input may arrive as
+    # partially-normalised text ("xin chao" vs "xin chào").
     GREETING_PATTERNS = (
-        "xin chào", "chào", "hello", "hi", "hey", "alo", "chào buổi",
+        "xin chào", "xin chao", "chào", "chao", "hello", "hi", "hey",
+        "alo", "chào buổi", "chao buoi",
         "good morning", "good afternoon", "good evening", "good day",
-        "bạn khỏe không", "bạn là ai", "giúp gì được", "làm gì", "có gì",
+        "bạn khỏe không", "ban khoe khong", "bạn là ai", "ban la ai",
+        "giúp gì được", "giup gi duoc", "làm gì", "lam gi", "có gì", "co gi",
     )
     # Strip trailing punctuation to match bare words
     stripped = text.rstrip(".,!?;:")
@@ -238,7 +350,10 @@ def _extract_symbol(text: str, default_symbol: str | None) -> str:
     """
     upper = text.upper()
 
-    for symbol in GLOBAL_SYMBOLS:
+    # Sort by length descending so longer tickers match first. "MA Crossover"
+    # otherwise fires MA (Mastercard) before TSLA — short symbols are noise
+    # inside compound words (MA, ON, SO, TD, …). We only trust longer names.
+    for symbol in sorted(GLOBAL_SYMBOLS, key=len, reverse=True):
         if re.search(rf"\b{re.escape(symbol)}\b", upper):
             return symbol
 
@@ -254,11 +369,17 @@ def _has_finance_intent(text: str) -> bool:
     contains "KO" but the user isn't asking about Coca-Cola).
     """
     keywords = (
-        # Vietnamese intent
-        "phân tích", "giá", "tin tức", "chỉ báo", "kỹ thuật", "cổ phiếu",
-        "cổ tức", "dự báo", "backtest", "so sánh", "mô hình", "lợi nhuận",
-        "doanh thu", "thị trường", "vn-index", "vnindex", "hose", "hnx",
-        "khối lượng", "thanh khoản", "tín hiệu", "ngành",
+        # Vietnamese intent (with and without diacritics — user input may arrive
+        # as partially-normalised text, e.g. "phan tich" vs "phân tích")
+        "phân tích", "phan tích", "phân tích", "giá", "giá",
+        "tin tức", "tin tuc", "chỉ báo", "chi báo", "kỹ thuật", "ky thuat",
+        "cổ phiếu", "co phieu", "cổ tức", "co tuc",
+        "dự báo", "du bao", "backtest", "so sánh", "so sanh",
+        "mô hình", "mo hinh", "lợi nhuận", "loi nhuan",
+        "doanh thu", "doanh thu", "thị trường", "thi truong",
+        "vn-index", "vnindex", "hose", "hnx",
+        "khối lượng", "khoi luong", "thanh khoản", "thanh khoan",
+        "tín hiệu", "tin hieu", "ngành", "nganh",
         "open", "close", "high", "low", "volume",
         # Indicators / models / strategies
         "rsi", "macd", "sma", "ema", "bollinger", "atr", "adx", "obv", "vwap", "stoch",
@@ -328,4 +449,118 @@ def _render_local_answer(question: str, collected: dict[str, Any]) -> str:
             lines.append(
                 f"{result.get('symbol')} close={close}, change={change}, volume={result.get('volume')}."
             )
+        elif name == "get_sentiment_summary":
+            pos = result.get("positive_count") or result.get("positive") or 0
+            neg = result.get("negative_count") or result.get("negative") or 0
+            neu = result.get("neutral_count") or result.get("neutral") or 0
+            score = result.get("avg_sentiment") or result.get("sentiment_score")
+            sym = result.get("symbol", symbol)
+            lines.append(f"Sentiment tổng hợp {sym}: tích cực={pos}, tiêu cực={neg}, trung tính={neu}.")
+            if score is not None:
+                lines.append(f"Điểm sentiment trung bình: {score:.3f} (thang -1..1).")
+        elif name == "get_fundamental_metrics":
+            sym = result.get("symbol", symbol)
+            metrics = result.get("metrics") or {}
+            if metrics:
+                # Surface the most thesis-relevant ratios first; keep the
+                # English ticker names so the demo matches the report.
+                ordered = ["pe_ratio", "pb_ratio", "roe", "roa",
+                           "debt_to_equity", "dividend_yield", "eps"]
+                for key in ordered:
+                    if key in metrics and metrics[key] is not None:
+                        lines.append(f"{key} = {metrics[key]}")
+            else:
+                lines.append(f"Chưa có metrics tài chính cho {sym}.")
     return "\n".join(lines)
+
+
+# ── Suggested follow-up questions ─────────────────────────────────────────────
+# We surface 3-4 prompts after every assistant message so the demo never
+# gets stuck on "what now?" — even on the offline / rate-limited path.
+# Questions are in Vietnamese (UI default) and keep English tickers + the
+# English technical terms (RSI, MAE, MA Crossover, LSTM, …) intact, per
+# the thesis writing convention.
+
+def _greeting_suggestions(symbol: str) -> list[str]:
+    return [
+        f"Phân tích kỹ thuật {symbol}",
+        f"So sánh 3 model cho {symbol}",
+        f"Backtest MA Crossover cho {symbol}",
+        f"Tin tức & sentiment {symbol}",
+    ]
+
+
+def _fallback_suggestions(symbol: str) -> list[str]:
+    return [
+        f"Phân tích kỹ thuật {symbol}",
+        f"RSI và MACD của {symbol}",
+        f"Dự báo {symbol} bằng LSTM",
+        f"So sánh model {symbol}",
+    ]
+
+
+def _follow_up_suggestions(symbol: str, plan: list[tuple[str, dict[str, Any]]]) -> list[str]:
+    """Return follow-up questions tailored to what was just executed.
+
+    Each plan entry was already a (tool_name, args) tuple. We map the
+    executed tool to a couple of natural next questions the user might
+    want to drill into. ``plan`` may be empty (pure chitchat) — in that
+    case we fall back to the greeting suggestions.
+    """
+    if not plan:
+        return _greeting_suggestions(symbol)
+    tool_names = {name for name, _ in plan}
+    # Pick a "primary" tool — first non-fallback plan entry — for the
+    # best match. Order matters because some tool names co-occur
+    # (query_stock_data + calculate_indicators).
+    primary = next(
+        (name for name in ("compare_models", "forecast_stock", "run_backtest",
+                           "calculate_indicators", "query_stock_data",
+                           "get_market_summary", "get_sentiment_summary",
+                           "get_fundamental_metrics")
+         if name in tool_names),
+        plan[0][0],
+    )
+    table: dict[str, list[str]] = {
+        "compare_models": [
+            f"Dự báo {symbol} bằng LSTM",
+            f"Backtest MA Crossover cho {symbol}",
+            f"Phân tích kỹ thuật {symbol}",
+        ],
+        "forecast_stock": [
+            f"So sánh model {symbol}",
+            f"Backtest MA Crossover cho {symbol}",
+            f"RSI của {symbol} hiện tại",
+        ],
+        "run_backtest": [
+            f"Walk-forward validation {symbol}",
+            f"RSI Strategy cho {symbol}",
+            f"Phân tích kỹ thuật {symbol}",
+        ],
+        "calculate_indicators": [
+            f"Dự báo {symbol} bằng LSTM",
+            f"So sánh model {symbol}",
+            f"Backtest MA Crossover cho {symbol}",
+        ],
+        "query_stock_data": [
+            f"Tính RSI và MACD cho {symbol}",
+            f"Dự báo {symbol} bằng LSTM",
+            f"Backtest MA Crossover cho {symbol}",
+        ],
+        "get_market_summary": [
+            f"Tính RSI và MACD cho {symbol}",
+            f"Phân tích kỹ thuật {symbol}",
+            f"So sánh model {symbol}",
+        ],
+        "get_sentiment_summary": [
+            f"Phân tích kỹ thuật {symbol}",
+            f"Dự báo {symbol} bằng LSTM",
+            f"Báo cáo tài chính {symbol}",
+        ],
+        "get_fundamental_metrics": [
+            f"So sánh model {symbol}",
+            f"Backtest MA Crossover cho {symbol}",
+            f"Tin tức & sentiment {symbol}",
+        ],
+    }
+    return table.get(primary, _greeting_suggestions(symbol))

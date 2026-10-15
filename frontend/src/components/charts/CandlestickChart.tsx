@@ -58,16 +58,24 @@ export function CandlestickChart({ points, height = 320 }: CandleProps) {
   // Snap hover index to nearest bar.
   const handleMove = (event: React.MouseEvent<SVGSVGElement>) => {
     const rect = event.currentTarget.getBoundingClientRect();
-    // viewBox-relative x: subtract left offset, account for 50px left axis gutter.
-    const xRaw = ((event.clientX - rect.left) / rect.width) * width;
-    const dataX = Math.max(0, xRaw - 40);
+    // domX is the actual cursor position in the SVG's DOM pixel space.
+    // Since the SVG has no viewBox attribute, the SVG-local coordinate
+    // system matches DOM pixels (modulo CSS scaling). Storing domX (not
+    // xRaw) keeps the crosshair + tooltip aligned with the cursor.
+    const domX = event.clientX - rect.left;
+    // Subtract the 40px left axis gutter so dataX = 0 sits at candle 0's
+    // left edge, then snap to the nearest candle centre.
+    const dataX = domX - 40;
     const index = Math.min(
       points.length - 1,
       Math.max(0, Math.round(dataX / slot - 0.5)),
     );
     const point = points[index];
     if (!point) return;
-    const cx = 40 + (index + 0.5) * slot;
+    // Crosshair x uses the literal DOM cursor position. With no viewBox
+    // this is the same coordinate used when drawing the SVG <line>, so the
+    // line stays visually under the pointer.
+    const cx = domX;
     // Crosshair y is the candle mid (between high and low).
     const cy = (y(point.high) + y(point.low)) / 2;
     setHover({ index, x: cx, y: cy });

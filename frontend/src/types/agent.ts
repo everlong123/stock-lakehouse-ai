@@ -9,10 +9,14 @@ export interface AgentChatResponse {
   session_id: string;
   assistant_message: string;
   tools: ToolCallTrace[];
+  suggested_questions?: string[];
+  tool_count?: number;
 }
 
 export interface ChatTurn {
   role: "user" | "assistant";
   content: string;
   tools?: ToolCallTrace[];
+  suggested_questions?: string[];
+  tool_count?: number;
 }

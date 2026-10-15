@@ -276,12 +276,17 @@ class StockKafkaConsumer:
                 bronze_meta.get("records_written", 0),
             )
 
-            # Step 2: Read from Bronze and transform to Silver
-            silver_df = self._silver.transform(df)
+            # Step 2: Read from Bronze and transform to Silver.
+            # SilverLayer.transform() returns (frame, quality_report).
+            silver_result = self._silver.transform(df)
+            if isinstance(silver_result, tuple) and len(silver_result) == 2:
+                silver_df, quality_report = silver_result
+            else:
+                silver_df, quality_report = silver_result, {"source": "kafka_stream"}
 
             if not silver_df.empty:
                 # Step 3: Write to Silver
-                silver_write = self._silver.write(silver_df, {"source": "kafka_stream"})
+                silver_write = self._silver.write(silver_df, quality_report)
                 logger.info(
                     "Silver write: %s (%d rows)",
                     symbol,

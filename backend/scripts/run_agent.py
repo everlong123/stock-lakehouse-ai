@@ -6,7 +6,7 @@ Test the agent pipeline without a frontend::
     python scripts/run_agent.py "Forecast giá MSFT 5 ngày tới bằng LSTM"
     python scripts/run_agent.py "Backtest MA crossover cho NVDA 2 năm qua"
 
-Hoặc chạy với fallback (không cần OpenAI key)::
+Hoặc chạy với fallback (không cần Gemini key, dùng local tool router)::
 
     python scripts/run_agent.py --fallback "Giá AAPL hôm nay"
 """

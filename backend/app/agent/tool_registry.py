@@ -1,4 +1,11 @@
-"""OpenAI-style tool registry."""
+"""Function-calling tool registry shared by every LLM provider.
+
+The schemas are written in the OpenAI function-calling JSON shape because that
+format is the lingua franca: Gemini's converter in
+:mod:`app.agent.llm_client` translates them into the equivalent Gemini
+``function_declarations`` payload, so a single schema definition works for
+both the live Gemini client and the keyword router fallback.
+"""
 
 from __future__ import annotations
 

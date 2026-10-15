@@ -24,7 +24,19 @@ from app.streaming.finnhub_websocket import (
     StreamMessage,
     build_default_client,
 )
+from app.streaming.rest_poller import FinnhubRestPoller
+from app.streaming.yfinance_eod_poller import YFinanceEodPoller
 from app.streaming.stream_publisher import StreamPublisher
+from app.streaming.vn_websocket import (
+    DEFAULT_BOARDS as VN_DEFAULT_BOARDS,
+    VNQuoteTick,
+    VN_WS_URL,
+    VNWebSocketClient,
+    build_default_client as build_default_vn_client,
+    parse_quote as parse_vn_quote,
+)
+from app.streaming.vn_stream_publisher import VNStreamPublisher
+from app.streaming.vn_rest_poller import VNRestPoller
 
 __all__ = [
     # Producer
@@ -49,4 +61,17 @@ __all__ = [
     "StreamPublisher",
     "build_default_client",
     "FINNHUB_WS_URL",
+    # REST fallback
+    "FinnhubRestPoller",
+    # US EOD (yfinance 1d, free) — replaces Finnhub candle endpoint
+    "YFinanceEodPoller",
+    # Vietnam (SSI iBoard) real-time
+    "VN_WS_URL",
+    "VN_DEFAULT_BOARDS",
+    "VNQuoteTick",
+    "VNWebSocketClient",
+    "VNStreamPublisher",
+    "VNRestPoller",
+    "build_default_vn_client",
+    "parse_vn_quote",
 ]

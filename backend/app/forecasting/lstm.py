@@ -7,7 +7,10 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+import torch
 from sklearn.preprocessing import MinMaxScaler
+from torch import nn
+from torch.utils.data import DataLoader, TensorDataset
 
 from app.core.config import settings
 from app.core.exceptions import ModelTrainingError, PredictionError

@@ -60,9 +60,9 @@ export function ForecastingPage() {
       await train.mutateAsync({
         horizon, epochs, hidden_size: hidden, num_layers: layers, sequence_length: seq,
       });
-      toast.success(`Da train ${model} cho ${symbol}`);
+      toast.success(`Đã train ${model} cho ${symbol}`);
     } catch (error) {
-      toast.error(errorMessage(error, "Training that bai."));
+      toast.error(errorMessage(error, "Training thất bại."));
     }
   };
 
@@ -70,7 +70,7 @@ export function ForecastingPage() {
     try {
       await predict.mutateAsync(horizon);
     } catch (error) {
-      toast.error(errorMessage(error, "Chua co model. Hay train truoc."));
+      toast.error(errorMessage(error, "Chưa có model. Hãy train trước."));
     }
   };
 
@@ -78,17 +78,17 @@ export function ForecastingPage() {
     try {
       const result = await compareModels(symbol);
       setCompare(result.models);
-      toast.success(`Da so sanh ${result.models.length} models cho ${symbol}`);
+      toast.success(`Đã so sánh ${result.models.length} models cho ${symbol}`);
     } catch (error) {
-      toast.error(errorMessage(error, "Khong ket noi duoc backend."));
+      toast.error(errorMessage(error, "Không kết nối được backend."));
     }
   };
 
   return (
     <div className="space-y-6">
       <PageTitle
-        title="Forecasting"
-        subtitle="So sanh Linear Regression, ARIMA, LSTM tren hold-out chronological. Khong khang dinh mo hinh nao chac chan tot nhat."
+        title="Dự báo"
+        subtitle="So sánh Linear Regression, ARIMA, LSTM trên hold-out chronological. Không khẳng định mô hình nào chắc chắn tốt nhất."
         meta="04 · Models"
         actions={
           <select
@@ -105,7 +105,7 @@ export function ForecastingPage() {
 
       <div>
         <div className="mb-2 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-          Chon model
+          Chọn model
         </div>
         <div className="grid gap-2 md:grid-cols-3">
           {MODELS.map((m) => (
@@ -207,18 +207,18 @@ export function ForecastingPage() {
         {(train.isPending || predict.isPending) ? (
           <div className="mt-4 flex items-center gap-3 rounded-md border border-border bg-muted px-3 py-2 text-sm text-foreground">
             <Loader2 size={14} className="animate-spin" />
-            Training/prediction dang chay. LSTM tren CPU co the mat 30s den 3 phut.
+            Training/prediction đang chạy. LSTM trên CPU có thể mất 30s đến 3 phút.
           </div>
         ) : null}
-        {train.isError ? <ErrorState message={errorMessage(train.error, "Training that bai.")} /> : null}
-        {predict.isError ? <ErrorState message={errorMessage(predict.error, "Chua co model. Hay train truoc.")} /> : null}
+        {train.isError ? <ErrorState message={errorMessage(train.error, "Training thất bại.")} /> : null}
+        {predict.isError ? <ErrorState message={errorMessage(predict.error, "Chưa có model. Hãy train trước.")} /> : null}
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <MetricCard label="MAE" value={formatNumber(metrics?.mae)} hint="Mean Absolute Error" />
         <MetricCard label="RMSE" value={formatNumber(metrics?.rmse)} hint="Root Mean Squared Error" />
         <MetricCard label="MAPE" value={formatPercent(metrics?.mape != null ? metrics.mape / 100 : null)} hint="Mean Abs % Error" />
-        <MetricCard label="Directional Acc" value={formatNumber(metrics?.directional_accuracy)} hint="% doan dung chieu" />
+        <MetricCard label="Directional Acc" value={formatNumber(metrics?.directional_accuracy)} hint="% đoán đúng chiều" />
       </div>
 
       <div className="rounded-md border border-border bg-card">
@@ -229,17 +229,20 @@ export function ForecastingPage() {
           {predictions.length ? (
             <ForecastChart data={predictions} />
           ) : (
-            <EmptyState message="Train model de xem bieu do so sanh." />
+            <EmptyState
+              message="Train model để xem biểu đồ so sánh."
+              hint="Chọn model, đặt horizon, bấm Train. Sau đó biểu đồ sẽ hiện đường dự báo so với giá thật."
+            />
           )}
         </div>
       </div>
 
       <div className="overflow-hidden rounded-md border border-border bg-card">
         <div className="flex items-center justify-between border-b border-border px-4 py-3">
-          <h3 className="text-sm font-semibold text-foreground">Model comparison</h3>
+          <h3 className="text-sm font-semibold text-foreground">So sánh model</h3>
           <Button variant="outline" size="sm" onClick={() => void onCompare()}>
             <GitCompare size={14} />
-            Compare all
+            So sánh tất cả
           </Button>
         </div>
         <div className="overflow-x-auto">
@@ -270,7 +273,7 @@ export function ForecastingPage() {
           </table>
           {!compare ? (
             <div className="px-4 py-6 text-center text-sm text-muted-foreground">
-              Bam "Compare all" de xem bang so sanh.
+              Bấm "So sánh tất cả" để xem bảng.
             </div>
           ) : null}
         </div>

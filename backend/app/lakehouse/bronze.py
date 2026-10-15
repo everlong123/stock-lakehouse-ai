@@ -57,14 +57,16 @@ class BronzeLayer:
             raise DataValidationError("Cannot write empty frame to Bronze.")
         clean = self.validate_schema(frame)
         clean["ingestion_time"] = clean["ingestion_time"].fillna(pd.Timestamp.now(tz="UTC"))
-        duplicate_count = int(clean.duplicated(subset=["symbol", "timestamp"]).sum())
         partitions = split_by_partition(clean)
         written_paths: list[str] = []
         records_written = 0
+        duplicate_count = 0
         for relative_path, group in partitions.items():
             existing = pd.DataFrame()
             if self.storage.exists(self.layer_name, relative_path):
                 existing = self.storage.read_parquet(self.layer_name, relative_path)
+            # Count duplicates on the COMBINED frame so we catch dups between
+            # the incoming batch and existing storage, not just within the batch.
             combined = pd.concat([existing, group], ignore_index=True)
             before = len(combined)
             combined = combined.drop_duplicates(subset=["symbol", "timestamp"], keep="last")

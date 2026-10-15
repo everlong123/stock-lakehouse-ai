@@ -3,42 +3,62 @@
 @tailwind utilities;
 
 /*
- * Theme: Broker-style teal palette
- * Inspired by VNDirect / TCBS / SSI dashboards: white surfaces with
- * a saturated teal brand color and clear up/down semantics.
+ * Theme: Modern Financial Dashboard
+ * White/green-teal palette with subtle glass effects, smooth transitions,
+ * and layered depth. Inspired by professional trading platforms.
  */
 :root {
-  --background: 0 0% 100%;
-  --foreground: 220 22% 14%;
+  /* ── Surface hierarchy ──────────────────────────────────────── */
+  --background: 210 20% 98%;
+  --foreground: 220 25% 10%;
 
+  /* Cards sit slightly above background with subtle elevation */
   --card: 0 0% 100%;
-  --card-foreground: 220 22% 14%;
+  --card-foreground: 220 25% 10%;
 
-  --muted: 210 20% 96%;
-  --muted-foreground: 220 12% 40%;
+  /* Muted elements (secondary text, input backgrounds) */
+  --muted: 210 20% 95%;
+  --muted-foreground: 220 12% 45%;
 
-  --border: 214 16% 88%;
-  --input: 214 16% 84%;
+  /* Borders — softer, more refined */
+  --border: 210 18% 90%;
+  --input: 210 18% 88%;
 
-  /* Brand: deep teal (≈ TCBS blue-teal) */
-  --primary: 178 70% 24%;
+  /* ── Brand: deep emerald-teal ─────────────────────────────── */
+  --primary: 165 52% 28%;          /* deep teal — brand, CTA */
+  --primary-hover: 165 52% 22%;     /* darker on hover */
   --primary-foreground: 0 0% 100%;
 
-  /* Soft accent used for hover / selection */
-  --accent: 178 30% 94%;
-  --accent-foreground: 178 70% 20%;
+  /* Accent: soft teal wash for hover/selection states */
+  --accent: 165 40% 95%;
+  --accent-foreground: 165 52% 22%;
 
-  /* Market semantics */
-  --up: 152 62% 32%;
-  --down: 0 66% 48%;
-  --warn: 32 92% 44%;
+  /* ── Market semantics ─────────────────────────────────────── */
+  --up:     152 58% 38%;   /* emerald green */
+  --down:   4   80% 52%;   /* rose red */
+  --warn:   38  92% 50%;   /* amber */
+  --info:   200 80% 50%;   /* sky blue */
 
-  /* Body */
-  --body-font: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  /* ── Layered depth: glass / elevated surfaces ─────────────── */
+  --glass:        0 0% 100% / 0.7;
+  --glass-border: 210 18% 90% / 0.6;
+  --shadow-sm:    0 1px 3px 0 rgb(0 0 0 / 0.06), 0 1px 2px -1px rgb(0 0 0 / 0.04);
+  --shadow-md:    0 4px 6px -1px rgb(0 0 0 / 0.07), 0 2px 4px -2px rgb(0 0 0 / 0.05);
+  --shadow-lg:    0 10px 15px -3px rgb(0 0 0 / 0.08), 0 4px 6px -4px rgb(0 0 0 / 0.05);
+  --shadow-glow:  0 0 20px -4px hsl(var(--primary) / 0.25);
+
+  /* ── Typography ───────────────────────────────────────────── */
+  --body-font: "DM Sans", "Inter", system-ui, -apple-system, sans-serif;
+  --mono-font: "JetBrains Mono", "Fira Code", "Cascadia Code", monospace;
 }
 
-* { box-sizing: border-box; }
+/* ── Base resets & global polish ─────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; }
+
+html { scroll-behavior: smooth; }
+
 html, body, #root { min-height: 100%; }
+
 body {
   margin: 0;
   background: hsl(var(--background));
@@ -47,43 +67,151 @@ body {
   font-feature-settings: "cv11", "ss01", "ss03";
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  letter-spacing: -0.005em;
+  letter-spacing: -0.01em;
+  line-height: 1.5;
 }
 
+/* ── Text selection ──────────────────────────────────────────────────────── */
 ::selection {
-  background: hsl(178 70% 24% / 0.18);
-  color: hsl(220 22% 14%);
+  background: hsl(var(--primary) / 0.15);
+  color: hsl(var(--foreground));
 }
 
-::-webkit-scrollbar { width: 10px; height: 10px; }
+/* ── Custom scrollbar ────────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb {
-  background: hsl(214 14% 80%);
+  background: hsl(var(--border));
   border-radius: 999px;
-  border: 2px solid hsl(var(--background));
 }
-::-webkit-scrollbar-thumb:hover { background: hsl(214 14% 65%); }
+::-webkit-scrollbar-thumb:hover { background: hsl(var(--muted-foreground) / 0.4); }
 
+/* ── Focus states ────────────────────────────────────────────────────────── */
+:focus-visible {
+  outline: 2px solid hsl(var(--primary));
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* ── Component base classes ──────────────────────────────────────────────── */
 @layer components {
+  /* Standard panel — elevated card */
   .panel {
-    @apply rounded-lg border border-border bg-card;
+    @apply rounded-xl border border-border bg-card;
+    box-shadow: var(--shadow-sm);
+    transition: box-shadow 0.2s ease, border-color 0.2s ease;
   }
+  .panel:hover {
+    box-shadow: var(--shadow-md);
+    border-color: hsl(var(--border) / 0.8);
+  }
+
+  /* Muted panel — recessed surface */
   .panel-muted {
-    @apply rounded-lg border border-border bg-muted;
+    @apply rounded-xl border border-border bg-muted;
   }
+
+  /* Glass panel — frosted overlay */
+  .glass {
+    background: hsl(var(--glass));
+    backdrop-filter: blur(12px) saturate(180%);
+    -webkit-backdrop-filter: blur(12px) saturate(180%);
+    border: 1px solid hsl(var(--glass-border));
+    box-shadow: var(--shadow-sm);
+  }
+
+  /* Keyboard badge */
   .kbd {
-    @apply inline-flex items-center rounded border border-border bg-muted px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground;
+    @apply inline-flex items-center rounded-md border border-border bg-muted px-1.5 py-0.5
+           font-mono text-[10px] text-muted-foreground;
+  }
+
+  /* Pulse dot — for live indicators */
+  .pulse-dot {
+    @apply inline-block h-2 w-2 rounded-full;
+    background: hsl(var(--up));
+    animation: pulse-ring 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+
+  /* Gradient overlay for chart areas */
+  .chart-gradient {
+    background: linear-gradient(
+      180deg,
+      hsl(var(--primary) / 0.06) 0%,
+      hsl(var(--primary) / 0.01) 70%,
+      transparent 100%
+    );
   }
 }
 
+/* ── Skeleton loading ────────────────────────────────────────────────────── */
 .skeleton-bar {
-  background: hsl(214 16% 92%);
+  background: linear-gradient(
+    90deg,
+    hsl(var(--muted)) 25%,
+    hsl(var(--background)) 50%,
+    hsl(var(--muted)) 75%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.5s ease-in-out infinite;
 }
 
-/* Brand utility: replaces black "bg-foreground" markers with the teal brand. */
+/* ── Brand utilities ─────────────────────────────────────────────────────── */
 @layer utilities {
-  .bg-brand { background-color: hsl(var(--primary)); }
-  .text-brand { color: hsl(var(--primary)); }
-  .bg-brand-soft { background-color: hsl(var(--accent)); }
-  .border-brand { border-color: hsl(var(--primary)); }
+  .bg-brand       { background-color: hsl(var(--primary)); }
+  .bg-brand-soft  { background-color: hsl(var(--accent)); }
+  .text-brand     { color: hsl(var(--primary)); }
+  .border-brand   { border-color: hsl(var(--primary)); }
+
+  /* Glow effect for active/selected elements */
+  .glow {
+    box-shadow: var(--shadow-glow);
+  }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   ANIMATIONS
+═══════════════════════════════════════════════════════════════════════════ */
+
+@keyframes skeleton-shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+@keyframes pulse-ring {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.6; transform: scale(1.15); }
+}
+
+@keyframes fade-in-up {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes slide-in-right {
+  from { opacity: 0; transform: translateX(12px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes scale-in {
+  from { opacity: 0; transform: scale(0.95); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+/* Entrance animation utilities */
+.animate-fade-in-up    { animation: fade-in-up 0.4s ease-out both; }
+.animate-fade-in        { animation: fade-in 0.3s ease-out both; }
+.animate-slide-in-right { animation: slide-in-right 0.3s ease-out both; }
+.animate-scale-in       { animation: scale-in 0.25s ease-out both; }
+
+/* Stagger delays for list items */
+.stagger-1 { animation-delay: 0.05s; }
+.stagger-2 { animation-delay: 0.10s; }
+.stagger-3 { animation-delay: 0.15s; }
+.stagger-4 { animation-delay: 0.20s; }
+.stagger-5 { animation-delay: 0.25s; }

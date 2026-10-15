@@ -28,7 +28,7 @@ export function ChatBox() {
   }, [turns, busy]);
 
   const submit = async (message: string) => {
-   if (!message.trim() || busy) return;
+    if (!message.trim() || busy) return;
     setTurns((prev) => [...prev, { role: "user", content: message }]);
     setInput("");
     setBusy(true);
@@ -36,7 +36,13 @@ export function ChatBox() {
       const result = await sendChat(sessionId, message, symbol);
       setTurns((prev) => [
         ...prev,
-        { role: "assistant", content: result.assistant_message, tools: result.tools },
+        {
+          role: "assistant",
+          content: result.assistant_message,
+          tools: result.tools,
+          suggested_questions: result.suggested_questions,
+          tool_count: result.tool_count,
+        },
       ]);
     } catch (error) {
       setTurns((prev) => [
@@ -91,7 +97,7 @@ export function ChatBox() {
             <p className="mt-2 max-w-md text-sm text-muted-foreground">
               {t("agent.welcome_body", locale)}
             </p>
-           <p className="mt-3 font-mono text-[10px] uppercase tracking-wider text-warn">
+            <p className="mt-3 font-mono text-[10px] uppercase tracking-wider text-warn">
               {t("agent.welcome_warn", locale)}
             </p>
           </div>
@@ -101,7 +107,15 @@ export function ChatBox() {
               <div key={index} className="space-y-1">
                 <ChatMessage turn={turn} />
                 {turn.tools && turn.tools.length > 0 ? <ToolCallDisplay tools={turn.tools} /> : null}
-             </div>
+                {turn.suggested_questions && turn.suggested_questions.length > 0 ? (
+                  <SuggestedFollowUps
+                    items={turn.suggested_questions}
+                    onPick={(prompt) => void submit(prompt)}
+                    busy={busy}
+                    toolCount={turn.tool_count}
+                  />
+                ) : null}
+              </div>
             ))}
             {busy ? (
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -111,7 +125,7 @@ export function ChatBox() {
             ) : null}
             <div ref={bottom} />
           </div>
-       )}
+        )}
       </div>
 
       <div className="flex flex-wrap gap-2 border-t border-border bg-card px-4 py-2">
@@ -144,6 +158,53 @@ export function ChatBox() {
           {t("agent.send", locale)}
         </Button>
       </form>
+    </div>
+  );
+}
+
+// ── Inline follow-up chips ────────────────────────────────────────────────
+// Shows after every assistant turn so the demo never stalls. Renders in
+// Vietnamese (with English technical terms kept verbatim, per the thesis
+// writing convention) and de-duplicates against the prompt already sent
+// so the user never sees "phân tích AAPL" twice in a row.
+
+function SuggestedFollowUps({
+  items,
+  onPick,
+  busy,
+  toolCount,
+}: {
+  items: string[];
+  onPick: (prompt: string) => void;
+  busy: boolean;
+  toolCount?: number;
+}) {
+  return (
+    <div className="ml-9 mt-2 flex flex-col gap-1.5">
+      <div className="flex items-center gap-2">
+        <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+          Gợi ý tiếp
+        </span>
+        {typeof toolCount === "number" && toolCount > 0 ? (
+          <Badge variant="primary">
+            Đã gọi {toolCount} tool
+          </Badge>
+        ) : null}
+      </div>
+      <div className="flex flex-wrap gap-1.5">
+        {items.map((item) => (
+          <button
+            key={item}
+            type="button"
+            disabled={busy}
+            onClick={() => onPick(item)}
+            className="inline-flex items-center gap-1.5 rounded-md border border-border bg-card px-2.5 py-1 text-[12px] font-medium text-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <span aria-hidden className="text-[10px] text-muted-foreground">→</span>
+            {item}
+          </button>
+        ))}
+      </div>
     </div>
   );
 }
