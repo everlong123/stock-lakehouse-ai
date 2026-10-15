@@ -70,7 +70,7 @@ def get_stock(symbol: str) -> dict:
 def get_fundamental(symbol: str) -> dict:
     """Get fundamental data for a symbol."""
     service = get_ingestion_service()
-    data = service.fundamental_provider.get_financial_summary(symbol.upper())
+    data = service.fundamental_provider.get_comprehensive_metrics(symbol.upper())
     return ok({
         "symbol": symbol.upper(),
         "data": data,
