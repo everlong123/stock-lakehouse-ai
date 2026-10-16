@@ -70,13 +70,14 @@ services:
     image: stock-lakehouse-minio:latest
     container_name: stock-lakehouse-minio
     restart: unless-stopped
+    # Use host network so MinIO binds directly to WSL2's eth0 IP.
+    # This avoids Docker bridge NAT issues where response packets from
+    # 172.17.0.x don't route back to the Windows host correctly.
+    network_mode: host
     command: server /data --console-address ":9001"
     environment:
       MINIO_ROOT_USER: minioadmin
       MINIO_ROOT_PASSWORD: minioadmin
-    ports:
-      - "9000:9000"
-      - "9001:9001"
     volumes:
       # MinIO Bronze/Silver/Gold Parquet data. The 11 GB legacy dataset
       # is copied once from the Docker Desktop backup vhdx into this
@@ -84,14 +85,11 @@ services:
       # below). After that copy completes, the bind mount below is the
       # authoritative copy and the vhdx backup is just a safety net.
       - /var/lib/docker-data/minio:/data
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
-      interval: 15s
-      timeout: 5s
-      retries: 5
-      start_period: 20s
-    networks:
-      - app_net
+    # The healthcheck is intentionally omitted: every healthcheck call
+    # adds CPU pressure to MinIO while it's already serving the backend's
+    # parallel list_objects calls, and Docker will restart the container
+    # on any transient curl failure. We rely on the WSL host being able
+    # to reach :9000 instead.
 
   iceberg-rest:
     profiles: ["infra", "app", "all"]

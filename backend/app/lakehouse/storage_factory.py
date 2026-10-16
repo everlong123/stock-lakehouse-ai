@@ -17,30 +17,52 @@ logger = get_logger(__name__)
 _cached_backend: StorageBackend | None = None
 
 
-def get_storage_backend() -> StorageBackend:
+def get_storage_backend(refresh: bool = False) -> StorageBackend:
     """Return MinIO storage when configured and healthy, otherwise local files.
 
     Result is cached after the first successful resolution. Pass ``refresh=True``
     to force a re-probe (used by tests and by the admin reset flow).
     """
     global _cached_backend
-    if _cached_backend is not None:
+    if _cached_backend is not None and not refresh:
         return _cached_backend
 
     backend: StorageBackend | None = None
     if settings.storage_backend == "minio":
-        try:
-            from app.lakehouse.minio_storage import MinioStorageBackend
+        # Retry the whole init flow a few times. The MinIO container can
+        # still be pre-flighting its data drive when the backend boots, so
+        # the first 1-2 attempts are expected to fail with ConnectionError
+        # or timeout. We give it up to ~30s before falling back to local.
+        import time
 
-            candidate = MinioStorageBackend()
-            health = candidate.health()
-            if health.get("available"):
-                logger.info("Using MinIO storage backend.")
-                backend = candidate
-            else:
-                logger.warning("MinIO is configured but unavailable. Falling back to local storage.")
-        except Exception as exc:
-            logger.warning("MinIO initialization failed (%s). Falling back to local storage.", exc)
+        from app.lakehouse.minio_storage import MinioStorageBackend
+
+        last_error: Exception | None = None
+        for attempt in range(3):
+            try:
+                candidate = MinioStorageBackend()
+                health = candidate.health()
+                if health.get("available"):
+                    logger.info("Using MinIO storage backend.")
+                    backend = candidate
+                    break
+                last_error = Exception(f"health check returned {health}")
+            except Exception as exc:
+                last_error = exc
+            if attempt < 2:
+                wait = 5 + attempt * 5  # 5, 10 seconds
+                logger.warning(
+                    "MinIO init attempt %d/3 failed (%s); retrying in %ds",
+                    attempt + 1,
+                    last_error,
+                    wait,
+                )
+                time.sleep(wait)
+        if backend is None and last_error is not None:
+            logger.warning(
+                "MinIO initialization failed after 3 attempts (%s). Falling back to local storage.",
+                last_error,
+            )
 
     if backend is None:
         logger.info("Using local filesystem storage backend.")

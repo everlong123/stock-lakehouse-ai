@@ -715,6 +715,23 @@ GLOBAL_SYMBOLS: list[str] = list(US_SYMBOLS) + [
 # All non-VN, non-crypto, non-index supported symbols = US_SYMBOLS
 SUPPORTED_SYMBOLS: list[str] = list(US_SYMBOLS)
 
+# Vietnam tickers (HOSE/HNX/UPCoM) — served via SSI iBoard (not yfinance).
+# Top liquid names that the agent should accept as valid tickers even though
+# they are not in US_SYMBOLS / GLOBAL_SYMBOLS. Without this list the
+# Vietnamese-language agent path falls back to "AAPL" for any VN question
+# because ``_extract_symbol`` only knows about GLOBAL_SYMBOLS.
+VN_SYMBOLS: list[str] = [
+    "VCB", "VHM", "VIC", "VNM", "MSN", "BID", "CTG", "HPG", "FPT",
+    "MWG", "GAS", "SAB", "PLX", "VRE", "NVL", "POW", "HDB", "TCB",
+    "MBB", "TPB", "SSI", "VCI", "HCM", "BCM", "VJC", "ACB", "SHB",
+    "VPB", "EIB", "OCB", "LPB", "STB", "BMP", "DGC", "GMD", "PVT",
+    "DPM", "DCM", "REE", "KDH", "NLG", "PC1", "PNJ", "FRT", "VGC",
+    "CTR", "SBT", "HSG", "NKG", "GVR", "VCS", "TNH", "DHA", "DXG",
+    "LDG", "KBC", "IDC", "SZC", "DIG", "CII", "PHR", "HDG", "HQC",
+    "HNG", "PVD", "PVS", "PVC", "PGS", "PXS", "PVE", "PVB", "BFC",
+    "DBC", "HAB", "TSC", "LIX", "NET", "VTO", "SGT", "VIB", "MSB",
+]
+
 # Market Indexes (for benchmarking)
 MARKET_INDEXES: list[str] = [
     "^GSPC",   # S&P 500
@@ -729,7 +746,7 @@ CRYPTO_SYMBOLS: list[str] = [
 ]
 
 # All available symbols — global universe (500+ tickers across regions/sectors).
-ALL_SYMBOLS: list[str] = list(GLOBAL_SYMBOLS) + MARKET_INDEXES + CRYPTO_SYMBOLS
+ALL_SYMBOLS: list[str] = list(GLOBAL_SYMBOLS) + MARKET_INDEXES + CRYPTO_SYMBOLS + VN_SYMBOLS
 
 # Intervals - only 1d is collected (single-interval lakehouse)
 SUPPORTED_INTERVALS: list[str] = ["1d"]

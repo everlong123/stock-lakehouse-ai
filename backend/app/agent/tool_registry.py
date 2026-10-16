@@ -49,6 +49,16 @@ from app.agent.tools.stock_tools import (
     get_market_summary,
     query_stock_data,
 )
+from app.agent.tools.system_tools import (
+    get_storage_stats,
+    get_symbols_info,
+    get_system_architecture,
+    get_trained_models,
+    StorageStatsInput,
+    SymbolsInfoInput,
+    SystemArchitectureInput,
+    TrainedModelsInput,
+)
 from app.agent.tools.walkforward_tools import WalkForwardInput, run_walk_forward
 
 TOOL_FUNCTIONS: dict[str, Callable[..., dict[str, Any]]] = {
@@ -76,6 +86,11 @@ TOOL_FUNCTIONS: dict[str, Callable[..., dict[str, Any]]] = {
     # Market data
     "get_market_index": get_market_index,
     "get_orderbook": get_orderbook,
+    # System / project metadata (NEW)
+    "get_symbols_info": get_symbols_info,
+    "get_trained_models": get_trained_models,
+    "get_system_architecture": get_system_architecture,
+    "get_storage_stats": get_storage_stats,
 }
 
 TOOL_MODELS = {
@@ -96,6 +111,11 @@ TOOL_MODELS = {
     "get_cash_flow": CashFlowInput,
     "get_market_index": MarketIndexInput,
     "get_orderbook": OrderBookInput,
+    # System tools (NEW)
+    "get_symbols_info": SymbolsInfoInput,
+    "get_trained_models": TrainedModelsInput,
+    "get_system_architecture": SystemArchitectureInput,
+    "get_storage_stats": StorageStatsInput,
 }
 
 TOOL_DESCRIPTIONS = {
@@ -116,6 +136,11 @@ TOOL_DESCRIPTIONS = {
     "get_cash_flow": "Lấy báo cáo lưu chuyển tiền tệ (dòng tiền hoạt động, đầu tư, tài chính).",
     "get_market_index": "Lấy dữ liệu chỉ số thị trường US (^GSPC: S&P 500, ^DJI: Dow Jones, ^IXIC: NASDAQ).",
     "get_orderbook": "Lấy sổ lệnh (bid/ask) hiện tại cho một mã.",
+    # System / project metadata tools (NEW)
+    "get_symbols_info": "Trả về thống kê số mã hệ thống hỗ trợ (US, global, VN, crypto, indexes) kèm danh sách data providers. Dùng khi user hỏi 'có bao nhiêu mã?', 'track những mã nào?', 'có mã Việt Nam không?'.",
+    "get_trained_models": "Liệt kê các mô hình ML đã train trong hệ thống (linear_regression, arima, lstm, xgboost) kèm MAE/RMSE/MAPE/DA. Lọc theo symbol nếu cần. Dùng khi user hỏi 'đã train model nào?', 'model nào đã train cho VCB?'.",
+    "get_system_architecture": "Mô tả kiến trúc runtime của hệ thống: Bronze/Silver/Gold, providers, tech stack (FastAPI/MinIO/MySQL/Kafka/Iceberg), auto-refresh, danh sách 16 tool. Dùng khi user hỏi 'kiến trúc?', 'stack gì?', 'hệ thống gồm gì?'.",
+    "get_storage_stats": "Thống kê số object + dung lượng từng bucket MinIO (bronze/silver/gold/models/news/fundamentals) + số symbol có dữ liệu thật ở mỗi layer. Dùng khi user hỏi 'MinIO có bao nhiêu file?', 'Bronze có dữ liệu chưa?'.",
 }
 
 

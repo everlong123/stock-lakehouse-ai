@@ -1,4 +1,4 @@
-                               """MinIO object storage backend."""
+"""MinIO object storage backend."""
 
 from __future__ import annotations
 
@@ -60,13 +60,35 @@ class MinioStorageBackend(StorageBackend):
         self._ensure_buckets()
 
     def _ensure_buckets(self) -> None:
-        try:
-            for bucket in set(LAYER_BUCKETS.values()):
-                if not self.client.bucket_exists(bucket):
-                    self.client.make_bucket(bucket)
-                    logger.info("Created MinIO bucket %s", bucket)
-        except Exception as exc:
-            raise StorageError(f"Cannot initialize MinIO buckets: {exc}") from exc
+        # Retry briefly: when the backend boots at the same time as the
+        # MinIO container, MinIO can still be starting its data drive
+        # pre-flight and refuses the first connections. Five attempts over
+        # ~30s covers that window without holding up startup forever if
+        # MinIO is genuinely down.
+        import time
+
+        last_error: Exception | None = None
+        for attempt in range(5):
+            try:
+                for bucket in set(LAYER_BUCKETS.values()):
+                    if not self.client.bucket_exists(bucket):
+                        self.client.make_bucket(bucket)
+                        logger.info("Created MinIO bucket %s", bucket)
+                return
+            except Exception as exc:
+                last_error = exc
+                if attempt < 4:
+                    wait = 2 + attempt * 2  # 2, 4, 6, 8 seconds
+                    logger.warning(
+                        "MinIO ensure_buckets attempt %d/5 failed (%s); retrying in %ds",
+                        attempt + 1,
+                        exc,
+                        wait,
+                    )
+                    time.sleep(wait)
+        raise StorageError(
+            f"Cannot initialize MinIO buckets after 5 attempts: {last_error}"
+        ) from last_error
 
     def _bucket(self, layer: str) -> str:
         if layer not in LAYER_BUCKETS:

@@ -7,7 +7,7 @@ import re
 from typing import Any
 
 from app.agent.llm_client import LLMClient
-from app.agent.prompts import SYSTEM_PROMPT
+from app.agent.prompts import SYSTEM_PROMPT, PROJECT_CONTEXT
 from app.agent.tool_registry import execute_tool, openai_tools
 from app.core.constants import GLOBAL_SYMBOLS
 from app.core.exceptions import AgentError, StockLakehouseError
@@ -205,6 +205,21 @@ class StockAnalysisAgent:
                 "suggested_questions": _greeting_suggestions(symbol),
             }
 
+        # 2b. Project / system question (offline mode) — call the matching
+        # system_tools function and synthesise a Vietnamese answer from the
+        # runtime data + PROJECT_CONTEXT. This mirrors what the LLM would do
+        # when the API is reachable, so the demo works during a Gemini quota
+        # outage as well.
+        #
+        # Priority: if the message has clear project intent, route to the
+        # project handler EVEN if the generic finance-intent matcher fires
+        # (some project questions contain the substring "model" or "kiến
+        # trúc" which the finance matcher would otherwise misclassify).
+        if _has_project_intent(text) and not _is_pure_finance_intent(text):
+            return _handle_project_question(user_message, text)
+        if not has_intent and _has_project_intent(text):
+            return _handle_project_question(user_message, text)
+
         # 3. Intent-based tool routing.
         # We allow multi-tool plans: a single "phân tích VCB" fires both
         # market data + indicators in one call, so the demo feels responsive
@@ -295,19 +310,33 @@ def _offline_smalltalk(user_message: str, symbol: str) -> str:
 
 
 def _is_greeting(text: str) -> bool:
-    """Return True if the message is a simple greeting / chitchat."""
+    """Return True if the message is a simple greeting / chitchat.
+
+    Must use word-boundary matching — bare substring checks are too greedy
+    and would match greetings inside real questions like "hệ thống có bao
+    nhiêu mã" (matches "có") or "MinIO có bao nhiêu file" (matches "có").
+    """
     # Both diacritics and ASCII fallbacks — user input may arrive as
     # partially-normalised text ("xin chao" vs "xin chào").
     GREETING_PATTERNS = (
-        "xin chào", "xin chao", "chào", "chao", "hello", "hi", "hey",
-        "alo", "chào buổi", "chao buoi",
+        "xin chào", "xin chao", "chào bạn", "chao ban",
+        "chào buổi", "chao buoi", "chào anh", "chào chị",
+        "hello", "hi", "hey", "alo",
         "good morning", "good afternoon", "good evening", "good day",
-        "bạn khỏe không", "ban khoe khong", "bạn là ai", "ban la ai",
-        "giúp gì được", "giup gi duoc", "làm gì", "lam gi", "có gì", "co gi",
+        "bạn khỏe không", "ban khoe khong",
+        "bạn là ai", "ban la ai", "bạn là gì", "ban la gi",
+        "giúp gì được", "giup gi duoc",
+        "làm gì", "lam gi", "có gì", "co gi",
     )
     # Strip trailing punctuation to match bare words
-    stripped = text.rstrip(".,!?;:")
-    return any(p in stripped for p in GREETING_PATTERNS)
+    stripped = text.rstrip(".,!?;:").strip()
+    # Try word-boundary match for each pattern so "có" inside "MinIO có" or
+    # "hệ thống có" doesn't trip a false positive.
+    for p in GREETING_PATTERNS:
+        pattern = r"(^|\b)" + re.escape(p) + r"(\b|$)"
+        if re.search(pattern, stripped):
+            return True
+    return False
 
 
 def _wants_symbol_resolution(message: str) -> bool:
@@ -394,6 +423,398 @@ def _has_finance_intent(text: str) -> bool:
         if kw in text:
             return True
     return False
+
+
+# "Pure" finance intent means the user is asking about a *specific* stock
+# operation that should hit one of the 16 stock tools, NOT a generic
+# project question. We require either a known ticker in the message or one
+# of the more specific finance verbs. Bare "model" / "kiến trúc" / "công
+# nghệ" are not enough — those belong to the project handler.
+_PURE_FINANCE_KEYWORDS = (
+    "rsi", "macd", "sma", "ema", "bollinger", "atr", "adx", "obv", "vwap", "stoch",
+    "tin tức", "tin tuc", "chỉ báo", "chi báo", "kỹ thuật", "ky thuat",
+    "phân tích kỹ thuật", "phan tich ky thuat",
+    "dự báo", "du bao", "backtest", "walk-forward", "walkforward",
+    "walk forward", "so sánh", "so sanh", "compare",
+    "cổ tức", "co tuc", "tài chính", "doanh thu", "lợi nhuận",
+    "forecast", "ma crossover", "crossover", "rsi strategy",
+    "income statement", "balance sheet", "cash flow",
+    "sentiment", "orderbook", "sổ lệnh", "so lenh",
+    "chỉ số", "chi so", "vn-index", "vnindex", "^gspc", "^dji", "^ixic",
+)
+
+
+def _is_pure_finance_intent(text: str) -> bool:
+    """True when the question is unambiguously about stock data, not the project.
+
+    A question like "phân tích AAPL" or "RSI của VCB" returns True. A question
+    like "đã train được những model nào?" or "kiến trúc hệ thống" returns
+    False, even though the bare keyword matcher would catch them.
+    """
+    for kw in _PURE_FINANCE_KEYWORDS:
+        if kw in text:
+            return True
+    # A real ticker mentioned alongside any finance intent is pure finance.
+    sym = _extract_symbol(text, None)
+    if sym and sym != "AAPL":
+        return True
+    return False
+
+
+# ── Project / system question detection (used by the offline router) ────────
+# When the LLM is unavailable (Gemini quota exhausted, no API key, network
+# down) we still want the demo to be useful for questions about the platform
+# itself. The user can ask "how many symbols?", "what's the architecture?",
+# "which models are supported?" and the agent will call the matching
+# ``system_tools`` function and render a Vietnamese answer from real data.
+
+PROJECT_INTENT_KEYWORDS = (
+    # Vietnamese
+    "đồ án", "do an", "dự án", "du an", "hệ thống", "he thong", "hệ thống này",
+    "kiến trúc", "kien truc", "cấu trúc", "cau truc",
+    "stack", "công nghệ", "cong nghe", "tech stack",
+    "có bao nhiêu mã", "bao nhieu ma", "tổng số mã", "tong so ma",
+    "số mã", "so ma", "số lượng mã", "so luong ma",
+    "mã nào", "ma nao", "những mã nào", "nhung ma nao",
+    "theo dõi", "theo doi", "track", "supported",
+    "đã train", "da train", "model đã train", "mo hinh da train",
+    "mô hình nào", "mo hinh nao", "những model nào", "nhung model nao",
+    "kiến trúc lakehouse", "kien truc lakehouse",
+    "bronze", "silver", "gold",
+    "minio", "minio có", "minio co", "file parquet", "dung lượng", "dung luong",
+    "parquet", "csv",
+    "walk-forward", "walk forward", "walkforward",
+    "kafka", "iceberg", "spark", "fastapi", "minio", "mysql",
+    "auto refresh", "auto-refresh", "auto refresh pipeline",
+    "cấu hình", "cau hinh", "config", "configuration",
+    "database gì", "database gi", "lưu trữ", "luu tru", "storage",
+    "nguồn dữ liệu", "nguon du lieu", "data source", "data provider",
+    "api nguồn", "api nguon", "providers",
+    "bootstrap", "infrastructure", "hạ tầng", "ha tang",
+    "việt nam", "viet nam", "hose", "hnx", "ssi", "iboard",
+    "cổ phiếu việt", "co phieu viet",
+    "mã việt", "ma viet",
+    "hỗ trợ mã", "ho tro ma", "hỗ trợ cổ phiếu", "ho tro co phieu",
+    "được hỗ trợ", "duoc ho tro",
+    # English
+    "architecture", "project", "system", "platform",
+    "how many symbols", "how many stocks", "how many tickers",
+    "which models", "what models", "trained models",
+    "tech stack", "technology stack", "technologies",
+    "data sources", "data providers",
+    "what is this", "what is the", "explain the system",
+    "tell me about the project", "tell me about the system",
+    "about the project", "about the system", "about the platform",
+)
+
+
+def _has_project_intent(text: str) -> bool:
+    """Return True if the user is asking about the platform itself.
+
+    Project questions are about the *project* (architecture, models, symbols,
+    tech stack) — distinct from *finance* questions about a specific stock.
+    The two sets are intentionally disjoint: a "phân tích VCB" message should
+    NOT be classified as project intent even if the user also asks "đồ án
+    này dùng gì?".
+    """
+    for kw in PROJECT_INTENT_KEYWORDS:
+        if kw in text:
+            return True
+    return False
+
+
+def _handle_project_question(user_message: str, text: str) -> dict[str, Any]:
+    """Run the matching system_tools call and synthesise a Vietnamese answer.
+
+    Used by the offline router when the LLM is unreachable. Maps the
+    detected project intent to a single ``system_tools`` function call, then
+    composes a natural-language reply. Errors are surfaced as warnings, never
+    fabricated.
+    """
+    from app.agent.tools.system_tools import (
+        get_storage_stats,
+        get_symbols_info,
+        get_system_architecture,
+        get_trained_models,
+    )
+
+    tool_name = "get_system_architecture"  # sensible default
+    tool_args: dict[str, Any] = {}
+    if any(kw in text for kw in ("mã", "ma", "symbol", "ticker", "track", "theo dõi", "theo doi")):
+        tool_name = "get_symbols_info"
+        if any(kw in text for kw in ("việt nam", "viet nam", "vn", "hose", "hnx", "ssi", "iboard")):
+            tool_args = {"region": "vn"}
+        elif any(kw in text for kw in ("us", "mỹ", "my", "american")):
+            tool_args = {"region": "us"}
+        elif any(kw in text for kw in ("crypto", "bitcoin", "btc")):
+            tool_args = {"region": "crypto"}
+        elif any(kw in text for kw in ("index", "chỉ số", "chi so", "s&p", "dow", "nasdaq")):
+            tool_args = {"region": "index"}
+    elif any(
+        kw in text
+        for kw in (
+            "storage", "minio", "file", "parquet", "dung lượng", "dung luong",
+            "object", "bucket", "layer",
+        )
+    ):
+        # Storage question — only fire storage tool when the user is
+        # clearly asking about storage, not when "layer" happens to be in
+        # the message (it isn't normally).
+        tool_name = "get_storage_stats"
+        if any(kw in text for kw in ("bronze",)):
+            tool_args = {"layer": "bronze"}
+        elif any(kw in text for kw in ("silver",)):
+            tool_args = {"layer": "silver"}
+        elif any(kw in text for kw in ("gold",)):
+            tool_args = {"layer": "gold"}
+        elif "model" in text:
+            tool_args = {"layer": "models"}
+    elif any(
+        kw in text
+        for kw in (
+            "train", "đã train", "da train", "mô hình nào", "mo hinh nao",
+        )
+    ):
+        # "đã train được model nào" → trained models. Distinguish from
+        # "đã train model VCB" (per-symbol) by looking for a ticker.
+        tool_name = "get_trained_models"
+        sym = _extract_symbol(user_message, None)
+        if sym and sym != "AAPL":
+            tool_args = {"symbol": sym}
+    elif any(
+        kw in text
+        for kw in (
+            "kiến trúc", "kien truc", "cấu trúc", "cau truc",
+            "stack", "công nghệ", "cong nghe", "tech stack",
+            "đồ án", "do an", "dự án", "du an", "hệ thống", "he thong",
+        )
+    ):
+        tool_name = "get_system_architecture"
+        # Detail level: "full" if user explicitly wants depth
+        if any(kw in text for kw in ("chi tiết", "chi tiet", "đầy đủ", "day du", "full", "tất cả", "tat ca")):
+            tool_args = {"detail_level": "full"}
+        else:
+            tool_args = {"detail_level": "summary"}
+
+    try:
+        tool_fn = {
+            "get_symbols_info": get_symbols_info,
+            "get_trained_models": get_trained_models,
+            "get_system_architecture": get_system_architecture,
+            "get_storage_stats": get_storage_stats,
+        }[tool_name]
+        result = tool_fn(**tool_args) if tool_args else tool_fn()
+        error = None
+    except Exception as exc:
+        return {
+            "assistant_message": (
+                f"LLM tạm thời không khả dụng (hết quota nhà cung cấp) và tool hệ thống "
+                f"cũng lỗi: {exc}. Bạn thử lại sau vài phút nhé."
+            ),
+            "tools": [
+                {"tool_name": tool_name, "tool_arguments": tool_args, "tool_result": {"error": str(exc)}, "error": str(exc)}
+            ],
+            "suggested_questions": _project_suggestions(),
+        }
+
+    message = _render_project_answer(user_message, tool_name, result)
+    return {
+        "assistant_message": message,
+        "tools": [
+            {
+                "tool_name": tool_name,
+                "tool_arguments": tool_args,
+                "tool_result": result,
+                "error": None,
+            }
+        ],
+        "suggested_questions": _project_suggestions(),
+        "tool_count": 1,
+    }
+
+
+def _render_project_answer(question: str, tool_name: str, result: dict[str, Any]) -> str:
+    """Synthesise a Vietnamese answer for a project question from tool data."""
+    if isinstance(result, dict) and result.get("error"):
+        return f"Tool `{tool_name}` lỗi: {result['error']}"
+
+    lines: list[str] = [
+        "Trả lời dựa trên dữ liệu runtime của hệ thống (tool calling) + PROJECT_CONTEXT.",
+        "Lưu ý: đây là prototype nghiên cứu, không phải tư vấn đầu tư.",
+        "",
+    ]
+
+    if tool_name == "get_symbols_info":
+        total = result.get("total_symbols", 0)
+        regions = result.get("regions", {})
+        lines.append(
+            f"Hệ thống đang theo dõi **{total} mã**, phân bổ như sau:"
+        )
+        lines.append(f"- US (blue-chips/mid-cap): {regions.get('us', 0)} mã")
+        lines.append(f"- Toàn cầu (GLOBAL_SYMBOLS): {regions.get('global', 0)} mã")
+        lines.append(f"- Chỉ số thị trường: {regions.get('market_indexes', 0)} mã")
+        lines.append(f"- Crypto: {regions.get('crypto', 0)} mã")
+        vn_list = regions.get("vn_top10_streamed", [])
+        if vn_list:
+            lines.append(f"- Việt Nam (stream realtime qua SSI iBoard): {', '.join(vn_list)}")
+        if result.get("us_symbols_total"):
+            lines.append("")
+            lines.append(f"Một số mã US mẫu: {', '.join(result.get('sample_us_symbols', [])[:15])}")
+        if result.get("vn_provider"):
+            lines.append("")
+            lines.append(f"Mã Việt Nam dùng provider: {result.get('vn_provider')}")
+        notes = result.get("notes")
+        if notes:
+            lines.append("")
+            lines.append(f"**Lưu ý**: {notes}")
+
+    elif tool_name == "get_trained_models":
+        sym_filter = result.get("filter_symbol")
+        summary = result.get("summary", {})
+        total = summary.get("total_models", 0)
+        if sym_filter:
+            lines.append(f"Model đã train cho **{sym_filter}**: {total} mô hình.")
+        else:
+            lines.append(
+                f"Toàn hệ thống đã train **{total} mô hình** cho "
+                f"**{summary.get('symbols_with_at_least_one_model', 0)} mã**."
+            )
+        by_name = summary.get("models_by_model_name", {})
+        if by_name:
+            lines.append("")
+            lines.append("Phân bổ theo kiến trúc:")
+            for name, count in sorted(by_name.items(), key=lambda kv: -kv[1]):
+                lines.append(f"- {name}: {count} model")
+        sample = summary.get("trained_symbols_sample") or []
+        if sample:
+            lines.append("")
+            lines.append(f"Một số mã đã train (mẫu): {', '.join(sample)}")
+        supported = result.get("model_architecture_supported", [])
+        if supported:
+            lines.append("")
+            lines.append(f"Hệ thống hỗ trợ các kiến trúc: {', '.join(supported)}")
+        models = result.get("models") or []
+        if models:
+            lines.append("")
+            lines.append("Top models (MAE/RMSE/MAPE/DA):")
+            for rec in models[:8]:
+                lines.append(
+                    f"- {rec.get('symbol', '?')} / {rec.get('model_name', '?')}: "
+                    f"MAE={rec.get('mae')}, RMSE={rec.get('rmse')}, "
+                    f"MAPE={rec.get('mape')}%, DA={rec.get('directional_accuracy')}%"
+                )
+        if total == 0:
+            lines.append("")
+            lines.append(
+                "Chưa có mô hình nào được train. Hãy dùng endpoint "
+                "`/api/v1/forecasting/train/{symbol}` để train model đầu tiên."
+            )
+
+    elif tool_name == "get_system_architecture":
+        runtime = result.get("runtime", {})
+        lines.append(f"**{result.get('project_name', 'Stock Lakehouse AI')}** — {result.get('purpose', '')}")
+        layers = result.get("layers", {})
+        for name, info in layers.items():
+            lines.append(f"- **{name.upper()}**: {info.get('description', '')}")
+        lines.append("")
+        lines.append("**Data providers**: " + ", ".join(result.get("data_providers", [])))
+        lines.append("**ML models**: " + ", ".join(result.get("models", [])))
+        bt = result.get("backtesting", {})
+        lines.append(
+            f"**Backtest**: {', '.join(bt.get('strategies', []))} + "
+            f"{bt.get('validation', '')}"
+        )
+        ts = result.get("tech_stack", {})
+        lines.append("")
+        lines.append("**Tech stack runtime**:")
+        for k, v in ts.items():
+            lines.append(f"- {k}: {v}")
+        ar = result.get("auto_refresh", {})
+        lines.append("")
+        lines.append(
+            f"**Auto-refresh**: chạy ngay khi startup "
+            f"({'on' if ar.get('on_startup') else 'off'}), "
+            f"sau đó mỗi {ar.get('interval_seconds', 0)//3600} giờ. "
+            f"Phạm vi: {ar.get('scope', '')}"
+        )
+        lines.append("")
+        lines.append(
+            f"**Runtime hiện tại**: storage_backend=`{runtime.get('storage_backend', '?')}`, "
+            f"data_source=`{runtime.get('data_source', '?')}`, "
+            f"kafka=`{runtime.get('use_kafka')}`, "
+            f"iceberg=`{runtime.get('use_iceberg')}`, "
+            f"spark=`{runtime.get('use_spark')}`, "
+            f"llm=`{runtime.get('llm_provider')}`"
+        )
+        lines.append(
+            f"\nAgent có **{result.get('agent_tools_count', 0)} stock tools** + "
+            "4 system tools (`get_symbols_info`, `get_trained_models`, "
+            "`get_system_architecture`, `get_storage_stats`)."
+        )
+        if result.get("env_keys_relevant"):
+            lines.append("")
+            lines.append(
+                "Env keys đáng quan tâm: "
+                + ", ".join(result.get("env_keys_relevant", []))
+            )
+        vn_rt = result.get("vietnam_realtime")
+        if vn_rt:
+            lines.append("")
+            lines.append(
+                f"**VN realtime**: {vn_rt.get('ws_provider')} — boards: "
+                f"{', '.join(vn_rt.get('boards', []))}"
+            )
+        disc = result.get("disclaimer")
+        if disc:
+            lines.append("")
+            lines.append(f"*{disc}*")
+
+    elif tool_name == "get_storage_stats":
+        backend = result.get("storage_backend", "?")
+        lines.append(f"**Storage backend hiện tại**: `{backend}`")
+        buckets = result.get("buckets", {})
+        if buckets:
+            lines.append("")
+            lines.append("Số object ở mỗi layer:")
+            for name, stats in buckets.items():
+                cnt = stats.get("count", -1)
+                if cnt is None or cnt < 0:
+                    lines.append(f"- {name}: lỗi ({stats.get('error', '?')})")
+                else:
+                    extra = ""
+                    if "size_mb" in stats:
+                        extra = f", {stats['size_mb']} MB"
+                    lines.append(f"- {name}: {cnt} object{extra}")
+        summary = result.get("summary", {})
+        if summary.get("total_objects", 0) > 0:
+            lines.append("")
+            lines.append(
+                f"**Tổng**: {summary['total_objects']} object trong "
+                f"{summary.get('layers_with_data', 0)} layer(s) có dữ liệu."
+            )
+        live = result.get("live_counts") or {}
+        if live:
+            lines.append("")
+            lines.append("Live counts (số symbol có ≥1 partition ở mỗi layer):")
+            for k, v in live.items():
+                lines.append(f"- {k}: {v}")
+        if "mysql_connected" in result:
+            lines.append("")
+            lines.append(f"MySQL connected: {result['mysql_connected']}")
+
+    else:
+        lines.append(f"Kết quả tool `{tool_name}`: {json.dumps(result, ensure_ascii=False)[:1000]}")
+
+    return "\n".join(lines)
+
+
+def _project_suggestions() -> list[str]:
+    return [
+        "Đồ án này sử dụng những công nghệ gì?",
+        "Hệ thống có bao nhiêu mã cổ phiếu?",
+        "Đã train được những model nào?",
+        "MinIO đang lưu trữ bao nhiêu file?",
+    ]
 
 
 def _render_local_answer(question: str, collected: dict[str, Any]) -> str:

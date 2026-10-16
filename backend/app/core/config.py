@@ -35,7 +35,7 @@ if _LOCAL_ENV.exists():
         # Only set if not already in real env (so exports in shell still win).
         if _k and _k not in os.environ:
             os.environ[_k] = _v
-    del _line, _stripped, _k, _v
+    _line = _stripped = _k = _v = None
 
 
 class Settings(BaseSettings):
