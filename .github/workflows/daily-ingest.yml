@@ -1,11 +1,32 @@
 name: Daily Stock Ingest
 
-# Runs every day at 11:00 UTC = 18:00 Vietnam (UTC+7)
-# Can also be triggered manually from the Actions tab.
+# Disabled by default (see `if:` condition on the job below).
+#
+# Why this workflow exists:
+#   Pulls fresh OHLCV bars from Yahoo Finance and pushes them into MinIO
+#   so the Silver/Gold layers stay up-to-date without a scheduled task
+#   on the local machine. It's the same `scripts.ingest_all` entry-point
+#   used by the in-app "Refresh" button.
+#
+# Why it is gated behind `if: false`:
+#   The CI runner is a cloud Ubuntu image - it cannot reach MinIO running
+#   on the developer's WSL2 instance unless a public tunnel is exposed.
+#   We have configured an ngrok free-tier tunnel for that, but the
+#   developer's workstation is not online 24/7, so the scheduled runs
+#   reliably fail when the laptop is off (the first run on 2026-10-17
+#   failed with "MINIO_NGROK_URL secret is empty" / "host unreachable").
+#
+# How to demo / re-enable:
+#   1. Start the local stack:    docker compose --profile all up -d
+#   2. Start the ngrok tunnel:   ngrok tcp 9000  (paste the URL into
+#                                 Settings -> Secrets -> MINIO_NGROK_URL)
+#   3. Trigger manually:         Actions -> Daily Stock Ingest -> Run workflow
+#   4. To re-enable the schedule: remove the `if: false` line below and
+#                                 commit. CI runs every day at 18:00 ICT.
 
 on:
   schedule:
-    - cron: '0 11 * * *'
+    - cron: '0 11 * * *'  # Disabled by job-level `if: false` below.
   workflow_dispatch:
 
 permissions:
@@ -14,6 +35,10 @@ permissions:
 jobs:
   ingest:
     name: Ingest OHLCV from Yahoo Finance -> MinIO
+    # Disabled: see the comment block at the top of this file for why
+    # and how to re-enable. Flip this to `true` (or remove the line)
+    # when the developer workstation is guaranteed online for the run.
+    if: false
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
@@ -62,7 +87,6 @@ jobs:
           # Kafka/Iceberg disabled for remote ingest
           KAFKA_ENABLED: 'false'
           ICEBERG_ENABLED: 'false'
-          # `ingest_all` arg parser only accepts --batch / --delay
         run: |
           python -m scripts.ingest_all \
             --interval 1d \
