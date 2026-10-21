@@ -108,6 +108,33 @@ class BronzeLayer:
             return frame
         return self.validate_schema(frame).sort_values("timestamp").reset_index(drop=True)
 
+    def latest_timestamp(self, symbol: str) -> pd.Timestamp | None:
+        """Return the newest stored timestamp for ``symbol`` without a full read.
+
+        `read()` pulls every year/month parquet partition (a 10-year daily
+        ticker is ~120 objects) just so the caller can compute a watermark.
+        The incremental refresh runs that for every symbol on every pass, which
+        dominates the pass duration. Here we list the partition keys, sort them
+        descending (they are `year=YYYY/month=MM/...` so lexicographic order is
+        chronological), and fetch only the newest partition. Falls back to the
+        previous month in case the last one is empty or missing.
+        """
+        keys = self.storage.list_objects(self.layer_name, f"symbol={symbol.upper()}/")
+        # Drop metadata sidecars such as `_lineage.json`.
+        data_keys = [k for k in keys if k.endswith(".parquet")]
+        if not data_keys:
+            return None
+        # Month partitions are complete files; newest key = newest data. Reverse
+        # the list so the caller stops as soon as it finds a populated one.
+        for key in sorted(data_keys, reverse=True)[:2]:
+            frame = self.storage.read_parquet(self.layer_name, key)
+            if frame is None or frame.empty or "timestamp" not in frame.columns:
+                continue
+            stamps = pd.to_datetime(frame["timestamp"], utc=True, errors="coerce").dropna()
+            if not stamps.empty:
+                return stamps.max()
+        return None
+
     def record_count(self, symbol: str | None = None) -> int:
         """Count stored objects without downloading/parsing parquet payloads.
 

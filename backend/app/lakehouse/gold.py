@@ -53,6 +53,26 @@ class GoldLayer:
         prefix = f"symbol={symbol.upper()}" if symbol else ""
         return int(self.storage.count_objects(self.layer_name, prefix))
 
+    def latest_timestamp(self, symbol: str) -> pd.Timestamp | None:
+        """Return the newest stored timestamp for ``symbol`` without a full read.
+
+        Mirrors `BronzeLayer.latest_timestamp`. The auto-refresh uses this to decide
+        whether to rebuild Silver/Gold when Bronze has not received new rows but the
+        Silver/Gold watermark is nevertheless behind Bronze's.
+        """
+        keys = self.storage.list_objects(self.layer_name, f"symbol={symbol.upper()}/")
+        data_keys = [k for k in keys if k.endswith(".parquet")]
+        if not data_keys:
+            return None
+        for key in sorted(data_keys, reverse=True)[:2]:
+            frame = self.storage.read_parquet(self.layer_name, key)
+            if frame is None or frame.empty or "timestamp" not in frame.columns:
+                continue
+            stamps = pd.to_datetime(frame["timestamp"], utc=True, errors="coerce").dropna()
+            if not stamps.empty:
+                return stamps.max()
+        return None
+
     def _transform_spark(self, frame: pd.DataFrame, spark) -> pd.DataFrame:
         """Apply Spark numeric casting then reuse Pandas feature builder for window features."""
         from pyspark.sql import functions as F

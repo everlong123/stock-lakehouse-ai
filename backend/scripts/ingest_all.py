@@ -214,12 +214,14 @@ def ingest_symbol_interval(
     }
     
     try:
-        # Check if existing data
-        existing = bronze.read(symbol)
-        
-        if not existing.empty:
-            existing_dates = set(existing["timestamp"].dt.date)
-            logger.debug(f"{symbol} {interval}: {len(existing)} records exist")
+        # Watermark only. A full `bronze.read()` downloads every month partition
+        # for the symbol (~120 objects for a 10-year daily ticker) just to log a
+        # count, which dominated the runtime of the whole ingest.
+        watermark = bronze.latest_timestamp(symbol)
+        if watermark is not None:
+            logger.debug(
+                f"{symbol} {interval}: stored data through {watermark.date().isoformat()}"
+            )
         
         # Fetch new data
         ingestor = DataIngestor(IngestConfig())

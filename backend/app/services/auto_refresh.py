@@ -168,10 +168,32 @@ class AutoRefreshService:
                     idx + 1, len(target_symbols),
                 )
 
-        # Rebuild Silver + Gold for ALL target_symbols (idempotent rebuild covers
-        # symbols that previously got skipped because Bronze had no new data).
+        # Rebuild Silver + Gold only when Bronze has new rows OR when the Gold
+        # watermark lags behind Bronze (Silver was written but Gold was not — e.g.
+        # backend was killed mid-pass). Skipping Silver/Gold rebuild for unchanged
+        # symbols saves ~10 min per pass (previously rebuilt all 958 symbols).
+        from app.lakehouse.gold import GoldLayer
+        _gold = GoldLayer()
+        dirty_symbols: list[str] = []
+        for sym, res in zip(target_symbols, results):
+            if res.get("new_rows", 0) > 0:
+                dirty_symbols.append(sym)
+                continue
+            # Bronze is unchanged; check if Gold is behind Bronze anyway
+            bronze_ts = bronze.latest_timestamp(sym)
+            gold_ts = _gold.latest_timestamp(sym) if bronze_ts is not None else None
+            if bronze_ts is not None and (gold_ts is None or gold_ts < bronze_ts):
+                logger.info(
+                    "AutoRefresh: %s Gold watermark (%s) lags Bronze (%s), scheduling rebuild",
+                    sym, gold_ts.date() if gold_ts else "MISSING", bronze_ts.date(),
+                )
+                dirty_symbols.append(sym)
+        logger.info(
+            "AutoRefresh: %d/%d symbols need Silver/Gold rebuild",
+            len(dirty_symbols), len(target_symbols),
+        )
         silver_done, gold_done = 0, 0
-        for sym in target_symbols:
+        for sym in dirty_symbols:
             if self._stop_event.is_set():
                 break
             try:
@@ -217,19 +239,21 @@ class AutoRefreshService:
     ) -> dict:
         """Incrementally fetch one symbol. Returns dict with details."""
         try:
-            existing = bronze.read(symbol)
+            # Only the watermark is needed here. `bronze.read()` would download
+            # every month partition for the symbol (~120 objects for a 10-year
+            # daily ticker) once per pass, which is what made the refresh crawl.
+            # `latest_timestamp()` lists keys and pulls just the newest partition.
+            latest_ts = bronze.latest_timestamp(symbol)
         except Exception as exc:
-            logger.warning("AutoRefresh: bronze read failed for %s: %s", symbol, exc)
-            existing = pd.DataFrame()
+            logger.warning("AutoRefresh: bronze watermark read failed for %s: %s", symbol, exc)
+            latest_ts = None
 
-        is_new_symbol = existing.empty
+        is_new_symbol = latest_ts is None
         if is_new_symbol:
             # Full backfill
             start = now - timedelta(days=settings.default_lookback_days)
             skip_reason = None
         else:
-            latest_ts = pd.to_datetime(existing["timestamp"], utc=True).max()
-            latest_date = latest_ts.date() if hasattr(latest_ts, "date") else latest_ts
             # Skip if already fresh
             now_naive = now.replace(tzinfo=None)
             age_hours = (now_naive - latest_ts.to_pydatetime().replace(tzinfo=None)).total_seconds() / 3600.0
