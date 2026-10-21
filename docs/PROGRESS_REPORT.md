@@ -1,0 +1,193 @@
+# Báo cáo tiến độ dự án — Stock Lakehouse AI
+
+**Người thực hiện:** Em
+**Ngày cập nhật:** 21/10/2026
+**Repository:** https://github.com/everlong123/stock-lakehouse-ai
+
+---
+
+## 1. Em đang xây dựng cái gì
+
+Thầy, tóm tắt ngắn gọn thế này: đồ án của em là một nền tảng **Data Lakehouse** để phân tích và dự báo cổ phiếu, xây theo kiến trúc **Medallion** (Bronze → Silver → Gold) — đúng cái kiến trúc mà các công ty lớn như Databricks, Netflix hay Uber dùng cho dữ liệu của họ.
+
+Điểm em muốn nhấn mạnh là em **không dùng data giả**. Toàn bộ OHLCV trong hệ thống đều lấy từ các nguồn thật và miễn phí: Yahoo Finance, Finnhub, Alpha Vantage, và SSI iBoard cho cổ phiếu Việt Nam. Em có sẵn một script kiểm chứng (`tests/verify_real_data.py`) để chứng minh điều đó, kèm báo cáo chất lượng dữ liệu riêng cho từng mã Việt.
+
+---
+
+## 2. Quy mô project hiện tại
+
+| Hạng mục | Con số |
+|---|---|
+| Commit | 20 |
+| Backend (Python) | 151 file, ~18.300 dòng |
+| Frontend (React/TS) | 63 file, ~5.300 dòng |
+| API routes | 17 module |
+| CLI scripts | 20 script |
+| Test scripts | 11 file |
+| Universe cổ phiếu | 958 mã toàn cầu + 53 mã Việt Nam (HOSE/HNX/UPCOM) + crypto + chỉ số |
+| Dữ liệu đã ingest | 917 mã có dữ liệu thật ở tầng Bronze (~1.1M daily rows qua 3 tầng) |
+| Báo cáo chất lượng dữ liệu | 53/53 mã Việt Nam có báo cáo chi tiết (`backend/docs/vn_quality_reports/`) |
+
+Universe gồm cổ phiếu Mỹ, châu Âu (Đức, Pháp, Thụy Sĩ, Hà Lan, Tây Ban Nha, Ý), Nhật, Hồng Kông, Trung Quốc, Hàn Quốc, Đài Loan, Ấn Độ, Brazil, Canada, Australia — cộng 53 mã Việt Nam (HOSE/HNX/UPCOM) và khoảng 85 quỹ ETF theo ngành. Tổng 958 mã trong `GLOBAL_SYMBOLS`; đã ingest được 917 mã có dữ liệu thật (khoảng 40 mã còn lại là mã đã bị hủy niêm yết hoặc đổi tên nên Yahoo không có dữ liệu).
+
+---
+
+## 3. Phần hạ tầng đã dựng xong
+
+Em đã dựng được toàn bộ stack hạ tầng chạy bằng Docker Compose:
+
+| Service | Công nghệ | Port | Vai trò |
+|---|---|---|---|
+| MySQL 8 | SQLAlchemy 2 + Alembic | 3307 | Metadata: `users`, `pipeline_runs`, `model_runs`, `backtest_runs`, `agent_conversations` |
+| MinIO | S3-compatible | 9000 / 9001 | Lưu Parquet 3 tầng + models + backtests |
+| Apache Iceberg REST | Tabulario 0.9.0 | 8181 | Catalog quản lý schema, time-travel |
+| Apache Kafka 3.8 | KRaft mode (không ZooKeeper) | 9092 / 9094 | Streaming backbone, 5 topic |
+
+Một chi tiết đáng kể: giữa quá trình làm, em phải **chuyển Docker Engine từ Docker Desktop sang WSL2** (Docker Desktop crash liên tục, và ổ ext4 trong WSL2 nhanh hơn ~50 lần so với ghi Parquet qua bridge 9P/NTFS: ~1 GB/min so với ~20 MB/min). Data cũ được khôi phục lại từ backup vhdx. Phần này em ghi lại trong `docker-compose.yml` để có người sau không phải đoán.
+
+---
+
+## 4. Kiến trúc Lakehouse — phần lõi của đồ án
+
+### Bronze — dữ liệu gần nguồn
+Append-only, lưu nguyên trạng, có lineage tracking và kiểm tra trùng lặp. Partition theo `symbol/year/month` nên đọc một mã chỉ đụng đúng phần cần thiết.
+
+### Silver — dữ liệu đã làm sạch
+Chuẩn hóa múi giờ về UTC, ép kiểu dữ liệu, kiểm tra tính hợp lệ của OHLC (high ≥ open/close, low ≤ open/close...), loại bỏ bản ghi hỏng nhưng **ghi lại vào `_errors/`** chứ không xóa âm thầm. Em luôn đếm số bản ghi bị loại và đưa vào báo cáo chất lượng.
+
+### Gold — đặc trưng sẵn sàng phân tích
+94 features mỗi dòng, chia 4 nhóm: kỹ thuật (SMA/EMA/RSI/MACD/Bollinger/ATR/ADX/Ichimoku/Supertrend/VWAP), nâng cao, macro, và composite. Quan trọng là target dùng `shift(-1)` để **không rò rỉ tương lai** — đây là điều thầy hay nhắc, và em đã kiểm tra lại bằng walk-forward validation.
+
+---
+
+## 5. Những module em đã hoàn thành
+
+**Phân tích kỹ thuật** — SMA, EMA, RSI, MACD, Bollinger Bands, ATR, ADX, Ichimoku, Supertrend, VWAP. Có bật/tắt từng indicator trên UI.
+
+**Dự báo** — ba mô hình: Linear Regression, ARIMA (statsmodels), LSTM (PyTorch, chạy CPU). UI so sánh Actual vs Predicted của cả ba trên cùng một biểu đồ.
+
+**Backtesting** — engine tự viết, hai chiến lược (MA Crossover, RSI Strategy), đầy đủ metric: Total Return, Win Rate, Sharpe Ratio, Max Drawdown, Profit Factor. Có biểu đồ equity curve và drawdown.
+
+**AI Agent** — dùng Gemini Free API (`gemini-2.0-flash-exp`) với 14+ tool calling **trực tiếp vào backend thật**: `get_market_summary`, `query_stock_data`, `calculate_indicators`, `run_backtest`. Nếu không có API key, agent vẫn chạy được nhờ local tool router (keyword routing) — vẫn gọi đúng tool, không bịa số liệu.
+
+**Streaming** — Finnhub WebSocket (tự reconnect + PING) → `StreamPublisher` gom trades thành bar 1 giây → Kafka topic → Consumer → đổ vào Lakehouse.
+
+**Frontend** — React 18 + Vite + TypeScript + TailwindCSS + TanStack Query + Recharts. 7 trang: Dashboard, Market Data, Technical Analysis, Forecasting, Backtesting, AI Agent, System Status. Em đã test end-to-end từng trang với API thật, không có trang nào render lỗi.
+
+---
+
+## 6. Phần em vừa xong hôm nay
+
+Hôm nay em rà lại toàn bộ luồng cập nhật dữ liệu tự động và phát hiện ra một chuỗi bug khá nghiêm trọng. Em muốn chia sẻ vì đây là phần em nghĩ thú vị nhất của giai đoạn này.
+
+### 6.1. Bug "prefix collision" — âm thầm làm hỏng dữ liệu
+
+Em phát hiện lỗi này khi đo tốc độ đọc symbol `M` và thấy nó mất **42.9 giây** để trả về, trong khi AAPL chỉ mất 0.87 giây.
+
+Nguyên nhân: trong S3/MinIO, prefix match là so khớp chuỗi thô. Code cũ dùng prefix `"symbol=M"` — **không có dấu `/` ở cuối**. Vậy nó khớp luôn `symbol=MA/`, `symbol=MCD/`, `symbol=META/`, `symbol=MELI/`...
+
+Kết quả: `read("M")` trả về **121.913 dòng thuộc 51 mã khác nhau** thay vì 2.522 dòng của riêng M. Nghĩa là biểu đồ của Mastercard đang vẽ chung dữ liệu với Macy's, McDonald's, Meta, Merrill Lynch... và API **không hề báo lỗi** — nó cứ trả về dữ liệu sai một cách rất âm thầm.
+
+Em đã sửa bằng cách thêm một helper `symbol_prefix()` dùng chung, kết thúc prefix đúng tại ranh giới thư mục. Sau khi sửa:
+
+| Mã | Trước | Sau | Thời gian |
+|---|---|---|---|
+| M | 121.913 dòng / 51 symbols | **2.522 dòng / 1 symbol** | 42.9s → **0.90s** |
+| O | 45.343 dòng | **2.523 dòng** | 16.0s → **0.87s** |
+
+Cái thú vị là lỗi này tồn tại từ lâu mà không ai phát hiện, vì các mã hay xem (AAPL, NVDA, TSLA) không có mã nào khác cùng tiền tố. Chỉ đến khi em kiểm tra `M` thì mới lộ ra.
+
+### 6.2. Gold layer không bao giờ được rebuild lại
+
+Có một hiện tượng rất khó hiểu: Bronze của mã M đã có data tới 20/10, Silver cũng 20/10, nhưng **Gold thì không có cả partition tháng 10**.
+
+Em truy ra là do logic cũ: vòng rebuild Silver/Gold chỉ chạy cho những mã mà Bronze **ghi được dòng mới** trong pass đó. Nhưng cấu hình `AUTO_REFRESH_SKIP_IF_FRESH_HOURS=24` lại bỏ qua fetch khi data còn mới — nên sau 24 giờ, không mã nào ghi thêm dòng nữa, danh sách "cần rebuild" rỗng vĩnh viễn, và Gold không bao giờ được cập nhật lần nữa.
+
+Trường hợp M chính xác là do backend bị tắt giữa chừng: Silver transform đã chạy xong, nhưng Gold build chưa kịp chạy, và mọi pass sau đó đều bỏ qua nó.
+
+Em sửa bằng cách so sánh watermark: rebuild khi **Bronze có dòng mới HOẶC watermark của Gold lệch watermark của Bronze**. Cách này tự khôi phục được đúng những mã bị bỏ dở.
+
+### 6.3. Tối ưu hiệu năng
+
+| Hạng mục | Trước | Sau |
+|---|---|---|
+| Đọc watermark (mỗi mã) | 0.7s | **0.02s** (đọc 1 partition thay vì 122) |
+| Fetch 60 mã | tuần tự, ~60s | **7.0s** (8 thread) |
+| Rebuild Silver/Gold | cả 958 mã mỗi pass | **chỉ mã thực sự cần** |
+
+Em thêm cả **circuit breaker** cho provider: Finnhub đã bị bỏ free candle API và Alpha Vantage free key chỉ có 25 request/ngày nên chết vĩnh viễn — trước đây mỗi mã fail đều phải chờ hết chuỗi failover 5 provider. Giờ provider lỗi cấu hình/quota sẽ bị tạm vô hiệu hóa 15 phút. Quan trọng là breaker **chỉ tính lỗi key/quota**, không tính lỗi 404 riêng lẻ — vì 404 nghĩa là mã đó bị delisted, không phải provider hỏng. Em đã thử cách đếm mọi lỗi và thấy nó vô hiệu hóa luôn `yahoo_http` (provider tốt nhất) khi chạy qua chuỗi mã delisted, nên phải sửa lại.
+
+### 6.4. Log ghi bị mất
+
+`RotatingFileHandler` buffer log trong bộ nhớ, nên các dòng log từ thread background có thể nằm im hàng chút rồi biến mất hoàn toàn khi tắt process. Em bọc handler để flush ngay mỗi dòng.
+
+---
+
+## 7. Một chuyện em muốn nói thẳng
+
+Hôm nay em có lúc **chẩn đoán sai hướng** và gần như quy kết sai rằng lỗi nằm ở provider API. Em đo được một mã lấy bình thường thì nghĩ vậy, nhưng nguyên nhân thật là **WSL2 tự tắt khi không dùng, kéo theo Docker và MinIO chết theo**, còn job cứ retry vào MinIO đã chết nên trông như bị treo.
+
+Em ghi lại điều này vì em nghĩ nó cũng là một phần của bài học: **phải đo lại từ đầu thay vì tin vào giả thuyết đầu tiên**. May mắn là lúc đó em đo được chỉ số cụ thể (số dòng, số symbol) thay vì chỉ nhìn log, nên mới phát hiện ra dữ liệu bị trộn. Nếu chỉ nhìn log thì em sẽ tiếp tục sửa nhầm thêm nữa.
+
+---
+
+## 8. Trạng thái dữ liệu hiện tại
+
+Em đã rebuild và đồng bộ lại toàn bộ 3 tầng cho các mã bị lệch. Kiểm tra qua API cho 19 mã đại diện: **18/19 mã trả về đúng bar mới nhất (20/10/2026)** với giá khớp thực tế — M = 23.41 (Macy's), MA = 620.42 (Mastercard), MCD = 246.52 (McDonald's).
+
+Mã `VNM` còn ở 14/10 vì Yahoo Finance chưa có dữ liệu mới cho cổ phiếu Việt Nam — đây là giới hạn thật của nguồn dữ liệu, không phải lỗi hệ thống.
+
+---
+
+## 9. Các phần em còn để ngỏ
+
+Em muốn nói thẳng những chỗ chưa xong, để thầy nắm được mức độ hoàn thiện thực tế:
+
+- **Frontend realtime view** — hiện streaming chạy qua Kafka nhưng UI chưa vẽ được bar live. Đây là phần em muốn làm tiếp.
+- **Stream consumer chạy nền dài hạn** — hiện mới chạy được dạng CLI, chưa đóng gói thành service chạy liên tục.
+- **Walk-forward validation trên dữ liệu streamed** — mới chỉ có trên dữ liệu lịch sử.
+- **Drift detection** trên incoming ticks.
+- **Chuẩn hóa timestamp ở tầng Silver** — em phát hiện khoảng 5/30 mã có 1–3 dòng trùng ngày do provider timestamp theo giờ đóng cửa (20:00 UTC) thay vì giờ mở cửa (13:30 UTC). Em chưa sửa vì nó là thay đổi lan rộng, cần làm cẩn thận để không mất dữ liệu hợp lệ.
+- **Mở rộng báo cáo chất lượng ra toàn bộ universe** — hiện đã có báo cáo chi tiết cho 53/53 mã Việt Nam (`backend/docs/vn_quality_reports/`), nhưng 917 mã quốc tế thì chưa có báo cáo tương đương. Em dự định chạy lại script kiểm chứng trên toàn bộ.
+- **Vấn đề WSL2 tự tắt** — hiện em bật keepalive tạm, nhưng để ổn định lâu dài nên cấu hình `.wslconfig` tắt idle timeout.
+
+---
+
+## 10. Em muốn làm tiếp
+
+Theo thứ tự ưu tiên em đang tính:
+
+1. **Chuẩn hóa timestamp ở tầng Silver** để dữ liệu sạch hoàn toàn, mỗi ngày giao dịch đúng một dòng.
+2. **Frontend realtime view** — nối Kafka vào UI, đây là phần demo ấn tượng nhất còn thiếu.
+3. **Đóng gói stream consumer thành service chạy nền** với health check.
+4. **Walk-forward validation trên dữ liệu streamed** để chứng minh mô hình không rò rỉ tương lai trong điều kiện thực.
+5. **Drift detection** để phát hiện khi phân phối dữ liệu thay đổi.
+
+---
+
+## 11. Kết luận
+
+Đến giờ em đã có một hệ thống chạy end-to-end: dữ liệu thật từ 917 mã đi qua Bronze → Silver → Gold, ra 94 features, phục vụ API FastAPI, hiển thị trên React với dashboard, indicator, dự báo, backtest và AI Agent trả lời được câu hỏi tự nhiên bằng tool calling vào chính backend.
+
+Hôm nay em đã sửa 4 bug thật, trong đó đáng kể nhất là lỗi prefix collision — loại bug lặng lẽ làm hỏng dữ liệu mà không báo lỗi. Em nghĩ đó là bài học lớn nhất của giai đoạn này: **trong một hệ thống data pipeline, việc đo được chỉ số cụ thể còn quan trọng hơn việc nhìn log cho nhiều**.
+
+Em cảm ơn thầy đã hướng dẫn em trong suốt quá trình này.
+
+---
+
+## Phụ lục — Tài liệu tham khảo trong repo
+
+| File | Nội dung |
+|---|---|
+| `docs/PROGRESS.md` | Progress tracker tổng + hướng dẫn setup |
+| `docs/PROGRESS_LAKEHOUSE.md` | Báo cáo tiến độ chi tiết tầng Bronze/Silver/Gold |
+| `docs/architecture.md` | Kiến trúc tổng thể |
+| `docs/lakehouse.md` | Chi tiết 3 tầng + Iceberg + coverage |
+| `docs/ai_agent.md` | AI Agent tools + cấu hình Gemini |
+| `docs/data_sources.md` | Catalog data sources miễn phí |
+| `docs/tech_stack_matrix.md` | Bảng map công nghệ ↔ file implementation |
+| `docs/vn_data_quality.md` | Báo cáo chất lượng dữ liệu 50 mã VN |
+| `docs/system_health.md` | Kết quả audit sức khỏe hệ thống |
+| `docs/CI.md` | Hướng dẫn CI + lý do daily-ingest đang gated |
+
+> **Lưu ý về CI:** workflow `daily-ingest.yml` hiện được đặt `if: false` với lý do rất cụ thể — CI runner là Ubuntu cloud, không với tới được MinIO chạy trên máy local qua ngrok free-tier, và laptop không bật 24/7 nên các run lịch sẽ fail. Em để nguyên quyết định này và ghi rõ lý do vào comment trong file để có người sau hiểu, thay vì xóa luôn đi "cho gọn".

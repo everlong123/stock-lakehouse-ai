@@ -342,6 +342,7 @@ Verified datasets (snapshot 2026-09-30):
 
 | File | Mô tả |
 |------|-------|
+| [docs/PROGRESS_REPORT.md](docs/PROGRESS_REPORT.md) | **Báo cáo tiến độ tổng hợp cho thầy** — giọng kể, kiến trúc, bug đã sửa, việc còn lại |
 | [docs/PROGRESS_LAKEHOUSE.md](docs/PROGRESS_LAKEHOUSE.md) | Báo cáo tiến độ chi tiết cho thầy (Bronze/Silver/Gold + demo) |
 | [docs/PROGRESS.md](docs/PROGRESS.md) | Progress tracker tổng + setup guide |
 | [docs/architecture.md](docs/architecture.md) | Kiến trúc tổng thể |
