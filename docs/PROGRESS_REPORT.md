@@ -25,10 +25,19 @@ Thầy, tóm tắt ngắn gọn thế này: đồ án của em là một nền t
 | CLI scripts | 20 script |
 | Test scripts | 11 file |
 | Universe cổ phiếu | 958 mã toàn cầu + 53 mã Việt Nam (HOSE/HNX/UPCOM) + crypto + chỉ số |
-| Dữ liệu đã ingest | 917 mã có dữ liệu thật ở tầng Bronze (~1.1M daily rows qua 3 tầng) |
+| Dữ liệu đã ingest | **924 mã** ở tầng Bronze/Silver, **919 mã** ở tầng Gold |
+| Dung lượng trong MinIO | **8.14 GB** — Bronze 0.80 GB (104.795 obj) · Silver 0.85 GB (98.796 obj) · Gold 6.49 GB (97.698 obj) |
 | Báo cáo chất lượng dữ liệu | 53/53 mã Việt Nam có báo cáo chi tiết (`backend/docs/vn_quality_reports/`) |
 
-Universe gồm cổ phiếu Mỹ, châu Âu (Đức, Pháp, Thụy Sĩ, Hà Lan, Tây Ban Nha, Ý), Nhật, Hồng Kông, Trung Quốc, Hàn Quốc, Đài Loan, Ấn Độ, Brazil, Canada, Australia — cộng 53 mã Việt Nam (HOSE/HNX/UPCOM) và khoảng 85 quỹ ETF theo ngành. Tổng 958 mã trong `GLOBAL_SYMBOLS`; đã ingest được 917 mã có dữ liệu thật (khoảng 40 mã còn lại là mã đã bị hủy niêm yết hoặc đổi tên nên Yahoo không có dữ liệu).
+Universe gồm cổ phiếu Mỹ, châu Âu (Đức, Pháp, Thụy Sĩ, Hà Lan, Tây Ban Nha, Ý), Nhật, Hồng Kông, Trung Quốc, Hàn Quốc, Đài Loan, Ấn Độ, Brazil, Canada, Australia — cộng 53 mã Việt Nam (HOSE/HNX/UPCOM) và khoảng 85 quỹ ETF theo ngành. Tổng 958 mã trong `GLOBAL_SYMBOLS`; đã ingest được **924 mã** có dữ liệu thật (khoảng 34 mã còn lại là mã đã bị hủy niêm yết hoặc đổi tên nên Yahoo không có dữ liệu).
+
+Em mới viết thêm script `backend/scripts/verify_layers.py` để tự kiểm chứng trạng thái ba tầng:
+
+```powershell
+python scripts\verify_layers.py
+```
+
+Script in ra số object / số symbol / dung lượng từng tầng, rồi in ma trận partition theo từng mã, để phân biệt được "mã này chưa từng được ingest" với "mã này đã ingest nhưng vòng rebuild Silver/Gold bị bỏ qua".
 
 ---
 
@@ -44,6 +53,26 @@ Em đã dựng được toàn bộ stack hạ tầng chạy bằng Docker Compos
 | Apache Kafka 3.8 | KRaft mode (không ZooKeeper) | 9092 / 9094 | Streaming backbone, 5 topic |
 
 Một chi tiết đáng kể: giữa quá trình làm, em phải **chuyển Docker Engine từ Docker Desktop sang WSL2** (Docker Desktop crash liên tục, và ổ ext4 trong WSL2 nhanh hơn ~50 lần so với ghi Parquet qua bridge 9P/NTFS: ~1 GB/min so với ~20 MB/min). Data cũ được khôi phục lại từ backup vhdx. Phần này em ghi lại trong `docker-compose.yml` để có người sau không phải đoán.
+
+### Một lỗi hạ tầng tốn khá nhiều thời gian — WSL2 tự tắt
+
+Đây là lỗi em muốn kể vì nó **giả vờ là bug dữ liệu**.
+
+WSL2 có cơ chế tự tắt VM khi không dùng. Mỗi lần VM tắt là Docker Engine chết theo, và 4 container (mysql, minio, iceberg-rest, kafka) cũng chết theo. Triệu chứng bên ngoài là một lệnh đọc MinIO bỗng nhiên trả về `ConnectionRefusedError` — trông y hệt "dữ liệu bị mất".
+
+Em đã từng đoán nhầm là provider API chết, rồi đoán nhầm là `yfinance` bị Yahoo chặn, và cả lần nữa là script ingest bị lỗi logic. Trong lúc đó, một script so sánh 3 tầng chạy về báo **AAPL, MSFT, NVDA, TSLA đều MISSING** — nếu em tin vào đó thì em sẽ tưởng dữ liệu đã bị xóa mất và bắt đầu ingest lại từ đầu, một việc mất hàng giờ.
+
+Sự thật chỉ ra khi em kiểm tra `wsl --list --verbose` và thấy `Ubuntu-24.04  Stopped`. Bật lại VM thì dữ liệu vẫn còn nguyên — **không mất một partition nào**.
+
+Cách sửa là thêm vào `C:\Users\acer\.wslconfig`:
+
+```ini
+vmIdleTimeout=-1
+```
+
+Lưu ý phải là `-1` chứ không phải `0` — `0` nghĩa là "tắt ngay lập tức". Sau khi áp dụng, em chạy probe liên tục 80 giây xác nhận VM không còn tự tắt nữa.
+
+Bài học em rút ra: **trước khi kết luận dữ liệu bị hỏng, hãy kiểm tra tầng hạ tầng bên dưới đang còn sống không.** Em đã viết `backend/scripts/verify_layers.py` để lần sau có máy để kiểm chứng trong 1 phút thay vì đoán mò.
 
 ---
 
@@ -129,11 +158,22 @@ Hôm nay em có lúc **chẩn đoán sai hướng** và gần như quy kết sai
 
 Em ghi lại điều này vì em nghĩ nó cũng là một phần của bài học: **phải đo lại từ đầu thay vì tin vào giả thuyết đầu tiên**. May mắn là lúc đó em đo được chỉ số cụ thể (số dòng, số symbol) thay vì chỉ nhìn log, nên mới phát hiện ra dữ liệu bị trộn. Nếu chỉ nhìn log thì em sẽ tiếp tục sửa nhầm thêm nữa.
 
+Và em nghĩ còn một bài học nữa, cũng liên quan: **đừng bao giờ kết luận "dữ liệu mất" khi đường dẫn đọc dữ liệu bị đứt.** Một lần nữa trong hôm nay, script so sánh 3 tầng báo AAPL/MSFT/NVDA/TSLA đều MISSING — nghe rất đáng sợ. Nhưng sau khi em bật lại WSL2, cùng script đó cho ra đầy đủ 122 partition mỗi mã. Dữ liệu chưa bao giờ mất một byte nào.
+
 ---
 
 ## 8. Trạng thái dữ liệu hiện tại
 
-Em đã rebuild và đồng bộ lại toàn bộ 3 tầng cho các mã bị lệch. Kiểm tra qua API cho 19 mã đại diện: **18/19 mã trả về đúng bar mới nhất (20/10/2026)** với giá khớp thực tế — M = 23.41 (Macy's), MA = 620.42 (Mastercard), MCD = 246.52 (McDonald's).
+Em đã rebuild và đồng bộ lại toàn bộ 3 tầng cho các mã bị lệch. Kiểm chứng lại bằng `verify_layers.py` cho 10 mã đại diện — **tất cả đều có đủ partition ở cả 3 tầng** (122 partition Bronze/Silver, 121 Gold cho các mã 5 năm; VCB 26/25 do mới ingest sau):
+
+| Mã | Bronze | Silver | Gold |
+|---|---|---|---|
+| AAPL · MSFT · NVDA · TSLA · WMT · XOM | 122 | 122 | 121 |
+| M · MA | 122 | 122 | 121 |
+| VNM | 122 | 122 | 121 |
+| VCB | 26 | 26 | 25 |
+
+Cột số ở trên là **số partition theo `symbol/year/month`**, không phải số dòng. Tổng cộng 104.795 object ở Bronze, 98.796 ở Silver, 97.698 ở Gold.
 
 Mã `VNM` còn ở 14/10 vì Yahoo Finance chưa có dữ liệu mới cho cổ phiếu Việt Nam — đây là giới hạn thật của nguồn dữ liệu, không phải lỗi hệ thống.
 
@@ -148,8 +188,8 @@ Em muốn nói thẳng những chỗ chưa xong, để thầy nắm được m�
 - **Walk-forward validation trên dữ liệu streamed** — mới chỉ có trên dữ liệu lịch sử.
 - **Drift detection** trên incoming ticks.
 - **Chuẩn hóa timestamp ở tầng Silver** — em phát hiện khoảng 5/30 mã có 1–3 dòng trùng ngày do provider timestamp theo giờ đóng cửa (20:00 UTC) thay vì giờ mở cửa (13:30 UTC). Em chưa sửa vì nó là thay đổi lan rộng, cần làm cẩn thận để không mất dữ liệu hợp lệ.
-- **Mở rộng báo cáo chất lượng ra toàn bộ universe** — hiện đã có báo cáo chi tiết cho 53/53 mã Việt Nam (`backend/docs/vn_quality_reports/`), nhưng 917 mã quốc tế thì chưa có báo cáo tương đương. Em dự định chạy lại script kiểm chứng trên toàn bộ.
-- **Vấn đề WSL2 tự tắt** — hiện em bật keepalive tạm, nhưng để ổn định lâu dài nên cấu hình `.wslconfig` tắt idle timeout.
+- **Mở rộng báo cáo chất lượng ra toàn bộ universe** — hiện đã có báo cáo chi tiết cho 53/53 mã Việt Nam (`backend/docs/vn_quality_reports/`), nhưng 924 mã đã ingest thì chưa có báo cáo tương đương. Em dự định chạy lại script kiểm chứng trên toàn bộ.
+- **Vấn đề WSL2 tự tắt** — ✅ đã xử lý bằng `vmIdleTimeout=-1` trong `~/.wslconfig`, đã probe ổn định 80 giây. Em vẫn muốn đóng gói luôn phần này vào `docs/LOCAL_DEV.md` để ai setup máy mới không phải mất công tìm lại.
 
 ---
 
@@ -167,9 +207,11 @@ Theo thứ tự ưu tiên em đang tính:
 
 ## 11. Kết luận
 
-Đến giờ em đã có một hệ thống chạy end-to-end: dữ liệu thật từ 917 mã đi qua Bronze → Silver → Gold, ra 94 features, phục vụ API FastAPI, hiển thị trên React với dashboard, indicator, dự báo, backtest và AI Agent trả lời được câu hỏi tự nhiên bằng tool calling vào chính backend.
+Đến giờ em đã có một hệ thống chạy end-to-end: dữ liệu thật từ 924 mã đi qua Bronze → Silver → Gold, ra 94 features, phục vụ API FastAPI, hiển thị trên React với dashboard, indicator, dự báo, backtest và AI Agent trả lời được câu hỏi tự nhiên bằng tool calling vào chính backend.
 
-Hôm nay em đã sửa 4 bug thật, trong đó đáng kể nhất là lỗi prefix collision — loại bug lặng lẽ làm hỏng dữ liệu mà không báo lỗi. Em nghĩ đó là bài học lớn nhất của giai đoạn này: **trong một hệ thống data pipeline, việc đo được chỉ số cụ thể còn quan trọng hơn việc nhìn log cho nhiều**.
+Hôm nay em đã sửa 5 bug thật. Đáng kể nhất vẫn là lỗi prefix collision — loại bug lặng lẽ làm hỏng dữ liệu mà không báo lỗi. Nhưng em muốn nhấn mạnh thêm một điều: **cả 5 lỗi đều được tìm ra nhờ đo, không phải nhờ đọc log.** Lỗi prefix lộ ra khi em đo thời gian đọc mã `M`; lỗi rebuild Gold lộ ra khi em so sánh watermark Bronze với Gold; lỗi WSL2 lộ ra khi em kiểm tra trạng thái VM.
+
+Em nghĩ đó là bài học lớn nhất của giai đoạn này: **trong một hệ thống data pipeline, việc đo được chỉ số cụ thể còn quan trọng hơn việc nhìn log cho nhiều**.
 
 Em cảm ơn thầy đã hướng dẫn em trong suốt quá trình này.
 
@@ -189,5 +231,6 @@ Em cảm ơn thầy đã hướng dẫn em trong suốt quá trình này.
 | `docs/vn_data_quality.md` | Báo cáo chất lượng dữ liệu 50 mã VN |
 | `docs/system_health.md` | Kết quả audit sức khỏe hệ thống |
 | `docs/CI.md` | Hướng dẫn CI + lý do daily-ingest đang gated |
+| `backend/scripts/verify_layers.py` | Kiểm chứng trạng thái 3 tầng Bronze/Silver/Gold trong MinIO |
 
 > **Lưu ý về CI:** workflow `daily-ingest.yml` hiện được đặt `if: false` với lý do rất cụ thể — CI runner là Ubuntu cloud, không với tới được MinIO chạy trên máy local qua ngrok free-tier, và laptop không bật 24/7 nên các run lịch sẽ fail. Em để nguyên quyết định này và ghi rõ lý do vào comment trong file để có người sau hiểu, thay vì xóa luôn đi "cho gọn".
