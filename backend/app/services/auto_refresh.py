@@ -37,6 +37,14 @@ from app.lakehouse.silver import SilverLayer
 from app.lakehouse.gold import GoldLayer
 from app.pipelines.orchestrator import transform_to_silver, build_gold_layer
 
+# The market read path (`MarketService._load_symbol_frame`) memoises every
+# symbol frame with `lru_cache` and no TTL. Without an explicit drop here the
+# UI keeps serving whatever was read at first request, so freshly ingested
+# Bronze/Silver/Gold rows never surface until the process restarts. The
+# manual `run_pipeline` path already calls this in the orchestrator; the
+# auto-refresh loop must do the same per symbol, right after it writes.
+from app.services.market_service import clear_symbol_cache
+
 logger = get_logger(__name__)
 
 
@@ -176,6 +184,11 @@ class AutoRefreshService:
                 gold_done += 1
             except Exception as exc:
                 logger.warning("AutoRefresh gold rebuild failed for %s: %s", sym, exc)
+            # Drop the memoised frame for this symbol so the UI immediately
+            # serves the rows we just wrote instead of a pre-ingest snapshot.
+            # Done per symbol (not once at the end) so pages opened mid-pass
+            # show partial progress rather than nothing until the pass ends.
+            clear_symbol_cache()
 
         finished = datetime.now(timezone.utc)
         summary = {

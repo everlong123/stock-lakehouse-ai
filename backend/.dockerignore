@@ -35,6 +35,9 @@ logs/
 *.pem
 *.key
 
+# WSL-specific python venv (do NOT include this - it has stdc++ version mismatch)
+.venv-wsl/
+
 # OS
 .DS_Store
 Thumbs.db

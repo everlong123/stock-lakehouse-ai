@@ -1,8 +1,14 @@
 # Multi-stage build for the FastAPI backend.
 # Stage 1: builder - install dependencies into a venv we can copy across.
 # Stage 2: runtime - slim image with only the venv + source.
+#
+# NOTE: base image is python:3.12-bookworm (was 3.11-slim).
+# The 3.11-slim registry copy on this host's mirror has a corrupt
+# libstdc++.so.6 ("invalid ELF header") that breaks apt-get inside the
+# container. 3.12-bookworm is fine and we already have it cached locally.
+# PYTHON_VERSION pin is mirrored in backend/.python-version.
 
-FROM python:3.11-slim AS builder
+FROM python:3.12-bookworm AS builder
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
@@ -23,7 +29,7 @@ ENV PATH="/opt/venv/bin:$PATH"
 RUN pip install --upgrade pip && pip install -r requirements.txt
 
 # ── Runtime stage ─────────────────────────────────────────────────────────
-FROM python:3.11-slim AS runtime
+FROM python:3.12-bookworm AS runtime
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \

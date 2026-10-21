@@ -109,7 +109,7 @@ services:
       - /var/lib/docker-data/iceberg-rest:/var/lib/iceberg
     depends_on:
       minio:
-        condition: service_healthy
+        condition: service_started
     networks:
       - app_net
 
@@ -193,7 +193,7 @@ services:
       mysql:
         condition: service_healthy
       minio:
-        condition: service_healthy
+        condition: service_started
       kafka:
         condition: service_healthy
     healthcheck:
