@@ -23,6 +23,7 @@ from __future__ import annotations
 import os
 import threading
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timedelta, timezone
 from typing import Iterable
 
@@ -152,21 +153,42 @@ class AutoRefreshService:
             return {"skipped": True, "reason": "no_symbols"}
 
         now = datetime.now(timezone.utc)
-        results: list[dict] = []
         symbols_with_new_data: list[str] = []
 
-        for idx, sym in enumerate(target_symbols):
-            if self._stop_event.is_set():
-                break
-            res = self._refresh_symbol(bronze, provider, sym, now)
-            results.append(res)
+        # Fetch symbols concurrently. Each fetch is I/O-bound (HTTP + MinIO),
+        # so threads give a large speedup over the sequential loop that made a
+        # 958-symbol pass take tens of minutes. `_refresh_symbol` is safe to
+        # call from several threads: it only reads its own watermark, appends
+        # to the symbol's own partition prefix, and returns a plain dict.
+        worker_count = max(1, _env_int("AUTO_REFRESH_WORKERS", 8))
+        results: list[dict] = [{} for _ in target_symbols]
+        completed = 0
+        with ThreadPoolExecutor(max_workers=worker_count) as pool:
+            futures = {
+                pool.submit(self._refresh_symbol, bronze, provider, sym, now): idx
+                for idx, sym in enumerate(target_symbols)
+            }
+            for future in as_completed(futures):
+                idx = futures[future]
+                sym = target_symbols[idx]
+                try:
+                    results[idx] = future.result()
+                except Exception as exc:  # noqa: BLE001
+                    logger.warning("AutoRefresh: unexpected failure for %s: %s", sym, exc)
+                    results[idx] = {
+                        "symbol": sym, "error": str(exc),
+                        "new_rows": 0, "is_new_symbol": False,
+                    }
+                completed += 1
+                if completed % self._batch_size == 0:
+                    logger.info(
+                        "AutoRefresh progress: %d/%d symbols processed",
+                        completed, len(target_symbols),
+                    )
+
+        for res in results:
             if res.get("new_rows", 0) > 0:
-                symbols_with_new_data.append(sym)
-            if (idx + 1) % self._batch_size == 0:
-                logger.info(
-                    "AutoRefresh progress: %d/%d symbols processed",
-                    idx + 1, len(target_symbols),
-                )
+                symbols_with_new_data.append(res["symbol"])
 
         # Rebuild Silver + Gold only when Bronze has new rows OR when the Gold
         # watermark lags behind Bronze (Silver was written but Gold was not — e.g.
