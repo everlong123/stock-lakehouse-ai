@@ -5,8 +5,26 @@ from __future__ import annotations
 import logging
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
+from typing import Callable
 
 from app.core.config import settings
+
+
+def _wrap_emit(
+    emit: Callable[[logging.LogRecord], None],
+    after: Callable[[], None],
+) -> Callable[[logging.LogRecord], None]:
+    """Return an emit() that calls `after()` once a record is actually written.
+
+    StreamHandler/RotatingFileHandler buffers records internally; a crash or
+    thread shutdown can drop the tail of the log. Hooking the post-write flush
+    is the standard workaround and is cheap under normal load (a flush per
+    log line is fine for the rates this app produces).
+    """
+    def wrapped(record: logging.LogRecord) -> None:
+        emit(record)
+        after()
+    return wrapped
 
 
 _CONFIGURED = False
@@ -33,9 +51,17 @@ def setup_logging() -> None:
         encoding="utf-8",
     )
     file_handler.setFormatter(formatter)
+    # Wrap with flush-after-every-record. Without this the worker thread that
+    # runs `run_once()` can drop lines on shutdown, hang on a slow disk write,
+    # or hang forever while held files keep growing. Cheaper than it sounds:
+    # a single os.fsync-level flush only matters at crash time anyway, and
+    # RotatingFileHandler doesn't emit that often.
+    _flush_after = lambda: file_handler.flush()  # noqa: E731
+    file_handler.emit = _wrap_emit(file_handler.emit, _flush_after)
 
     console_handler = logging.StreamHandler()
     console_handler.setFormatter(formatter)
+    console_handler.emit = _wrap_emit(console_handler.emit, console_handler.flush)
 
     root = logging.getLogger()
     root.setLevel(getattr(logging, settings.log_level.upper(), logging.INFO))
