@@ -8,6 +8,7 @@ from typing import Any
 import pandas as pd
 
 from app.core.logging_config import get_logger
+from app.lakehouse.bronze import symbol_prefix
 from app.lakehouse.storage_base import StorageBackend
 from app.lakehouse.storage_factory import get_storage_backend
 
@@ -101,7 +102,7 @@ class FundamentalsSilverLayer:
     def read_latest(self, symbol: str) -> pd.DataFrame:
         """Read latest fundamental data for a symbol."""
         symbol = symbol.upper()
-        frame = self.storage.read_prefix(self.layer_name, f"symbol={symbol}")
+        frame = self.storage.read_prefix(self.layer_name, symbol_prefix(symbol))
 
         if frame.empty:
             return frame
@@ -112,7 +113,7 @@ class FundamentalsSilverLayer:
     def read_history(self, symbol: str, years: int = 4) -> pd.DataFrame:
         """Read fundamental history for a symbol."""
         symbol = symbol.upper()
-        frame = self.storage.read_prefix(self.layer_name, f"symbol={symbol}")
+        frame = self.storage.read_prefix(self.layer_name, symbol_prefix(symbol))
 
         if frame.empty:
             return frame

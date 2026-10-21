@@ -7,6 +7,7 @@ import pandas as pd
 from app.core.exceptions import DataValidationError
 from app.core.logging_config import get_logger
 from app.features.feature_engineering import build_gold_features
+from app.lakehouse.bronze import symbol_prefix
 from app.lakehouse.parquet_manager import split_by_partition
 from app.lakehouse.spark_session import get_spark_session, spark_enabled
 from app.lakehouse.storage_base import StorageBackend
@@ -41,7 +42,7 @@ class GoldLayer:
         return {"paths": paths, "records": int(len(gold_frame))}
 
     def read(self, symbol: str) -> pd.DataFrame:
-        frame = self.storage.read_prefix(self.layer_name, f"symbol={symbol.upper()}")
+        frame = self.storage.read_prefix(self.layer_name, symbol_prefix(symbol))
         if frame.empty:
             return frame
         frame["timestamp"] = pd.to_datetime(frame["timestamp"], utc=True)
@@ -50,7 +51,7 @@ class GoldLayer:
 
     def record_count(self, symbol: str | None = None) -> int:
         """Count stored objects without downloading/parsing parquet payloads."""
-        prefix = f"symbol={symbol.upper()}" if symbol else ""
+        prefix = symbol_prefix(symbol) if symbol else ""
         return int(self.storage.count_objects(self.layer_name, prefix))
 
     def latest_timestamp(self, symbol: str) -> pd.Timestamp | None:
@@ -60,7 +61,7 @@ class GoldLayer:
         whether to rebuild Silver/Gold when Bronze has not received new rows but the
         Silver/Gold watermark is nevertheless behind Bronze's.
         """
-        keys = self.storage.list_objects(self.layer_name, f"symbol={symbol.upper()}/")
+        keys = self.storage.list_objects(self.layer_name, symbol_prefix(symbol))
         data_keys = [k for k in keys if k.endswith(".parquet")]
         if not data_keys:
             return None

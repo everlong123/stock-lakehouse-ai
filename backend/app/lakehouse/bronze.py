@@ -29,6 +29,18 @@ BRONZE_SCHEMA = {
 }
 
 
+def symbol_prefix(symbol: str) -> str:
+    """Return the exact object prefix for one symbol's partitions.
+
+    The trailing slash matters. Without it, ``symbol=M`` also matches
+    ``symbol=MA/``, ``symbol=MCD/``, ``symbol=META/`` ... so reading "M"
+    silently concatenated 51 tickers (5,801 partitions, 121,913 rows) and
+    every downstream consumer - API, charts, indicators - plotted the blend.
+    Always terminate the prefix at the directory boundary.
+    """
+    return f"symbol={symbol.upper()}/"
+
+
 class BronzeLayer:
     """Append-only raw lakehouse zone with partition, lineage, and duplicate checks."""
 
@@ -103,7 +115,7 @@ class BronzeLayer:
 
     def read(self, symbol: str) -> pd.DataFrame:
         """Read all Bronze partitions for a symbol."""
-        frame = self.storage.read_prefix(self.layer_name, f"symbol={symbol.upper()}")
+        frame = self.storage.read_prefix(self.layer_name, symbol_prefix(symbol))
         if frame.empty:
             return frame
         return self.validate_schema(frame).sort_values("timestamp").reset_index(drop=True)
@@ -119,7 +131,7 @@ class BronzeLayer:
         chronological), and fetch only the newest partition. Falls back to the
         previous month in case the last one is empty or missing.
         """
-        keys = self.storage.list_objects(self.layer_name, f"symbol={symbol.upper()}/")
+        keys = self.storage.list_objects(self.layer_name, symbol_prefix(symbol))
         # Drop metadata sidecars such as `_lineage.json`.
         data_keys = [k for k in keys if k.endswith(".parquet")]
         if not data_keys:
@@ -141,5 +153,5 @@ class BronzeLayer:
         Reading every partition just to call len() is prohibitively slow once the
         lakehouse holds hundreds of symbols, so we count keys in the bucket instead.
         """
-        prefix = f"symbol={symbol.upper()}" if symbol else ""
+        prefix = symbol_prefix(symbol) if symbol else ""
         return int(self.storage.count_objects(self.layer_name, prefix))
