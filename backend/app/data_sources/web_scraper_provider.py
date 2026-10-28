@@ -14,6 +14,7 @@ from app.core.constants import OHLCV_COLUMNS
 from app.core.exceptions import DataSourceError, DataValidationError
 from app.core.logging_config import get_logger
 from app.data_sources.base import StockDataProvider
+from app.data_sources.time_utils import as_utc
 
 logger = get_logger(__name__)
 
@@ -83,11 +84,12 @@ class StockScraperProvider(StockDataProvider):
 
     def _fetch_yahoo_finance(self, symbol: str, start: datetime | None, end: datetime | None) -> pd.DataFrame:
         """Fetch from Yahoo Finance using their public endpoint."""
-        end = end or datetime.now(timezone.utc)
+        end = as_utc(end) or datetime.now(timezone.utc)
         # Default to 10+ years of history for ML training
-        start = start or end.replace(year=end.year - 12)
-        
-        # Convert to Unix timestamps
+        start = as_utc(start) or end.replace(year=end.year - 12)
+
+        # Convert to Unix timestamps. A naive boundary is read as UTC, not as
+        # local time - see `app.data_sources.time_utils` for why.
         start_ts = int(start.timestamp())
         end_ts = int(end.timestamp())
         

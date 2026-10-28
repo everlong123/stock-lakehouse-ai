@@ -22,6 +22,7 @@ from app.core.constants import OHLCV_COLUMNS
 from app.core.exceptions import DataSourceError
 from app.core.logging_config import get_logger
 from app.data_sources.base import StockDataProvider
+from app.data_sources.time_utils import as_utc
 
 logger = get_logger(__name__)
 
@@ -133,8 +134,8 @@ class FinnhubProvider(StockDataProvider):
         symbol = symbol.upper()
         finnhub_resolution = self.INTERVAL_MAP.get(interval, "D")
 
-        end = end or datetime.now(timezone.utc)
-        start = start or end - timedelta(days=settings.default_lookback_days)
+        end = as_utc(end) or datetime.now(timezone.utc)
+        start = as_utc(start) or end - timedelta(days=settings.default_lookback_days)
 
         # Cap lookback at Finnhub's documented free-tier limits.
         # 1 minute: 1 month.  Daily: 10+ years.

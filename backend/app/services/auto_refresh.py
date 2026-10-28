@@ -67,7 +67,7 @@ class AutoRefreshService:
     """Background service that incrementally updates the lakehouse on startup + schedule."""
 
     def __init__(self) -> None:
-        self._enabled = _env_bool("AUTO_REFRESH_ENABLED", True)
+        self._enabled = _env_bool("AUTO_REFRESH_ENABLED", settings.auto_refresh_enabled)
         self._on_start = _env_bool("AUTO_REFRESH_ON_START", True)
         self._interval_seconds = _env_int("AUTO_REFRESH_INTERVAL_SECONDS", 6 * 3600)
         self._batch_size = _env_int("AUTO_REFRESH_BATCH_SIZE", 20)
@@ -163,7 +163,74 @@ class AutoRefreshService:
         worker_count = max(1, _env_int("AUTO_REFRESH_WORKERS", 8))
         results: list[dict] = [{} for _ in target_symbols]
         completed = 0
-        with ThreadPoolExecutor(max_workers=worker_count) as pool:
+
+        # Silver/Gold bookkeeping. The rebuild happens INLINE for each symbol as
+        # soon as its fetch finishes, not in a separate loop after all ~958
+        # fetches. Why: this backend runs under WSL2, and the distro is torn
+        # down and restarted by WSL itself every few minutes (see
+        # InitTerminateInstanceInternal in the WSL journal). A pass only ever
+        # reaches ~220/958 symbols before the process is killed, so a rebuild
+        # that ran after the fetch loop NEVER executed — Bronze advanced daily
+        # while Silver/Gold stayed frozen at the last clean pass. Rebuilding per
+        # symbol means every pass makes forward progress that survives a kill.
+        from app.lakehouse.gold import GoldLayer
+        _gold = GoldLayer()
+        silver_done, gold_done = 0, 0
+        _counts_lock = threading.Lock()
+
+        def _rebuild_layers(sym: str, res: dict) -> None:
+            """Bring Silver+Gold in line with Bronze for one symbol, inline."""
+            nonlocal silver_done, gold_done
+            if self._stop_event.is_set() or res.get("error"):
+                return
+            needs_rebuild = res.get("new_rows", 0) > 0
+            if not needs_rebuild:
+                # Bronze unchanged for this symbol, but a previous pass may have
+                # been killed between the Bronze write and the Gold write, which
+                # leaves Gold lagging Bronze forever unless we repair it here.
+                try:
+                    bronze_ts = bronze.latest_timestamp(sym)
+                    gold_ts = _gold.latest_timestamp(sym) if bronze_ts is not None else None
+                    needs_rebuild = bronze_ts is not None and (
+                        gold_ts is None or gold_ts < bronze_ts
+                    )
+                    if needs_rebuild:
+                        logger.info(
+                            "AutoRefresh: %s Gold watermark (%s) lags Bronze (%s), rebuilding",
+                            sym,
+                            gold_ts.date() if gold_ts else "MISSING",
+                            bronze_ts.date(),
+                        )
+                except Exception as exc:
+                    logger.warning("AutoRefresh: watermark compare failed for %s: %s", sym, exc)
+                    return
+            if not needs_rebuild:
+                return
+            try:
+                transform_to_silver(sym, interval="1d")
+                with _counts_lock:
+                    silver_done += 1
+            except Exception as exc:
+                logger.warning("AutoRefresh silver rebuild failed for %s: %s", sym, exc)
+            try:
+                build_gold_layer(sym)
+                with _counts_lock:
+                    gold_done += 1
+            except Exception as exc:
+                logger.warning("AutoRefresh gold rebuild failed for %s: %s", sym, exc)
+            # Drop the memoised frame for this symbol so the UI immediately
+            # serves the rows we just wrote instead of a pre-ingest snapshot.
+            # Done per symbol (not once at the end) so pages opened mid-pass
+            # show partial progress rather than nothing until the pass ends.
+            clear_symbol_cache()
+
+        # Rebuilds run on their own pool so a slow Silver/Gold write for one
+        # symbol never stalls the HTTP fetch of the next ~950.
+        rebuild_count = max(1, _env_int("AUTO_REFRESH_REBUILD_WORKERS", 4))
+        rebuild_futures = []
+        with ThreadPoolExecutor(max_workers=worker_count) as pool, ThreadPoolExecutor(
+            max_workers=rebuild_count,
+        ) as rebuild_pool:
             futures = {
                 pool.submit(self._refresh_symbol, bronze, provider, sym, now): idx
                 for idx, sym in enumerate(target_symbols)
@@ -179,60 +246,32 @@ class AutoRefreshService:
                         "symbol": sym, "error": str(exc),
                         "new_rows": 0, "is_new_symbol": False,
                     }
+                # Queue the rebuild immediately so a WSL-initiated kill can only
+                # lose the symbols in flight, never the whole backlog.
+                rebuild_futures.append(
+                    rebuild_pool.submit(_rebuild_layers, sym, results[idx])
+                )
                 completed += 1
                 if completed % self._batch_size == 0:
                     logger.info(
-                        "AutoRefresh progress: %d/%d symbols processed",
-                        completed, len(target_symbols),
+                        "AutoRefresh progress: %d/%d symbols processed (silver=%d gold=%d)",
+                        completed, len(target_symbols), silver_done, gold_done,
                     )
+
+            for rf in as_completed(rebuild_futures):
+                try:
+                    rf.result()
+                except Exception as exc:  # noqa: BLE001
+                    logger.warning("AutoRefresh: rebuild task failed: %s", exc)
 
         for res in results:
             if res.get("new_rows", 0) > 0:
                 symbols_with_new_data.append(res["symbol"])
 
-        # Rebuild Silver + Gold only when Bronze has new rows OR when the Gold
-        # watermark lags behind Bronze (Silver was written but Gold was not — e.g.
-        # backend was killed mid-pass). Skipping Silver/Gold rebuild for unchanged
-        # symbols saves ~10 min per pass (previously rebuilt all 958 symbols).
-        from app.lakehouse.gold import GoldLayer
-        _gold = GoldLayer()
-        dirty_symbols: list[str] = []
-        for sym, res in zip(target_symbols, results):
-            if res.get("new_rows", 0) > 0:
-                dirty_symbols.append(sym)
-                continue
-            # Bronze is unchanged; check if Gold is behind Bronze anyway
-            bronze_ts = bronze.latest_timestamp(sym)
-            gold_ts = _gold.latest_timestamp(sym) if bronze_ts is not None else None
-            if bronze_ts is not None and (gold_ts is None or gold_ts < bronze_ts):
-                logger.info(
-                    "AutoRefresh: %s Gold watermark (%s) lags Bronze (%s), scheduling rebuild",
-                    sym, gold_ts.date() if gold_ts else "MISSING", bronze_ts.date(),
-                )
-                dirty_symbols.append(sym)
         logger.info(
-            "AutoRefresh: %d/%d symbols need Silver/Gold rebuild",
-            len(dirty_symbols), len(target_symbols),
+            "AutoRefresh: %d/%d symbols had Silver/Gold rebuilt (silver=%d gold=%d)",
+            max(silver_done, gold_done), len(target_symbols), silver_done, gold_done,
         )
-        silver_done, gold_done = 0, 0
-        for sym in dirty_symbols:
-            if self._stop_event.is_set():
-                break
-            try:
-                transform_to_silver(sym, interval="1d")
-                silver_done += 1
-            except Exception as exc:
-                logger.warning("AutoRefresh silver rebuild failed for %s: %s", sym, exc)
-            try:
-                build_gold_layer(sym)
-                gold_done += 1
-            except Exception as exc:
-                logger.warning("AutoRefresh gold rebuild failed for %s: %s", sym, exc)
-            # Drop the memoised frame for this symbol so the UI immediately
-            # serves the rows we just wrote instead of a pre-ingest snapshot.
-            # Done per symbol (not once at the end) so pages opened mid-pass
-            # show partial progress rather than nothing until the pass ends.
-            clear_symbol_cache()
 
         finished = datetime.now(timezone.utc)
         summary = {
@@ -287,8 +326,27 @@ class AutoRefreshService:
                     "new_rows": 0,
                     "is_new_symbol": False,
                 }
-            # Fetch only from next day after latest
-            start = latest_ts.to_pydatetime().replace(tzinfo=None) + timedelta(days=1)
+            # Re-fetch from a few days BEFORE the newest stored bar.
+            #
+            # WHY the overlap: the stored bar's timestamp is the exchange's
+            # session OPEN expressed in UTC - 13:30 UTC in EDT, 14:30 UTC in
+            # EST, 02:00 UTC for HOSE. A provider stamps the bar for a given
+            # trading day at that same instant, so asking for "the day after
+            # the last bar" is ambiguous: if the last bar is the settled
+            # 20:00 copy, the next day's open-stamped bar is EARLIER than the
+            # requested boundary and never comes back. The day is then lost
+            # permanently - the symbol advances and the hole stays.
+            #
+            # The measured symptom was 358 symbols missing 2026-10-21 while
+            # 489 of their peers had it, and a lineage sidecar showing
+            # `start=2026-10-24T13:30` for a symbol whose newest bar was
+            # 2026-10-22 - the fetch had walked straight over two trading
+            # days. A 5-day overlap is cheap (a handful of extra rows that
+            # Bronze's idempotent dedupe discards) and it makes the refresh
+            # self-healing: a previously skipped day is picked up on the next
+            # pass, because the request window no longer starts after it.
+            overlap_days = _env_int("AUTO_REFRESH_OVERLAP_DAYS", 5)
+            start = latest_ts.to_pydatetime() - timedelta(days=overlap_days)
             skip_reason = None
 
         # If start is in the future, nothing to do
@@ -302,6 +360,9 @@ class AutoRefreshService:
                 "is_new_symbol": is_new_symbol,
             }
 
+        # The providers now read a naive boundary as UTC, so the bounds are
+        # passed through unchanged. Keeping them aware avoids any ambiguity
+        # about which calendar day the request covers.
         start_naive = start.replace(tzinfo=None) if hasattr(start, "replace") else start
         end_naive = now.replace(tzinfo=None)
 

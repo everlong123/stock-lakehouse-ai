@@ -19,6 +19,7 @@ from app.core.constants import OHLCV_COLUMNS
 from app.core.exceptions import DataSourceError
 from app.core.logging_config import get_logger
 from app.data_sources.base import StockDataProvider
+from app.data_sources.time_utils import as_utc
 
 logger = get_logger(__name__)
 
@@ -80,8 +81,8 @@ class YahooHttpProvider(StockDataProvider):
         interval: str = "1d",
     ) -> pd.DataFrame:
         yahoo_sym = self._to_yahoo_symbol(symbol)
-        end_dt = end or datetime.now(timezone.utc)
-        start_dt = start or (end_dt - pd.Timedelta(days=settings.default_lookback_days))
+        end_dt = as_utc(end) or datetime.now(timezone.utc)
+        start_dt = as_utc(start) or (end_dt - pd.Timedelta(days=settings.default_lookback_days))
 
         period1 = int(start_dt.timestamp())
         period2 = int(end_dt.timestamp())
@@ -127,7 +128,7 @@ class YahooHttpProvider(StockDataProvider):
             "adj_close": adj_close if adj_close else quote.get("close", []),
         })
 
-        # Drop rows where OHLC are all NaN (Yahoo sometimes has gaps)
+# Drop rows where OHLC are all NaN (Yahoo sometimes has gaps)
         df = df.dropna(subset=["close"]).reset_index(drop=True)
 
         df["symbol"] = symbol
@@ -135,12 +136,75 @@ class YahooHttpProvider(StockDataProvider):
         df["ingestion_time"] = datetime.now(timezone.utc)
 
         df = df[[c for c in OHLCV_COLUMNS if c in df.columns]]
+        df = self._normalize_ohlc(df)
 
         logger.info("[yahoo_http] returned %d rows for %s (%s -> %s)",
-                     len(df), symbol,
-                     df["timestamp"].min().date() if len(df) else "?",
-                     df["timestamp"].max().date() if len(df) else "?")
+                    len(df), symbol,
+                    df["timestamp"].min().date() if len(df) else "?",
+                    df["timestamp"].max().date() if len(df) else "?")
         return df
+
+    @staticmethod
+    def _normalize_ohlc(df: pd.DataFrame) -> pd.DataFrame:
+        """Repair bars whose OHLC values are not internally consistent.
+
+        Yahoo's chart endpoint sometimes returns a bar whose high is below its
+        own open/close, or whose low is above them. Left alone, every one of
+        those bars is rejected by the Silver layer's `invalid_ohlc` check and
+        ends up in `_errors/`, so the symbol silently loses that row. Two causes
+        were observed in the 2026-10-22 backfill:
+
+        * **Still-forming bar.** For the current day the exchange has not
+          closed, and Yahoo reports the session open from one snapshot while
+          high/low/close come from a later one. The bar drifts by a fraction
+          of a percent.
+        * **Fractional currency / rounding.** A stale open rounds to a
+          different tick than high/low (e.g. `AZO` low 2781.98 vs open 2840.0).
+
+        Both are safe to repair by clamping, because the true bar is always
+        contained in `[min(o,h,l,c), max(o,h,l,c)]`. A bar whose prices are not
+        all positive, or whose high is below its low by more than the width of
+        the bar itself, is not an ordering artefact and is dropped instead of
+        being clamped into something that never happened.
+        """
+        if df.empty:
+            return df
+
+        out = df.copy()
+        price_cols = ["open", "high", "low", "close"]
+        for col in price_cols:
+            out[col] = pd.to_numeric(out[col], errors="coerce")
+
+        before = len(out)
+
+        # Rows we cannot repair at all: non-positive prices, or a high/low pair
+        # so inverted that clamping would invent a range that never traded.
+        lo = out[price_cols].min(axis=1)
+        hi = out[price_cols].max(axis=1)
+        unrepairable = (
+            (out[price_cols] <= 0).any(axis=1)
+            | out[price_cols].isna().any(axis=1)
+            | ((hi - lo) <= 0)
+        )
+        if unrepairable.any():
+            logger.warning(
+                "[yahoo_http] dropping %d unusable bar(s) for the symbol's fetch",
+                int(unrepairable.sum()),
+            )
+            out = out[~unrepairable]
+
+        if out.empty:
+            return out
+
+        # Clamp so that low <= min(open, close) and high >= max(open, close),
+        # which is the invariant the Silver layer checks for.
+        out["high"] = out[price_cols].max(axis=1)
+        out["low"] = out[price_cols].min(axis=1)
+
+        repaired = len(out)
+        if repaired != before:
+            logger.info("[yahoo_http] dropped %d bar(s)", before - repaired)
+        return out
 
     def get_latest_data(self, symbol: str, interval: str = "1d") -> pd.DataFrame:
         end = datetime.now(timezone.utc)

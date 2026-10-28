@@ -17,7 +17,11 @@ from app.core.constants import SUPPORTED_INTERVALS
 from app.core.exceptions import DataValidationError, NotFoundError
 from app.lakehouse.bronze import BronzeLayer
 from app.lakehouse.gold import GoldLayer
+from app.lakehouse.session import canonicalize_daily_sessions
 from app.lakehouse.silver import SilverLayer
+from app.core.logging_config import get_logger
+
+logger = get_logger(__name__)
 
 # Reading a symbol downloads every one of its year/month parquet partitions from
 # MinIO, so a long-history ticker (e.g. "M" spans 2016-2026 => ~120 objects) took
@@ -65,7 +69,30 @@ def _load_symbol_frame_uncached(symbol: str) -> tuple[pd.DataFrame, str]:
     if frame.empty:
         frame = BronzeLayer().read(symbol)
         source_layer = "bronze"
-    return frame, source_layer
+    return _canonicalize_read_frame(frame), source_layer
+
+
+def _canonicalize_read_frame(frame: pd.DataFrame) -> pd.DataFrame:
+    """Collapse a stored frame to one bar per trading day before it is served.
+
+    WHY this is needed even though the Silver writer now canonicalises:
+    the parquet files already on disk were written before that fix, and a
+    re-ingest is not guaranteed to have run for every symbol. Serving the
+    stored rows as-is would keep drawing two candles for a session and a
+    hundred candles for a day that has intraday ticks.
+
+    The read path is the LAST line of defence, so the UI is correct for
+    every symbol immediately, not only after the next backfill. The same
+    function is applied on write, so the two paths agree on the result.
+    """
+    if frame.empty or "timestamp" not in frame.columns:
+        return frame
+    try:
+        canonical, _report = canonicalize_daily_sessions(frame)
+    except Exception:  # noqa: BLE001 - never fail a read over a cosmetic issue
+        logger.warning("Read-path canonicalisation failed; serving raw rows", exc_info=True)
+        return frame
+    return canonical if not canonical.empty else frame
 
 
 def _load_symbol_frame(symbol: str) -> tuple[pd.DataFrame, str]:

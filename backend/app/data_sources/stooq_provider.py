@@ -22,6 +22,7 @@ from app.core.constants import OHLCV_COLUMNS
 from app.core.exceptions import DataSourceError
 from app.core.logging_config import get_logger
 from app.data_sources.base import StockDataProvider
+from app.data_sources.time_utils import as_utc
 
 logger = get_logger(__name__)
 
@@ -61,8 +62,10 @@ class StooqProvider(StockDataProvider):
         interval: str = "1d",
     ) -> pd.DataFrame:
         symbol = symbol.upper()
-        end = end or datetime.now(timezone.utc)
-        start = start or datetime.now(timezone.utc)
+        # A naive boundary is read as UTC, not as local time - see
+        # `app.data_sources.time_utils` for why this matters.
+        end = as_utc(end) or datetime.now(timezone.utc)
+        start = as_utc(start) or datetime.now(timezone.utc)
 
         # Stooq only supports daily for US stocks (.US suffix)
         stooq_sym = f"{symbol}.US"

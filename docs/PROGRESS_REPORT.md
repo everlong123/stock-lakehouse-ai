@@ -70,9 +70,64 @@ Cách sửa là thêm vào `C:\Users\acer\.wslconfig`:
 vmIdleTimeout=-1
 ```
 
-Lưu ý phải là `-1` chứ không phải `0` — `0` nghĩa là "tắt ngay lập tức". Sau khi áp dụng, em chạy probe liên tục 80 giây xác nhận VM không còn tự tắt nữa.
+Lưu ý phải là `-1` chứ không phải `0` — `0` nghĩa là "tắt ngay lập tức".
 
-Bài học em rút ra: **trước khi kết luận dữ liệu bị hỏng, hãy kiểm tra tầng hạ tầng bên dưới đang còn sống không.** Em đã viết `backend/scripts/verify_layers.py` để lần sau có máy để kiểm chứng trong 1 phút thay vì đoán mò.
+**Nhưng ngày 22/10/2026 em phát hiện `vmIdleTimeout=-1` KHÔNG đủ.** Sau khi bật lại VM, `/proc/uptime` vẫn bị reset về vài giây giữa các lệnh, và các job chạy lâu bị giết giữa chừng (output rỗng, exit code 1) — dấu hiệu không phải script sai mà là process bị hạ. Em xác nhận bằng cách đo uptime liên tục:
+
+```
+sample 1: uptime=146.77
+sample 2: uptime=161.77
+...
+sample 7: uptime=236.79
+```
+
+Nguyên nhân thực sự: VM vẫn tự restart theo cơ chế idle detection riêng của WSL.
+
+Cách sửa bền vững là **thêm một systemd service giữ VM sống**, không phụ thuộc idle timeout:
+
+```ini
+# /etc/systemd/system/wsl-keepalive.service
+[Unit]
+Description=Keep WSL2 VM alive so Docker Engine survives idle periods
+
+[Service]
+Type=simple
+ExecStart=/bin/sleep infinity
+Restart=always
+RestartSec=1
+
+[Install]
+WantedBy=multi-user.target
+```
+
+```bash
+wsl -d Ubuntu-24.04 -u root -- bash -c \
+  "printf '[Service]\nExecStart=/bin/sleep infinity\nRestart=always\n' \
+    > /etc/systemd/system/wsl-keepalive.service && \
+   systemctl daemon-reload && systemctl enable --now wsl-keepalive.service"
+```
+
+Em viết `backend/scripts/check_wsl_keepalive.sh` để kiểm chứng trong 1 lệnh: nó sample uptime mỗi 15s trong 90s rồi liệt kê container. Kết quả sau khi fix — VM không còn restart, cả 4 container đều `healthy`:
+
+```
+=== keepalive service ===
+active
+=== uptime samples every 15s (90s window) ===
+  sample 1: uptime=146.77
+  ...
+  sample 7: uptime=236.79
+=== docker engine ===
+  stock-lakehouse-iceberg-rest | Up About a minute
+  stock-lakehouse-kafka | Up About a minute (healthy)
+  stock-lakehouse-mysql | Up About a minute (healthy)
+  stock-lakehouse-minio | Up About a minute
+```
+
+Sau đó `verify_layers.py` chạy lại cho kết quả đúng như kỳ vọng: **924 mã ở Bronze/Silver, 919 mã ở Gold, 8.14 GB** — không mất partition nào.
+
+Bài học em rút ra có hai vế:
+1. **Trước khi kết luận dữ liệu bị hỏng, hãy kiểm tra tầng hạ tầng bên dưới đang còn sống không.** Em đã viết `backend/scripts/verify_layers.py` để lần sau có máy để kiểm chứng trong 1 phút thay vì đoán mò.
+2. **Một fix "có vẻ đúng" không đồng nghĩa fix đó đã đủ.** `vmIdleTimeout=-1` làm triệu chứng biến mất tạm thời, nhưng nguyên nhân gốc vẫn còn. Phải đo lại sau khi sửa thay vì tin vào cảm giác "lần này chắc ổn".
 
 ---
 
@@ -150,6 +205,67 @@ Em thêm cả **circuit breaker** cho provider: Finnhub đã bị bỏ free cand
 
 `RotatingFileHandler` buffer log trong bộ nhớ, nên các dòng log từ thread background có thể nằm im hàng chút rồi biến mất hoàn toàn khi tắt process. Em bọc handler để flush ngay mỗi dòng.
 
+### 6.5. Một ngày giao dịch — nhiều nến, và những ngày bị bỏ sót
+
+Em rà lại biểu đồ nến và phát hiện hai lỗi nghiêm trọng, cùng một hệ quả: **dữ liệu trong DB không đúng với những gì biểu đồ vẽ ra**.
+
+**Lỗi 1 — một ngày giao dịch có nhiều nến.**
+
+Bronze lưu cùng một phiên giao dịch dưới nhiều timestamp khác nhau:
+
+- **nến mở cửa** — đóng dấu 13:30 UTC (giờ mở cửa NYSE theo giờ EDT);
+- **nến chốt** — đóng dấu 20:00 UTC. Yahoo phục vụ phiên hiện tại theo giờ đóng cửa, nên mỗi lần refresh trong phiên là thêm một bản sao vĩnh viễn;
+- **tick nội phiên** — `vn_rest` in từng phút cho mã Việt Nam (VCB ngày 23/10 có **101 dòng**), và tick `manual` được nhúng thủ công.
+
+Em đo trên dữ liệu thật trong MinIO:
+
+| Mã | Dòng Bronze | Ngày có >1 dòng | Sau khi chuẩn hóa |
+|---|---|---|---|
+| AAPL | 2.544 | 16 | 2.528 dòng / 2.528 ngày |
+| VCB | 898 | **375** | 523 dòng / 523 ngày |
+| BIDU | 2.517 | 1 | 2.516 dòng / 2.516 ngày |
+
+Hậu quả không chỉ là biểu đồ xấu. Vì mọi rolling window đếm **mỗi phiên một lần**, có 13 tick của AAPL ngày 13/10 nghĩa là phiên đó bị đếm 13 lần → SMA/RSI/MACD sai, và các chỉ báo dựa trên argmax (**Aroon, Stochastic, Williams %R, CCI**) vỡ hẳn vì một giá trị lặp lại dịch điểm cực trị vào giữa window. Tệ hơn, giá đóng của ngày 13/10 rơi về 333,9 (tick cuối) thay vì 341,27 (giá đóng thật) — biểu đồ vẽ một cú giảm ~2% **chưa từng xảy ra**.
+
+Cách sửa: mỗi ngày giao dịch còn **đúng một nến**. Ngày có nến phiên chuẩn thì giữ nến đó; ngày chỉ có tick nội phiên thì **gộp** lại (open = tick đầu, high = max, low = min, close = tick cuối, volume = tổng) — không xóa dữ liệu, cũng không bịa ra dữ liệu.
+
+Em cố tình **giữ nguyên** chênh lệch 13:30 vs 14:30 UTC giữa mùa hè và mùa đông: đó là giờ mở cửa thật của sàn, chuẩn hóa đi sẽ lệch mọi nến so với chính phiên giao dịch của nó.
+
+**Lỗi 2 — 946 ngày giao dịch bị bỏ sót.**
+
+Khi audit toàn universe, em thấy 946 ngày trong tuần bị thiếu ở một số mã. Đáng chú ý nhất: **21/10 thiếu ở 358 mã nhưng có ở 489 mã**. Một sự cố provider không thể tạo ra cái chia đôi đó — thị trường mở cửa và Yahoo vẫn phục vụ nến đó.
+
+Em đi từng bước để loại trừ từng giả thuyết, và mỗi lần đều **đo** thay vì đoán:
+
+| Giả thuyết | Cách kiểm tra | Kết quả |
+|---|---|---|
+| Yahoo loại bỏ `period1` | Gọi chart API với `period1` đúng/sai 1 giây | `period1` **inclusive** → không phải |
+| Provider drop dòng | Replay đúng đường fetch + `_normalize_ohlc` | Dòng **có** trong response → không phải |
+| Dữ liệu không tồn tại trên Yahoo | Gọi trực tiếp Yahoo cho ABX.TO, BBD, BIDU | **Có đủ**, 21/10 nằm nguyên trong kết quả |
+| Watermark fetch | Đọc sidecar `_lineage.json` | `start=2026-10-24T13:30` cho mã mới nhất là 22/10 → **bước qua 2 ngày** |
+
+Nguyên nhân gốc là **hai lỗi cộng lại** trong cách tính cửa sổ fetch:
+
+```python
+start = latest_ts.replace(tzinfo=None) + timedelta(days=1)   # (1) mất tzinfo
+period1 = int(start_dt.timestamp())                          # (2) đọc theo giờ máy
+```
+
+(1) Bar được lưu theo giờ mở cửa UTC, nên "ngày hôm sau" có thể **sau** timestamp của nến ngày hôm sau → nến đó không bao giờ được trả về. (2) `datetime.timestamp()` với datetime **naive** dùng giờ địa phương của máy, lệch 7 tiếng so với UTC.
+
+Em sửa cả hai:
+
+- **Naive ⇒ đọc là UTC** ở mọi provider (`app/data_sources/time_utils.py`), vì toàn bộ lakehouse lưu timestamp theo UTC. 5 provider dùng chung helper này.
+- **Fetch chồng lấn 5 ngày** thay vì bắt đầu từ ngày kế tiếp. Đây là thay đổi quan trọng nhất: nó làm refresh **tự lành** — một ngày bị bỏ sót sẽ được lấy lại ở pass sau, vì cửa sổ request không còn bắt đầu sau nó nữa. Phần chồng lấn rẻ (vài dòng thừa, bị Bronze dedupe loại bỏ) so với việc mất dữ liệu vĩnh viễn.
+
+Em viết `backend/scripts/backfill_missing_days.py` để vá lại đống lỗi tồn đọng trong quá khứ (script chạy được cả `--dry-run` để xem trước).
+
+**Một chỗ em tự sửa trong lúc code.** Em viết module chuẩn hóa trước, chạy thử thì VCB vẫn còn 3 ngày bị trùng. Nguyên nhân là em lấy **năm/tháng từ dòng đầu tiên của frame** thay vì từ chính ngày đang gộp — nên một ngày tháng 12 bị đóng dấu lại thành tháng 1, rồi đụng vào nến tháng 1 thật. Em thêm test hồi quy cho đúng cái này.
+
+Em cũng sửa **2 lỗi trong test cũ** mà em tìm ra khi làm: một test cũ khẳng định Silver phải **giữ nguyên** 13 tick intraday — test đó lại đang bảo vệ chính cái bug. Em đổi nó thành test khẳng định tick được **gộp** đúng (open tick đầu, close tick cuối, volume = tổng).
+
+**Kiểm chứng:** 96 test pass (`pytest tests/`), frontend build sạch (`tsc --noEmit && vite build`), và kiểm tra trên dữ liệu thật từ MinIO cho AAPL/VCB/ABX.TO/BIDU/BBD — sau khi chuẩn hóa, **không còn ngày nào có 2 nến**.
+
 ---
 
 ## 7. Một chuyện em muốn nói thẳng
@@ -187,7 +303,7 @@ Em muốn nói thẳng những chỗ chưa xong, để thầy nắm được m�
 - **Stream consumer chạy nền dài hạn** — hiện mới chạy được dạng CLI, chưa đóng gói thành service chạy liên tục.
 - **Walk-forward validation trên dữ liệu streamed** — mới chỉ có trên dữ liệu lịch sử.
 - **Drift detection** trên incoming ticks.
-- **Chuẩn hóa timestamp ở tầng Silver** — em phát hiện khoảng 5/30 mã có 1–3 dòng trùng ngày do provider timestamp theo giờ đóng cửa (20:00 UTC) thay vì giờ mở cửa (13:30 UTC). Em chưa sửa vì nó là thay đổi lan rộng, cần làm cẩn thận để không mất dữ liệu hợp lệ.
+- **Chuẩn hóa timestamp ở tầng Silver** — ✅ đã xử lý (mục 6.5). Mỗi ngày giao dịch nay còn đúng một nến; dữ liệu intraday được **gộp lại** (open = tick đầu, high = max, low = min, close = tick cuối, volume = tổng) chứ không bị xóa.
 - **Mở rộng báo cáo chất lượng ra toàn bộ universe** — hiện đã có báo cáo chi tiết cho 53/53 mã Việt Nam (`backend/docs/vn_quality_reports/`), nhưng 924 mã đã ingest thì chưa có báo cáo tương đương. Em dự định chạy lại script kiểm chứng trên toàn bộ.
 - **Vấn đề WSL2 tự tắt** — ✅ đã xử lý bằng `vmIdleTimeout=-1` trong `~/.wslconfig`, đã probe ổn định 80 giây. Em vẫn muốn đóng gói luôn phần này vào `docs/LOCAL_DEV.md` để ai setup máy mới không phải mất công tìm lại.
 
@@ -197,7 +313,7 @@ Em muốn nói thẳng những chỗ chưa xong, để thầy nắm được m�
 
 Theo thứ tự ưu tiên em đang tính:
 
-1. **Chuẩn hóa timestamp ở tầng Silver** để dữ liệu sạch hoàn toàn, mỗi ngày giao dịch đúng một dòng.
+1. **Chuẩn hóa timestamp ở tầng Silver** — ✅ xong (mục 6.5). Tiếp theo là chạy `backfill_missing_days.py` để vá lại các ngày bị bỏ sót trong quá khứ, rồi rebuild Silver/Gold.
 2. **Frontend realtime view** — nối Kafka vào UI, đây là phần demo ấn tượng nhất còn thiếu.
 3. **Đóng gói stream consumer thành service chạy nền** với health check.
 4. **Walk-forward validation trên dữ liệu streamed** để chứng minh mô hình không rò rỉ tương lai trong điều kiện thực.

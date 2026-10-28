@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { OHLCVPoint } from "@/types/stock";
-import { formatPrice, formatVolume, shortDate } from "@/utils/format";
+import { isUsableNumber, formatPrice, formatVolume, shortDate, tradingDay } from "@/utils/format";
 
 interface CandleProps {
   points: OHLCVPoint[];
@@ -21,20 +21,66 @@ interface HoverInfo {
  *   • overlay an OHLCV tooltip card on hover
  *   • keep colors consistent with the up/down CSS variables
  */
+/** A bar whose four prices are all finite numbers — safe to draw. */
+type ValidBar = OHLCVPoint & { open: number; high: number; low: number; close: number };
+
 export function CandlestickChart({ points, height = 320 }: CandleProps) {
   const [hover, setHover] = useState<HoverInfo | null>(null);
 
+  // Drop bars whose prices aren't finite, and de-duplicate by symbol+timestamp,
+  // before they reach the scale math.
+  //
+  // WHY: `Math.max`/`Math.min` propagate NaN, so one bad bar makes max, min and
+  // span all NaN. The old `span = max - min || 1` guard then quietly turned the
+  // corrupted span into 1, every `y(...)` became NaN, and the SVG rendered
+  // `y="NaN"` — the whole chart vanished with no error and no empty state.
+  // Filtering here also stops a bad bar from being mis-coloured: `NaN >= NaN`
+  // is false, so a corrupt bar used to paint as a legitimate "down" day.
+  //
+  // WHY the second key (the trading DAY): a session can be stored twice under
+  // two timestamps - the exchange open (13:30 UTC) and the settled close
+  // (20:00 UTC) - and an intraday burst can add a hundred more rows for the
+  // same day. Keying on the full timestamp lets all of them through, so the
+  // chart draws several candles for one session. The backend now emits one
+  // bar per trading day; this second key keeps the chart correct even if a
+  // stale row is still in flight. Both keys are kept, because the same
+  // instant can legitimately carry a re-stamped copy.
+  const bars = useMemo<ValidBar[]>(() => {
+    const seen = new Set<string>();
+    const seenDays = new Set<string>();
+    const valid: ValidBar[] = [];
+    for (const p of points) {
+      const key = `${p.symbol}|${p.timestamp}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      if (
+        isUsableNumber(p.open) &&
+        isUsableNumber(p.high) &&
+        isUsableNumber(p.low) &&
+        isUsableNumber(p.close)
+      ) {
+        const dayKey = `${p.symbol}|${tradingDay(p.timestamp)}`;
+        if (seenDays.has(dayKey)) continue;
+        seenDays.add(dayKey);
+        valid.push({ ...p, open: p.open, high: p.high, low: p.low, close: p.close });
+      }
+    }
+    return valid;
+  }, [points]);
+
   const layout = useMemo(() => {
-    if (!points.length) return null;
-    const width = Math.max(640, points.length * 8);
-    const highs = points.map((p) => p.high);
-    const lows = points.map((p) => p.low);
+    if (!bars.length) return null;
+    const width = Math.max(640, bars.length * 8);
+    const highs = bars.map((p) => p.high);
+    const lows = bars.map((p) => p.low);
     const max = Math.max(...highs);
     const min = Math.min(...lows);
-    const span = max - min || 1;
+    // Finite and strictly positive by construction now that bars are filtered,
+    // so a flat series still yields a usable span instead of NaN.
+    const span = max > min ? max - min : 1;
     const pad = 24;
     const chartH = height - pad * 2;
-    const candleW = Math.max(4, Math.min(12, width / points.length - 2));
+    const candleW = Math.max(4, Math.min(12, width / bars.length - 2));
 
     const y = (price: number) => pad + ((max - price) / span) * chartH;
     const gridLines = 5;
@@ -43,13 +89,19 @@ export function CandlestickChart({ points, height = 320 }: CandleProps) {
       (_, i) => pad + ((chartH / (gridLines - 1)) * i),
     );
     const gridPrices = gridYs.map((yPos) => max - ((yPos - pad) / chartH) * span);
-    const slot = (width - 50) / points.length;
+    const slot = (width - 50) / bars.length;
     return { width, chartH, candleW, y, gridYs, gridPrices, slot };
-  }, [points, height]);
+  }, [bars, height]);
+
+  const dropped = points.length - bars.length;
 
   if (!layout) {
     return (
-      <div className="h-40 text-sm text-muted-foreground">No chart data.</div>
+      <div className="h-40 text-sm text-muted-foreground">
+        {points.length
+          ? `Không có nến nào hợp lệ (${points.length} dòng dữ liệu lỗi).`
+          : "No chart data."}
+      </div>
     );
   }
 
@@ -67,10 +119,10 @@ export function CandlestickChart({ points, height = 320 }: CandleProps) {
     // left edge, then snap to the nearest candle centre.
     const dataX = domX - 40;
     const index = Math.min(
-      points.length - 1,
+      bars.length - 1,
       Math.max(0, Math.round(dataX / slot - 0.5)),
     );
-    const point = points[index];
+    const point = bars[index];
     if (!point) return;
     // Crosshair x uses the literal DOM cursor position. With no viewBox
     // this is the same coordinate used when drawing the SVG <line>, so the
@@ -83,7 +135,7 @@ export function CandlestickChart({ points, height = 320 }: CandleProps) {
 
   const handleLeave = () => setHover(null);
 
-  const active = hover ? points[hover.index] : null;
+  const active = hover ? bars[hover.index] : null;
   const tooltipSide: "right" | "left" =
     hover && hover.x > width * 0.6 ? "left" : "right";
 
@@ -122,7 +174,7 @@ export function CandlestickChart({ points, height = 320 }: CandleProps) {
         ))}
 
         {/* Candles */}
-        {points.map((point, index) => {
+        {bars.map((point, index) => {
           const x = 40 + (index + 0.5) * slot;
           const up = point.close >= point.open;
           const color = up ? "hsl(var(--up))" : "hsl(var(--down))";
@@ -202,6 +254,17 @@ export function CandlestickChart({ points, height = 320 }: CandleProps) {
           </div>
         </div>
       ) : null}
+
+      {/* Surface the filtering rather than hiding it: a chart that silently
+          drops bars looks complete while quietly mis-representing the series. */}
+      {dropped > 0 ? (
+        <p
+          className="mt-1 text-right text-[10px] text-muted-foreground"
+          title="Các dòng không có OHLC hợp lệ đã được bỏ qua khi vẽ biểu đồ."
+        >
+          ⚠ {dropped} dòng lỗi đã ẩn
+        </p>
+      ) : null}
     </div>
   );
 }
@@ -213,7 +276,7 @@ function OHLCVRow({
   strong,
 }: {
   label: string;
-  value: number;
+  value: number | null;
   tone?: "up" | "down";
   strong?: boolean;
 }) {

@@ -9,7 +9,9 @@ import pandas as pd
 from app.core.exceptions import DataValidationError
 from app.core.logging_config import get_logger
 from app.lakehouse.bronze import symbol_prefix
+from app.lakehouse.dedupe import dedupe_same_bars
 from app.lakehouse.parquet_manager import split_by_partition
+from app.lakehouse.session import canonicalize_daily_sessions
 from app.lakehouse.spark_session import get_spark_session, spark_enabled
 from app.lakehouse.storage_base import StorageBackend
 from app.lakehouse.storage_factory import get_storage_backend
@@ -70,8 +72,25 @@ class SilverLayer:
             working[col] = pd.to_numeric(working[col], errors="coerce")
         working["symbol"] = working["symbol"].astype(str).str.upper()
 
-        missing_mask = working[["open", "high", "low", "close", "volume", "timestamp"]].isna().any(axis=1)
+        # Exact-timestamp duplicates are counted on the ORIGINAL frame, before any
+        # row is removed, because `duplicated()` on an already-deduplicated
+        # frame is trivially empty and the quality report would silently report
+        # zero duplicates.
         duplicate_mask = working.duplicated(subset=["symbol", "timestamp"], keep="last")
+        exact_duplicate_count = int(duplicate_mask.sum())
+
+        # A session re-stamped by a second provider (yfinance_eod 04:00Z vs
+        # yahoo_http 13:30Z) is the same bar under two DIFFERENT timestamps, so
+        # the exact-timestamp pass cannot see it, and the surviving second copy
+        # takes two slots in every rolling window downstream. Dedupe by price
+        # payload here; genuine intraday ticks have different prices and survive.
+        working, same_bar_count = dedupe_same_bars(working)
+        if same_bar_count:
+            logger.info("Silver collapsed %s re-stamped session rows", same_bar_count)
+        working = working.drop_duplicates(subset=["symbol", "timestamp"], keep="last")
+
+        missing_mask = working[["open", "high", "low", "close", "volume", "timestamp"]].isna().any(axis=1)
+        duplicate_mask = duplicate_mask.reindex(working.index, fill_value=False)
         invalid_ohlc = ~(
             (working["high"] >= working["open"])
             & (working["high"] >= working["close"])
@@ -93,9 +112,6 @@ class SilverLayer:
             error_frame.loc[duplicate_mask, "error_reason"] + "duplicate;"
         )
 
-        valid = working[~invalid_mask].drop_duplicates(subset=["symbol", "timestamp"], keep="last")
-        valid = valid.sort_values(["symbol", "timestamp"]).reset_index(drop=True)
-
         if not error_frame.empty:
             self.storage.write_parquet(
                 self.layer_name,
@@ -104,11 +120,46 @@ class SilverLayer:
             )
             logger.warning("Silver rejected %s invalid/duplicate rows", len(error_frame))
 
+        # Collapse to ONE bar per trading day.
+        #
+        # The lakehouse is single-interval (daily only), so a day that carries
+        # several rows - a re-stamped session, a burst of intraday ticks - is
+        # not extra information, it is a defect: the chart draws two candles
+        # for one session, and every rolling window counts the session twice,
+        # which shifts SMA/RSI/MACD and breaks the argmax-based indicators
+        # (Aroon, Stochastic, Williams %R, CCI). Days that hold only intraday
+        # rows are aggregated into a single bar rather than dropped, so no
+        # information is invented and none is lost.
+        #
+        # This runs AFTER the validation pass on purpose. Canonicalising first
+        # would let an aggregate hide an invalid row: a day whose only tick
+        # has a missing volume would be summed into a bar with a valid volume
+        # and sail through, and the rejection counters would report zero.
+        # Validating first keeps every invalid row visible in `_errors/`.
+        valid, session_report = canonicalize_daily_sessions(working[~invalid_mask])
+        if session_report["duplicate_session_rows_dropped"] or session_report["intraday_days_aggregated"]:
+            logger.info(
+                "Silver canonicalised %s -> %s daily bars (%s re-stamped rows dropped, "
+                "%s intraday days aggregated)",
+                session_report["rows_in"],
+                session_report["rows_out"],
+                session_report["duplicate_session_rows_dropped"],
+                session_report["intraday_days_aggregated"],
+            )
+        valid = valid.drop_duplicates(subset=["symbol", "timestamp"], keep="last")
+        valid = valid.sort_values(["symbol", "timestamp"]).reset_index(drop=True)
+
         quality = {
             "engine": "pandas",
             "record_count": int(len(valid)),
             "source_count": int(original_count),
-            "duplicate_count": int(duplicate_mask.sum()),
+            "duplicate_count": exact_duplicate_count,
+            "same_bar_count": int(same_bar_count),
+            "duplicate_session_rows_dropped": int(
+                session_report["duplicate_session_rows_dropped"]
+            ),
+            "intraday_days_aggregated": int(session_report["intraday_days_aggregated"]),
+            "intraday_rows_aggregated": int(session_report["intraday_rows_aggregated"]),
             "missing_count": int(missing_mask.sum()),
             "invalid_ohlc_count": int(invalid_ohlc.sum()),
             "invalid_volume_count": int(invalid_volume.sum()),
@@ -153,11 +204,23 @@ class SilverLayer:
         pandas_frame = valid_sdf.toPandas()
         if "timestamp" in pandas_frame.columns:
             pandas_frame["timestamp"] = pd.to_datetime(pandas_frame["timestamp"], utc=True)
+
+        # Spark only does the type casting and the exact-timestamp dedupe; the
+        # one-bar-per-trading-day rule is applied on the collected frame so
+        # both engines produce byte-identical output. Without it the Spark
+        # path would still emit two candles for one session.
+        pandas_frame, session_report = canonicalize_daily_sessions(pandas_frame)
+
         quality = {
             "engine": "spark",
             "record_count": int(len(pandas_frame)),
             "source_count": int(len(frame)),
             "duplicate_count": int(len(frame) - sdf.dropDuplicates(["symbol", "timestamp"]).count()),
+            "duplicate_session_rows_dropped": int(
+                session_report["duplicate_session_rows_dropped"]
+            ),
+            "intraday_days_aggregated": int(session_report["intraday_days_aggregated"]),
+            "intraday_rows_aggregated": int(session_report["intraday_rows_aggregated"]),
             "missing_count": 0,
             "invalid_ohlc_count": int(error_count),
             "invalid_volume_count": 0,

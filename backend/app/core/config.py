@@ -93,6 +93,21 @@ class Settings(BaseSettings):
     gemini_base_url: str = "https://generativelanguage.googleapis.com/v1beta"
     gemini_timeout_seconds: int = 60
 
+    # ── Background work (off for a "minimal" / demo run) ───────────────────
+    # Each of these spawns a background thread that keeps the box busy even
+    # when nobody is looking at the UI. Turn them off to run the API in a
+    # low-footprint mode; the REST endpoints still work, they just don't
+    # proactively fetch or re-count anything.
+    #
+    #   warm_layer_counts_on_start -> pre-counts Bronze/Silver/Gold objects at
+    #     startup. This walks ~300k objects in MinIO, so it costs 20-30s of
+    #     CPU on boot for a page the user may never open.
+    warm_layer_counts_on_start: bool = True
+    #   crawl_enabled -> continuous background fetch every crawl_interval_seconds.
+    #   auto_refresh_enabled -> incremental Bronze->Silver->Gold refresh pass
+    #     (958 symbols by default) on startup, then every 6h.
+    auto_refresh_enabled: bool = True
+
     # LLM provider selection: "gemini" (recommended - free tier) or "local"
     # (offline tool router fallback when no API key is configured).
     llm_provider: Literal["gemini", "local"] = "gemini"
