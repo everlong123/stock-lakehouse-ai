@@ -52,10 +52,15 @@ export function PriceChart({ data }: PriceChartProps) {
             strokeWidth={2}
             dot={false}
             name="Close"
+            connectNulls
           />
-          <Line type="monotone" dataKey="sma_20" stroke="hsl(168 50% 45%)" strokeWidth={1.4} dot={false} name="SMA20" />
-          <Line type="monotone" dataKey="sma_50" stroke="hsl(32 88% 44%)" strokeWidth={1.4} dot={false} name="SMA50" />
-          <Line type="monotone" dataKey="ema_12" stroke="hsl(220 50% 45%)" strokeWidth={1.2} strokeDasharray="4 3" dot={false} name="EMA12" />
+          {/* connectNulls: SMA/EMA/Bollinger are undefined for the first N bars
+              of a series (the lookback window isn't full yet). Without this,
+              recharts breaks the line there, so the indicator appears to start
+              mid-chart instead of fading in from the left edge. */}
+          <Line type="monotone" dataKey="sma_20" stroke="hsl(168 50% 45%)" strokeWidth={1.4} dot={false} name="SMA20" connectNulls />
+          <Line type="monotone" dataKey="sma_50" stroke="hsl(32 88% 44%)" strokeWidth={1.4} dot={false} name="SMA50" connectNulls />
+          <Line type="monotone" dataKey="ema_12" stroke="hsl(220 50% 45%)" strokeWidth={1.2} strokeDasharray="4 3" dot={false} name="EMA12" connectNulls />
           <Line
             type="monotone"
             dataKey="bb_upper"
@@ -64,6 +69,7 @@ export function PriceChart({ data }: PriceChartProps) {
             strokeDasharray="2 4"
             dot={false}
             name="BB Upper"
+            connectNulls
           />
           <Line
             type="monotone"
@@ -73,6 +79,7 @@ export function PriceChart({ data }: PriceChartProps) {
             strokeDasharray="2 4"
             dot={false}
             name="BB Lower"
+            connectNulls
           />
         </LineChart>
       </ResponsiveContainer>

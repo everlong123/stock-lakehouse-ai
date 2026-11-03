@@ -47,6 +47,7 @@ backend/data/backtests/**
 # Logs
 backend/logs/*.log
 backend/logs/*.log.*
+frontend/logs/
 *.log
 *.err
 *.out

@@ -30,7 +30,7 @@ from app.data_sources.factory import get_data_provider
 from app.lakehouse.bronze import BronzeLayer
 from app.lakehouse.gold import GoldLayer
 from app.lakehouse.silver import SilverLayer
-from app.services.market_service import clear_symbol_cache
+from app.services.market_service import invalidate_symbol_cache
 
 logger = get_logger(__name__)
 
@@ -284,9 +284,16 @@ def run_symbol_pipeline(
 
     finished = datetime.now(timezone.utc)
 
-    # The market read path memoises frames; drop them so the UI immediately sees
-    # the freshly written Silver/Gold data instead of a stale cached copy.
-    clear_symbol_cache()
+    # The market read path memoises frames; drop this symbol's entry so the UI
+    # immediately sees the freshly written Silver/Gold data instead of a stale
+    # cached copy.
+    #
+    # Only THIS symbol is invalidated. `clear_symbol_cache()` would drop every
+    # cached frame, and since this function runs once per symbol across ~950
+    # symbols in the auto-refresh pass, that meant every page the user had
+    # open had to re-download its symbol's ~120 parquet partitions from MinIO
+    # on the next request.
+    invalidate_symbol_cache(symbol)
 
     return {
         "pipeline_name": "stock_lakehouse_pipeline",

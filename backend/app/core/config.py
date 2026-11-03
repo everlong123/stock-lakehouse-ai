@@ -89,9 +89,16 @@ class Settings(BaseSettings):
 
     # Gemini Free API (Google AI Studio - free tier)
     gemini_api_key: str = ""
-    gemini_model: str = "gemini-2.0-flash-exp"
+    # Default model. The old "gemini-2.0-flash-exp" alias now returns HTTP 404
+    # ("no longer available"), and the "gemini-flash-latest" alias HANGS for
+    # 75s+ on this project key before the socket times out - both were making
+    # the agent look like it was "thinking" for minutes before falling back.
+    # "gemini-3.5-flash-lite" answers in ~1.5s and stays inside the free tier.
+    gemini_model: str = "gemini-3.5-flash-lite"
     gemini_base_url: str = "https://generativelanguage.googleapis.com/v1beta"
-    gemini_timeout_seconds: int = 60
+    # Per-HTTP-attempt timeout. Kept short on purpose: a hung model must fail
+    # fast so the fallback chain can move on instead of burning the request.
+    gemini_timeout_seconds: int = 25
 
     # ── Background work (off for a "minimal" / demo run) ───────────────────
     # Each of these spawns a background thread that keeps the box busy even
@@ -111,6 +118,22 @@ class Settings(BaseSettings):
     # LLM provider selection: "gemini" (recommended - free tier) or "local"
     # (offline tool router fallback when no API key is configured).
     llm_provider: Literal["gemini", "local"] = "gemini"
+
+    # Server-side deadline for one agent chat request.
+    #
+    # WHY: the frontend aborts an axios request after 90s and shows
+    # "Yêu cầu mất quá lâu". When the server keeps working after that abort,
+    # the user sees a timeout even though the answer was about to arrive, and
+    # the orphaned work keeps competing for CPU and MinIO connections with
+    # the next request.
+    #
+    # The deadline is deliberately shorter than the frontend's 90s so the
+    # server can return a real, actionable error (a 504 with an explanation)
+    # instead of letting the client time out blind. Raise it only if the
+    # tool set gets genuinely slower; the auto-refresh contention that used
+    # to dominate these requests has been fixed, so the heavy tools now
+    # finish in seconds rather than minutes.
+    agent_request_timeout_seconds: int = 75
 
     default_symbol: str = "AAPL"
     default_interval: str = "1d"

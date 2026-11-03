@@ -5,12 +5,13 @@ from __future__ import annotations
 import json
 import os
 import random
+import socket
 import threading
 import time
 from typing import Any
 
 from app.core.config import settings
-from app.core.exceptions import AgentError
+from app.core.exceptions import AgentError, LLMTimeoutError
 from app.core.logging_config import get_logger
 
 logger = get_logger(__name__)
@@ -23,10 +24,40 @@ _BACKOFF_CAP_SECONDS = 20.0
 # Client-side throttle. The configured Gemini key is served by a proxy with a
 # small requests-per-minute budget, so we serialise LLM calls and leave a gap
 # between them instead of firing them back-to-back and burning the quota.
-_MIN_INTERVAL_SECONDS = float(os.getenv("LLM_MIN_INTERVAL_SECONDS", "4.0"))
+#
+# WHY 0.5s and not 4s: a single agent chat makes SEVERAL LLM calls (one per
+# tool-calling round). With a 4s gap, a 3-round conversation burned 8s of pure
+# sleeping on top of the model latency, and the multi-round loop introduced
+# here made that worse. The measured Gemini latency for this key is ~1-3s per
+# call, so a 0.5s gap still keeps the calls from firing simultaneously while
+# costing almost nothing.
+#
+# The throttle is a soft guard, not the quota control: if it turns out to be
+# too aggressive the provider answers 429 and the retry/backoff path above
+# handles it.
+_MIN_INTERVAL_SECONDS = float(os.getenv("LLM_MIN_INTERVAL_SECONDS", "0.5"))
 _request_lock = threading.Lock()
 _last_request_at = 0.0
 _last_request_failed_quota = False  # skip throttle after hard-quota failures
+
+# Total wall-clock budget for ONE ``LLMClient.chat()`` call - i.e. for the
+# whole candidate chain plus any retries.
+#
+# WHY THIS EXISTS: the per-candidate socket timeout alone was 25s and the
+# chain had two candidates, so a provider hiccup cost 50s of the agent's 75s
+# deadline before the offline fallback kicked in. Measured end to end: the
+# walk-forward itself took 1.7s (it had already been moved to a child
+# process), yet the chat took 52s - 50s of it waiting on Gemini sockets.
+#
+# The budget is enforced ACROSS candidates, so the chain stops early instead
+# of spending the full timeout on every model in turn. A first candidate that
+# hangs gets the lion's share; a second one only gets what is left.
+LLM_CALL_BUDGET_SECONDS = float(os.getenv("LLM_CALL_BUDGET_SECONDS", "35"))
+
+# A single candidate never gets the whole budget: at least this many seconds
+# are reserved so that, if the first candidate fails fast, the fallback
+# candidate still has a usable timeout.
+_MIN_CANDIDATE_TIMEOUT_SECONDS = 8.0
 
 
 def _throttle() -> None:
@@ -137,16 +168,34 @@ def _short(exc: Exception | None) -> str:
     return text if len(text) <= 220 else text[:220] + "…"
 
 
+def _is_timeout_reason(reason: object) -> bool:
+    """True when a urllib error reason is really a timeout.
+
+    ``urlopen`` wraps a socket timeout in ``URLError``, whose ``reason`` is
+    either a ``TimeoutError`` or the string "timed out". Treating a timeout
+    as a generic network error would skip the "try the next model" path and
+    abort the whole chain on the FIRST slow candidate.
+    """
+    if isinstance(reason, (TimeoutError, socket.timeout)):
+        return True
+    return "timed out" in str(reason).lower()
+
+
 # Fallback chain for the Gemini free tier. When a model is overloaded
 # ("experiencing high demand"), a sibling Flash model usually has capacity.
 # Keep the list short — every extra candidate burns another HTTPS round-trip
 # on the failure path.
+#
+# IMPORTANT (verified 2026-10-29 against this project's key): an alias that
+# does not exist returns HTTP 404 immediately, but the "gemini-flash-latest"
+# alias HANGS - the socket stays open for the full timeout without a single
+# byte of response. A hanging candidate therefore costs the whole timeout
+# before the chain can advance. Only concrete, immediately-answering model
+# ids belong in this list; "gemini-3-flash" and "gemini-2.5-flash" are gone
+# (404 "no longer available") and are deliberately NOT listed.
 _GEMINI_FALLBACK_MODELS: tuple[str, ...] = (
-    "gemini-flash-latest",
-    "gemini-3-flash",
     "gemini-3.5-flash-lite",
-    "gemini-3.8-flash",
-    "gemini-pro-latest",
+    "gemini-3-flash-preview",
 )
 
 
@@ -207,7 +256,12 @@ class LLMClient:
             return "gemini"
         return "local"
 
-    def chat(self, messages: list[dict[str, Any]], tools: list[dict[str, Any]]) -> dict[str, Any]:
+    def chat(
+        self,
+        messages: list[dict[str, Any]],
+        tools: list[dict[str, Any]],
+        deadline: float | None = None,
+    ) -> dict[str, Any]:
         provider = self._active_provider()
         if provider == "local":
             raise AgentError("No LLM provider is configured.")
@@ -215,13 +269,35 @@ class LLMClient:
         # Retry loop with exponential backoff + jitter. Gemini free tier is
         # aggressively rate-limited (429) and prone to capacity spikes (503),
         # both of which clear on their own after a short wait.
+        #
+        # ONE budget covers the whole method - the retries AND the candidate
+        # chain inside each attempt. Without this, a provider outage cost
+        # 4 attempts x 2 candidates x 25s = 200s, far past the agent's 75s
+        # deadline. The budget makes the worst case bounded and predictable.
         last_exc: Exception | None = None
+        if deadline is None:
+            deadline = time.monotonic() + LLM_CALL_BUDGET_SECONDS
         for attempt in range(1, _MAX_ATTEMPTS + 1):
+            if time.monotonic() >= deadline:
+                logger.warning(
+                    "LLM budget of %.0fs exhausted before attempt %d",
+                    LLM_CALL_BUDGET_SECONDS,
+                    attempt,
+                )
+                break
             _throttle()
             try:
-                return self._chat_gemini(messages, tools)
+                return self._chat_gemini(messages, tools, deadline)
             except Exception as exc:
                 last_exc = exc
+                # Every candidate model hung. Retrying would just re-hang on
+                # the same models for another full timeout budget each time,
+                # so fail over to the offline router immediately instead.
+                if isinstance(exc, LLMTimeoutError):
+                    logger.error(
+                        "LLM request timed out on every candidate model: %s", _short(exc)
+                    )
+                    raise
                 # An exhausted quota will still be exhausted in 2 seconds, so
                 # skip the backoff entirely and surface it to the caller now.
                 if _is_hard_quota_error(exc):
@@ -239,6 +315,18 @@ class LLMClient:
                     )
                     raise AgentError(f"LLM request failed: {_short(exc)}") from exc
                 delay = _backoff_delay(exc, attempt)
+                # Never sleep past the budget - a 20s backoff with 3s of
+                # budget left would waste the remaining time on nothing.
+                if time.monotonic() + delay >= deadline:
+                    logger.warning(
+                        "Transient LLM error (attempt %d/%d) but the %.0fs budget "
+                        "would be exceeded by the %.1fs backoff; giving up.",
+                        attempt,
+                        _MAX_ATTEMPTS,
+                        LLM_CALL_BUDGET_SECONDS,
+                        delay,
+                    )
+                    break
                 logger.warning(
                     "Transient LLM error (attempt %d/%d), retrying in %.1fs: %s",
                     attempt, _MAX_ATTEMPTS, delay, _short(exc),
@@ -248,7 +336,12 @@ class LLMClient:
         raise AgentError(f"LLM request failed: {_short(last_exc)}") from last_exc
 
     # ── Gemini Free API (Google AI Studio) ────────────────────────────────────
-    def _chat_gemini(self, messages: list[dict[str, Any]], tools: list[dict[str, Any]]) -> dict[str, Any]:
+    def _chat_gemini(
+        self,
+        messages: list[dict[str, Any]],
+        tools: list[dict[str, Any]],
+        deadline: float | None = None,
+    ) -> dict[str, Any]:
         import urllib.request
         import urllib.error
 
@@ -263,7 +356,43 @@ class LLMClient:
         # the whole agent. The order is fast → cheap → smallest fallback.
         candidates = _gemini_model_candidates(settings.gemini_model)
         last_exc: Exception | None = None
-        for model_name in candidates:
+
+        # The budget covers the WHOLE chain, not each candidate. A hanging
+        # first model must not be able to spend the full per-candidate
+        # timeout before the fallback even starts.
+        if deadline is None:
+            deadline = time.monotonic() + LLM_CALL_BUDGET_SECONDS
+
+        for index, model_name in enumerate(candidates):
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                logger.warning(
+                    "LLM budget of %.0fs exhausted before trying %s",
+                    LLM_CALL_BUDGET_SECONDS,
+                    model_name,
+                )
+                # Distinguish "the provider hung" from "we ran out of time
+                # before we could even ask" - the caller treats a timeout
+                # differently from a generic failure.
+                if last_exc is None:
+                    raise LLMTimeoutError(
+                        f"Gemini budget of {LLM_CALL_BUDGET_SECONDS:.0f}s exhausted "
+                        "before the first model was tried"
+                    )
+                break
+
+            # Every candidate except the last one keeps a slice of the budget
+            # in reserve, so a fast failure on model #1 still leaves model #2
+            # a usable timeout instead of a fraction of a second.
+            candidates_left = len(candidates) - index
+            if candidates_left > 1:
+                share = remaining / candidates_left
+                candidate_timeout = max(_MIN_CANDIDATE_TIMEOUT_SECONDS, share)
+            else:
+                candidate_timeout = remaining
+            # The reserved slice must never push the timeout past the budget.
+            candidate_timeout = min(candidate_timeout, remaining)
+
             url = (
                 f"{settings.gemini_base_url.rstrip('/')}/models/"
                 f"{model_name}:generateContent?key={settings.gemini_api_key}"
@@ -275,7 +404,7 @@ class LLMClient:
                 method="POST",
             )
             try:
-                with urllib.request.urlopen(req, timeout=settings.gemini_timeout_seconds) as resp:
+                with urllib.request.urlopen(req, timeout=candidate_timeout) as resp:
                     body = resp.read().decode("utf-8")
                 if model_name != settings.gemini_model:
                     logger.info("Gemini fallback succeeded with model %s", model_name)
@@ -296,10 +425,41 @@ class LLMClient:
                 )
                 continue
             except urllib.error.URLError as exc:
+                # A socket timeout raised by urllib is wrapped in URLError, so
+                # it lands here rather than in the (TimeoutError, socket.timeout)
+                # branch below. `isinstance` is checked because the reason may
+                # be a plain timeout rather than a connection failure.
+                if _is_timeout_reason(exc.reason):
+                    last_exc = AgentError(f"Gemini model {model_name} timed out: {exc}")
+                    logger.warning(
+                        "Gemini model %s timed out after %.0fs, trying next candidate",
+                        model_name,
+                        candidate_timeout,
+                    )
+                    continue
                 last_exc = AgentError(f"Gemini network error: {exc.reason}")
                 logger.warning("Gemini model %s network error: %s", model_name, exc.reason)
                 continue
+            except (TimeoutError, socket.timeout) as exc:
+                # A read timeout is NOT wrapped in URLError, so without this
+                # branch it escapes the candidate loop entirely: one hanging
+                # model aborts the whole fallback chain and the outer retry
+                # loop restarts from the same first candidate. That is what
+                # made a single chat take 250s before falling back offline.
+                # Treat it like a transient capacity error and try the next
+                # concrete model.
+                last_exc = AgentError(f"Gemini model {model_name} timed out: {exc}")
+                logger.warning(
+                    "Gemini model %s timed out after %.0fs, trying next candidate",
+                    model_name,
+                    candidate_timeout,
+                )
+                continue
         # All candidates exhausted.
+        if last_exc is not None and isinstance(last_exc, AgentError) and "timed out" in last_exc.message:
+            raise LLMTimeoutError(
+                f"Gemini all models timed out (tried {len(candidates)}): {_short(last_exc)}"
+            ) from last_exc
         raise AgentError(
             f"Gemini all models failed (tried {len(candidates)}): {_short(last_exc)}"
         ) from last_exc

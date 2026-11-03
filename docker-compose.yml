@@ -38,7 +38,7 @@ services:
   # ════════════════════════════════════════════════════════════════════════════
 
   mysql:
-    profiles: ["infra", "app", "all"]
+    profiles: ["minimal", "infra", "app", "all"]
     image: mirror.gcr.io/library/mysql:8.4
     container_name: stock-lakehouse-mysql
     restart: unless-stopped
@@ -63,7 +63,7 @@ services:
       - app_net
 
   minio:
-    profiles: ["infra", "app", "all"]
+    profiles: ["minimal", "infra", "app", "all"]
     build:
       context: ./minio
       dockerfile: Dockerfile
@@ -107,6 +107,10 @@ services:
       - "8181:8181"
     volumes:
       - /var/lib/docker-data/iceberg-rest:/var/lib/iceberg
+    extra_hosts:
+      # Same as the backend: MinIO is on the host network, so it has no DNS
+      # entry in the app_net bridge. Point "minio" at the bridge gateway.
+      - "minio:172.18.0.1"
     depends_on:
       minio:
         condition: service_started
@@ -138,9 +142,14 @@ services:
     volumes:
       - /var/lib/docker-data/kafka:/var/lib/kafka/data
     healthcheck:
-      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list >/dev/null 2>&1"]
+      # Lightweight TCP probe. The original check ran
+      # `kafka-topics.sh --list`, which forks a full JVM on every invocation.
+      # At a 30s interval that pinned ~100% CPU continuously on an otherwise
+      # idle broker and made the whole box feel laggy. A TCP connect to the
+      # broker port is enough to prove the listener is up.
+      test: ["CMD-SHELL", "timeout 3 bash -c 'exec 3<>/dev/tcp/127.0.0.1/9092' || exit 1"]
       interval: 30s
-      timeout: 10s
+      timeout: 5s
       retries: 5
       start_period: 30s
     networks:
@@ -152,7 +161,7 @@ services:
   # ════════════════════════════════════════════════════════════════════════════
 
   backend:
-    profiles: ["app", "all"]
+    profiles: ["minimal", "app", "all"]
     build:
       context: ./backend
       dockerfile: Dockerfile
@@ -180,6 +189,14 @@ services:
     env_file:
       - path: ./backend/.env
         required: false
+    extra_hosts:
+      # The MinIO service runs with `network_mode: host`, so it never joins
+      # the app_net bridge and therefore has no DNS entry there. Without this
+      # the backend cannot resolve "minio" and dies with
+      #   NameResolutionError: Failed to resolve 'minio'
+      # 172.18.0.1 is the bridge gateway, which is the WSL2 host — and
+      # MinIO, running on the host network, is listening on that host.
+      - "minio:172.18.0.1"
     volumes:
       # Backend's main.py loads .env from parents[1] (i.e. /app/.env).
       # Mount the project .env there so runtime config matches local dev.
@@ -195,7 +212,11 @@ services:
       minio:
         condition: service_started
       kafka:
+        # `required: false` so the `minimal` profile can bring the backend up
+        # without a Kafka broker. The backend detects the missing broker at
+        # runtime and skips the streaming consumers.
         condition: service_healthy
+        required: false
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://localhost:8000/api/v1/health"]
       interval: 15s
@@ -275,7 +296,7 @@ services:
       - app_net
 
   frontend:
-    profiles: ["app", "all"]
+    profiles: ["minimal", "app", "all"]
     build:
       context: ./frontend
       dockerfile: Dockerfile

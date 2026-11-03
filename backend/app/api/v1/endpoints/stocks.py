@@ -80,8 +80,15 @@ def get_stock(
     interval: str = Query(default="1d"),
     service: MarketService = Depends(get_market_service),
 ) -> dict:
+    # Load the frame ONCE and derive both the history and the latest bar
+    # from it.
+    #
+    # WHY: `get_latest` used to call `get_history` internally, so this
+    # endpoint pulled the symbol's ~121 parquet partitions out of MinIO
+    # twice per request and then re-sorted/re-copied the 2532 x 92 frame a
+    # second time. Deriving both from one load removes that second pass.
     frame = service.get_history(symbol.upper(), start=start, end=end, interval=interval)
-    latest = service.get_latest(symbol.upper(), interval=interval)
+    latest = service.latest_from_frame(symbol.upper(), frame, interval=interval)
     return ok(
         {
             "symbol": symbol.upper(),

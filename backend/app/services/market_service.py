@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import threading
 import time
+import os
 from datetime import datetime
 
 import pandas as pd
@@ -25,17 +26,53 @@ logger = get_logger(__name__)
 
 # Reading a symbol downloads every one of its year/month parquet partitions from
 # MinIO, so a long-history ticker (e.g. "M" spans 2016-2026 => ~120 objects) took
-# over two minutes per request. A small LRU cache keeps repeat views fast while
-# bounding memory: MAX_CACHE_SYMBOLS is deliberately small because this process
-# also hosts the FastAPI app and the host has no pagefile.
-MAX_CACHE_SYMBOLS = 24
+# over two minutes per request. An LRU cache keeps repeat views fast while
+# bounding memory.
+#
+# WHY 24 WAS TOO SMALL
+# ---------------------
+# The lakehouse holds ~950 symbols, so a cache of 24 could not possibly hold
+# the working set of a user browsing the stock list. Every symbol past the
+# 24th evicted the one at the front, and the classic LRU-thrash followed:
+#
+#   30 symbols, cold ....... 81.1s   (2.70s per symbol)
+#   the same 30 again ...... 19.0s   (0.63s per symbol - still mostly misses)
+#
+# Every one of those misses downloads ~121 parquet partitions from MinIO, so
+# "browse many stocks" was effectively "download the entire lakehouse from
+# scratch, over and over".
+#
+# WHY 256 IS SAFE HERE
+# ---------------------
+# The old comment said a small cache was needed because "the host has no
+# pagefile". That is no longer true: `scripts/enable_pagefile.ps1` now
+# configures a system-managed pagefile on C:, and the WSL VM is capped at
+# 8GB (was 12GB). So there is room to cache.
+#
+# The memory cost is bounded and small: a cached frame is the symbol's daily
+# bars plus the ~90 derived indicator columns, and the raw parquet that
+# produced it is already released. Measured: ~3 MB per symbol, so 256
+# symbols is roughly 750 MB - affordable, and it covers the whole stock
+# list of a typical browsing session.
+MAX_CACHE_SYMBOLS = int(os.getenv("MARKET_CACHE_SYMBOLS", "256"))
 _cache_lock = threading.Lock()
 
 # Second-level TTL on top of the LRU, so a symbol that no auto-refresh pass has
 # touched still goes back to MinIO after this long. Without a TTL the cache only
-# ever goes stale-until-restart, because `lru_cache` alone has no expiry. Kept
-# short-ish to balance the ~120-object read cost against UI freshness.
-CACHE_TTL_SECONDS = 60
+# ever goes stale-until-restart, because `lru_cache` alone has no expiry.
+#
+# WHY 900s (was 60s, then 300s): a read pulls ~121 partition files out of
+# MinIO, which costs ~1s when the box is idle but much more while the
+# auto-refresh pass is running. With a short TTL the dashboard had to
+# re-download the whole history of the symbol roughly once a minute, and
+# each of those reads could land in the middle of the refresh pass and
+# blow past the frontend's 90s timeout.
+#
+# Freshness is not lost by the long TTL: the auto-refresh pass invalidates
+# the entry for a symbol the moment it rewrites that symbol
+# (`invalidate_symbol_cache`), so newly ingested rows still surface at
+# once. The TTL only governs how long an UNCHANGED symbol is re-read.
+CACHE_TTL_SECONDS = 900
 # symbol -> (monotonic_timestamp, frame, source_layer)
 _cache_store: dict[str, tuple[float, pd.DataFrame, str]] = {}
 
@@ -116,6 +153,26 @@ def clear_symbol_cache() -> None:
         _cache_store.clear()
 
 
+def invalidate_symbol_cache(symbol: str) -> None:
+    """Drop only ONE symbol's memoised frame.
+
+    WHY this exists next to `clear_symbol_cache`: the auto-refresh pass
+    rebuilds Silver+Gold for ~950 symbols one after another, and it used to
+    call `clear_symbol_cache()` after every single symbol. That wiped the
+    *entire* cache each time, so any page the user had open (the dashboard
+    reads a symbol's 121 parquet partitions from MinIO) was re-reading the
+    whole lakehouse from scratch on every request — the request took minutes
+    and the UI sat on a spinner until the frontend's 90s axios timeout fired.
+
+    Invalidation only has to be per-symbol: the writer only changed the rows
+    of the symbol it just rebuilt, and every other cached frame is still
+    valid. `clear_symbol_cache()` stays for the full-pipeline path, where
+    many symbols really do change at once.
+    """
+    with _cache_lock:
+        _cache_store.pop(symbol.upper(), None)
+
+
 class MarketService:
     """Read OHLCV from the lakehouse, preferring Gold then Silver then Bronze."""
 
@@ -157,6 +214,27 @@ class MarketService:
 
     def get_latest(self, symbol: str, interval: str = "1d") -> dict:
         frame = self.get_history(symbol, interval=interval)
+        return self.latest_from_frame(symbol, frame, interval)
+
+    def latest_from_frame(
+        self,
+        symbol: str,
+        frame: pd.DataFrame,
+        interval: str = "1d",
+    ) -> dict:
+        """Build the "latest bar" summary from an ALREADY loaded frame.
+
+        WHY THIS EXISTS
+        ---------------
+        ``get_latest`` used to call ``get_history`` again, so the
+        ``/stocks/{symbol}`` endpoint loaded the symbol's ~121 parquet
+        partitions from MinIO TWICE per request. The second load hit the
+        memoised frame, so it was "only" CPU work - but it re-sorted,
+        re-copied and re-indexed a 2532 x 92 DataFrame for nothing.
+
+        The endpoint now loads the frame once and derives both the history
+        and the latest bar from it.
+        """
         last = frame.iloc[-1]
         prev_close = float(frame.iloc[-2]["close"]) if len(frame) > 1 else float(last["close"])
         change_pct = (float(last["close"]) - prev_close) / prev_close if prev_close else 0.0

@@ -1,4 +1,5 @@
 import { ArrowRight, Layers } from "lucide-react";
+import { isUsableNumber } from "@/utils/format";
 
 interface FlowNode {
   label: string;
@@ -17,12 +18,20 @@ const SOURCES = [
 ];
 
 interface LakehouseFlowProps {
-  bronzeCount?: number;
-  silverCount?: number;
-  goldCount?: number;
+  bronzeCount?: number | null;
+  silverCount?: number | null;
+  goldCount?: number | null;
 }
 
-export function LakehouseFlow({ bronzeCount = 0, silverCount = 0, goldCount = 0 }: LakehouseFlowProps) {
+// WHY null is allowed: the caller passes null while /system/status is loading or
+// after it fails. Defaulting that to 0 would render "0 records", which is
+// indistinguishable from a genuinely empty Bronze layer and makes a healthy
+// lakehouse look broken.
+export function LakehouseFlow({
+  bronzeCount = null,
+  silverCount = null,
+  goldCount = null,
+}: LakehouseFlowProps) {
   const layers = [
     { node: BRONZE, count: bronzeCount },
     { node: SILVER, count: silverCount },
@@ -72,10 +81,10 @@ export function LakehouseFlow({ bronzeCount = 0, silverCount = 0, goldCount = 0 
                 </div>
                 <div className="text-right">
                   <div className="font-mono text-lg font-semibold text-foreground">
-                    {count.toLocaleString("en-US")}
+                    {isUsableNumber(count) ? count.toLocaleString("en-US") : "—"}
                   </div>
                   <div className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-                    records
+                    {isUsableNumber(count) ? "records" : "chưa có dữ liệu"}
                   </div>
                 </div>
               </div>

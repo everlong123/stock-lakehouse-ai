@@ -69,8 +69,21 @@ def _is_fatal_provider_error(message: str) -> bool:
 # finally web_scraper as a last resort.  Stooq is excluded from the daily
 # chain because their public CSV endpoint now requires a JS challenge that
 # cannot be solved from a server-side script.
+#
+# `ssi_vn` is the LAST entry and only rescues tickers that Yahoo does not
+# carry at all: some HOSE/HNX/UPCoM names (VCS, for example) 404 on Yahoo
+# even with the .VN suffix, but SSI iBoard serves them. The provider is keyed
+# on the bare ticker (no suffix), and it raises DataSourceError for symbols
+# it does not know, so the chain simply moves on to the next entry.
 DEFAULT_CHAINS: dict[str, list[str]] = {
-    "1d": ["yahoo_http", "yfinance", "finnhub", "alpha_vantage", "web_scraper"],
+    "1d": [
+        "yahoo_http",
+        "yfinance",
+        "finnhub",
+        "alpha_vantage",
+        "web_scraper",
+        "ssi_vn",
+    ],
 }
 
 

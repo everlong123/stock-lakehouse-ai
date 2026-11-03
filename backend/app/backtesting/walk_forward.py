@@ -22,12 +22,10 @@ import pandas as pd
 
 from app.backtesting.engine import BacktestEngine
 from app.backtesting.metrics import compute_metrics
-from app.backtesting.portfolio import Portfolio
+from app.backtesting.simulator import simulate
 from app.backtesting.strategies import STRATEGY_MAP
 from app.core.exceptions import BacktestError
 from app.core.logging_config import get_logger
-from app.lakehouse.gold import GoldLayer
-from app.lakehouse.silver import SilverLayer
 
 logger = get_logger(__name__)
 
@@ -149,7 +147,7 @@ class WalkForwardValidator:
 
         logger.info(
             f"Walk-forward validation for {symbol}/{strategy_name}: "
-            f"{len(windows)} windows"
+            f"{len(windows)} windows (frame rows={len(frame)})"
         )
 
         # Run backtest for each window
@@ -301,23 +299,13 @@ class WalkForwardValidator:
             signals = strategy.generate_signals(train_data)
             execution_signal = signals.shift(1).fillna(0)
 
-            portfolio = Portfolio(initial_capital=initial_capital, cash=initial_capital)
-
-            for index in range(len(train_data)):
-                row = train_data.iloc[index]
-                exec_price = float(row["open"]) if pd.notna(row["open"]) else float(row["close"])
-                signal = float(execution_signal.iloc[index])
-
-                if signal > 0:
-                    portfolio.buy(row["timestamp"], exec_price, transaction_fee, slippage)
-                elif signal < 0:
-                    portfolio.sell(row["timestamp"], exec_price, transaction_fee, slippage)
-
-                portfolio.mark_to_market(row["timestamp"], float(row["close"]))
-
-            if portfolio.is_long:
-                last = train_data.iloc[-1]
-                portfolio.sell(last["timestamp"], float(last["close"]), transaction_fee, slippage)
+            portfolio, _markers = simulate(
+                train_data,
+                execution_signal,
+                initial_capital,
+                transaction_fee,
+                slippage,
+            )
 
             metrics = compute_metrics(portfolio.equity_curve, portfolio.realized_trades, initial_capital)
             return metrics
@@ -341,23 +329,13 @@ class WalkForwardValidator:
             signals = strategy.generate_signals(test_data)
             execution_signal = signals.shift(1).fillna(0)
 
-            portfolio = Portfolio(initial_capital=initial_capital, cash=initial_capital)
-
-            for index in range(len(test_data)):
-                row = test_data.iloc[index]
-                exec_price = float(row["open"]) if pd.notna(row["open"]) else float(row["close"])
-                signal = float(execution_signal.iloc[index])
-
-                if signal > 0:
-                    portfolio.buy(row["timestamp"], exec_price, transaction_fee, slippage)
-                elif signal < 0:
-                    portfolio.sell(row["timestamp"], exec_price, transaction_fee, slippage)
-
-                portfolio.mark_to_market(row["timestamp"], float(row["close"]))
-
-            if portfolio.is_long:
-                last = test_data.iloc[-1]
-                portfolio.sell(last["timestamp"], float(last["close"]), transaction_fee, slippage)
+            portfolio, _markers = simulate(
+                test_data,
+                execution_signal,
+                initial_capital,
+                transaction_fee,
+                slippage,
+            )
 
             metrics = compute_metrics(portfolio.equity_curve, portfolio.realized_trades, initial_capital)
             return metrics
@@ -372,10 +350,16 @@ class WalkForwardValidator:
         start_date: datetime | str | None,
         end_date: datetime | str | None,
     ) -> pd.DataFrame:
-        """Load market data from Gold or Silver layer."""
-        frame = GoldLayer().read(symbol)
-        if frame.empty:
-            frame = SilverLayer().read(symbol)
+        """Load market data from the shared cache (Gold -> Silver -> Bronze).
+
+        Uses the same memoised read as the rest of the API so a walk-forward
+        run does not re-download the symbol's full ~121-partition history
+        from MinIO while the auto-refresh pass is competing for the same
+        connections.
+        """
+        from app.services.market_service import _load_symbol_frame
+
+        frame, _source_layer = _load_symbol_frame(symbol.upper())
 
         if start_date:
             frame = frame[frame["timestamp"] >= pd.Timestamp(start_date, tz="UTC")]

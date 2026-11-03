@@ -7,13 +7,10 @@ from datetime import datetime
 import pandas as pd
 
 from app.backtesting.metrics import compute_metrics, drawdown_series
-from app.backtesting.portfolio import Portfolio
+from app.backtesting.simulator import simulate
 from app.backtesting.strategies import STRATEGY_MAP
 from app.core.exceptions import BacktestError
 from app.core.logging_config import get_logger
-from app.lakehouse.bronze import BronzeLayer
-from app.lakehouse.gold import GoldLayer
-from app.lakehouse.silver import SilverLayer
 
 logger = get_logger(__name__)
 
@@ -45,27 +42,13 @@ class BacktestEngine:
         # Shift execution by one bar: act on the next open/close.
         execution_signal = signals.shift(1).fillna(0)
 
-        portfolio = Portfolio(initial_capital=initial_capital, cash=initial_capital)
-        markers: list[dict] = []
-        for index in range(len(frame)):
-            row = frame.iloc[index]
-            exec_price = float(row["open"]) if pd.notna(row["open"]) else float(row["close"])
-            signal = float(execution_signal.iloc[index])
-            timestamp = row["timestamp"]
-            if signal > 0:
-                before = portfolio.is_long
-                portfolio.buy(timestamp, exec_price, transaction_fee, slippage)
-                if portfolio.is_long and not before:
-                    markers.append({"timestamp": str(timestamp), "price": exec_price, "side": "buy"})
-            elif signal < 0:
-                trade = portfolio.sell(timestamp, exec_price, transaction_fee, slippage)
-                if trade is not None:
-                    markers.append({"timestamp": str(timestamp), "price": exec_price, "side": "sell"})
-            portfolio.mark_to_market(timestamp, float(row["close"]))
-
-        if portfolio.is_long:
-            last = frame.iloc[-1]
-            portfolio.sell(last["timestamp"], float(last["close"]), transaction_fee, slippage)
+        portfolio, markers = simulate(
+            frame,
+            execution_signal,
+            initial_capital,
+            transaction_fee,
+            slippage,
+        )
 
         metrics = compute_metrics(portfolio.equity_curve, portfolio.realized_trades, initial_capital)
         result = {
@@ -131,11 +114,24 @@ class BacktestEngine:
         start_date: datetime | str | None,
         end_date: datetime | str | None,
     ) -> pd.DataFrame:
-        frame = GoldLayer().read(symbol)
-        if frame.empty:
-            frame = SilverLayer().read(symbol)
-        if frame.empty:
-            frame = BronzeLayer().read(symbol)
+        # Read through the shared market-service cache instead of going
+        # straight to the lakehouse.
+        #
+        # WHY: a long-history symbol is split into ~121 monthly parquet
+        # partitions. Reading them straight from MinIO on every backtest
+        # meant a full re-download of the symbol's entire history, and while
+        # the auto-refresh pass was rebuilding the same layers those reads
+        # queued behind the refresh's own traffic. Measured on this box: the
+        # same backtest took 1.2s standalone and 153s through the API, which
+        # blew past the frontend's 90s timeout.
+        #
+        # The market service already caches a symbol's frame (LRU + TTL) and
+        # the auto-refresh invalidates the entry for a symbol right after it
+        # rewrites that symbol, so a backtest still sees fresh data - it just
+        # does not re-download the whole history for every request.
+        from app.services.market_service import _load_symbol_frame
+
+        frame, _source_layer = _load_symbol_frame(symbol.upper())
         if frame.empty:
             raise BacktestError(
                 f"No market data available for {symbol}. Run the lakehouse pipeline first "

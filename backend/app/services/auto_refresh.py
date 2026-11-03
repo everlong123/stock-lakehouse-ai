@@ -30,13 +30,17 @@ from typing import Iterable
 import pandas as pd
 
 from app.core.config import settings
+from app.core.heavy_worker import run_in_process
 from app.core.logging_config import get_logger
-from app.core.constants import GLOBAL_SYMBOLS
+from app.core.constants import GLOBAL_SYMBOLS, VN_SYMBOLS
+from app.core.request_gate import wait_while_user_active
 from app.data_sources.factory import get_data_provider
 from app.lakehouse.bronze import BronzeLayer
 from app.lakehouse.silver import SilverLayer
 from app.lakehouse.gold import GoldLayer
+from app.lakehouse.session import session_date
 from app.pipelines.orchestrator import transform_to_silver, build_gold_layer
+from app.pipelines.worker import rebuild_gold_job, rebuild_silver_job
 
 # The market read path (`MarketService._load_symbol_frame`) memoises every
 # symbol frame with `lru_cache` and no TTL. Without an explicit drop here the
@@ -44,7 +48,7 @@ from app.pipelines.orchestrator import transform_to_silver, build_gold_layer
 # Bronze/Silver/Gold rows never surface until the process restarts. The
 # manual `run_pipeline` path already calls this in the orchestrator; the
 # auto-refresh loop must do the same per symbol, right after it writes.
-from app.services.market_service import clear_symbol_cache
+from app.services.market_service import clear_symbol_cache, invalidate_symbol_cache
 
 logger = get_logger(__name__)
 
@@ -63,6 +67,41 @@ def _env_int(key: str, default: int) -> int:
         return default
 
 
+# Free RAM (in MB) below which the refresh must NOT start a rebuild.
+#
+# WHY: this host had no Windows pagefile, so the commit limit equalled
+# physical RAM (31.8 GB). Once the commit charge got close to that limit,
+# Windows killed whatever asked for memory next - and the next thing to
+# ask was the rebuild worker we were about to spawn. The rebuild then died
+# halfway, leaving Silver and Gold half-written.
+#
+# The evidence is in the Windows System log for 2026-11-03:
+#
+#   Event 2004 x7  "low virtual memory condition"
+#     vmmemWSL   consumed 12.9 GB
+#     python.exe consumed  1.67 GB
+#   Event 1000    wslservice.exe / wslrelay.exe faulted
+#
+# 6 GB is roughly "the host is running out of room": enough for Windows,
+# Cursor, the browser and the pool to keep working, while a rebuild needs
+# about 700 MB per worker.
+MEMORY_HEADROOM_MB = int(os.getenv("AUTO_REFRESH_MEMORY_HEADROOM_MB", "6144"))
+
+
+def _memory_headroom_ok() -> bool:
+    """True when there is enough free RAM to safely start a rebuild."""
+    try:
+        from app.core.heavy_worker import _available_memory_mb
+
+        available = _available_memory_mb()
+    except Exception:  # noqa: BLE001 - never block the refresh on a probe error
+        return True
+    if available <= 0:
+        # Could not read the value; do not block the refresh on a guess.
+        return True
+    return available >= MEMORY_HEADROOM_MB
+
+
 class AutoRefreshService:
     """Background service that incrementally updates the lakehouse on startup + schedule."""
 
@@ -77,7 +116,20 @@ class AutoRefreshService:
         if raw:
             self._symbols = [s.strip().upper() for s in raw.split(",") if s.strip()]
         else:
-            self._symbols = list(GLOBAL_SYMBOLS)
+            # VN_SYMBOLS are included on purpose. GLOBAL_SYMBOLS only holds the
+            # Yahoo-listed universe, so without this the ~80 HOSE/HNX/UPCoM
+            # tickers (VNM, HPG, FPT, ...) were never refreshed and froze on
+            # whatever day they were last ingested. They are served by the SSI
+            # iBoard provider, which is reachable through the same failover
+            # chain (see app/data_sources/multi_source.py).
+            #
+            # The dict dedupes: FRT, NET, DBC and HDB appear in both lists and
+            # the lakehouse keys rows by the bare ticker, so they must only be
+            # visited once per pass.
+            merged = {s: None for s in GLOBAL_SYMBOLS}
+            for s in VN_SYMBOLS:
+                merged.setdefault(s, None)
+            self._symbols = list(merged)
 
         self._thread: threading.Thread | None = None
         self._stop_event = threading.Event()
@@ -183,6 +235,20 @@ class AutoRefreshService:
             nonlocal silver_done, gold_done
             if self._stop_event.is_set() or res.get("error"):
                 return
+            # A Silver+Gold rebuild rewrites ~121 monthly partitions per layer.
+            # Doing that while the user is waiting on the API starves the read
+            # path: the same symbol read took 0.4s on an idle box and 90s
+            # during a rebuild. The background work is not valuable while
+            # somebody is waiting on the UI, so it waits.
+            wait_while_user_active(stop_event=self._stop_event)
+            if self._stop_event.is_set():
+                return
+            # ``new_rows`` counts rows that are genuinely NEW to Bronze
+            # (post-dedupe growth of the stored partitions), not the size of
+            # the incoming batch. The fetch window overlaps the stored data
+            # by 5 days on purpose, so most batches are entirely duplicates.
+            # Counting the batch made every symbol look "changed" and forced a
+            # full Silver + Gold rebuild for all ~950 symbols on every pass.
             needs_rebuild = res.get("new_rows", 0) > 0
             if not needs_rebuild:
                 # Bronze unchanged for this symbol, but a previous pass may have
@@ -191,38 +257,87 @@ class AutoRefreshService:
                 try:
                     bronze_ts = bronze.latest_timestamp(sym)
                     gold_ts = _gold.latest_timestamp(sym) if bronze_ts is not None else None
-                    needs_rebuild = bronze_ts is not None and (
-                        gold_ts is None or gold_ts < bronze_ts
+                    # Compare by trading day, not by raw timestamp: Bronze can
+                    # hold an after-hours bar at 20:00 UTC for a session that
+                    # Gold stamps at 13:30, and comparing those raw values
+                    # would rebuild the symbol on every pass forever.
+                    bronze_day = session_date(bronze_ts)
+                    gold_day = session_date(gold_ts)
+                    needs_rebuild = bronze_day is not None and (
+                        gold_day is None or gold_day < bronze_day
                     )
                     if needs_rebuild:
                         logger.info(
                             "AutoRefresh: %s Gold watermark (%s) lags Bronze (%s), rebuilding",
                             sym,
-                            gold_ts.date() if gold_ts else "MISSING",
-                            bronze_ts.date(),
+                            gold_day if gold_day else "MISSING",
+                            bronze_day,
                         )
                 except Exception as exc:
                     logger.warning("AutoRefresh: watermark compare failed for %s: %s", sym, exc)
                     return
             if not needs_rebuild:
                 return
+            # Do not start a rebuild if the machine is already starved of RAM.
+            #
+            # WHY: this host has no pagefile (until recently), so the commit
+            # limit equals physical RAM. When the commit charge approaches
+            # that limit, Windows kills whatever asks for memory next -
+            # which is exactly the worker process we are about to spawn. The
+            # rebuild would then die halfway through and leave Silver and
+            # Gold half-written.
+            #
+            # The Windows event log recorded this on 2026-11-03: Event 2004
+            # "low virtual memory condition" fired 7 times in an hour while
+            # vmmemWSL held 12.9 GB, and the job workers were killed
+            # mid-rebuild.
+            #
+            # Pausing is the right call: the refresh can resume later, but a
+            # half-written Silver layer cannot be un-corrupted.
+            if not _memory_headroom_ok():
+                logger.warning(
+                    "AutoRefresh: skipping rebuild for %s - not enough free RAM "
+                    "(the rebuild workers would be killed).",
+                    sym,
+                )
+                return
+            # The rebuild itself runs in a CHILD PROCESS.
+            #
+            # WHY: rebuilding Silver+Gold for one symbol reads the symbol's
+            # whole history from MinIO, canonicalises it, computes ~90
+            # indicator columns and writes ~242 monthly partitions. That is
+            # pure pandas work, so in the API process it competes for the GIL
+            # with every interactive request. Measured: a walk-forward
+            # validation took 2.2s on an idle box, 13.3s while the refresh
+            # ran, and 96s under real server load - which blew the agent's
+            # 75s deadline and showed the user "Yêu cầu mất quá lâu".
+            #
+            # A child process has its own GIL, so the refresh keeps its
+            # throughput AND the request path keeps its speed.
             try:
-                transform_to_silver(sym, interval="1d")
+                run_in_process(rebuild_silver_job, sym, "1d", pool_name="background")
                 with _counts_lock:
                     silver_done += 1
             except Exception as exc:
                 logger.warning("AutoRefresh silver rebuild failed for %s: %s", sym, exc)
             try:
-                build_gold_layer(sym)
+                run_in_process(rebuild_gold_job, sym, pool_name="background")
                 with _counts_lock:
                     gold_done += 1
             except Exception as exc:
                 logger.warning("AutoRefresh gold rebuild failed for %s: %s", sym, exc)
-            # Drop the memoised frame for this symbol so the UI immediately
+            # Drop the memoised frame for THIS symbol so the UI immediately
             # serves the rows we just wrote instead of a pre-ingest snapshot.
             # Done per symbol (not once at the end) so pages opened mid-pass
             # show partial progress rather than nothing until the pass ends.
-            clear_symbol_cache()
+            #
+            # Only this symbol's entry is dropped. `clear_symbol_cache()` would
+            # wipe the whole cache, and since the pass rebuilds ~950 symbols in
+            # a row, every page the user had open would have to re-download
+            # its symbol's ~120 parquet partitions from MinIO on the next
+            # request — turning a 1s page load into a multi-minute hang that
+            # the frontend's 90s timeout cut off.
+            invalidate_symbol_cache(sym)
 
         # Rebuilds run on their own pool so a slow Silver/Gold write for one
         # symbol never stalls the HTTP fetch of the next ~950.
@@ -231,8 +346,26 @@ class AutoRefreshService:
         with ThreadPoolExecutor(max_workers=worker_count) as pool, ThreadPoolExecutor(
             max_workers=rebuild_count,
         ) as rebuild_pool:
+            # The fetch loop also waits while the user is waiting. Fetching is
+            # mostly I/O (the provider HTTP call) but each symbol also reads
+            # its Bronze watermark and appends a partition, and 8 workers
+            # doing that at once competes with the read path for the MinIO
+            # connection pool. Pausing here keeps the interactive path fast
+            # without giving up on the refresh.
+            def _fetch_with_gate(symbol: str) -> dict:
+                wait_while_user_active(stop_event=self._stop_event)
+                if self._stop_event.is_set():
+                    return {
+                        "symbol": symbol,
+                        "skipped": True,
+                        "reason": "stopped",
+                        "new_rows": 0,
+                        "is_new_symbol": False,
+                    }
+                return self._refresh_symbol(bronze, provider, symbol, now)
+
             futures = {
-                pool.submit(self._refresh_symbol, bronze, provider, sym, now): idx
+                pool.submit(_fetch_with_gate, sym): idx
                 for idx, sym in enumerate(target_symbols)
             }
             for future in as_completed(futures):
@@ -395,7 +528,7 @@ class AutoRefreshService:
                     "end": end_naive.isoformat(),
                 },
             )
-            new_rows = int(meta.get("records_written", 0))
+            new_rows = int(meta.get("new_records", 0))
         except Exception as exc:
             logger.warning("AutoRefresh: bronze append failed for %s: %s", symbol, exc)
             return {"symbol": symbol, "error": str(exc), "new_rows": 0, "is_new_symbol": is_new_symbol}

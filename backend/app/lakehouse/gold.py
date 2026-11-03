@@ -9,6 +9,7 @@ from app.core.logging_config import get_logger
 from app.features.feature_engineering import build_gold_features
 from app.lakehouse.bronze import symbol_prefix
 from app.lakehouse.parquet_manager import split_by_partition
+from app.lakehouse.parallel_write import write_partitions_concurrently as _write_partitions_concurrently
 from app.lakehouse.spark_session import get_spark_session, spark_enabled
 from app.lakehouse.storage_base import StorageBackend
 from app.lakehouse.storage_factory import get_storage_backend
@@ -34,10 +35,14 @@ class GoldLayer:
         return build_gold_features(silver_frame)
 
     def write(self, gold_frame: pd.DataFrame) -> dict:
+        """Write Gold partitions for the symbols present in the frame.
+
+        The partitions are written CONCURRENTLY - a 10-year daily symbol has
+        ~121 monthly partitions, and writing them serially cost ~1.5s of
+        MinIO round-trips per symbol. See `app/lakehouse/parallel_write.py`.
+        """
         partitions = split_by_partition(gold_frame)
-        paths = []
-        for relative_path, group in partitions.items():
-            paths.append(self.storage.write_parquet(self.layer_name, relative_path, group))
+        paths = _write_partitions_concurrently(self.storage, self.layer_name, partitions)
         logger.info("Gold write complete: %s rows, %s partitions", len(gold_frame), len(paths))
         return {"paths": paths, "records": int(len(gold_frame))}
 

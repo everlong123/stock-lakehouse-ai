@@ -64,6 +64,33 @@ class YahooHttpProvider(StockDataProvider):
                    "DIG", "FCN", "HCM", "CTC", "SMT", "KSC", "VGC", "BVH", "PNVN", "EIB"}
         if symbol in vn_set:
             return f"{symbol}.VN"
+        # The hardcoded set above covers only ~58 of the ~81 HOSE/HNX/UPCoM
+        # tickers, so the rest (VCI, VJC, BMP, DGC, NLG, CTR, GVR, VCS, SZC,
+        # ...) were requested WITHOUT the .VN suffix and 404'd on Yahoo. The
+        # canonical list lives in app.core.constants.VN_SYMBOLS.
+        #
+        # The guard on GLOBAL_SYMBOLS is load-bearing. Four tickers are listed
+        # in BOTH universes with completely different companies:
+        #
+        #   FRT  - First Realty (US)   vs  FRT  (VN, Vinhomes)
+        #   NET  - Cloudflare (US)     vs  NET  (VN, Nicecom)
+        #   DBC  - Invesco DB Commodity Index ETF (US) vs DBC (VN)
+        #   HDB  - HDFC Bank ADR (US)  vs  HDB  (VN)
+        #
+        # The lakehouse keys rows by the bare ticker, so a symbol can only ever
+        # hold ONE series. For the two that already hold the US series
+        # (FRT, NET, DBC) the .VN suffix would silently swap the instrument
+        # under the same key and corrupt the history. So a symbol is only
+        # treated as Vietnamese when it is NOT part of the Yahoo-listed
+        # universe. HDB keeps its .VN mapping because it came from the
+        # hardcoded set above and Bronze already stores the VN series for it.
+        #
+        # The import is local to keep the dependency one-directional
+        # (constants.py does not import providers).
+        from app.core.constants import GLOBAL_SYMBOLS, VN_SYMBOLS
+
+        if symbol in VN_SYMBOLS and symbol not in GLOBAL_SYMBOLS:
+            return f"{symbol}.VN"
         return symbol
 
     def validate_symbol(self, symbol: str) -> bool:

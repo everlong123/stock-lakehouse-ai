@@ -1,6 +1,7 @@
 import { ArrowDown, ArrowUp, Minus } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
+import { isUsableNumber } from "@/utils/format";
 
 interface MetricCardProps {
   label: string;
@@ -96,9 +97,12 @@ export function MetricCard({ label, value, delta, hint }: MetricCardProps) {
           {trend === "up" && <ArrowUp size={10} />}
           {trend === "down" && <ArrowDown size={10} />}
           {trend === "neutral" && <Minus size={10} />}
-          {delta !== undefined && delta !== null
+          {/* A NaN or Infinity delta used to render the literal text
+              "NaN%" here: the old check only null-tested, and `NaN >= 0` is
+              false, so it skipped the "+" and printed the raw value. */}
+          {isUsableNumber(delta)
             ? `${delta >= 0 ? "+" : ""}${(delta * 100).toFixed(2)}%`
-            : "0.00%"}
+            : "—"}
         </div>
 
         {/* Hint */}

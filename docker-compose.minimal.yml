@@ -1,0 +1,37 @@
+# Minimal / low-footprint override.
+#
+# Use it with:
+#   docker compose --profile minimal -f docker-compose.yml -f docker-compose.minimal.yml up -d
+#
+# What this changes vs. the default stack:
+#   * Kafka and Iceberg-REST are not started at all (the `minimal` profile in
+#     docker-compose.yml only enables mysql + minio + backend + frontend).
+#   * The backend runs with USE_KAFKA=false, so it skips the streaming
+#     consumer and the Bronze/Silver Kafka pipeline consumer.
+#   * The background workers are switched off:
+#       - CRAWL_ENABLED=false        no continuous background fetch
+#       - AUTO_REFRESH_ENABLED=false no 958-symbol Bronze->Silver->Gold pass
+#       - WARM_LAYER_COUNTS_ON_START=false
+#                                  no ~300k-object count walk on boot
+#
+# The REST API keeps working exactly the same: every endpoint still reads the
+# existing Bronze/Silver/Gold data out of MinIO and MySQL. Only the proactive
+# background work stops, which is what makes the box feel laggy.
+#
+# Why this exists: on an idle box the original stack burned a lot of CPU for
+# work nobody was watching — the Kafka healthcheck forked a full JVM every
+# 30 seconds, and the auto-refresh pass re-fetched every symbol on boot.
+
+services:
+  backend:
+    environment:
+      USE_KAFKA: "false"
+      USE_ICEBERG: "false"
+      CRAWL_ENABLED: "false"
+      AUTO_REFRESH_ENABLED: "false"
+      WARM_LAYER_COUNTS_ON_START: "false"
+    # Kafka is not running in this profile, so don't wait for a healthy broker.
+    depends_on:
+      kafka:
+        condition: service_healthy
+        required: false

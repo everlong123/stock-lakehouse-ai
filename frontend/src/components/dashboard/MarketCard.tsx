@@ -10,7 +10,9 @@ export function MarketCard({
   updated,
 }: {
   symbol: string;
-  price: number;
+  // Nullable: the dashboard passes `null` when no usable close is available,
+  // so `formatPrice` can render "—" instead of a misleading zero.
+  price: number | null;
   source?: string;
   updated?: string;
 }) {

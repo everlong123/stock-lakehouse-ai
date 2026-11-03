@@ -27,14 +27,42 @@ function Stop-Existing {
     Get-CimInstance Win32_Process -Filter "Name='python.exe'" | Where-Object {
         $_.CommandLine -like '*uvicorn app.main*'
     } | ForEach-Object { try { Stop-Process -Id $_.ProcessId -Force -EA SilentlyContinue } catch {} }
+    # Kill the CPU-bound job worker processes too. They are spawned children
+    # of uvicorn; on Windows they do NOT always die with their parent, and an
+    # orphan keeps a handle on the shared log file, which blocks the parent's
+    # log rotation (Windows cannot rename a file that is open elsewhere) and
+    # silently drops every log record after the 5 MB mark.
+    Get-CimInstance Win32_Process -Filter "Name='python.exe'" | Where-Object {
+        $_.CommandLine -like '*multiprocessing.spawn*'
+    } | ForEach-Object { try { Stop-Process -Id $_.ProcessId -Force -EA SilentlyContinue } catch {} }
     Get-CimInstance Win32_Process -Filter "Name='node.exe'" | Where-Object {
         $_.CommandLine -match 'vite' -and $_.CommandLine -notmatch 'Cursor'
     } | ForEach-Object { try { Stop-Process -Id $_.ProcessId -Force -EA SilentlyContinue } catch {} }
     Start-Sleep -Seconds 1
 }
 
+function Get-PortOwner {
+    # Returns the name of the process listening on $Port, or $null.
+    # Used to tell "our uvicorn is up" apart from "something else already
+    # holds this port" (e.g. the backend container publishing 8000:8000).
+    param([int]$Port)
+    try {
+        $conns = Get-NetTCPConnection -LocalPort $Port -State Listen -ErrorAction SilentlyContinue
+        if (-not $conns) { return $null }
+        $names = @()
+        foreach ($c in $conns) {
+            $p = Get-Process -Id $c.OwningProcess -ErrorAction SilentlyContinue
+            if ($p) { $names += $p.ProcessName }
+        }
+        if (-not $names) { return $null }
+        return ($names | Select-Object -Unique) -join ","
+    } catch {
+        return $null
+    }
+}
+
 function Wait-Port {
-    param([int]$Port, [string]$Name, [int]$TimeoutSec = 30)
+    param([int]$Port, [string]$Name, [int]$TimeoutSec = 30, [string]$ExpectProcess = "")
     $sw = [System.Diagnostics.Stopwatch]::StartNew()
     while ($sw.Elapsed.TotalSeconds -lt $TimeoutSec) {
         $client = New-Object System.Net.Sockets.TcpClient
@@ -43,6 +71,15 @@ function Wait-Port {
             $ok = $iar.AsyncWaitHandle.WaitOne(500, $false)
             $client.Close()
             if ($ok) {
+                if ($ExpectProcess) {
+                    $owner = Get-PortOwner -Port $Port
+                    if ($owner -and $owner -notmatch $ExpectProcess) {
+                        # Something else already owns this port - almost always
+                        # a container. The local service cannot have bound it.
+                        Write-Host "  [FAIL] :$Port is held by '$owner', not $ExpectProcess" -ForegroundColor Red
+                        return $false
+                    }
+                }
                 Write-Host "  [OK] $Name listening on :$Port ($([int]$sw.Elapsed.TotalSeconds)s)" -ForegroundColor Green
                 return $true
             }
@@ -91,6 +128,107 @@ if (-not (Test-Path (Join-Path $frontend "node_modules"))) {
 
 Stop-Existing
 
+# ---- Re-enable the WSL keepalive task ----
+# `stop-all.ps1 -Wsl` disables it (the trigger fires every minute, so merely
+# stopping the task lets the next repetition re-attach and bring the VM back).
+# Docker lives inside the WSL2 distro, so without this task the distro is torn
+# down when the last wsl.exe client exits, and every container dies with it -
+# which shows up as "connect failed" on the backend and the frontend.
+$keepalive = Get-ScheduledTask -TaskName "WSL-Distro-Keepalive" -ErrorAction SilentlyContinue
+if ($keepalive -and $keepalive.State -eq "Disabled") {
+    Write-Host "[wsl] Re-enabling 'WSL-Distro-Keepalive'..." -ForegroundColor Cyan
+    Enable-ScheduledTask -TaskName "WSL-Distro-Keepalive" -ErrorAction SilentlyContinue | Out-Null
+    # Re-query: the object above still carries the old State.
+    $keepalive = Get-ScheduledTask -TaskName "WSL-Distro-Keepalive" -ErrorAction SilentlyContinue
+}
+if ($keepalive -and $keepalive.State -eq "Ready") {
+    Write-Host "[wsl] Starting 'WSL-Distro-Keepalive'..." -ForegroundColor Cyan
+    Start-ScheduledTask -TaskName "WSL-Distro-Keepalive" -ErrorAction SilentlyContinue | Out-Null
+    Start-Sleep -Seconds 2
+}
+
+# ---- Kick the daily refresh off now ----
+# The scheduled task fires at 06:00, when nothing is running yet, so it
+# always found the API down and the day was silently missed. Now that
+# backend/daily_refresh.py waits for the API to come up, the task is safe on
+# its own - but the run is much more useful right after the stack starts, so
+# the launcher triggers it here too. The task itself is Hidden and runs under
+# pythonw.exe, so nothing pops up on screen.
+$dailyRefresh = Get-ScheduledTask -TaskName "Stock-LH-DailyRefresh" -ErrorAction SilentlyContinue
+if ($dailyRefresh -and $dailyRefresh.State -ne "Running") {
+    Write-Host "[refresh] Triggering 'Stock-LH-DailyRefresh'..." -ForegroundColor Cyan
+    Start-ScheduledTask -TaskName "Stock-LH-DailyRefresh" -ErrorAction SilentlyContinue | Out-Null
+}
+
+# ---- Bring the infra containers back up ----
+# `docker compose stop` marks a container as manually stopped, so
+# `restart: unless-stopped` will NOT bring it back - only `compose up -d` does.
+# Without this step the infra (mysql/kafka/minio/iceberg-rest) stays down and
+# the backend fails to connect to MySQL.
+#
+# Named services, NOT `--profile all`: the `backend` container publishes
+# 8000:8000 and the `frontend` container 8081:80, so bringing them up steals
+# the port from the local dev uvicorn/vite that this script starts right
+# after. The symptom is subtle: `Wait-Port` sees the port already open (the
+# container owns it) and reports "[OK] Backend listening" even though the
+# local uvicorn died with "address already in use".
+#
+# `--no-deps` is REQUIRED, not just an optimisation: `stream-publisher` and
+# `vn-stream-publisher` declare `depends_on: backend` (for start ordering only
+# - the comment in docker-compose.yml says they only need Kafka + Finnhub).
+# Without --no-deps, compose pulls the backend container up as a side effect
+# and it takes :8000 away from the local dev backend.
+Write-Host "[docker] Starting infra containers..." -ForegroundColor Cyan
+$wslRoot = "/mnt/d/School/kltn/stock-lakehouse-ai"
+$composeUp = "cd $wslRoot && docker compose up -d --no-deps --wait --wait-timeout 120 mysql minio iceberg-rest kafka stream-publisher vn-stream-publisher"
+
+# Release :8000 / :8081 first in case the app containers are still up from a
+# previous session - they must not hold those ports.
+$composeDownApp = "cd $wslRoot && docker compose stop backend frontend"
+
+function Invoke-Compose {
+    param([string]$Command, [int]$TimeoutSec = 180)
+    $job = Start-Job -ScriptBlock {
+        param($d, $c)
+        $out = & wsl.exe -d $d -u root -- bash -lc $c 2>&1
+        [pscustomobject]@{ Output = @($out); ExitCode = $LASTEXITCODE }
+    } -ArgumentList "Ubuntu-24.04", $Command
+    if (Wait-Job $job -Timeout $TimeoutSec) {
+        $res = Receive-Job $job
+        Remove-Job $job -Force
+        $code = if ($res -is [array]) { $res[-1].ExitCode } else { $res.ExitCode }
+        return [pscustomobject]@{ Output = @($res | ForEach-Object { $_.Output }); ExitCode = $code }
+    }
+    Stop-Job $job -ErrorAction SilentlyContinue
+    Remove-Job $job -Force
+    return [pscustomobject]@{ Output = @(); ExitCode = -1 }
+}
+
+# Release :8000 / :8081 first in case the app containers are still up from a
+# previous session - they must not hold those ports.
+Invoke-Compose -Command $composeDownApp -TimeoutSec 60 | Out-Null
+
+$job = Start-Job -ScriptBlock {
+    param($d, $c)
+    $out = & wsl.exe -d $d -u root -- bash -lc $c 2>&1
+    [pscustomobject]@{ Output = @($out); ExitCode = $LASTEXITCODE }
+} -ArgumentList "Ubuntu-24.04", $composeUp
+if (Wait-Job $job -Timeout 180) {
+    $res = Receive-Job $job
+    Remove-Job $job -Force
+    $code = if ($res -is [array]) { $res[-1].ExitCode } else { $res.ExitCode }
+    if ($code -eq 0) {
+        Write-Host "  [OK] Infra containers up." -ForegroundColor Green
+    } else {
+        $res | ForEach-Object { $_.Output } | ForEach-Object { Write-Host "  $_" -ForegroundColor DarkGray }
+        Write-Host "  [WARN] compose up returned exit $code - continuing; the backend will report what it cannot reach." -ForegroundColor Yellow
+    }
+} else {
+    Stop-Job $job -ErrorAction SilentlyContinue
+    Remove-Job $job -Force
+    Write-Host "  [WARN] compose up timed out after 180s." -ForegroundColor Yellow
+}
+
 # ---- Start backend in its own persistent cmd window ----
 Write-Host "[1/2] Starting backend (uvicorn on :$backendPort)..." -ForegroundColor Cyan
 $backendCmd = "cd /d `"$backend`" && title Stock-LH Backend :$backendPort && `"$venvPy`" -m uvicorn app.main:app --host 127.0.0.1 --port $backendPort"
@@ -103,8 +241,8 @@ Start-Window -Title "Stock-LH-Frontend" -Command $frontendCmd
 
 Write-Host ""
 Write-Host "[wait] Waiting for services to come up..." -ForegroundColor Yellow
-$backendUp  = Wait-Port -Port $backendPort  -Name "Backend"  -TimeoutSec 30
-$frontendUp = Wait-Port -Port $frontendPort -Name "Frontend" -TimeoutSec 45
+$backendUp  = Wait-Port -Port $backendPort  -Name "Backend"  -TimeoutSec 30 -ExpectProcess "python"
+$frontendUp = Wait-Port -Port $frontendPort -Name "Frontend" -TimeoutSec 45 -ExpectProcess "node"
 
 Write-Host ""
 if ($backendUp -and $frontendUp) {

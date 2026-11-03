@@ -43,6 +43,7 @@ genuinely moved by a cent.
 
 from __future__ import annotations
 
+import numpy as np
 import pandas as pd
 
 # Relative tolerance for comparing float payloads across providers.
@@ -130,6 +131,30 @@ def _payload_matches(left: pd.Series, right: pd.Series) -> bool:
     return True
 
 
+def _payload_matches_arrays(
+    left: tuple[float, float, float, float],
+    right: tuple[float, float, float, float],
+) -> bool:
+    """Vectorised twin of :func:`_payload_matches` for plain float tuples.
+
+    The per-row version above has to build two throwaway ``pandas.Series``
+    per compared price column, which is expensive when it runs inside a
+    per-day loop over a 10-year history. Working on plain floats keeps the
+    comparison semantics identical (same columns, same NaN handling, same
+    relative tolerance) without any pandas object churn.
+    """
+    for a, b in zip(left, right):
+        a_nan = a != a  # NaN is the only value not equal to itself
+        b_nan = b != b
+        if a_nan and b_nan:
+            continue
+        if a_nan or b_nan:
+            return False
+        if abs(a - b) > REL_TOL * max(abs(b), 1.0):
+            return False
+    return True
+
+
 def find_same_bar_duplicates(frame: pd.DataFrame) -> pd.DataFrame:
     """Identify rows that are the same bar written twice under different stamps.
 
@@ -148,6 +173,24 @@ def find_same_bar_duplicates(frame: pd.DataFrame) -> pd.DataFrame:
 
     working["_day"] = trading_day(working["timestamp"])
     working["_stamp"] = session_stamp(working["timestamp"])
+
+    # FAST PATH: a frame that holds at most one row per (symbol, day) cannot
+    # contain a re-stamped bar, so there is nothing to drop.
+    #
+    # WHY: the Bronze append calls this for EVERY partition it writes, and a
+    # partition holds one month of daily bars - i.e. ~20 rows that are almost
+    # always one per day. The full algorithm below then sorts the frame,
+    # builds group codes and walks every day to discover that each group has
+    # a single member. Skipping that work outright makes the common case
+    # nearly free, and the result is identical because a group of one can
+    # never produce a duplicate.
+    if "symbol" in frame.columns:
+        group_keys = ["symbol", "_day"]
+    else:
+        group_keys = ["_day"]
+    group_sizes = working.groupby(group_keys, sort=False).size()
+    if len(group_sizes) == len(working):
+        return frame.iloc[0:0].copy()
 
     # The grouping key. `symbol` is part of the identity of a bar, so fall
     # back to a constant when the frame carries no symbol column.
@@ -189,8 +232,49 @@ def find_same_bar_duplicates(frame: pd.DataFrame) -> pd.DataFrame:
     )
 
     drop_indices: list = []
-    for (_symbol, _day), group in working.groupby(["symbol", "_day"], sort=False):
-        if len(group) < 2:
+
+    # Pull the comparison inputs out of pandas ONCE.
+    #
+    # WHY: the loop below used `group.iterrows()` plus `working.loc[kept_idx]`,
+    # so every compared pair materialised several pandas Series/BlockManagers.
+    # Profiling the Bronze append path (which calls this for every partition
+    # of every symbol on every refresh pass) showed ~38,000 pandas datetime
+    # __getitem__ calls for a single 2531-row symbol - all pure Python, all
+    # holding the GIL. That is what starved the interactive request path.
+    #
+    # The vectors below carry exactly the same information, so the comparison
+    # logic below is unchanged - it just reads numbers instead of Series.
+    #
+    # `labels` holds the ORIGINAL index labels (the caller drops rows by
+    # label), while the numeric vectors are addressed POSITIONALLY, because
+    # `working` has been re-sorted above.
+    labels = working.index.to_numpy()
+    timestamp_values = working["timestamp"].to_numpy(dtype="datetime64[ns]")
+
+    price_vectors: dict[str, np.ndarray] = {}
+    for column in PRICE_COLUMNS:
+        if column in working.columns:
+            price_vectors[column] = pd.to_numeric(
+                working[column], errors="coerce"
+            ).to_numpy(dtype=float, na_value=np.nan)
+
+    def _payload_at(position: int) -> tuple[float, float, float, float]:
+        return tuple(
+            float(price_vectors[column][position]) if column in price_vectors else float("nan")
+            for column in PRICE_COLUMNS
+        )
+
+    # Group boundaries, computed without materialising a group frame per day.
+    # `ngroup()` numbers the groups in order of appearance, so iterating the
+    # unique codes visits the days in the same order the old
+    # `groupby(..., sort=False)` did.
+    day_codes = working.groupby(group_keys, sort=False).ngroup().to_numpy()
+
+    min_gap = MIN_RE_STAMP_GAP.to_timedelta64()
+
+    for group_key in pd.unique(day_codes):
+        members = np.nonzero(day_codes == group_key)[0]
+        if members.size < 2:
             continue
 
         # Compare each candidate against the rows already accepted for this
@@ -199,19 +283,21 @@ def find_same_bar_duplicates(frame: pd.DataFrame) -> pd.DataFrame:
         # same session. The time condition is what preserves genuine intraday
         # ticks that happen to share a price.
         accepted: list[int] = []
-        for idx, row in group.iterrows():
+        for position in members:
+            payload = _payload_at(position)
+            timestamp = timestamp_values[position]
             is_dup = False
-            for kept_idx in accepted:
-                if not _payload_matches(row, working.loc[kept_idx]):
+            for kept_position in accepted:
+                if not _payload_matches_arrays(payload, _payload_at(kept_position)):
                     continue
-                gap = abs(row["timestamp"] - working.loc[kept_idx, "timestamp"])
-                if gap >= MIN_RE_STAMP_GAP:
+                gap = abs(timestamp - timestamp_values[kept_position])
+                if gap >= min_gap:
                     is_dup = True
                     break
             if is_dup:
-                drop_indices.append(idx)
+                drop_indices.append(labels[position])
             else:
-                accepted.append(idx)
+                accepted.append(position)
 
     if not drop_indices:
         return frame.iloc[0:0].copy()

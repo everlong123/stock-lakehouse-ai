@@ -68,6 +68,33 @@ class AgentError(StockLakehouseError):
         super().__init__(message, status_code=500)
 
 
+class AgentTimeoutError(AgentError):
+    """Raised when an agent request exceeds its wall-clock deadline.
+
+    Carries a 504 status so the API layer can return a proper Gateway
+    Timeout response. The frontend then shows the server's message instead of
+    its own generic "request took too long" text, which is far more useful
+    because it says what to do next.
+    """
+
+    def __init__(self, message: str) -> None:
+        super().__init__(message)
+        self.status_code = 504
+
+
+class LLMTimeoutError(AgentError):
+    """Raised when every LLM candidate model failed to answer in time.
+
+    Kept distinct from the generic :class:`AgentError` because a timeout is
+    not worth the full retry budget: the same model chain will hang again, so
+    the caller should fail over to the offline router quickly instead of
+    spending another three attempts x N candidates on the socket.
+    """
+
+    def __init__(self, message: str) -> None:
+        super().__init__(message)
+
+
 class NotFoundError(StockLakehouseError):
     """Raised when a requested resource is missing."""
 

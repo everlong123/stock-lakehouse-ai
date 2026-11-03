@@ -3,10 +3,13 @@
 from __future__ import annotations
 
 import json
+import os
 import re
+import time
 from typing import Any
 
 from app.agent.llm_client import LLMClient
+from app.agent.markdown_normalizer import normalize_markdown
 from app.agent.prompts import SYSTEM_PROMPT, PROJECT_CONTEXT
 from app.agent.tool_registry import execute_tool, openai_tools
 from app.core.constants import GLOBAL_SYMBOLS
@@ -14,6 +17,69 @@ from app.core.exceptions import AgentError, StockLakehouseError
 from app.core.logging_config import get_logger
 
 logger = get_logger(__name__)
+
+
+def _env_int(key: str, default: int) -> int:
+    """Read a positive integer from the environment, falling back to *default*."""
+    try:
+        value = int(os.getenv(key, str(default)))
+    except (TypeError, ValueError):
+        return default
+    return value if value > 0 else default
+
+
+# How many per-window rows of a walk-forward result are kept for the LLM.
+#
+# WHY: `run_walk_forward` returns one row per rolling window - 175 rows for a
+# 10-year history, which is a 53 KB JSON blob. Sending all of it to Gemini
+# costs prompt tokens and, more importantly, pushes the follow-up request
+# close to the point where the provider starts throttling. The model only
+# needs the AGGREGATE numbers to write a good answer; the per-window detail
+# is kept in the full tool trace that the UI can still display.
+#
+# The head AND the tail are kept, because the first window (the oldest data)
+# and the last window (the most recent) are the two a reader cares about.
+WALK_FORWARD_WINDOWS_SENT = 12
+
+# Total wall-clock budget for ALL the LLM calls of one agent reply.
+#
+# The agent makes up to 4 rounds, and each round can cost 35s (the per-call
+# budget in ``app.agent.llm_client``), so without a shared cap a provider
+# hiccup could spend 140s - well past the server's 75s deadline, which the
+# browser turns into "Yêu cầu mất quá lâu (>90s)".
+#
+# 45s leaves room for the tool execution (a walk-forward in a child process
+# takes ~2s) inside the 75s deadline, and still gives the model enough room
+# to answer after a slow first round.
+LLM_TOTAL_BUDGET_SECONDS = float(os.getenv("AGENT_LLM_BUDGET_SECONDS", "45"))
+
+
+def _trim_tool_result(tool_name: str, result: Any) -> Any:
+    """Shrink an oversized tool result before it is sent to the LLM.
+
+    Only the LLM-facing copy is trimmed. The result stored in the tool trace
+    (and returned to the UI) is left untouched, so no data is lost - the
+    model simply receives a summary plus a representative sample.
+    """
+    if tool_name != "run_walk_forward" or not isinstance(result, dict):
+        return result
+    windows = result.get("windows")
+    if not isinstance(windows, list) or len(windows) <= WALK_FORWARD_WINDOWS_SENT * 2:
+        return result
+
+    head = windows[:WALK_FORWARD_WINDOWS_SENT]
+    tail = windows[-WALK_FORWARD_WINDOWS_SENT:]
+    trimmed = dict(result)
+    trimmed["windows"] = head + tail
+    trimmed["windows_truncated"] = {
+        "total": len(windows),
+        "shown": len(head) + len(tail),
+        "note": (
+            f"Only the first {len(head)} and last {len(tail)} of {len(windows)} "
+            "windows are shown. The aggregate summary above covers ALL of them."
+        ),
+    }
+    return trimmed
 
 
 class StockAnalysisAgent:
@@ -35,26 +101,72 @@ class StockAnalysisAgent:
             {"role": "system", "content": SYSTEM_PROMPT},
             {"role": "user", "content": user_message},
         ]
-        first = self.llm.chat(messages, openai_tools())
         tool_trace: list[dict[str, Any]] = []
-        if first.get("tool_calls"):
+        content = ""
+
+        # ── MULTI-ROUND TOOL LOOP ────────────────────────────────────────────
+        # The original implementation made exactly TWO LLM calls: one to pick
+        # tools, one to summarise the results. Gemini frequently wants a
+        # SECOND tool call (e.g. `get_market_summary` + `calculate_indicators`
+        # + `run_backtest` for one question), so the second round came back
+        # with another tool request and NO text. The agent then fell back to a
+        # one-line template like "Chỉ báo kỹ thuật: RSI=..., SMA20=..." -
+        # technically an answer, but a degraded one that ignored most of the
+        # question, and it burned a full extra LLM round-trip doing it.
+        #
+        # The loop below keeps going while the model asks for tools, up to a
+        # bounded number of rounds, and only synthesises the template answer
+        # when the model genuinely stops producing text.
+        #
+        # The rounds also share ONE wall-clock budget. Each ``chat()`` call
+        # has its own budget (35s), and with up to 4 rounds that could add up
+        # to 140s - past the agent's 75s deadline. The shared budget stops the
+        # loop from starting a round that cannot possibly finish in time.
+        max_rounds = _env_int("AGENT_MAX_TOOL_ROUNDS", 4)
+        llm_deadline = time.monotonic() + LLM_TOTAL_BUDGET_SECONDS
+        for round_index in range(max_rounds):
+            remaining = llm_deadline - time.monotonic()
+            if remaining <= 0:
+                logger.warning(
+                    "Agent LLM budget of %.0fs exhausted before round %d; "
+                    "answering with what we have.",
+                    LLM_TOTAL_BUDGET_SECONDS,
+                    round_index + 1,
+                )
+                break
+            _round_t0 = time.monotonic()
+            response = self.llm.chat(messages, openai_tools(), deadline=llm_deadline)
+            calls = response.get("tool_calls") or []
+            text = (response.get("content") or "").strip()
+            logger.info(
+                "Agent round %d: llm took %.1fs, %d tool call(s), %d prompt bytes",
+                round_index + 1,
+                time.monotonic() - _round_t0,
+                len(calls),
+                sum(len(json.dumps(m, default=str)) for m in messages),
+            )
+            if not calls:
+                content = text
+                break
+
             messages.append(
                 {
                     "role": "assistant",
-                    "content": first.get("content") or "",
+                    "content": response.get("content") or "",
                     "tool_calls": [
                         {
                             "id": call["id"],
                             "type": "function",
                             "function": {"name": call["name"], "arguments": call["arguments"]},
                         }
-                        for call in first["tool_calls"]
+                        for call in calls
                     ],
                     # Preserve Gemini 3.x thought_signature on round-trip.
-                    "raw_parts": first.get("raw_parts"),
+                    "raw_parts": response.get("raw_parts"),
                 }
             )
-            for call in first["tool_calls"]:
+            for call in calls:
+                _tool_t0 = time.monotonic()
                 try:
                     args = json.loads(call["arguments"] or "{}")
                     if "symbol" in args:
@@ -71,6 +183,12 @@ class StockAnalysisAgent:
                     result = {"error": exc.message}
                     error = exc.message
                     args = {}
+                logger.info(
+                    "Agent tool %s took %.1fs, payload %.1fKB",
+                    call["name"],
+                    time.monotonic() - _tool_t0,
+                    len(json.dumps(result, default=str)) / 1024,
+                )
                 tool_trace.append(
                     {"tool_name": call["name"], "tool_arguments": args, "tool_result": result, "error": error}
                 )
@@ -79,86 +197,86 @@ class StockAnalysisAgent:
                         "role": "tool",
                         "tool_call_id": call["id"],
                         "name": call["name"],
-                        "content": json.dumps(result, default=str),
+                        "content": json.dumps(_trim_tool_result(call["name"], result), default=str),
                     }
                 )
-            second = self.llm.chat(messages, openai_tools())
-            if second and second.get("content"):
-                content = second["content"]
+
+            # The model may have produced text ALONGSIDE its tool calls
+            # (Gemini does that often). Keep it as a fallback in case the
+            # next round returns nothing.
+            if text and not content:
+                content = text
+
+        if not content:
+            # Model didn't produce text after seeing tool results.
+            # Synthesise a brief answer from the tool traces instead of
+            # failing silently.
+            tool_names = [t["tool_name"] for t in tool_trace]
+            if "forecast_stock" in tool_names:
+                ft = next(t for t in tool_trace if t["tool_name"] == "forecast_stock")
+                r = ft.get("tool_result") or {}
+                metrics = r.get("metrics") or {}
+                result_symbol = r.get("symbol") or default_symbol or "AAPL"
+                model_name = r.get("model_name") or "model"
+                content = (
+                    f"Dự báo **{model_name}** cho **{result_symbol}**: "
+                    f"MAE={metrics.get('mae', 'N/A')}, RMSE={metrics.get('rmse', 'N/A')}, "
+                    f"MAPE={metrics.get('mape', 'N/A')}%, "
+                    f"Directional Accuracy={metrics.get('directional_accuracy', 'N/A')}%. "
+                    f"{r.get('disclaimer', '')}"
+                )
+            elif "run_backtest" in tool_names:
+                bt = next(t for t in tool_trace if t["tool_name"] == "run_backtest")
+                r = bt.get("tool_result") or {}
+                result_symbol = r.get("symbol") or default_symbol or "AAPL"
+                content = (
+                    f"Backtest **{r.get('strategy', 'strategy')}** cho **{result_symbol}**: "
+                    f"Total Return={r.get('total_return', 0):.2%}, "
+                    f"Win Rate={r.get('win_rate', 0):.2%}, Sharpe={r.get('sharpe_ratio', 0):.2f}, "
+                    f"Max Drawdown={r.get('maximum_drawdown', 0):.2%}, "
+                    f"Trades={r.get('number_of_trades', 0)}. "
+                    f"{r.get('disclaimer', '')}"
+                )
+            elif "calculate_indicators" in tool_names:
+                ci = next(t for t in tool_trace if t["tool_name"] == "calculate_indicators")
+                r = ci.get("tool_result") or {}
+                content = (
+                    f"Chỉ báo kỹ thuật: "
+                    f"RSI={r.get('rsi')}, MACD={r.get('macd')}, "
+                    f"SMA20={r.get('sma_20')}, SMA50={r.get('sma_50')}, "
+                    f"EMA12={r.get('ema_12')}, EMA26={r.get('ema_26')}. "
+                    f"{r.get('summary', {}).get('trend', '')}"
+                )
+            elif "compare_models" in tool_names:
+                cm = next(t for t in tool_trace if t["tool_name"] == "compare_models")
+                r = cm.get("tool_result") or {}
+                lines = [f"So sánh model cho **{r.get('symbol', default_symbol or 'AAPL')}**:"]
+                for item in r.get("models") or []:
+                    lines.append(
+                        f"- {item.get('model_name')}: MAE={item.get('mae')}, "
+                        f"RMSE={item.get('rmse')}, MAPE={item.get('mape')}%, "
+                        f"DA={item.get('directional_accuracy')}%"
+                    )
+                if not r.get("models"):
+                    lines.append("Chưa có mô hình nào được train cho symbol này.")
+                content = "\n".join(lines)
+            elif "query_stock_data" in tool_names or "get_market_summary" in tool_names:
+                qs = next((t for t in tool_trace if t["tool_name"] in ("query_stock_data", "get_market_summary")), None)
+                r = qs.get("tool_result") or {}
+                content = (
+                    f"**{r.get('symbol', default_symbol or 'AAPL')}**: "
+                    f"Close={r.get('last_close') or r.get('close')}, "
+                    f"Change={r.get('change_pct', 0):.2%}, "
+                    f"Volume={r.get('volume', 0):,.0f}."
+                )
+            elif tool_trace:
+                content = f"Đã chạy tool thành công: {', '.join(tool_names)}."
             else:
-                # Model didn't produce text after seeing tool results.
-                # Synthesise a brief answer from the tool traces instead of
-                # failing silently.
-                tool_names = [t["tool_name"] for t in tool_trace]
-                if "forecast_stock" in tool_names:
-                    ft = next(t for t in tool_trace if t["tool_name"] == "forecast_stock")
-                    r = ft.get("tool_result") or {}
-                    metrics = r.get("metrics") or {}
-                    result_symbol = r.get("symbol") or default_symbol or "AAPL"
-                    model_name = r.get("model_name") or "model"
-                    content = (
-                        f"Dự báo **{model_name}** cho **{result_symbol}**: "
-                        f"MAE={metrics.get('mae', 'N/A')}, RMSE={metrics.get('rmse', 'N/A')}, "
-                        f"MAPE={metrics.get('mape', 'N/A')}%, "
-                        f"Directional Accuracy={metrics.get('directional_accuracy', 'N/A')}%. "
-                        f"{r.get('disclaimer', '')}"
-                    )
-                elif "run_backtest" in tool_names:
-                    bt = next(t for t in tool_trace if t["tool_name"] == "run_backtest")
-                    r = bt.get("tool_result") or {}
-                    result_symbol = r.get("symbol") or default_symbol or "AAPL"
-                    content = (
-                        f"Backtest **{r.get('strategy', 'strategy')}** cho **{result_symbol}**: "
-                        f"Total Return={r.get('total_return', 0):.2%}, "
-                        f"Win Rate={r.get('win_rate', 0):.2%}, Sharpe={r.get('sharpe_ratio', 0):.2f}, "
-                        f"Max Drawdown={r.get('maximum_drawdown', 0):.2%}, "
-                        f"Trades={r.get('number_of_trades', 0)}. "
-                        f"{r.get('disclaimer', '')}"
-                    )
-                elif "calculate_indicators" in tool_names:
-                    ci = next(t for t in tool_trace if t["tool_name"] == "calculate_indicators")
-                    r = ci.get("tool_result") or {}
-                    content = (
-                        f"Chỉ báo kỹ thuật: "
-                        f"RSI={r.get('rsi')}, MACD={r.get('macd')}, "
-                        f"SMA20={r.get('sma_20')}, SMA50={r.get('sma_50')}, "
-                        f"EMA12={r.get('ema_12')}, EMA26={r.get('ema_26')}. "
-                        f"{r.get('summary', {}).get('trend', '')}"
-                    )
-                elif "compare_models" in tool_names:
-                    cm = next(t for t in tool_trace if t["tool_name"] == "compare_models")
-                    r = cm.get("tool_result") or {}
-                    lines = [f"So sánh model cho **{r.get('symbol', default_symbol or 'AAPL')}**:"]
-                    for item in r.get("models") or []:
-                        lines.append(
-                            f"- {item.get('model_name')}: MAE={item.get('mae')}, "
-                            f"RMSE={item.get('rmse')}, MAPE={item.get('mape')}%, "
-                            f"DA={item.get('directional_accuracy')}%"
-                        )
-                    if not r.get("models"):
-                        lines.append("Chưa có mô hình nào được train cho symbol này.")
-                    content = "\n".join(lines)
-                elif "query_stock_data" in tool_names or "get_market_summary" in tool_names:
-                    qs = next((t for t in tool_trace if t["tool_name"] in ("query_stock_data", "get_market_summary")), None)
-                    r = qs.get("tool_result") or {}
-                    content = (
-                        f"**{r.get('symbol', default_symbol or 'AAPL')}**: "
-                        f"Close={r.get('last_close') or r.get('close')}, "
-                        f"Change={r.get('change_pct', 0):.2%}, "
-                        f"Volume={r.get('volume', 0):,.0f}."
-                    )
-                elif tool_trace:
-                    content = f"Đã chạy tool thành công: {', '.join(tool_names)}."
-                else:
-                    content = "Không có dữ liệu trả về."
-        else:
-            content = first.get("content") or ""
-            if not content:
-                raise AgentError("LLM returned an empty response.")
+                content = "Không có dữ liệu trả về."
         # Heuristic follow-ups: the LLM path can't cheaply ask the LLM
         # "give me 3 follow-ups", so we mirror the offline path's logic.
         return {
-            "assistant_message": content,
+            "assistant_message": normalize_markdown(content),
             "tools": tool_trace,
             "suggested_questions": _follow_up_suggestions(
                 default_symbol or "AAPL",

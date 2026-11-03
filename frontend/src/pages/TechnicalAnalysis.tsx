@@ -14,6 +14,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useMarket } from "@/hooks/useMarket";
+import { toFinite } from "@/utils/format";
 
 const DEFAULT_SYMBOLS = [
   "AAPL", "MSFT", "GOOGL", "AMZN", "NVDA", "META", "TSLA", "AMD", "JPM", "V",
@@ -65,10 +66,13 @@ export function TechnicalAnalysisPage() {
 
   const summary = (query.data?.summary as Record<string, string>) || {};
 
+  // Scan back for the newest usable RSI. `toFinite` is used instead of a bare
+  // `Number.isNaN` check so a string-typed value ("N/A", "") is handled too,
+  // and Infinity can't slip through and blow up the >70 / <30 comparison.
   const latestRSI = (() => {
     for (let i = series.length - 1; i >= 0; i--) {
-      const v = series[i].rsi_14;
-      if (typeof v === "number" && !Number.isNaN(v)) return v;
+      const v = toFinite(series[i].rsi_14);
+      if (v !== undefined) return v;
     }
     return null;
   })();
@@ -119,12 +123,12 @@ export function TechnicalAnalysisPage() {
           <PriceChart
             data={series.map((row) => ({
               timestamp: String(row.timestamp),
-              close: Number(row.close),
-              sma_20: row.sma_20 == null ? undefined : Number(row.sma_20),
-              sma_50: row.sma_50 == null ? undefined : Number(row.sma_50),
-              ema_12: row.ema_12 == null ? undefined : Number(row.ema_12),
-              bb_upper: row.bb_upper == null ? undefined : Number(row.bb_upper),
-              bb_lower: row.bb_lower == null ? undefined : Number(row.bb_lower),
+              close: toFinite(row.close) ?? 0,
+              sma_20: toFinite(row.sma_20),
+              sma_50: toFinite(row.sma_50),
+              ema_12: toFinite(row.ema_12),
+              bb_upper: toFinite(row.bb_upper),
+              bb_lower: toFinite(row.bb_lower),
             }))}
           />
         </div>

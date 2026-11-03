@@ -30,14 +30,14 @@ US_SYMBOLS: list[str] = [
     "AG",
     "AGG",
     "AJG",
-    "AKRO",
+    # AKRO (Akorn) went private in 2023 - no successor ticker.
     "ALB",
     "ALK",
     "ALL",
     "ALLE",
     "ALLY",
-    "ALTM",
-    "ALXN",
+    # ALXN (Alexion) was acquired by AstraZeneca in 2021 -> AZN.
+    "AZN",
     "AMAT",
     "AMD",
     "AMGN",
@@ -61,13 +61,11 @@ US_SYMBOLS: list[str] = [
     "ARVN",
     "ASML",
     "ATO",
-    "ATSG",
-    "ATVI",
+    # ATSG (Applied Signal Technology / ATS Corp) went private - no successor.
     "AU",
     "AVA",
     "AVB",
     "AVGO",
-    "AVTE",
     "AWK",
     "AWR",
     "AXP",
@@ -91,13 +89,12 @@ US_SYMBOLS: list[str] = [
     "BITQ",
     "BITX",
     "BJRI",
-    "BK",
+    "BNY",
     "BKH",
     "BKNG",
     "BLDR",
     "BLK",
     "BLMN",
-    "BLUE",
     "BMRN",
     "BND",
     "BNDX",
@@ -120,7 +117,6 @@ US_SYMBOLS: list[str] = [
     "CCEP",
     "CCI",
     "CCJ",
-    "CCRN",
     "CDE",
     "CDNS",
     "CELH",
@@ -128,13 +124,13 @@ US_SYMBOLS: list[str] = [
     "CFG",
     "CHD",
     "CHE",
-    "CHK",
+    # CHK -> EXE: Chesapeake Energy renamed to Expand Energy Corp in 2024.
+    "EXE",
     "CHRW",
     "CHTR",
     "CINF",
     "CL",
     "CLH",
-    "CMA",
     "CMCSA",
     "CME",
     "CMG",
@@ -148,7 +144,6 @@ US_SYMBOLS: list[str] = [
     "COST",
     "CPB",
     "CPRI",
-    "CPRX",
     "CPT",
     "CRM",
     "CRSP",
@@ -156,20 +151,17 @@ US_SYMBOLS: list[str] = [
     "CSCO",
     "CSX",
     "CTO",
-    "CTRA",
     "CUZ",
     "CVX",
     "CWT",
     "D",
     "DAL",
     "DASH",
-    "DAWN",
     "DD",
     "DDOG",
     "DE",
     "DEI",
     "DELL",
-    "DENN",
     "DG",
     "DGX",
     "DHR",
@@ -220,7 +212,6 @@ US_SYMBOLS: list[str] = [
     "EXEL",
     "EXP",
     "EXPE",
-    "EXPR",
     "EXR",
     "F",
     "FAF",
@@ -236,7 +227,6 @@ US_SYMBOLS: list[str] = [
     "FNF",
     "FNKO",
     "FNV",
-    "FOLD",
     "FORM",
     "FOX",
     "FOXA",
@@ -267,7 +257,6 @@ US_SYMBOLS: list[str] = [
     "HIG",
     "HIW",
     "HL",
-    "HOLX",
     "HON",
     "HPE",
     "HPQ",
@@ -291,7 +280,8 @@ US_SYMBOLS: list[str] = [
     "INTC",
     "INTU",
     "IOVA",
-    "IPG",
+    # IPG -> OMC: Interpublic Group was acquired by Omnicom in 2025.
+    "OMC",
     "IR",
     "IRON",
     "ISRG",
@@ -309,7 +299,6 @@ US_SYMBOLS: list[str] = [
     "KHC",
     "KIM",
     "KLAC",
-    "KLG",
     "KMI",
     "KMX",
     "KNX",
@@ -330,7 +319,6 @@ US_SYMBOLS: list[str] = [
     "LOW",
     "LQD",
     "LRCX",
-    "LTHM",
     "LUV",
     "LYFT",
     "LYV",
@@ -427,18 +415,17 @@ US_SYMBOLS: list[str] = [
     "PBR",
     "PCAR",
     "PCG",
-    "PEAK",
+    # PEAK -> DOC: Healthpeak Properties changed its NYSE ticker to DOC.
+    "DOC",
     "PEG",
     "PEP",
     "PFE",
     "PFGC",
     "PG",
     "PGR",
-    "PGRE",
     "PH",
     "PINS",
     "PLD",
-    "PLL",
     "PLTR",
     "PM",
     "PNC",
@@ -525,12 +512,10 @@ US_SYMBOLS: list[str] = [
     "SYY",
     "T",
     "TARS",
-    "TCO",
     "TDG",
     "TDY",
     "TEAM",
     "TFC",
-    "TGNA",
     "TGT",
     "TGTX",
     "TIP",
@@ -596,8 +581,7 @@ US_SYMBOLS: list[str] = [
     "VWO",
     "VZ",
     "WAT",
-    "WBA",
-    "WBD",
+    # WBD (Warner Bros Discovery) stopped trading after 2026-10-05.
     "WCN",
     "WDAY",
     "WEC",
@@ -635,8 +619,10 @@ US_SYMBOLS: list[str] = [
 # Mix: US large/mid-cap, EU blue-chips, Japan/HK/China ADRs, EM, sectors ETFs.
 GLOBAL_SYMBOLS: list[str] = list(US_SYMBOLS) + [
     # ── Europe (Germany) ───────────────────────────────────────────────
+    # HEIA.DE -> HEIA.AS: Heineken's primary listing is Euronext Amsterdam.
+    # The .DE suffix 404s on Yahoo; .AS returns the same series in EUR.
     "ADS.DE", "ALV.DE", "BAS.DE", "BAYN.DE", "BMW.DE", "BNR.DE", "CON.DE",
-    "DB1.DE", "DBK.DE", "DHL.DE", "DTE.DE", "EOAN.DE", "FRE.DE", "HEIA.DE",
+    "DB1.DE", "DBK.DE", "DHL.DE", "DTE.DE", "EOAN.DE", "FRE.DE", "HEIA.AS",
     "HEN3.DE", "IFX.DE", "LIN.DE", "MBG.DE", "MRK.DE", "MTX.DE", "MUV2.DE",
     "P911.DE", "PAH3.DE", "QIA.DE", "RWE.DE", "SAP.DE", "SIE.DE", "VOW3.DE",
     "VNA.DE", "ZAL.DE",
@@ -645,27 +631,29 @@ GLOBAL_SYMBOLS: list[str] = list(US_SYMBOLS) + [
     "AI.PA", "AIR.PA", "BNP.PA", "BN.PA", "CA.PA", "CAP.PA", "CS.PA",
     "DG.PA", "EL.PA", "ENGI.PA", "EN.PA", "GLE.PA", "HO.PA", "MC.PA",
     "ML.PA", "OR.PA", "PUB.PA", "RNO.PA", "SAF.PA", "SAN.PA", "SGO.PA",
-    "STLA.PA", "SU.PA", "TTE.PA", "VIE.PA", "VIV.PA",
-
+    "STLAM.MI", "SU.PA", "TTE.PA", "VIE.PA", "VIV.PA",
     # ── Europe (UK / Netherlands / Spain / Italy / Switzerland) ───────
+    # PRTY.L (Party People) has no Yahoo listing; ROG.SW (Roche) trades as
+    # RO.SW on the SIX Swiss Exchange.
     "SHEL.L", "AZN.L", "HSBA.L", "BP.L", "ULVR.L", "DGE.L", "GSK.L",
     "RIO.L", "BARC.L", "LSEG.L", "LLOY.L", "NG.L", "REL.L", "TSCO.L",
-    "VOD.L", "PRTY.L", "ASML.AS", "AD.AS", "INGA.AS", "PHIA.AS", "UNA.AS",
+    "VOD.L", "ASML.AS", "AD.AS", "INGA.AS", "PHIA.AS", "UNA.AS",
     "SAN.MC", "IBE.MC", "ITX.MC", "TEF.MC", "ENI.MI", "ISP.MI", "ENEL.MI",
-    "RACE.MI", "NESN.SW", "NOVN.SW", "ROG.SW", "UBSG.SW", "ABBN.SW",
+    "RACE.MI", "NESN.SW", "NOVN.SW", "RO.SW", "UBSG.SW", "ABBN.SW",
 
     # ── Japan (Yahoo uses .T suffix) ───────────────────────────────────
     "7203.T", "6758.T", "9984.T", "8306.T", "6861.T", "7974.T", "9433.T",
     "8035.T", "4063.T", "6501.T", "7267.T", "7751.T", "6902.T", "6367.T",
     "7741.T", "4502.T", "4503.T", "2802.T", "2914.T", "3407.T", "4452.T",
     "9020.T", "9022.T", "6098.T", "4661.T", "6954.T", "6981.T", "6594.T",
-    "9432.T", "9434.T", "4689.T", "9613.T", "3659.T", "9983.T", "3382.T",
+    "9432.T", "9434.T", "4689.T", "3659.T", "9983.T", "3382.T",
     "8411.T", "8316.T", "6752.T", "7269.T", "8801.T",
 
     # ── Hong Kong ──────────────────────────────────────────────────────
+    # 823.HK -> 0823.HK: Link REIT's ticker is zero-padded on Yahoo.
     "0700.HK", "9988.HK", "3690.HK", "9618.HK", "1810.HK", "0941.HK",
     "1299.HK", "0005.HK", "0001.HK", "0016.HK", "0027.HK", "0066.HK",
-    "0388.HK", "1398.HK", "0939.HK", "3988.HK", "2628.HK", "823.HK",
+    "0388.HK", "1398.HK", "0939.HK", "3988.HK", "2628.HK", "0823.HK",
     "2388.HK", "0023.HK",
 
     # ── China (ADRs) ───────────────────────────────────────────────────
@@ -674,10 +662,15 @@ GLOBAL_SYMBOLS: list[str] = list(US_SYMBOLS) + [
     "ACH", "YMM", "NOAH",
 
     # ── India (ADRs) ───────────────────────────────────────────────────
-    "INFY", "WIT", "IBN", "HDB", "RDY", "TTM", "SIFY", "MMYT",
+    # TTM -> TTMI: "TTM" is TTM Technologies, but the bare ticker collided
+    # with the old TTM Technologies ADR and now 404s on Yahoo. TTMI is the
+    # live NYSE listing.
+    "INFY", "WIT", "IBN", "HDB", "RDY", "TTMI", "SIFY", "MMYT",
 
     # ── Brazil / LatAm (ADRs) ──────────────────────────────────────────
-    "VALE", "ITUB", "BBD", "PBR", "ABV", "ERJ", "GOL", "BSBR", "SBSA",
+    # ABV -> ABBV (AbbVie), ERJ -> EMBJ (Embraer): both ADRs were retired.
+    # GOL (Gol Linhas) and SBSA (Santos Brasil) have no Yahoo listing left.
+    "VALE", "ITUB", "BBD", "PBR", "ABBV", "EMBJ", "BSBR",
     "UGP", "LMT", "STNE",
 
     # ── Canada ──────────────────────────────────────────────────────────
@@ -686,9 +679,11 @@ GLOBAL_SYMBOLS: list[str] = list(US_SYMBOLS) + [
     "GOLD", "TRI.TO", "WCN.TO", "QSR.TO", "MG.TO",
 
     # ── Australia ──────────────────────────────────────────────────────
+    # NCM.AX -> NCMI (National CineMedia moved to NYSE only),
+    # WPL.AX -> WDS.AX (Woodside Petroleum renamed to Woodside Energy).
     "BHP.AX", "CBA.AX", "CSL.AX", "NAB.AX", "WBC.AX", "ANZ.AX", "WES.AX",
     "MQG.AX", "FMG.AX", "TLS.AX", "WOW.AX", "COL.AX", "IAG.AX", "JHX.AX",
-    "STO.AX", "NCM.AX", "WPL.AX", "RIO.AX", "TWE.AX", "REA.AX",
+    "STO.AX", "NCMI", "WDS.AX", "RIO.AX", "TWE.AX", "REA.AX",
 
     # ── South Korea (Yahoo .KS suffix) ──────────────────────────────────
     "005930.KS", "000660.KS", "035420.KS", "051910.KS", "005380.KS",

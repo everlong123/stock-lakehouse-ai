@@ -55,10 +55,14 @@ def count_objects(client: Minio, bucket: str, prefix: str = "") -> int:
     return sum(1 for _ in client.list_objects(bucket, prefix=prefix, recursive=True))
 
 
-def bucket_symbols(client: Minio, bucket: str) -> set[str]:
-    """Return the set of symbols present under ``symbol=`` in a bucket."""
+def symbols_from(objects: Iterable[object]) -> set[str]:
+    """Derive the symbol set from objects already fetched by the caller.
+
+    Do not call this in a loop over a second full listing: MinIO pages at 1000
+    keys per request, so re-listing ~105k objects roughly doubles the runtime.
+    """
     symbols: set[str] = set()
-    for obj in client.list_objects(bucket, recursive=True):
+    for obj in objects:
         head = obj.object_name.split("/", 1)[0]
         if head.startswith("symbol="):
             symbols.add(head.split("=", 1)[1])
@@ -73,7 +77,7 @@ def summarize(client: Minio, buckets: Iterable[str]) -> tuple[int, int, set[str]
     for bucket in buckets:
         objects = list(client.list_objects(bucket, recursive=True))
         size = sum(o.size or 0 for o in objects)
-        symbols = bucket_symbols(client, bucket)
+        symbols = symbols_from(objects)
         total_bytes += size
         all_symbols |= symbols
         print(
