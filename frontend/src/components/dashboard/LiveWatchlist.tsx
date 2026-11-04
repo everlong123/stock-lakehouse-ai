@@ -18,7 +18,7 @@ import { Loading } from "@/components/common/Loading";
 import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMarket } from "@/hooks/useMarket";
-import { formatPrice } from "@/utils/format";
+import { formatPrice, currencyForSymbol } from "@/utils/format";
 
 interface MultiLatestPayload {
   bars: Record<string, StreamBar>;
@@ -94,7 +94,7 @@ function MiniTile({ symbol, bar }: { symbol: string; bar: StreamBar | undefined 
       </div>
       {bar ? (
         <div className="font-mono text-[13px] font-bold tabular-nums text-slate-900">
-          {isVn ? `${(bar.close / 1000).toFixed(1)}K` : formatPrice(bar.close)}
+          {isVn ? `${(bar.close / 1000).toFixed(1)}K` : formatPrice(bar.close, currencyForSymbol(symbol))}
         </div>
       ) : (
         <div className="h-4" />

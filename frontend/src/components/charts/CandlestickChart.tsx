@@ -5,6 +5,13 @@ import { isUsableNumber, formatPrice, formatVolume, shortDate, tradingDay } from
 interface CandleProps {
   points: OHLCVPoint[];
   height?: number;
+  /**
+   * ISO currency of the quoted prices.
+   *
+   * WHY: the lakehouse stores unitless prices, and the tooltip labels them.
+   * Without this the chart would say "245.30 ₫" for a US dollar stock.
+   */
+  currency?: string | null;
 }
 
 interface HoverInfo {
@@ -24,7 +31,7 @@ interface HoverInfo {
 /** A bar whose four prices are all finite numbers — safe to draw. */
 type ValidBar = OHLCVPoint & { open: number; high: number; low: number; close: number };
 
-export function CandlestickChart({ points, height = 320 }: CandleProps) {
+export function CandlestickChart({ points, height = 320, currency }: CandleProps) {
   const [hover, setHover] = useState<HoverInfo | null>(null);
 
   // Drop bars whose prices aren't finite, and de-duplicate by symbol+timestamp,
@@ -244,10 +251,10 @@ export function CandlestickChart({ points, height = 320 }: CandleProps) {
           <div className="mb-1 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
             {shortDate(active.timestamp)}
           </div>
-          <OHLCVRow label="O" value={active.open} />
-          <OHLCVRow label="H" value={active.high} tone="up" />
-          <OHLCVRow label="L" value={active.low} tone="down" />
-          <OHLCVRow label="C" value={active.close} strong />
+          <OHLCVRow label="O" value={active.open} currency={currency} />
+          <OHLCVRow label="H" value={active.high} tone="up" currency={currency} />
+          <OHLCVRow label="L" value={active.low} tone="down" currency={currency} />
+          <OHLCVRow label="C" value={active.close} strong currency={currency} />
           <div className="mt-1 flex justify-between border-t border-border pt-1 font-mono text-muted-foreground">
             <span>Vol</span>
             <span>{formatVolume(active.volume)}</span>
@@ -274,11 +281,13 @@ function OHLCVRow({
   value,
   tone,
   strong,
+  currency,
 }: {
   label: string;
   value: number | null;
   tone?: "up" | "down";
   strong?: boolean;
+  currency?: string | null;
 }) {
   return (
     <div className="flex items-center justify-between gap-3 font-mono">
@@ -294,7 +303,7 @@ function OHLCVRow({
             : "text-foreground"
         }
       >
-        {formatPrice(value)}
+        {formatPrice(value, currency)}
       </span>
     </div>
   );

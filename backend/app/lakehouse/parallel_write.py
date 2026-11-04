@@ -26,6 +26,8 @@ from typing import Mapping
 
 import pandas as pd
 
+from app.core.exceptions import StorageError
+
 # How many partitions to write in parallel. MinIO is a single node on local
 # disk, so this is high enough to hide the round-trip latency without
 # saturating the server.
@@ -48,10 +50,29 @@ def write_partitions_concurrently(
 ) -> list[str]:
     """Write every partition concurrently and return the storage paths.
 
-    A single partition that fails does NOT abort the write: the error is
-    logged and that partition is skipped, so one corrupt object cannot leave
-    a symbol half-written. The failed partition is still reported to the
-    caller through the log, matching the behaviour of the read path.
+    WHY A FAILED PARTITION IS NOW FATAL
+    ----------------------------------
+    This function used to log a warning and continue when a partition could
+    not be written, on the theory that "one bad object cannot leave a symbol
+    half-written". But the opposite was true, and it was silent:
+
+        A MinIO connection reset (which happens routinely while the
+        auto-refresh pass is loading the same instance) failed 110 of VCB's
+        202 Silver partitions. The write reported success, the quality
+        report said "record_count: 4080, error_count: 0, quality_status:
+        passed", and the Silver layer was left holding 92 partitions and
+        1,853 of its 4,080 rows. Nothing anywhere said "you are missing
+        2,227 rows".
+
+    A partially written symbol is WORSE than an unwritten one, because the
+    reader cannot tell the difference: it gets a plausible, correctly
+    priced, shorter history with no indication that the rest is missing.
+    The chart simply shows less, and the user has no way to know the
+    history is truncated.
+
+    So a failed partition now aborts the write with an error that names
+    the partitions that did not land. The caller can retry; the symbol
+    keeps its previous complete state rather than becoming a partial one.
     """
     if not partitions:
         return []
@@ -59,6 +80,7 @@ def write_partitions_concurrently(
     paths: list[str] = []
     items = list(partitions.items())
     workers = max(1, min(max_workers, len(items)))
+    failures: list[tuple[str, Exception]] = []
 
     with ThreadPoolExecutor(max_workers=workers) as pool:
         futures = {
@@ -69,10 +91,16 @@ def write_partitions_concurrently(
             relative_path = futures[future]
             try:
                 paths.append(future.result())
-            except Exception as exc:  # noqa: BLE001 - one bad partition must not kill the write
-                from app.core.logging_config import get_logger
+            except Exception as exc:  # noqa: BLE001 - collected and raised below
+                failures.append((relative_path, exc))
 
-                get_logger(__name__).warning(
-                    "Failed to write partition %s to %s: %s", relative_path, layer, exc
-                )
+    if failures:
+        detail = "; ".join(f"{path}: {exc}" for path, exc in failures[:5])
+        more = f" (+{len(failures) - 5} more)" if len(failures) > 5 else ""
+        raise StorageError(
+            f"Failed to write {len(failures)} of {len(items)} {layer} partitions: "
+            f"{detail}{more}. The layer was NOT updated for the partitions that "
+            f"failed - re-run the transform to retry."
+        )
+
     return paths

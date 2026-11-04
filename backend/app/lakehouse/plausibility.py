@@ -56,7 +56,28 @@ MAX_FUTURE_SKEW = pd.Timedelta(minutes=10)
 
 #: A price this small cannot be a real equity or VN share. VCB trades near
 #: 56,000 VND; the corrupt row carried 56.9.
+#:
+#: WHY THIS IS NOT ABSOLUTE
+#: -----------------------
+#: This floor was originally absolute, and it silently ate real data. ACH
+#: trades around $0.21 on NYSE American, and every bar for it since
+#: 2026-10-23 was rejected: "All incoming rows failed the plausibility
+#: screen; nothing written." The symbol was frozen at its 2026-10-22 close
+#: while the provider had newer bars.
+#:
+#: A sub-unit price is not evidence of corruption - it is evidence of a
+#: cheap instrument. What IS evidence of corruption is a price that
+#: disagrees with the symbol's OWN recent level, and that is what the
+#: magnitude check below measures. So the floor is applied only when it
+#: cannot contradict the symbol's own history: see
+#: :func:`_effective_floor`.
 MIN_PLAUSIBLE_PRICE = 0.5
+
+#: The floor applied to a symbol whose own recent level is itself sub-unit.
+#: It exists only to reject a row that is zero-ish or negative; the real
+#: defence for such a symbol is the magnitude check, which compares the row
+#: against the symbol's recent close.
+MIN_SUBUNIT_PRICE = 1e-6
 
 #: A price may not differ from the symbol's own recent history by more than
 #: this factor. This catches unit errors that a self-contained check cannot:
@@ -132,7 +153,47 @@ class PlausibilityReport:
         }
 
 
-def _reason_for(row: pd.Series, now: pd.Timestamp) -> str | None:
+def _effective_floor(
+    row: pd.Series,
+    reference_prices: dict[str, float] | None,
+) -> float:
+    """The lowest price this row may carry, given what the symbol itself trades at.
+
+    WHY THIS IS SYMBOL-RELATIVE
+    ---------------------------
+    An absolute floor of 0.5 rejects ACH, a NYSE American listing that trades
+    near $0.21. Measured on 2026-11-04: ACH's last stored close was 0.21
+    (2026-10-22), Yahoo was already serving 0.28, and every bar since was
+    dropped - the symbol sat frozen at 2026-10-22 while the provider moved
+    on. The auto-refresh reported it as "All incoming rows failed the
+    plausibility screen; nothing written."
+
+    A cheap instrument is not a corrupt one. The evidence of corruption is a
+    price that contradicts the symbol's OWN recent level, and that is what the
+    magnitude check measures. So:
+
+      * If the symbol's own recent level is at or above the absolute floor,
+        the floor applies unchanged - a sub-0.5 row really is a unit error.
+      * If the symbol's own level is BELOW the floor, the symbol genuinely
+        trades sub-unit, so the floor relaxes to a value that only rejects
+        zero-ish numbers, and the magnitude check does the real work.
+      * If there is no reference for the symbol, the absolute floor applies.
+        That is the safe direction: without evidence either way, the stricter
+        check wins.
+    """
+    symbol = row.get("symbol")
+    if reference_prices and symbol is not None:
+        reference = reference_prices.get(str(symbol).upper())
+        if reference is not None and 0 < reference < MIN_PLAUSIBLE_PRICE:
+            return MIN_SUBUNIT_PRICE
+    return MIN_PLAUSIBLE_PRICE
+
+
+def _reason_for(
+    row: pd.Series,
+    now: pd.Timestamp,
+    reference_prices: dict[str, float] | None = None,
+) -> str | None:
     """Return why ``row`` is impossible, or ``None`` if it looks real."""
 
     ts = row.get("timestamp")
@@ -146,6 +207,8 @@ def _reason_for(row: pd.Series, now: pd.Timestamp) -> str | None:
     if ts > now + MAX_FUTURE_SKEW:
         return "future_timestamp"
 
+    floor = _effective_floor(row, reference_prices)
+
     price_cols = [c for c in ("open", "high", "low", "close") if c in row.index]
     for col in price_cols:
         value = row.get(col)
@@ -157,9 +220,11 @@ def _reason_for(row: pd.Series, now: pd.Timestamp) -> str | None:
             return f"nonnumeric_{col}"
         if value <= 0:
             return f"nonpositive_{col}"
-        if value < MIN_PLAUSIBLE_PRICE:
+        if value < floor:
             # Sub-unit prices are what a double /1000 on a VND quote looks
-            # like. US equities never trade below a cent.
+            # like - but only for a symbol that does NOT itself trade sub-unit.
+            # A symbol whose own level is sub-unit (ACH at ~$0.21) gets the
+            # relaxed floor; see _effective_floor.
             return f"implausible_{col}"
 
     return None
@@ -245,7 +310,7 @@ def screen_batch(
 
     reasons: list[str | None] = []
     for _, row in prepared.iterrows():
-        reason = _reason_for(row, clock)
+        reason = _reason_for(row, clock, reference_prices)
         if reason is None:
             reason = _magnitude_reason(row, reference_prices)
         reasons.append(reason)

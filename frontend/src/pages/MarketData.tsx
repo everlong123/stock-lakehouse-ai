@@ -60,10 +60,11 @@ export function MarketDataPage() {
     );
 
   const latest = query.data?.latest;
+  const currency = latest?.currency ?? null;
   const headerStats = [
-   { label: t("market.source", locale),      value: query.data?.data_source || "Yahoo" },
+    { label: t("market.source", locale),      value: query.data?.data_source || "Yahoo" },
     { label: t("market.rows", locale),         value: rows.length.toLocaleString("en-US") },
-    { label: t("market.last_close", locale),   value: formatPrice(latest?.close) },
+    { label: t("market.last_close", locale),   value: formatPrice(latest?.close, currency) },
     { label: t("market.last_volume", locale),  value: formatVolume(latest?.volume) },
   ];
 
@@ -113,7 +114,7 @@ export function MarketDataPage() {
              </span>
             </div>
             <div className="px-2 py-3">
-              <CandlestickChart points={rows.slice(-180)} height={340} />
+              <CandlestickChart points={rows.slice(-180)} height={340} currency={currency} />
             </div>
           </div>
 

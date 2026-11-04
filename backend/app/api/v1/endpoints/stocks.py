@@ -9,7 +9,7 @@ from fastapi.responses import StreamingResponse
 
 from app.api.dependencies import get_market_service
 from app.core.config import settings
-from app.core.constants import GLOBAL_SYMBOLS
+from app.core.constants import GLOBAL_SYMBOLS, currency_for_symbol
 from app.core.logging_config import get_logger
 from app.lakehouse.storage_factory import get_storage_backend
 from app.schemas.common import ok
@@ -98,6 +98,11 @@ def get_stock(
             "rows": service.to_records(frame),
             "last_updated": latest["timestamp"],
             "data_source": latest.get("source_layer"),
+            # Prices in this lakehouse are unitless: VCB trades near 53,500
+            # and AAPL near 330, and both are a "close". The consumer needs to
+            # know which unit this symbol's prices are in, so it can label
+            # them correctly instead of assuming dong for everything.
+            "currency": currency_for_symbol(symbol),
         }
     )
 

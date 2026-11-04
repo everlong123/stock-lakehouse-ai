@@ -212,7 +212,14 @@ export function SystemStatusPage() {
       key: "data_source",
       label: t("system.data_source", locale),
       icon: <Activity size={18} />,
-      sublabel: String(data.data_source || "—"),
+      // WHY the guard: `/system/status` returns `data_source` as an OBJECT
+      // ({label, status}), like every other service entry - not as a plain
+      // string. `String(obj)` on it renders the literal text "[object
+      // Object]", which is what this page used to show.
+      sublabel:
+        typeof data.data_source === "object" && data.data_source !== null
+          ? String((data.data_source as { status?: string })?.status ?? "—")
+          : String(data.data_source || "—"),
     },
     {
       key: "ai_agent",

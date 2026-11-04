@@ -86,6 +86,10 @@ class DashboardService:
             "current_price": latest["close"],
             "change_pct": latest["change_pct"],
             "volume": latest["volume"],
+            # The quote currency. Prices here are unitless and VCB's 53,500
+            # and AAPL's 330 are both "close", so the UI needs to know which
+            # unit this symbol's prices are in to label them correctly.
+            "currency": latest.get("currency"),
             "rsi": rsi_value,
             "latest_prediction": prediction,
             "latest_backtest": backtest,

@@ -14,7 +14,7 @@ from datetime import datetime
 
 import pandas as pd
 
-from app.core.constants import SUPPORTED_INTERVALS
+from app.core.constants import SUPPORTED_INTERVALS, currency_for_symbol
 from app.core.exceptions import DataValidationError, NotFoundError
 from app.lakehouse.bronze import BronzeLayer
 from app.lakehouse.gold import GoldLayer
@@ -250,6 +250,10 @@ class MarketService:
             "change_pct": change_pct,
             "source_layer": last.get("layer", "gold"),
             "interval": interval,
+            # The unit of the price. Prices here are unitless, and VCB's
+            # 53,500 and AAPL's 330 are both "close" - without this the
+            # consumer labels every symbol as if it traded in dong.
+            "currency": currency_for_symbol(symbol),
         }
 
     def to_records(self, frame: pd.DataFrame, limit: int = 5000) -> list[dict]:

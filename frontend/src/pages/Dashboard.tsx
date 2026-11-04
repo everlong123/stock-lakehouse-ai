@@ -258,6 +258,9 @@ export function DashboardPage() {
 
   const lastClose = candles.at(-1)?.close ?? (isUsableNumber(data.current_price) ? data.current_price : null);
   const prevClose = candles.at(-2)?.close ?? lastClose;
+  // The quote currency of this symbol. Prices in the lakehouse are unitless,
+  // so the unit has to come from the backend rather than being assumed.
+  const currency = (data.currency as string | undefined) ?? null;
   // Only a real, non-zero previous close yields a change figure. Returning
   // null (not 0) lets the metric card render "—" instead of a fake "0.00%",
   // which would read as "flat today" rather than "unknown".
@@ -289,7 +292,7 @@ export function DashboardPage() {
           className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5"
           style={{ animation: "fade-in-up 0.4s ease-out both" }}
         >
-          <MetricCard label={t("dashboard.price", locale)} value={formatPrice(lastClose)} delta={changePct} />
+          <MetricCard label={t("dashboard.price", locale)} value={formatPrice(lastClose, currency)} delta={changePct} />
           <MetricCard
             label={t("dashboard.change_pct", locale)}
             value={formatPercent(changePct)}
@@ -397,6 +400,7 @@ export function DashboardPage() {
               price={lastClose}
               source={String(data.data_source || "lakehouse")}
               updated={candles.at(-1)?.timestamp}
+              currency={currency}
             />
           </div>
           <div className="animate-fade-in-up stagger-3" style={cardStyle()}>

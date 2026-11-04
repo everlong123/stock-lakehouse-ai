@@ -44,9 +44,127 @@ export function formatPercent(value: number | null | undefined, digits = 2): str
   return `${(value * 100).toFixed(digits)}%`;
 }
 
-export function formatPrice(value: number | null | undefined): string {
+/**
+ * Render a price with its currency.
+ *
+ * WHY the currency is an argument and not a global default: prices in this
+ * lakehouse are unitless. VCB trades near 53,500 (VND) and AAPL near 330
+ * (USD) - both are a "close". A formatter that hardcoded one symbol would
+ * label every stock in the universe with the wrong unit, which is worse than
+ * showing no unit at all.
+ *
+ * Passing an unknown or missing currency renders the bare number, because a
+ * wrong unit is a wrong fact while a missing one is merely incomplete.
+ */
+export function formatPrice(value: number | null | undefined, currency?: string | null): string {
   if (!isUsableNumber(value)) return "—";
-  return `${formatNumber(value, 2)} ₫`;
+  const unit = currencySymbol(currency);
+  const formatted = formatNumber(value, 2);
+  return unit ? `${formatted} ${unit}` : formatted;
+}
+
+/**
+ * The quote currency of a symbol, derived from the symbol itself.
+ *
+ * WHY the frontend needs its own copy: the stream endpoints return a bare
+ * bar with no currency field, so a watchlist tile has to work the unit out
+ * from the ticker. The backend resolves the same way (see
+ * `app.core.constants.currency_for_symbol`), and the two agree because both
+ * read the same suffix conventions.
+ *
+ * Resolution order:
+ *   1. A crypto pair carries its quote in the ticker: "BTC-USD" -> "USD".
+ *   2. A Yahoo exchange suffix names the currency: ".DE" -> "EUR".
+ *   3. A Vietnamese ticker -> "VND".
+ *   4. Everything else -> "USD".
+ *
+ * Step 3 needs a list because Vietnamese tickers carry no suffix on Yahoo.
+ */
+export function currencyForSymbol(symbol: string): string {
+  const sym = (symbol || "").trim().toUpperCase();
+  if (!sym) return "USD";
+
+  if (sym.includes("-")) {
+    const tail = sym.split("-").pop() ?? "";
+    if (tail.length === 3 && /^[A-Z]{3}$/.test(tail)) return tail;
+  }
+
+  if (sym.includes(".")) {
+    const suffix = sym.split(".").pop() ?? "";
+    const bySuffix: Record<string, string> = {
+      VN: "VND", T: "JPY", HK: "HKD", KS: "KRW", SS: "CNY", SZ: "CNY",
+      TW: "TWD", DE: "EUR", AS: "EUR", PA: "EUR", BR: "EUR", MI: "EUR",
+      MC: "EUR", LS: "EUR", VI: "EUR", HE: "EUR", IR: "EUR", SG: "EUR",
+      L: "GBP", SW: "CHF", TO: "CAD", V: "CAD", AX: "AUD", NZ: "NZD",
+      SI: "SGD", JO: "ZAR", NS: "INR", BO: "INR", SA: "SAR", ME: "SAR",
+      TA: "ILS", ST: "SEK", OL: "NOK", CO: "DKK",
+      WA: "AUD", AU: "AUD", SE: "SEK", IS: "EUR", IL: "ILS", MCX: "EUR",
+    };
+    const found = bySuffix[suffix];
+    if (found) return found;
+  }
+
+  // Vietnamese tickers: the lakehouse serves them from SSI iBoard, and Yahoo
+  // has no ".VN" listing for them, so they carry no suffix to read.
+  if (VN_TICKERS.has(sym)) return "VND";
+  return "USD";
+}
+
+/**
+ * Vietnamese tickers, mirroring `app.core.constants.VN_SYMBOLS`.
+ *
+ * WHY a duplicated list: the frontend cannot import from the backend
+ * package, and the set only has to answer "is this a VN ticker", so it is
+ * kept here explicitly rather than guessed from a pattern (there is no
+ * pattern - "FPT" and "TNH" are as Vietnamese as "VCB").
+ */
+const VN_TICKERS = new Set([
+  "VCB", "VHM", "VIC", "VNM", "MSN", "BID", "CTG", "HPG", "FPT", "MWG",
+  "GAS", "SAB", "PLX", "VRE", "NVL", "POW", "HDB", "TCB", "MBB", "TPB",
+  "SSI", "VCI", "HCM", "BCM", "VJC", "ACB", "SHB", "VPB", "EIB", "OCB",
+  "LPB", "STB", "BMP", "DGC", "GMD", "PVT", "DPM", "DCM", "REE", "KDH",
+  "NLG", "PC1", "PNJ", "FRT", "VGC", "CTR", "SBT", "HSG", "NKG", "GVR",
+  "VCS", "TNH", "DHA", "DXG", "HNG", "PVD", "PVS", "PVC", "PGS", "PXS",
+  "PVE", "PVB", "BFC", "DBC", "HAB", "TSC", "LIX", "NET", "VTO", "SGT",
+  "VIB", "MSB", "CII", "DIG", "HDG", "HQC", "IDC", "KBC", "LDG", "PHR",
+  "SZC",
+]);
+
+/**
+ * The display glyph for an ISO currency code.
+ *
+ * WHY a map rather than `Intl`: `Intl.NumberFormat` renders VND as "₫" but
+ * also renders amounts as "1,234.00" with locale-specific spacing and
+ * grouping rules that differ from the rest of this file's formatters. A
+ * single symbol keeps a price column visually aligned.
+ */
+export function currencySymbol(currency?: string | null): string {
+  if (!currency) return "";
+  const code = currency.trim().toUpperCase();
+  const map: Record<string, string> = {
+    VND: "₫",
+    USD: "$",
+    EUR: "€",
+    GBP: "£",
+    JPY: "¥",
+    HKD: "HK$",
+    KRW: "₩",
+    CNY: "¥",
+    TWD: "NT$",
+    CHF: "CHF",
+    CAD: "C$",
+    AUD: "A$",
+    NZD: "NZ$",
+    SGD: "S$",
+    ZAR: "R",
+    INR: "₹",
+    SAR: "﷼",
+    ILS: "₪",
+    SEK: "kr",
+    NOK: "kr",
+    DKK: "kr",
+  };
+  return map[code] ?? "";
 }
 
 export function formatVolume(value: number | null | undefined): string {

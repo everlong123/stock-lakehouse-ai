@@ -744,6 +744,129 @@ CRYPTO_SYMBOLS: list[str] = [
 # All available symbols — global universe (500+ tickers across regions/sectors).
 ALL_SYMBOLS: list[str] = list(GLOBAL_SYMBOLS) + MARKET_INDEXES + CRYPTO_SYMBOLS + VN_SYMBOLS
 
+
+# ── Quote currency ───────────────────────────────────────────────────────
+# The lakehouse stores raw prices with no currency column: Yahoo's daily bar
+# endpoint does not return one, and the price scale differs by market by
+# three orders of magnitude (AAPL ~330 USD vs VCB ~53,500 VND). Anything that
+# labels a price has to know which unit it is in, otherwise every symbol is
+# displayed as if it were Vietnamese dong.
+#
+# The mapping is derived from the exchange suffix Yahoo uses, which is the
+# same suffix already carried in the symbol itself.
+_CURRENCY_BY_SUFFIX: dict[str, str] = {
+    "VN": "VND",
+    "T": "JPY",
+    "HK": "HKD",
+    "KS": "KRW",
+    "SS": "CNY",
+    "SZ": "CNY",
+    "TW": "TWD",
+    "DE": "EUR",
+    "AS": "EUR",
+    "PA": "EUR",
+    "BR": "EUR",
+    "MI": "EUR",
+    "MC": "EUR",
+    "LS": "EUR",
+    "VI": "EUR",
+    "HE": "EUR",
+    "IR": "EUR",
+    "SG": "EUR",
+    "L": "GBP",
+    "SW": "CHF",
+    "TO": "CAD",
+    "V": "CAD",
+    "AX": "AUD",
+    "NZ": "NZD",
+    "SI": "SGD",
+    "JO": "ZAR",
+    "NS": "INR",
+    "BO": "INR",
+    "SA": "SAR",
+    "ME": "SAR",
+    "TA": "ILS",
+    "ST": "SEK",
+    "OL": "NOK",
+    "CO": "DKK",
+    "WA": "AUD",
+    "AU": "AUD",
+    "SE": "SEK",
+    "IS": "EUR",
+    "IL": "ILS",
+    "MCX": "EUR",
+}
+
+def currency_for_symbol(symbol: str) -> str:
+    """The quote currency of a symbol, as an ISO code.
+
+    WHY: prices in this lakehouse are unitless. VCB trades near 53,500 and
+    AAPL near 330, and both are "close". Showing VCB's price without a unit
+    is as misleading as showing AAPL's in dong, so the unit has to come from
+    the symbol's market, not from a global default.
+
+    Resolution order:
+
+    1. An explicit Yahoo suffix (``AAPL`` has none, ``0001.HK`` has ``.HK``).
+    2. The currency embedded in a pair ticker (``BTC-USD`` -> ``USD``).
+    3. A Vietnamese ticker from :data:`VN_SYMBOLS` -> ``VND``.
+    4. A crypto ticker -> ``USD``.
+    5. A US ticker from :data:`US_SYMBOLS` -> ``USD``.
+    6. Anything else -> ``USD``.
+
+    Step 5 is the one that needs a list rather than a rule: Yahoo's suffix
+    table has no entry for US equities, because they carry no suffix at all.
+    """
+    sym = (symbol or "").strip().upper()
+    if not sym:
+        return "USD"
+
+    # A crypto pair carries its quote currency in the ticker: "BTC-USD".
+    if "-" in sym:
+        tail = sym.rsplit("-", 1)[1]
+        if len(tail) == 3 and tail.isalpha():
+            return tail
+
+    # An index or a suffixed ticker: the suffix names the exchange.
+    if "." in sym:
+        suffix = sym[sym.rindex(".") + 1:]
+        currency = _CURRENCY_BY_SUFFIX.get(suffix)
+        if currency:
+            return currency
+
+    if sym in VN_SYMBOLS:
+        return "VND"
+    if sym in CRYPTO_SYMBOLS:
+        return "USD"
+    return "USD"
+
+
+# Currency symbols used for display. The lakehouse itself always stores the
+# ISO code; this is only for rendering.
+CURRENCY_DISPLAY: dict[str, str] = {
+    "VND": "₫",
+    "USD": "$",
+    "EUR": "€",
+    "GBP": "£",
+    "JPY": "¥",
+    "HKD": "HK$",
+    "KRW": "₩",
+    "CNY": "¥",
+    "TWD": "NT$",
+    "CHF": "CHF",
+    "CAD": "C$",
+    "AUD": "A$",
+    "NZD": "NZ$",
+    "SGD": "S$",
+    "ZAR": "R",
+    "INR": "₹",
+    "SAR": "﷼",
+    "ILS": "₪",
+    "SEK": "kr",
+    "NOK": "kr",
+    "DKK": "kr",
+}
+
 # Intervals - only 1d is collected (single-interval lakehouse)
 SUPPORTED_INTERVALS: list[str] = ["1d"]
 

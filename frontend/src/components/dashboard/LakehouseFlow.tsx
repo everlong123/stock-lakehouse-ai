@@ -10,10 +10,21 @@ const BRONZE: FlowNode = { label: "Bronze", desc: "Raw OHLCV" };
 const SILVER: FlowNode = { label: "Silver", desc: "Cleaned & validated" };
 const GOLD: FlowNode = { label: "Gold", desc: "Features & ML-ready" };
 
+/**
+ * The data providers the lakehouse actually draws from.
+ *
+ * WHY THIS LIST IS NOT A CONSTANT ANYMORE: it used to include "Finnhub",
+ * because the streaming path used to write Finnhub WebSocket ticks into
+ * Bronze. Those ticks turned out to be attributed to the wrong ticker (NVDA
+ * stored at 855-1938 against a true close of 237.47), so they were purged
+ * and the streaming source is no longer part of the daily lakehouse.
+ * Listing a provider that holds no rows makes the panel describe the system
+ * inaccurately.
+ */
 const SOURCES = [
   "Yahoo Finance",
   "SSI iBoard",
-  "Finnhub",
+  "yfinance",
   "Alpha Vantage",
 ];
 
@@ -84,7 +95,14 @@ export function LakehouseFlow({
                     {isUsableNumber(count) ? count.toLocaleString("en-US") : "—"}
                   </div>
                   <div className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-                    {isUsableNumber(count) ? "records" : "chưa có dữ liệu"}
+                    {/*
+                      WHY "files", not "records": the backend counts stored
+                      objects (parquet partitions), not rows. Bronze holds
+                      ~2.3M rows across ~113k partitions, so calling 114,904
+                      "records" overstates the row count by 20x. The label has
+                      to match what is actually being counted.
+                    */}
+                    {isUsableNumber(count) ? "files" : "chưa có dữ liệu"}
                   </div>
                 </div>
               </div>

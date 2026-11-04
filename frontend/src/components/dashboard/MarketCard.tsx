@@ -8,6 +8,7 @@ export function MarketCard({
   price,
   source,
   updated,
+  currency,
 }: {
   symbol: string;
   // Nullable: the dashboard passes `null` when no usable close is available,
@@ -15,6 +16,9 @@ export function MarketCard({
   price: number | null;
   source?: string;
   updated?: string;
+  // The quote currency. Prices are unitless in the lakehouse, so without it
+  // every symbol would be labelled as if it traded in dong.
+  currency?: string | null;
 }) {
   return (
     <div className="p-5">
@@ -66,7 +70,7 @@ export function MarketCard({
           className="mt-1 font-mono font-bold"
           style={{ fontSize: 32, color: "hsl(220 25% 10%)", lineHeight: 1.1 }}
         >
-          {formatPrice(price)}
+          {formatPrice(price, currency)}
         </div>
       </div>
 

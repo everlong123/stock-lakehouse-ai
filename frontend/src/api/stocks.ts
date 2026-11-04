@@ -3,7 +3,7 @@ import { LatestQuote, OHLCVPoint } from "@/types/stock";
 
 export async function fetchStock(symbol: string, interval: string) {
   const { data } = await api.get<
-    ApiEnvelope<{ rows: OHLCVPoint[]; latest: LatestQuote; count: number; last_updated: string; data_source: string }>
+    ApiEnvelope<{ rows: OHLCVPoint[]; latest: LatestQuote; count: number; last_updated: string; data_source: string; currency: string }>
   >(`/stocks/${symbol}`, { params: { interval } });
   return data.data;
 }

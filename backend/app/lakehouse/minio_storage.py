@@ -244,17 +244,41 @@ class MinioStorageBackend(StorageBackend):
 
     def _put_bytes(self, layer: str, relative_path: str, payload: bytes, content_type: str) -> str:
         bucket = self._bucket(layer)
-        try:
-            self.client.put_object(
-                bucket,
-                relative_path,
-                BytesIO(payload),
-                length=len(payload),
-                content_type=content_type,
-            )
-        except Exception as exc:
-            raise StorageError(f"MinIO put failed for {relative_path}: {exc}") from exc
-        return f"{bucket}/{relative_path}"
+        # WHY A RETRY LOOP HERE
+        # --------------------
+        # MinIO resets connections when it is loaded, and the refresh pass
+        # writes ~90 partition objects per minute, which is enough to trip
+        # it. A reset during a write used to surface as a failed partition -
+        # and because the concurrent writer only LOGGED that failure, the
+        # symbol silently ended up with a truncated history (VCB lost 110 of
+        # 202 Silver partitions this way, and nothing reported it).
+        #
+        # The write is idempotent: the same key is overwritten with the same
+        # bytes, so retrying cannot corrupt anything.
+        last_exc: Exception | None = None
+        for attempt in range(3):
+            try:
+                self.client.put_object(
+                    bucket,
+                    relative_path,
+                    BytesIO(payload),
+                    length=len(payload),
+                    content_type=content_type,
+                )
+                return f"{bucket}/{relative_path}"
+            except Exception as exc:  # noqa: BLE001 - retried, then re-raised
+                last_exc = exc
+                if attempt < 2:
+                    wait = 1 + attempt * 2  # 1s, 3s
+                    logger.warning(
+                        "MinIO put attempt %d/3 failed for %s (%s); retrying in %ds",
+                        attempt + 1,
+                        relative_path,
+                        exc,
+                        wait,
+                    )
+                    time.sleep(wait)
+        raise StorageError(f"MinIO put failed for {relative_path}: {last_exc}") from last_exc
 
     def _get_bytes(self, layer: str, relative_path: str) -> bytes:
         bucket = self._bucket(layer)

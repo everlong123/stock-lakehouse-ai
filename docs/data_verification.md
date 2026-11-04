@@ -88,6 +88,42 @@ python scripts/verify_layers.py --symbols AAPL MSFT VNM
 Báo số object / symbol / byte mỗi layer. Dùng để trả lời "symbol này đã
  được ingest chưa", **không** chứng minh giá đúng.
 
+### `scripts/audit_layer_coverage.py` — phát hiện layer bị cắt
+
+So **tập tháng partition** giữa Bronze → Silver → Gold cho từng symbol. Bắt được
+trường hợp partition write thất bại bị nuốt im lặng (mục 9.3).
+
+```bash
+# Chỉ báo cáo
+python scripts/audit_layer_coverage.py
+
+# Báo cáo + rebuild những symbol bị cắt
+python scripts/audit_layer_coverage.py --repair
+
+# Chỉ một số symbol
+python scripts/audit_layer_coverage.py --symbols VCB HPG
+```
+
+### `scripts/backfill_thin_history.py` — bổ sung lịch sử còn thiếu
+
+Tìm symbol có dưới 2.000 daily bar rồi fetch lại toàn bộ phạm vi provider có
+(mục 9.4).
+
+```bash
+python scripts/backfill_thin_history.py --dry-run    # chỉ báo cáo
+python scripts/backfill_thin_history.py              # backfill + rebuild
+python scripts/backfill_thin_history.py --symbols VCB FPT HPG
+```
+
+### `tests/test_currency_consistency.py` — backend và frontend phải khớp
+
+Parse bảng suffix và danh sách ticker VN trong file TypeScript, rồi so với bản
+Python. Hai bản sao sẽ **chắc chắn drift** nếu không có test này (mục 9.1).
+
+```bash
+python tests/test_currency_consistency.py
+```
+
 ---
 
 ## 3. Bốn loại kết quả, và nguyên nhân của từng loại
@@ -364,7 +400,138 @@ Giá sau khi sửa (đọc thẳng từ API):
 
 ---
 
-## 9. Giới hạn của phương pháp này
+## 9. Lỗi đồng bộ Web ↔ MinIO đã tìm và đã sửa (2026-11-04)
+
+Bốn lỗi dưới đây làm cho **web hiển thị khác với MinIO**, hoặc làm cho dữ liệu
+MinIO **bị cắt cụt mà không ai biết**. Cả bốn đều im lặng — không có lỗi, không
+có log, chỉ có kết quả sai.
+
+### 9.1 Đơn vị tiền tệ: mọi symbol đều hiển thị bằng ₫
+
+`formatPrice` hardcode `₫`:
+
+```tsx
+// frontend/src/utils/format.ts (trước khi sửa)
+export function formatPrice(value: number | null | undefined): string {
+  if (!isUsableNumber(value)) return "—";
+  return `${formatNumber(value, 2)} ₫`;
+}
+```
+
+Hệ quả: AAPL hiển thị `331.90 ₫` — sai hoàn toàn, vì AAPL giao bằng USD.
+Tệ hơn nữa, **giá của mọi symbol khác nhau 3 bậc độ lớn**: VCB ~54.800 (VND),
+AAPL ~330 (USD). Lakehouse **không lưu cột currency** (Yahoo's daily bar endpoint
+không trả về nó), nên tầng UI không có gì để biết đơn vị là gì.
+
+Cách sửa: `currency_for_symbol()` ở backend (`app/core/constants.py`) và
+`currencyForSymbol()` ở frontend (`utils/format.ts`) cùng resolve theo quy tắc:
+
+1. Crypto pair mang quote trong ticker: `BTC-USD` → `USD`.
+2. Yahoo exchange suffix: `.DE` → `EUR`, `.HK` → `HKD`, `.T` → `JPY`, `.L` → `GBP`.
+3. Ticker Việt Nam (không có suffix) → `VND`.
+4. Còn lại → `USD`.
+
+Vì có **hai bản sao** (Python + TypeScript) nên chúng **bắt buộc phải giống
+nhau**. `backend/tests/test_currency_consistency.py` parse thẳng file
+TypeScript rồi so từng suffix và từng ticker VN với bản Python — nếu một bên
+thêm mà bên kia quên, test fail.
+
+### 9.2 `MIN_PLAUSIBLE_PRICE` giết chết cổ phiếu giá rẻ
+
+`plausibility.py` có một sàn giá **tuyệt đối** `0.5`, với luận lẻ "cổ phiếu Mỹ
+không bao giờ giao dưới 1 cent". Điều đó sai: **ACH** (NYSE American) giao quanh
+**$0.21**. Từ 2026-10-23, mọi bar của ACH bị loại:
+
+```
+auto-refresh: ACH -> "All incoming rows failed the plausibility screen; nothing written."
+```
+
+Symbol đứng yên tại close 2026-10-22 trong khi provider đã ở 0.28.
+
+Cách sửa: sàn giá giờ **tương đối với chính symbol đó** (`_effective_floor`).
+Nếu mức giá gần nhất của symbol vốn đã dưới 0.5 thì symbol đó *thật sự* giao
+sub-unit, và sàn được nới (và magnitude check so với chính lịch sử của symbol
+làm phần việc thật sự). Nếu không có reference thì sàn cứ dùng lại — hướng
+an toàn.
+
+| Case | Kết quả |
+|---|---|
+| ACH bar thật 0.28 (reference 0.21) | **accept** |
+| ACH bị /1000 → 0.00028 | reject (`price_magnitude`) |
+| VCB bị /1000 → 56.9 (reference 56.600) | reject (`price_magnitude`) |
+| AAPL 0.21, không có reference | reject (`implausible_open`) |
+
+### 9.3 Partition write thất bại bị nuốt im lặng → mất lịch sử
+
+Đây là lỗi nghiêm trọng nhất.
+
+`parallel_write.write_partitions_concurrently` bắt exception của một partition
+thất bại, **chỉ log warning**, rồi đi tiếp. Một connection reset của MinIO (rất
+thường xuyên khi auto-refresh load cùng instance) khiến **110 trong 202 partition
+của Silver VCB** không được ghi. Kết quả:
+
+```
+Bronze VCB : 202 partitions, 4.080 rows
+Silver VCB :  92 partitions, 1.853 rows   <- mất 2.227 rows
+Gold VCB   :  26 partitions,   532 rows   <- mất tiếp
+```
+
+Và tệ hơn: quality report vẫn ghi `record_count: 4080, error_count: 0,
+quality_status: passed`. **Không có gì ở đâu báo rằng lịch sử bị cắt.**
+
+Người đọc không thể phát hiện: họ nhận được một lịch sử **ngắn hơn** nhưng
+giá vẫn đúng, vẫn hợp lý — chart chỉ hiện ít đi, không có tín hiệu nào.
+
+Cách sửa:
+
+* `write_partitions_concurrently` giờ **ném `StorageError`** nếu bất kỳ partition
+  nào không ghi được, và error nêu rõ partition nào hỏng. Symbol giữ nguyên
+  trạng thái đầy đủ cũ thay vì trở thành trạng thái một phần.
+* `_put_bytes` của MinIO **retry 3 lần** (1s, 3s) — write là idempotent nên
+  retry không thể làm hỏng dữ liệu.
+* `scripts/audit_layer_coverage.py` — công cụ mới, so **tập tháng partition**
+  giữa Bronze/Silver/Gold cho từng symbol và báo symbol nào bị cắt. `--repair`
+  rebuild từ Bronze.
+
+Sau khi sửa: **PASS — mọi symbol trong 1.002 có Silver và Gold phủ đủ các tháng
+của Bronze.**
+
+### 9.4 Lịch sử mỏng: symbol có dữ liệu nhưng chỉ 2 năm
+
+Lakehouse được seed bằng rolling refresh, nên symbol thêm vào universe sau này
+chỉ có vài năm daily bar, trong khi provider có 10 năm:
+
+| Symbol | Rows trước | Từ | Provider có |
+|---|---|---|---|
+| `VCB` | 532 | 2024-10-07 | 2.623 từ 2016 |
+| `FPT` | 534 | 2024-10-07 | 2.643 từ 2016 |
+| `HPG` | 534 | 2024-10-07 | 2.641 từ 2016 |
+| `MWG` | 532 | 2024-10-07 | 2.630 từ 2016 |
+| `SOFI` | 6 | 2026-10-09 | 1.466 từ 2021 |
+
+Chart của các symbol này **trông đầy đủ** — có bar, giá đúng — nhưng nó âm thầm
+trả lời một câu hỏi khác với câu hỏi người đọc đặt ra.
+
+`scripts/backfill_thin_history.py` (mới) tìm symbol có dưới 2.000 row và fetch
+lại toàn bộ phạm vi provider có, qua **đúng con đường kiểm chứng** của mọi ingest
+khác, rồi rebuild Silver + Gold.
+
+Yahoo phục vụ mã Việt Nam với suffix `.VN` (`VCB.VN`), nên các ticker VN cũng
+backfill được từ 2016 — không phụ thuộc SSI iBoard.
+
+### 9.5 Nhãn hiển thị sai
+
+* Layer count đếm **object (file parquet)**, không phải record, nhưng UI ghi
+  "RECORDS" — người đọc tưởng Bronze có 114.904 *record* thay vì 114.904 *file*
+  (thực tế ~2,3 triệu row). Đã sửa thành "files" / "Số file parquet theo layer".
+* `data_source` trong `/system/status` là **object** `{label, status}`, nhưng UI
+  làm `String(obj)` → hiển thị literal `[object Object]`. Đã sửa.
+* Panel "Sources" liệt kê **Finnhub** — nguồn đã bị xoá hoàn toàn khỏi Bronze
+  sau khi phát hiện nó gán nhầm instrument. Đã bỏ khỏi danh sách.
+
+---
+
+## 10. Giới hạn của phương pháp này
 
 Nói thẳng để không tạo cảm giác an toàn giả:
 

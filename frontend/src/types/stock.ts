@@ -36,6 +36,16 @@ export interface LatestQuote {
   change_pct?: number | null;
   source_layer?: string | null;
   interval?: string | null;
+  /**
+   * ISO code of the quote currency.
+   *
+   * WHY: prices in the lakehouse are unitless. VCB trades near 53,500 and
+   * AAPL near 330, and both are a "close". Labelling every symbol as if it
+   * traded in dong is simply wrong, so the unit comes from the symbol's
+   * market. Absent means the backend did not say - render the bare number
+   * rather than guessing.
+   */
+  currency?: string | null;
 }
 
 /** One row of the indicator series returned by `/stocks/{symbol}/indicators`. */

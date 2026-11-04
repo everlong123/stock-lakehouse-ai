@@ -16,7 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { useMarket } from "@/hooks/useMarket";
 import { useBacktest } from "@/hooks/useBacktest";
 import { STRATEGIES } from "@/utils/constants";
-import { formatNumber, formatPercent, formatPrice, shortDate } from "@/utils/format";
+import { formatNumber, formatPercent, formatPrice, shortDate, currencyForSymbol } from "@/utils/format";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -59,6 +59,11 @@ export function BacktestingPage() {
   const [upper, setUpper] = useState(70);
 
   const result = run.data;
+  // The portfolio is denominated in the traded instrument's own currency:
+  // buying VCB shares spends dong, buying AAPL shares spends dollars. The
+  // backtest engine works in raw price units, so the label has to follow
+  // the symbol.
+  const currency = currencyForSymbol(symbol);
 
   const onRun = async () => {
     try {
@@ -212,13 +217,13 @@ export function BacktestingPage() {
               value={formatPercent(result.total_return)}
               delta={result.total_return}
             />
-            <MetricCard label="Final Value" value={formatPrice(result.final_capital)} />
+            <MetricCard label="Final Value" value={formatPrice(result.final_capital, currency)} />
             <MetricCard label="Sharpe Ratio" value={formatNumber(result.sharpe_ratio)} />
             <MetricCard label="Max Drawdown" value={formatPercent(result.maximum_drawdown)} delta={result.maximum_drawdown} />
             <MetricCard label="Win Rate" value={formatPercent(result.win_rate)} delta={result.win_rate} />
             <MetricCard label="Trades" value={String(result.number_of_trades)} />
             <MetricCard label="Profit Factor" value={formatNumber(result.profit_factor)} />
-            <MetricCard label="Initial Capital" value={formatPrice(result.initial_capital)} />
+            <MetricCard label="Initial Capital" value={formatPrice(result.initial_capital, currency)} />
           </div>
 
           <div className="grid gap-4 xl:grid-cols-2">
