@@ -9,6 +9,7 @@ from typing import Any
 from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import StreamingResponse
 
+from app.core.config import settings
 from app.core.logging_config import get_logger
 from app.schemas.common import ok
 from app.services.stream_service import (
@@ -140,10 +141,25 @@ async def stats() -> dict:
 async def ingest(payload: dict[str, Any]) -> dict:
     """Manual ingest endpoint. Accepts either a single bar or a list of bars.
 
-    Intended for:
-    - curl smoke tests against the live API
-    - publisher scripts that want to push bars without spinning up Kafka
-    - the Live Stream demo button in the UI
+    .. warning::
+       **This endpoint writes to the lakehouse, so it is disabled by default.**
+
+       It used to be the transport for the Live Stream page's "demo" panel,
+       which pushed three hand-typed bars per ticker (AAPL ~332.5, MSFT
+       ~415.2, NVDA ~510.0). Those numbers were invented, they reached Bronze
+       with ``source = "manual"``, and nothing downstream could tell them
+       apart from a real print - Bronze held 18 such rows for AAPL, MSFT and
+       NVDA on 2026-11-04.
+
+       The project's rule is that every stored row traces back to an exchange.
+       An endpoint whose only purpose was to inject made-up prices violates
+       that rule, so it now requires ``ALLOW_STREAM_INGEST=true`` in the
+       environment, and even then every bar is screened by the Bronze
+       plausibility guard.
+
+    Enable it only for a deliberate smoke test against a LOCAL Kafka:
+
+        ALLOW_STREAM_INGEST=true python -m uvicorn app.main:app
 
     Body::
 
@@ -155,6 +171,17 @@ async def ingest(payload: dict[str, Any]) -> dict:
           ]
         }
     """
+    if not settings.allow_stream_ingest:
+        raise HTTPException(
+            status_code=403,
+            detail=(
+                "Stream ingest is disabled. It is only meant for a local "
+                "smoke test, because manually pushed bars enter the lakehouse "
+                "like real observations. Set ALLOW_STREAM_INGEST=true to "
+                "enable it."
+            ),
+        )
+
     symbol = str(payload.get("symbol", "")).strip().upper()
     if not symbol:
         raise HTTPException(status_code=400, detail="symbol is required")

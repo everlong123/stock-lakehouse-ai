@@ -70,6 +70,46 @@ MAX_PRICE_DEVIATION_FACTOR = 100.0
 #: Number of recent rows used to establish a symbol's price level.
 PRICE_REFERENCE_SAMPLE = 50
 
+#: A STREAMING row (one of the per-second bars the Kafka publishers emit)
+#: must sit close to its own symbol's price level. Unlike a historical daily
+#: bar, an intraday tick has no excuse for being far away from the last
+#: traded price: the two describe the SAME session.
+#:
+#: This tighter factor exists because of a measured symbol-mapping failure.
+#: On 2026-10-07 the Finnhub WebSocket publisher attributed trades to the
+#: wrong ticker, and Bronze stored them under the wrong symbol:
+#:
+#:     symbol   stored close range   true close that day
+#:     NVDA     855 .. 1938           237.47
+#:     TSLA      68 ..  283           377.81
+#:     COIN      72 ..  125           178.45
+#:     BTC-USD 48072 .. 97762         83275.93
+#:
+#: The values are genuine trades from OTHER tickers (the series is internally
+#: continuous, so it is not random noise), so the 100x magnitude check below
+#: did not fire for the milder cases and the wrong price reached the chart.
+#: A streaming row whose price is more than this factor away from its own
+#: symbol's level is rejected outright.
+#:
+#: 2.5x is deliberately tight: a real intraday tick of a liquid name never
+#: moves that far from the previous session's close, and a legitimate 2:1
+#: split would be corrected by the daily provider anyway.
+STREAM_PRICE_DEVIATION_FACTOR = 2.5
+
+#: Sources whose rows are per-second / per-minute intraday prints. These are
+#: held to the tighter deviation factor because they describe the SAME
+#: session as the symbol's last stored close.
+INTRADAY_STREAM_SOURCES = frozenset(
+    {
+        "finnhub_ws",
+        "finnhub_rest",
+        "vn_ws",
+        "vn_rest",
+        "kafka",
+        "manual",
+    }
+)
+
 
 @dataclass
 class PlausibilityReport:
@@ -133,6 +173,11 @@ def _magnitude_reason(row: pd.Series, reference_prices: dict[str, float] | None)
     threshold is intentionally loose (100x) so that legitimate discontinuities -
     splits, rights issues, a symbol relisted under a different scale - are not
     deleted. Deleting real history to catch a rare unit bug is a bad trade.
+
+    STREAMING rows (per-second prints) are held to a much tighter factor,
+    because they describe the same session as the symbol's last stored close
+    and therefore cannot legitimately sit far away from it. See
+    :data:`STREAM_PRICE_DEVIATION_FACTOR` for the measured case this catches.
     """
     if not reference_prices:
         return None
@@ -156,6 +201,15 @@ def _magnitude_reason(row: pd.Series, reference_prices: dict[str, float] | None)
     ratio = reference / close
     if ratio > MAX_PRICE_DEVIATION_FACTOR or (1.0 / ratio) > MAX_PRICE_DEVIATION_FACTOR:
         return "price_magnitude"
+
+    # A streaming tick far from its own symbol's level is a SYMBOL MAPPING
+    # failure, not a unit error. The factor is much tighter here because both
+    # numbers describe the same session.
+    source = str(row.get("source", "")).strip().lower()
+    if source in INTRADAY_STREAM_SOURCES:
+        tight = reference / close
+        if tight > STREAM_PRICE_DEVIATION_FACTOR or (1.0 / tight) > STREAM_PRICE_DEVIATION_FACTOR:
+            return "stream_price_deviation"
     return None
 
 

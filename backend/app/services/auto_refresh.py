@@ -32,7 +32,7 @@ import pandas as pd
 from app.core.config import settings
 from app.core.heavy_worker import run_in_process
 from app.core.logging_config import get_logger
-from app.core.constants import GLOBAL_SYMBOLS, VN_SYMBOLS
+from app.core.constants import CRYPTO_SYMBOLS, GLOBAL_SYMBOLS, VN_SYMBOLS
 from app.core.request_gate import wait_while_user_active
 from app.data_sources.factory import get_data_provider
 from app.lakehouse.bronze import BronzeLayer
@@ -128,6 +128,8 @@ class AutoRefreshService:
             # visited once per pass.
             merged = {s: None for s in GLOBAL_SYMBOLS}
             for s in VN_SYMBOLS:
+                merged.setdefault(s, None)
+            for s in CRYPTO_SYMBOLS:
                 merged.setdefault(s, None)
             self._symbols = list(merged)
 

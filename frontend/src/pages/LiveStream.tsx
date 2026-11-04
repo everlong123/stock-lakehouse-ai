@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Activity, RefreshCcw, Radio, Send } from "lucide-react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Activity, RefreshCcw, Radio } from "lucide-react";
 import {
   CartesianGrid,
   Line,
@@ -15,7 +15,6 @@ import {
   fetchStreamHistory,
   fetchStreamLatest,
   fetchStreamStats,
-  ingestStreamBars,
   StreamBar,
   subscribeStream,
 } from "@/api/stream";
@@ -41,30 +40,25 @@ const tooltipStyle = {
   fontSize: 12,
 };
 
-// Demo bars so the page is interactive even before Kafka is wired up.
-const DEMO_BARS: Record<string, Array<Omit<StreamBar, "received_at" | "source">>> = {
-  AAPL: [
-    { symbol: "AAPL", timestamp: "", open: 332.5, high: 333.1, low: 331.8, close: 332.7, volume: 12000 },
-    { symbol: "AAPL", timestamp: "", open: 332.7, high: 333.9, low: 332.5, close: 333.7, volume: 14500 },
-    { symbol: "AAPL", timestamp: "", open: 333.7, high: 334.2, low: 333.1, close: 333.9, volume: 18900 },
-  ],
-  MSFT: [
-    { symbol: "MSFT", timestamp: "", open: 415.2, high: 416.0, low: 414.8, close: 415.9, volume: 9000 },
-    { symbol: "MSFT", timestamp: "", open: 415.9, high: 416.7, low: 415.6, close: 416.4, volume: 11200 },
-  ],
-  NVDA: [
-    { symbol: "NVDA", timestamp: "", open: 510.0, high: 512.4, low: 509.5, close: 511.8, volume: 22000 },
-  ],
-};
-
-function pad(value: number): string {
-  return value.toString().padStart(2, "0");
-}
-
-function nowIso(): string {
-  const d = new Date();
-  return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}T${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}:${pad(d.getUTCSeconds())}Z`;
-}
+// ─────────────────────────────────────────────────────────────────────────────
+// NO DEMO BARS.
+//
+// An earlier version of this page carried a "demo" panel that pushed three
+// hard-coded bars per ticker (AAPL ~332.5, MSFT ~415.2, NVDA ~510.0) into
+// the Kafka topic through POST /api/v1/stream/ingest. Those bars were NOT
+// market data: the numbers were typed in by hand, and they reached Bronze
+// like any other observation.
+//
+// Measured damage on 2026-11-04: Bronze held 18 rows with
+// ``source = "manual"`` for AAPL, MSFT and NVDA - real symbols carrying
+// invented prices. The chart drew a candle that never traded, and the
+// plausibility screen could not tell a hand-typed number from a real print.
+//
+// The project's rule is that every stored row must trace back to an exchange.
+// A demo affordance that writes invented prices into the lakehouse violates
+// that rule, so the panel is gone. If the stream is idle, the page shows the
+// empty state and says so.
+// ─────────────────────────────────────────────────────────────────────────────
 
 export function LiveStreamPage() {
   const { locale } = useI18n();
@@ -132,13 +126,6 @@ export function LiveStreamPage() {
     return () => window.clearInterval(id);
   }, []);
 
-  const ingest = useMutation({
-    mutationFn: ingestStreamBars,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["stream", "stats"] });
-    },
-  });
-
   // Compute derived values first so that hook count is identical across renders
   // regardless of loading flags. Early returns go BELOW all hooks.
   const payload = latestQuery.data as MultiLatestPayload | undefined;
@@ -147,13 +134,6 @@ export function LiveStreamPage() {
   const symbols = useMemo(() => Object.keys(payload?.bars ?? {}).sort(), [payload]);
   const totalRecorded = stats?.total_recorded ?? 0;
   const isEmpty = symbols.length === 0;
-
-  const demoIngest = (sym: keyof typeof DEMO_BARS) => {
-    ingest.mutate({
-      symbol: sym,
-      bars: DEMO_BARS[sym].map((b) => ({ ...b, timestamp: nowIso(), source: "manual", received_at: nowIso() })),
-    });
-  };
 
   if (latestQuery.isLoading || statsQuery.isLoading) return <Loading />;
   if (latestQuery.isError)
@@ -217,34 +197,6 @@ export function LiveStreamPage() {
               value={stats ? `${Math.round(stats.uptime_seconds)}s` : "—"}
             />
           </div>
-        </div>
-      </section>
-
-      {/* Demo controls: when Kafka is off, the user can still push synthetic
-          bars via the REST ingest endpoint so the page is demo-able. */}
-      <section className="rounded-md border border-dashed border-border bg-card p-4">
-        <div className="mb-2 flex items-center gap-2">
-          <Send size={14} className="text-muted-foreground" />
-          <h3 className="text-sm font-semibold text-foreground">
-            {t("stream.demo_title", locale)}
-          </h3>
-          <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-            {t("stream.demo_sub", locale)}
-          </span>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          {(Object.keys(DEMO_BARS) as Array<keyof typeof DEMO_BARS>).map((sym) => (
-            <button
-              key={sym}
-              type="button"
-              onClick={() => demoIngest(sym)}
-              disabled={ingest.isPending}
-              className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-3 py-1.5 text-[12px] font-medium text-foreground hover:bg-muted disabled:opacity-60"
-            >
-              <Send size={11} />
-              {sym}
-            </button>
-          ))}
         </div>
       </section>
 

@@ -63,6 +63,23 @@ import pandas as pd
 
 #: Sources whose rows are DAILY session bars. Everything else (manual, kafka,
 #: vn_ws, vn_rest, finnhub_ws, ...) is treated as an intraday observation.
+#:
+#: ``ssi_vn`` IS a daily source: the SSI iBoard endpoint returns one
+#: whole-session bar per trading day, stamped at the session close. It was
+#: missing from this set, which made every SSI-fed symbol look like a day
+#: full of intraday ticks. The consequence was not cosmetic - Silver and Gold
+#: stored thousands of intraday rows for a symbol that has exactly one bar per
+#: day:
+#:
+#:     PVB  2497 rows in Gold   (one per trading day, marked as intraday)
+#:     VCS  2497 rows in Gold
+#:     HNG  2487 rows in Gold
+#:
+#: The read path still collapsed them correctly, but the stored frames were
+#: wrong, the indicator windows were computed over a series whose row count
+#: did not match its session count, and the duplicate-session audit flagged
+#: them. ``vn_rest`` is NOT in this set: it is a genuine one-minute intraday
+#: print series.
 DAILY_BAR_SOURCES = frozenset(
     {
         "yahoo_http",
@@ -73,6 +90,7 @@ DAILY_BAR_SOURCES = frozenset(
         "alpha_vantage",
         "web_scraper",
         "multi_source",
+        "ssi_vn",
     }
 )
 

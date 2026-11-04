@@ -178,6 +178,15 @@ def main(argv: list[str] | None = None) -> int:
         "symbol history from MinIO, so higher values mostly add memory pressure.",
     )
     parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Rebuild every listed symbol, ignoring the watermark comparison. "
+        "Use this after a CONTENT repair (a purge, a manual correction): the "
+        "watermark only moves when the newest bar changes, so a symbol whose "
+        "older rows were rewritten looks 'in sync' even though its Silver and "
+        "Gold still hold the old rows.",
+    )
+    parser.add_argument(
         "--limit",
         type=int,
         default=None,
@@ -199,9 +208,13 @@ def main(argv: list[str] | None = None) -> int:
         print("No symbols found; nothing to do.")
         return 0
 
-    print("Comparing Bronze and Gold watermarks ...")
-    stale = stale_symbols(candidates, GoldLayer(), BronzeLayer())
-    print(f"  {len(stale)}/{len(candidates)} symbol(s) need Silver/Gold rebuild")
+    if args.force:
+        stale = list(candidates)
+        print(f"  --force: rebuilding all {len(stale)} symbol(s)")
+    else:
+        print("Comparing Bronze and Gold watermarks ...")
+        stale = stale_symbols(candidates, GoldLayer(), BronzeLayer())
+        print(f"  {len(stale)}/{len(candidates)} symbol(s) need Silver/Gold rebuild")
 
     if args.limit is not None:
         stale = stale[: args.limit]

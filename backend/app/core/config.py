@@ -233,6 +233,15 @@ class Settings(BaseSettings):
     kafka_topic_raw: str = "stock-ohlcv-raw"
     kafka_consumer_group: str = "stock-lakehouse-consumer"
 
+    # ── Manual stream ingest (OFF by default) ──────────────────────────────────
+    # POST /api/v1/stream/ingest pushes caller-supplied bars into the Kafka
+    # topic, and from there into Bronze. It exists for a local smoke test
+    # only: any bar it accepts reaches the lakehouse looking exactly like a
+    # real observation, so leaving it open is an invitation to store invented
+    # prices. The UI's "demo" panel used it and left 18 hand-typed rows in
+    # Bronze for AAPL / MSFT / NVDA before it was removed.
+    allow_stream_ingest: bool = False
+
     log_level: str = "INFO"
     log_file: str = "logs/app.log"
 

@@ -46,3 +46,38 @@ def trigger_run(background_tasks: BackgroundTasks, symbols: Optional[str] = Quer
 
     background_tasks.add_task(_job)
     return ok({"queued": True, "symbols": target or "default"})
+
+
+@router.post("/cache/invalidate")
+def invalidate_cache(symbols: Optional[str] = Query(default=None)) -> dict:
+    """Drop the API's memoised symbol frames.
+
+    WHY THIS EXISTS
+    ---------------
+    ``MarketService`` caches each symbol's frame in memory for 15 minutes so
+    that browsing many symbols does not re-download the whole lakehouse from
+    MinIO every time. That cache is a correctness hazard for anything that
+    WRITES to the lakehouse from outside the API process: a backfill or a
+    re-ingest run as a standalone script updates Bronze/Silver/Gold, but the
+    API keeps serving the pre-write frame until the TTL expires.
+
+    Concretely, on 2026-11-03 a provider-restatement re-ingest corrected
+    ``AIR.PA`` in storage, and the API still returned the old close for
+    2026-10-19 - a verification run then reported a mismatch that did not
+    exist in storage. This endpoint makes the write visible immediately.
+
+    - symbols: optional comma-separated list. If omitted, the ENTIRE cache is
+      cleared.
+    """
+    from app.services.market_service import clear_symbol_cache, invalidate_symbol_cache
+
+    if symbols:
+        targets = [s.strip().upper() for s in symbols.split(",") if s.strip()]
+        for symbol in targets:
+            invalidate_symbol_cache(symbol)
+        logger.info("Admin: invalidated cache for %s", ", ".join(targets))
+        return ok({"invalidated": targets})
+
+    clear_symbol_cache()
+    logger.info("Admin: cleared the whole symbol cache")
+    return ok({"invalidated": "all"})

@@ -5,6 +5,10 @@ project, their limits, and how to switch between them. All providers return
 **real OHLCV market data** - there is no offline / synthetic fallback in the
 ingestion pipeline (UI có synthetic fallback chỉ khi Lakehouse trống, xem `docs/lakehouse.md`).
 
+> **Làm sao chứng minh dữ liệu này là thật?** Xem [`docs/data_verification.md`](data_verification.md) -
+> script `verify_against_source.py` re-fetch trực tiếp từ provider và so với từng tầng
+> Bronze → Silver → Gold → API.
+
 ---
 
 ## Quick comparison

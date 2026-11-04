@@ -738,6 +738,7 @@ MARKET_INDEXES: list[str] = [
 CRYPTO_SYMBOLS: list[str] = [
     "BTC-USD",  # Bitcoin
     "ETH-USD",  # Ethereum
+    "COIN",     # Coinbase
 ]
 
 # All available symbols — global universe (500+ tickers across regions/sectors).
