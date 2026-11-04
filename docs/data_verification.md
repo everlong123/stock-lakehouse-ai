@@ -193,6 +193,12 @@ cd backend
 # 1. Kiểm chứng toàn bộ universe (mất vài phút cho ~130 symbol)
 python scripts/verify_against_source.py --symbols all --max-symbols 130 --window 25
 
+# 1b. Universe lớn hơn thì chia lát (--offset để bỏ qua phần đã kiểm)
+python scripts/verify_against_source.py --symbols all --offset 0   --max-symbols 300 --window 25
+python scripts/verify_against_source.py --symbols all --offset 300 --max-symbols 300 --window 25
+python scripts/verify_against_source.py --symbols all --offset 600 --max-symbols 300 --window 25
+python scripts/verify_against_source.py --symbols all --offset 900 --max-symbols 300 --window 25
+
 # 2. Nếu có RESTATED, lấy danh sách symbol và sửa
 python scripts/verify_against_source.py --symbols all --max-symbols 130 --window 25 > verify.txt
 python scripts/reingest_window.py --symbols-from verify.txt --days 45
@@ -295,7 +301,55 @@ python scripts/reingest_window.py --symbols AAPL BID BTC-USD COIN CTG \
 Bước 3 là bắt buộc: sau khi xoá, những session đó **trống** chứ không sai.
 Một bar thiếu thì trung thực; một bar sai thì không.
 
-### 8.6 Guard đã thêm để không tái diễn
+### 8.6 Kết quả sau khi sửa
+
+Quét toàn bộ 1.002 symbol của Bronze, đối chiếu từng tầng với một lần fetch
+mới hoàn toàn từ Yahoo:
+
+```
+symbols in Bronze : 1002
+source                  rows  partitions
+yahoo_http           2330404     112712
+ssi_vn                 17342        938
+yfinance_python         2514        122
+alpha_vantage           2131        124
+yfinance_eod              59         16
+web_scraper               15         15
+
+CONTAMINATED: NONE
+```
+
+Không còn `manual`, `finnhub_ws`, `finnhub_rest`, `vn_rest` hay `vn_ws`.
+
+Lịch sử bị mất khi xoá đã được lấy lại từ Yahoo (14.338 row): COIN 1397,
+BTC-USD 2133, ETH-USD 2133, BID 1420, CTG 1418, VIC 1421, VHM 1417,
+MSN 1414.
+
+Kiểm chứng sau sửa (5 lát, phủ hết 1.002 symbol):
+
+```
+symbols checked : 1002
+exact matches   : ~16,000
+MISMATCHES      : 0
+VERDICT: PASSED - every checked bar matches the live provider.
+```
+
+Provider cũng **sửa lại lịch sử của chính nó** ở 17 symbol (ALV.DE, BARC.L,
+BAYN.DE, ARVN, ASML.AS, AZN.L, CON.DE, DBK.DE, DGE.L, DTE.DE, LSEG.L,
+TSCO.L, TTE.PA, UBSG.SW, ...). Tất cả đã được `reingest_window.py` lấy lại
+và verify lại: **45 session × 4 tầng × 14 symbol = 2.475 exact, 0 mismatch.**
+
+Giá sau khi sửa (đọc thẳng từ API):
+
+| symbol | trước | sau |
+|---|---|---|
+| COIN | 95.6 | **145.45** |
+| NVDA | 855 – 1938 | **202.06** |
+| TSLA | 68 – 283 | **403.82** |
+| MWG | 75.3 | **72.300** (VND) |
+| WMT | 55 – 103 | **127.69** |
+
+### 8.7 Guard đã thêm để không tái diễn
 
 * `DAILY_BAR_SOURCES` giờ có `ssi_vn`.
 * `plausibility.py` có `STREAM_PRICE_DEVIATION_FACTOR = 2.5`: một tick
