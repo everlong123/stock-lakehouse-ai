@@ -589,6 +589,78 @@ Sau khi sửa: **22/22 PASS, 5.276 bar khớp tuyệt đối, 0 mismatch.**
 
 ---
 
+## 9.7. Reference price phải là HAI con số, không phải một (2026-11-05)
+
+Sửa ở mục 9.6 tạo ra một lỗi ngược lại, và lỗi đó chỉ lộ ra khi kiểm tra lại
+toàn bộ lịch sử chứ không phải 60 ngày cuối.
+
+**Lỗi 1 — dùng mức thấp cho cả hai check thì xoá lịch sử thật.**
+
+Sau khi đổi reference sang mức thấp, check `price_magnitude` bắt đầu loại bỏ
+lịch sử 2021 của chính PARA: giá thật năm 2021 là **\$101.500** (Yahoo serve
+đúng như vậy, volume 11–62 cổ — micro-cap), còn mức thấp hiện tại là \$0.47.
+Chênh lệch **200.000 lần** → vượt ngưỡng 100x → `price_magnitude`.
+
+Dữ liệu đó **đúng** và đã nằm trong Bronze khớp chính xác provider. Nhưng nếu
+cần re-ingest thì nó sẽ không ingest được — tức là guard đang xoá lịch sử thật
+để bắt một lỗi đơn vị hiếm.
+
+**Lỗi 2 — dùng median cho cả hai check thì nuốt bar thật.**
+
+Ngược lại, median của partition mới nhất của PARA là ~2.21 (vì còn vài bar
+trước split), nên sàn giá tuyệt đối 0.5 vẫn có hiệu lực và bar **thật** \$0.425
+bị loại.
+
+**Sửa: tách thành hai con số, vì hai check hỏi hai câu khác nhau.**
+
+| Tham số | Dùng cho | Nguồn | Câu hỏi |
+|---|---|---|---|
+| `floor` | sàn giá tuyệt đối | **mức thấp** | "symbol này có rẻ không?" |
+| `magnitude` | check độ lệch | **median** | "giá này có lệch bất thường không?" |
+
+Lỗi đơn vị lệch **1000 lần** — nằm ngoài cả hai dải dung sai, nên việc tách
+không làm suy yếu guard.
+
+| Symbol | Giá thật | Reference cũ | Kết quả |
+|---|---|---|---|
+| `PARA` (2026) | \$0.425 | median 2.21 | ❌ bị loại (`implausible_open`) |
+| `PARA` (2021) | \$101.500 | thấp 0.47 | ❌ bị loại (`price_magnitude`) |
+| `PARA` (2026) | \$0.425 | thấp 0.47 | ✅ |
+| `PARA` (2021) | \$101.500 | median 0.55 | ❌ bị loại (đúng: 200.000x) |
+
+Lưu ý dòng cuối: lịch sử 2021 của PARA **vẫn bị loại** khi re-ingest, và điều
+đó là **đúng** — một biến động 200.000 lần vượt ngưỡng, và dữ liệu đã lưu đã
+khớp provider nên không cần sửa. Guard đang làm đúng việc: nó bảo vệ dữ liệu
+đã đúng, không sửa dữ liệu sai.
+
+---
+
+## 9.8. Bar crypto "hôm nay" đóng băng giá giữa phiên (2026-11-05)
+
+Bar ngày được đóng dấu thời điểm **mở cửa** phiên, không phải lúc đóng cửa.
+
+* Với cổ phiếu: dấu thời gian nằm trong quá khứ khi ngày kết thúc, nên bar
+  mới nhất thường là bar của hôm qua — **đã chốt**.
+* Với crypto (24/7): bar ngày được đóng dấu lúc `00:00Z` của chính ngày đó,
+  nên bar của **hôm nay đang còn forming**: giá đóng cửa của nó chỉ là giá
+  tại thời điểm fetch cuối cùng.
+
+Auto-refresh bỏ qua symbol mà bar mới nhất mới hơn
+`AUTO_REFRESH_SKIP_IF_FRESH_HOURS` (24h). Với crypto, bar forming luôn mới hơn
+24h → **mọi symbol crypto bị bỏ qua ở mọi pass**. Tệ hơn: vì bar forming giữ
+timestamp mới, **ngày đã chốt gần nhất cũng không bao giờ được fetch lại**.
+
+Kết quả đo được: bar `2026-11-04` của BTC-USD đứng nguyên ở giá đóng cửa
+giữa phiên (`77.912`), trong khi provider đã chốt ở `80.405` — chênh **3.1%**.
+Verifier báo đây là mismatch vĩnh viễn.
+
+**Sửa:** `BronzeLayer.latest_settled_timestamp()` bỏ qua bar đóng dấu từ
+`00:00Z` hôm nay trở đi, và auto-refresh dùng bar **đã chốt** gần nhất làm
+watermark. Bar forming vẫn được ghi mỗi pass — nó chỉ không còn khiến symbol
+trông "còn mới".
+
+---
+
 ## 10. Giới hạn của phương pháp này
 
 Nói thẳng để không tạo cảm giác an toàn giả:
