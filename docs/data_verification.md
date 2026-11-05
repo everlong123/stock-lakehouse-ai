@@ -531,6 +531,64 @@ backfill được từ 2016 — không phụ thuộc SSI iBoard.
 
 ---
 
+## 9.6. Sàn giá của plausibility dùng **median** nên nuốt bar thật (2026-11-05)
+
+Sau khi đóng 22 symbol FAIL còn lại, một symbol vẫn FAIL: `PARA`, ngày
+`2026-10-23`, giá stored `4.251` vs provider `0.425` — đúng bằng tỉ lệ **10:1**.
+
+Nguyên nhân **không phải** ở dữ liệu mà ở chính guard bảo vệ nó.
+
+`BronzeLayer._reference_prices` lấy **median** của partition mới nhất làm
+"mức giá" của symbol. Với PARA, partition `2026-11` vẫn còn vài bar **trước
+split** quanh `2.72` nằm cạnh các bar sau split, nên median là `~2.21` trong khi
+mức thật của symbol chỉ là `~0.42`.
+
+Hệ quả: sàn giá tuyệt đối `0.5` vẫn còn hiệu lực, nên bar `0.425` **thật** của
+provider bị loại với lý do `implausible_open`. Và bar đó **không bao giờ sửa
+được**:
+
+* guard so sánh row đến với chính mức giá đã lưu của symbol;
+* mức giá đã lưu là `4.251` — tức giá **trước split**, giá sai;
+* nên giá sai luôn là chuẩn tham chiếu, còn giá đúng luôn *trông* bất khả thi.
+
+Đây là vòng lặp tự khóa: split 10:1 ngày `2026-10-28` buộc mọi session trước
+đó phải được restate, mà bản restate thì không ingest được.
+
+### Sửa
+
+Reference price giờ là **mức thấp** của vài partition mới nhất, không phải
+median:
+
+* sàn giá được nới cho instrument thực sự rẻ (PARA `0.47 < 0.5`), nên bar
+  `0.425` được nhận;
+* guard magnitude vẫn bắt được lỗi đơn vị thật, vì lỗi đơn vị lệch **1000 lần**
+  so với mức thấp chứ không phải 10 lần;
+* reference lấy từ **vài** partition gần nhất (không phải một) để symbol vừa
+  split vẫn có mẫu nhất quán.
+
+Đã kiểm chứng lại bằng `tests/test_plausibility.py` (13 assertion): bar thật
+dưới $1 được nhận (`ACH 0.21`, `PARA 0.425`), lỗi `/1000` vẫn bị loại
+(`VCB 53.5` vs `53.500`, `PARA 0.00047` vs `0.47`).
+
+### Đồng thời: phân loại mismatch bằng tỉ lệ, để không đoán mò
+
+`scripts/classify_mismatches.py` (mới) báo cáo tỉ lệ `stored/live` cho từng
+symbol FAIL, và tách hai nguyên nhân hoàn toàn khác nhau:
+
+| Nhóm | Dấu hiệu | Ví dụ |
+|---|---|---|
+| **Corporate action** | tỉ lệ là một hệ số sạch (`1.15`, `10`) | `PC1` (bonus 115:100 ×4 lần) |
+| **Provider restate** | tỉ lệ `1.0`, chỉ vài bar lệch | `BP.L`, `SAF.PA`, `VOW3.DE`… |
+
+Hai nhóm này trước đây bị gộp chung thành "FAIL" và dẫn tới việc sửa bừa.
+`PC1` cần re-ingest **toàn bộ lịch sử** (2.409 session), vì Yahoo đã restate
+mọi bar cũ sau 4 lần phát hành cổ phiếu thưởng; 21 symbol còn lại chỉ cần
+re-ingest **60 ngày cuối**.
+
+Sau khi sửa: **22/22 PASS, 5.276 bar khớp tuyệt đối, 0 mismatch.**
+
+---
+
 ## 10. Giới hạn của phương pháp này
 
 Nói thẳng để không tạo cảm giác an toàn giả:
