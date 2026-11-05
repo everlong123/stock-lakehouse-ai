@@ -91,6 +91,15 @@ MAX_PRICE_DEVIATION_FACTOR = 100.0
 #: Number of recent rows used to establish a symbol's price level.
 PRICE_REFERENCE_SAMPLE = 50
 
+#: How many of the symbol's newest stored partitions are sampled to establish
+#: its price level.
+#:
+#: More than one partition is needed because a symbol that has just been split
+#: or that has fallen steeply keeps pre-event bars in its newest partition. If
+#: only the newest partition were read, the sample would be dominated by those
+#: stale bars and the reference would sit far above the symbol's actual level.
+REFERENCE_PARTITION_SAMPLE = 3
+
 #: A STREAMING row (one of the per-second bars the Kafka publishers emit)
 #: must sit close to its own symbol's price level. Unlike a historical daily
 #: bar, an intraday tick has no excuse for being far away from the last
@@ -180,6 +189,26 @@ def _effective_floor(
       * If there is no reference for the symbol, the absolute floor applies.
         That is the safe direction: without evidence either way, the stricter
         check wins.
+
+    WHY THE REFERENCE IS THE LOW END OF THE RECENT RANGE
+    ---------------------------------------------------
+    The reference is the symbol's recent *minimum*, not its median, because
+    the median hides the case that actually bites. PARA (a US micro-cap that
+    has fallen from ~$4.90 to ~$0.42 over 2026) has a newest-partition
+    median of ~2.21, because that partition still holds a handful of
+    pre-split bars, while the symbol's true recent level is ~0.42.
+
+    With a median of 2.21 as the reference, the absolute floor of 0.5 stays
+    in force and the provider's real 0.425 bar is rejected as
+    ``implausible_open``. The result is a bar that can never be corrected:
+    the wrong value (4.251, from before a 10:1 split) is what the screen
+    compares against, so the right value is always the one that looks
+    impossible.
+
+    Using the recent minimum as the reference fixes both halves: the floor
+    relaxes for PARA (because 0.42 < 0.5), and the magnitude check still
+    rejects a genuine unit error, because such an error is 1000x off the
+    minimum rather than 10x off it.
     """
     symbol = row.get("symbol")
     if reference_prices and symbol is not None:

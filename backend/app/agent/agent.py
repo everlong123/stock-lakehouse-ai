@@ -12,7 +12,7 @@ from app.agent.llm_client import LLMClient
 from app.agent.markdown_normalizer import normalize_markdown
 from app.agent.prompts import SYSTEM_PROMPT, PROJECT_CONTEXT
 from app.agent.tool_registry import execute_tool, openai_tools
-from app.core.constants import GLOBAL_SYMBOLS
+from app.core.constants import ALL_SYMBOLS, GLOBAL_SYMBOLS
 from app.core.exceptions import AgentError, StockLakehouseError
 from app.core.logging_config import get_logger
 
@@ -173,7 +173,16 @@ class StockAnalysisAgent:
                         # Guard against the LLM inventing a ticker out of ordinary
                         # prose (e.g. "con AI này" -> CON). Only trust its symbol
                         # when the message actually looks like a market question.
-                        if not _is_valid_ticker(args.get("symbol")) or not _wants_symbol_resolution(user_message):
+                        #
+                        # A ticker named IN THE MESSAGE always wins over the
+                        # LLM's choice. The user is the source of truth about
+                        # which instrument they asked about; the LLM is not.
+                        # Without this, "giá VCB hôm nay" could be answered
+                        # with AAPL's price and still be labelled "VCB".
+                        mentioned = _extract_symbol(user_message, None)
+                        if mentioned != "AAPL" or _mentions_symbol(user_message, "AAPL"):
+                            args["symbol"] = mentioned
+                        elif not _is_valid_ticker(args.get("symbol")) or not _wants_symbol_resolution(user_message):
                             args["symbol"] = default_symbol or "AAPL"
                     elif default_symbol:
                         args["symbol"] = default_symbol
@@ -275,11 +284,18 @@ class StockAnalysisAgent:
                 content = "Không có dữ liệu trả về."
         # Heuristic follow-ups: the LLM path can't cheaply ask the LLM
         # "give me 3 follow-ups", so we mirror the offline path's logic.
+        #
+        # The follow-ups must be about the symbol the tools ACTUALLY ran on,
+        # not the symbol that happened to be selected in the UI. Asking
+        # "giá VCB hôm nay" while AAPL is selected used to produce
+        # "Tính RSI và MACD cho AAPL" as the next step — pointing the user
+        # at the wrong instrument right after they asked about another one.
+        answered_symbol = _answered_symbol(user_message, tool_trace, default_symbol)
         return {
             "assistant_message": normalize_markdown(content),
             "tools": tool_trace,
             "suggested_questions": _follow_up_suggestions(
-                default_symbol or "AAPL",
+                answered_symbol,
                 [(t["tool_name"], t["tool_arguments"]) for t in tool_trace],
             ),
             "tool_count": len(tool_trace),
@@ -465,7 +481,7 @@ def _wants_symbol_resolution(message: str) -> bool:
     user is clearly asking for market data.
     """
     upper = message.upper()
-    if any(re.search(rf"\b{re.escape(s)}\b", upper) for s in GLOBAL_SYMBOLS):
+    if any(re.search(rf"\b{re.escape(s)}\b", upper) for s in ALL_SYMBOLS):
         return True
     return _has_finance_intent(message.lower())
 
@@ -473,16 +489,33 @@ def _wants_symbol_resolution(message: str) -> bool:
 def _is_valid_ticker(symbol: object) -> bool:
     """Check whether a string is a real, supported ticker — not a noise word.
 
-    We require membership in GLOBAL_SYMBOLS rather than a loose shape check.
+    We require membership in ALL_SYMBOLS rather than a loose shape check.
     The shape check let prose words like "AI" (from "con AI này") or "CON" pass,
     which made tools run against symbols the lakehouse has never ingested.
+
+    WHY ALL_SYMBOLS AND NOT GLOBAL_SYMBOLS
+    --------------------------------------
+    ``GLOBAL_SYMBOLS`` is the yfinance universe only. It does NOT contain the
+    Vietnamese tickers (``VCB``, ``FPT``, ``HPG``, …), the crypto pairs, or
+    the market indexes. Using it here meant that asking about a Vietnamese
+    stock was treated exactly like asking about a made-up ticker:
+
+        "Giá đóng cuối của VCB hôm nay là bao nhiêu?"
+          -> _is_valid_ticker("VCB")  == False
+          -> the LLM's symbol choice was OVERWRITTEN with the UI selection
+          -> the tool ran against AAPL
+          -> the LLM then wrote "Giá đóng cuối của VCB ... 331.90"
+
+    That is the worst possible failure for this agent: a real number, a
+    plausible format, and a completely wrong instrument. The user cannot
+    tell from the answer that anything is off.
     """
     if not isinstance(symbol, str):
         return False
     s = symbol.strip().upper()
     if not s:
         return False
-    if s in GLOBAL_SYMBOLS:
+    if s in ALL_SYMBOLS:
         return True
     return False
 
@@ -494,18 +527,62 @@ def _extract_symbol(text: str, default_symbol: str | None) -> str:
     versions fell back to "any 2-5 char uppercase token", which mis-read prose
     ("con AI này" -> AI, "cảm giác" -> CON) and fired tools against symbols
     that were never ingested. Better to fall back to the user's selection.
+
+    WHY ALL_SYMBOLS AND NOT GLOBAL_SYMBOLS
+    --------------------------------------
+    ``GLOBAL_SYMBOLS`` only holds the yfinance universe. Every Vietnamese
+    ticker lives in ``VN_SYMBOLS`` instead, so searching only GLOBAL_SYMBOLS
+    meant "giá VCB hôm nay" resolved to the UI selection (AAPL) rather than
+    to VCB. The agent then answered a question about VCB with AAPL's price.
     """
     upper = text.upper()
 
     # Sort by length descending so longer tickers match first. "MA Crossover"
     # otherwise fires MA (Mastercard) before TSLA — short symbols are noise
     # inside compound words (MA, ON, SO, TD, …). We only trust longer names.
-    for symbol in sorted(GLOBAL_SYMBOLS, key=len, reverse=True):
+    for symbol in sorted(ALL_SYMBOLS, key=len, reverse=True):
         if re.search(rf"\b{re.escape(symbol)}\b", upper):
             return symbol
 
     fallback = (default_symbol or "AAPL").upper()
-    return fallback if fallback in GLOBAL_SYMBOLS else "AAPL"
+    return fallback if fallback in ALL_SYMBOLS else "AAPL"
+
+
+def _mentions_symbol(text: str, symbol: str) -> bool:
+    """Return True when *symbol* appears as a standalone token in *text*.
+
+    Used to tell "the user named this ticker" apart from "no ticker was
+    named at all", which matters because AAPL is both a real ticker and the
+    agent's default fallback — so a plain equality check against the
+    fallback cannot distinguish "asked about AAPL" from "asked about
+    something else".
+    """
+    return bool(re.search(rf"\b{re.escape(symbol)}\b", text.upper()))
+
+
+def _answered_symbol(
+    user_message: str,
+    tool_trace: list[dict[str, Any]],
+    default_symbol: str | None,
+) -> str:
+    """The symbol the answer is actually about.
+
+    Priority:
+    1. A ticker named in the user's message (the user is the source of truth).
+    2. The symbol the tool actually ran on.
+    3. The UI selection.
+
+    Follow-up suggestions are built from this, so they have to match the
+    instrument the answer just talked about.
+    """
+    mentioned = _extract_symbol(user_message, None)
+    if mentioned != "AAPL" or _mentions_symbol(user_message, "AAPL"):
+        return mentioned
+    for entry in tool_trace:
+        symbol = (entry.get("tool_arguments") or {}).get("symbol")
+        if isinstance(symbol, str) and symbol.strip():
+            return symbol.strip().upper()
+    return (default_symbol or "AAPL").upper()
 
 
 def _has_finance_intent(text: str) -> bool:

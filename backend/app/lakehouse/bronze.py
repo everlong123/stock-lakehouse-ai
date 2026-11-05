@@ -11,7 +11,11 @@ from app.core.exceptions import DataValidationError, StorageError
 from app.core.logging_config import get_logger
 from app.lakehouse.dedupe import dedupe_same_bars
 from app.lakehouse.parquet_manager import split_by_partition
-from app.lakehouse.plausibility import screen_batch
+from app.lakehouse.plausibility import (
+    PRICE_REFERENCE_SAMPLE,
+    REFERENCE_PARTITION_SAMPLE,
+    screen_batch,
+)
 from app.lakehouse.storage_base import StorageBackend
 from app.lakehouse.storage_factory import get_storage_backend
 
@@ -66,12 +70,38 @@ class BronzeLayer:
         return result
 
     def _reference_prices(self, frame: pd.DataFrame) -> dict[str, float]:
-        """Median recent close per symbol, read from the newest stored partition.
+        """Recent LOW close per symbol, read from the newest stored partitions.
 
-        Only the newest partition is read, so this stays cheap on a lakehouse
-        with ~100 symbols: one object per symbol rather than the full history.
-        A symbol with no stored history is omitted, and the screen then applies
-        only its self-contained checks - degrading safely instead of guessing.
+        Only the newest partitions are read, so this stays cheap on a lakehouse
+        with ~1000 symbols: a couple of objects per symbol rather than the
+        full history. A symbol with no stored history is omitted, and the screen
+        then applies only its self-contained checks - degrading safely instead
+        of guessing.
+
+        WHY THE LOW END AND NOT THE MEDIAN
+        ----------------------------------
+        The reference answers "what level does this symbol trade at", and the
+        answer has to survive a symbol that has fallen a long way, or that has
+        just been split.
+
+        PARA is the concrete case. Its newest partition (2026-11) still holds
+        a few pre-split bars around 2.72 alongside the post-split ones, so the
+        partition MEDIAN is ~2.21 while the symbol's real recent level is
+        ~0.42. With a 2.21 reference, the absolute plausibility floor of 0.5
+        stays in force and the provider's genuine 0.425 bar is rejected as
+        ``implausible_open``.
+
+        That is a bar that can never be fixed. The screen compares the
+        incoming row against the symbol's own stored level, and the stored
+        level was the pre-split 4.251 - so the wrong value is always the
+        reference and the right value always looks impossible. A 10:1 split
+        on 2026-10-28 means every session before it must be restated, and
+        the restatement could not be ingested at all.
+
+        Taking the minimum across the newest partitions fixes it: the
+        reference becomes ~0.42, the floor relaxes for a genuinely cheap
+        instrument, and the magnitude check still catches a real unit error
+        (which is 1000x off, not 10x off).
         """
         if frame.empty or "symbol" not in frame.columns:
             return {}
@@ -89,18 +119,26 @@ class BronzeLayer:
                 continue
             if not keys:
                 continue
-            try:
-                stored = self.storage.read_parquet(self.layer_name, sorted(keys, reverse=True)[0])
-            except Exception as exc:  # noqa: BLE001
-                logger.debug("Reference partition unreadable for %s: %s", symbol, exc)
+
+            closes: list[float] = []
+            # The newest few partitions, so a symbol that just split keeps a
+            # pre-split bar in the sample and drags the reference UP.
+            for key in sorted(keys, reverse=True)[:REFERENCE_PARTITION_SAMPLE]:
+                try:
+                    stored = self.storage.read_parquet(self.layer_name, key)
+                except Exception as exc:  # noqa: BLE001
+                    logger.debug("Reference partition unreadable for %s: %s", key, exc)
+                    continue
+                if stored is None or stored.empty or "close" not in stored.columns:
+                    continue
+                values = pd.to_numeric(stored["close"], errors="coerce").dropna()
+                closes.extend(float(v) for v in values[values > 0])
+                if len(closes) >= PRICE_REFERENCE_SAMPLE:
+                    break
+
+            if not closes:
                 continue
-            if stored is None or stored.empty or "close" not in stored.columns:
-                continue
-            closes = pd.to_numeric(stored["close"], errors="coerce").dropna()
-            closes = closes[closes > 0]
-            if closes.empty:
-                continue
-            references[symbol] = float(closes.median())
+            references[symbol] = min(closes)
         return references
 
     def append(self, frame: pd.DataFrame, lineage: dict | None = None) -> dict:

@@ -6,7 +6,7 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.core.constants import GLOBAL_SYMBOLS
+from app.core.constants import ALL_SYMBOLS
 from app.forecasting.predictor import FORECAST_DISCLAIMER, RISK_ASSESSMENT_DISCLAIMER, GENERAL_DISCLAIMER
 from app.services.backtest_service import BacktestService
 from app.services.forecasting_service import ForecastingService
@@ -98,8 +98,16 @@ class MarketSummaryOutput(BaseModel):
 
 
 def _normalize_symbol(symbol: str) -> str:
+    """Upper-case the ticker.
+
+    ``ALL_SYMBOLS`` (which includes the Vietnamese tickers, the crypto pairs
+    and the market indexes) is the reference universe. The tool still accepts
+    a symbol outside it, because the lakehouse may hold data for a ticker
+    that was never added to the curated list — the membership check is a
+    sanity signal, not a gate.
+    """
     value = symbol.upper().strip()
-    if value not in GLOBAL_SYMBOLS:
+    if value not in ALL_SYMBOLS:
         # Allow unknown tickers if lakehouse already has data.
         return value
     return value
