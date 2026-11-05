@@ -69,8 +69,8 @@ class BronzeLayer:
         result["source"] = result["source"].astype(str)
         return result
 
-    def _reference_prices(self, frame: pd.DataFrame) -> dict[str, float]:
-        """Recent LOW close per symbol, read from the newest stored partitions.
+    def _reference_prices(self, frame: pd.DataFrame) -> dict[str, dict[str, float]]:
+        """Recent price LEVEL per symbol, read from the newest stored partitions.
 
         Only the newest partitions are read, so this stays cheap on a lakehouse
         with ~1000 symbols: a couple of objects per symbol rather than the
@@ -78,35 +78,48 @@ class BronzeLayer:
         then applies only its self-contained checks - degrading safely instead
         of guessing.
 
-        WHY THE LOW END AND NOT THE MEDIAN
-        ----------------------------------
-        The reference answers "what level does this symbol trade at", and the
-        answer has to survive a symbol that has fallen a long way, or that has
-        just been split.
+        Each symbol maps to TWO numbers, because the two checks that consume
+        this reference ask different questions:
 
-        PARA is the concrete case. Its newest partition (2026-11) still holds
-        a few pre-split bars around 2.72 alongside the post-split ones, so the
-        partition MEDIAN is ~2.21 while the symbol's real recent level is
-        ~0.42. With a 2.21 reference, the absolute plausibility floor of 0.5
-        stays in force and the provider's genuine 0.425 bar is rejected as
+          * ``floor``     - the LOW end of the recent range. Answers "is this
+            symbol a cheap instrument?", which decides whether the absolute
+            price floor of 0.5 may be relaxed.
+          * ``magnitude`` - the MEDIAN of the recent range. Answers "is this
+            price wildly far from where this symbol trades?", which is what
+            catches a unit error.
+
+        WHY THEY CANNOT BE THE SAME NUMBER
+        ----------------------------------
+        PARA is the concrete case for both directions.
+
+        Its newest partition (2026-11) still holds a few pre-split bars
+        around 2.72 next to the post-split ones, so the partition MEDIAN is
+        ~2.21 while the symbol's real recent level is ~0.42. With 2.21 as
+        the floor reference, the absolute floor of 0.5 stayed in force and
+        the provider's genuine 0.425 bar was rejected as
         ``implausible_open``.
 
         That is a bar that can never be fixed. The screen compares the
         incoming row against the symbol's own stored level, and the stored
         level was the pre-split 4.251 - so the wrong value is always the
         reference and the right value always looks impossible. A 10:1 split
-        on 2026-10-28 means every session before it must be restated, and
+        on 2026-10-28 meant every earlier session had to be restated, and
         the restatement could not be ingested at all.
 
-        Taking the minimum across the newest partitions fixes it: the
-        reference becomes ~0.42, the floor relaxes for a genuinely cheap
-        instrument, and the magnitude check still catches a real unit error
-        (which is 1000x off, not 10x off).
+        But the LOW end cannot serve the magnitude check either. PARA traded
+        near $102 in 2021 and near $0.47 in 2026, so its low end sits ~200x
+        below its median. Using it for the magnitude check rejected the
+        symbol's own 2021 history as ``price_magnitude`` - deleting real
+        history to catch a rare unit bug.
+
+        So the low end relaxes the floor for a genuinely cheap instrument,
+        the median keeps the magnitude check honest, and a unit error is
+        still caught because it is 1000x off - far outside both bands.
         """
         if frame.empty or "symbol" not in frame.columns:
             return {}
 
-        references: dict[str, float] = {}
+        references: dict[str, dict[str, float]] = {}
         for symbol in sorted(set(frame["symbol"].astype(str).str.upper())):
             try:
                 keys = [
@@ -138,7 +151,10 @@ class BronzeLayer:
 
             if not closes:
                 continue
-            references[symbol] = min(closes)
+            references[symbol] = {
+                "floor": min(closes),
+                "magnitude": float(pd.Series(closes).median()),
+            }
         return references
 
     def append(self, frame: pd.DataFrame, lineage: dict | None = None) -> dict:
@@ -289,6 +305,70 @@ class BronzeLayer:
             stamps = pd.to_datetime(frame["timestamp"], utc=True, errors="coerce").dropna()
             if not stamps.empty:
                 return stamps.max()
+        return None
+
+    def latest_settled_timestamp(
+        self,
+        symbol: str,
+        now: pd.Timestamp | None = None,
+    ) -> pd.Timestamp | None:
+        """Return the newest SETTLED bar's timestamp, ignoring a forming one.
+
+        WHY THIS EXISTS
+        ---------------
+        A daily bar is stamped at the session OPEN, not at the session CLOSE.
+        For an equity the open stamp is in the past by the time the day ends,
+        so "the newest stored bar" is usually yesterday's - already settled.
+
+        For a 24/7 instrument it is not. Crypto's daily bar is stamped at
+        00:00Z of the day it covers, so the bar stored for TODAY is still
+        forming: its close is whatever the price was at the last fetch. That
+        bar is also the newest one, and it is always less than 24 hours old.
+
+        The auto-refresh uses this timestamp as its watermark and skips any
+        symbol whose newest bar is younger than ``AUTO_REFRESH_SKIP_IF_FRESH_HOURS``.
+        With the forming bar counted, BTC-USD and ETH-USD were skipped on
+        EVERY pass - and because the forming bar kept a fresh timestamp, the
+        bar before it (the last genuinely settled day) was never re-fetched
+        either. The measured result: the 2026-11-04 bar stayed frozen at the
+        close it had mid-session (77,912 for BTC) while the provider had
+        already settled it at 80,405.
+
+        The fix is to treat a bar whose stamp is at or after today's UTC
+        midnight as still forming, and to watermark on the last bar before it.
+        The forming bar itself is still written on every pass - it is just not
+        allowed to make the symbol look up to date.
+
+        A symbol whose ONLY bar is today's forming bar has no settled bar at
+        all; ``None`` is returned in that case, which makes the caller
+        backfill rather than skip.
+        """
+        now = now or pd.Timestamp.now(tz="UTC")
+        if now.tzinfo is None:
+            now = now.tz_localize("UTC")
+
+        keys = self.storage.list_objects(self.layer_name, symbol_prefix(symbol))
+        data_keys = [k for k in keys if k.endswith(".parquet")]
+        if not data_keys:
+            return None
+
+        # Midnight UTC today: anything stamped at or after this is a bar that
+        # is still being formed.
+        today_start = now.normalize()
+
+        for key in sorted(data_keys, reverse=True)[:2]:
+            frame = self.storage.read_parquet(self.layer_name, key)
+            if frame is None or frame.empty or "timestamp" not in frame.columns:
+                continue
+            stamps = pd.to_datetime(frame["timestamp"], utc=True, errors="coerce").dropna()
+            if stamps.empty:
+                continue
+            settled = stamps[stamps < today_start]
+            if not settled.empty:
+                return settled.max()
+            # Every bar in this partition is today's forming bar. Look at the
+            # previous partition for the last settled one.
+            continue
         return None
 
     def record_count(self, symbol: str | None = None) -> int:

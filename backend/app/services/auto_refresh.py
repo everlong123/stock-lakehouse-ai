@@ -439,7 +439,13 @@ class AutoRefreshService:
             # every month partition for the symbol (~120 objects for a 10-year
             # daily ticker) once per pass, which is what made the refresh crawl.
             # `latest_timestamp()` lists keys and pulls just the newest partition.
-            latest_ts = bronze.latest_timestamp(symbol)
+            # `latest_settled_timestamp()` is used instead of `latest_timestamp()`
+            # because a bar stamped at today's midnight (crypto's 24/7 daily
+            # bar) is still FORMING. Counting it made every crypto symbol look
+            # up to date, so the refresh skipped them on every pass and the
+            # last genuinely settled day was never re-fetched - BTC-USD's
+            # 2026-11-04 bar stayed frozen at its mid-session close.
+            latest_ts = bronze.latest_settled_timestamp(symbol)
         except Exception as exc:
             logger.warning("AutoRefresh: bronze watermark read failed for %s: %s", symbol, exc)
             latest_ts = None

@@ -100,6 +100,27 @@ PRICE_REFERENCE_SAMPLE = 50
 #: stale bars and the reference would sit far above the symbol's actual level.
 REFERENCE_PARTITION_SAMPLE = 3
 
+#: A symbol's price level is described by TWO numbers, because the two checks
+#: that use it ask different questions.
+#:
+#: ``floor`` is the LOW end of the recent range. It answers "is this symbol a
+#: cheap instrument?", which is what decides whether the absolute price floor
+#: of 0.5 may be relaxed. Using the median here hides the answer: PARA's
+#: newest partition still holds pre-split bars around 2.72, so its median is
+#: ~2.21 while its real level is ~0.42 - and with 2.21 as the floor reference
+#: the genuine 0.425 bar was rejected as ``implausible_open``.
+#:
+#: ``magnitude`` is the MEDIAN of the recent range. It answers "is this price
+#: wildly far from where this symbol trades?", which is what catches a unit
+#: error. Using the low end here would be wrong in the opposite direction:
+#: PARA traded near $102 in 2021 and near $0.47 in 2026, so the low end is
+#: ~200x below the median, and a 200x legitimate move would be rejected as
+#: ``price_magnitude`` - deleting real history to catch a rare unit bug.
+#:
+#: A unit error is 1000x off, which is far outside both references' tolerance
+#: bands, so splitting the two costs the guard nothing.
+ReferenceLevel = dict[str, dict[str, float]]
+
 #: A STREAMING row (one of the per-second bars the Kafka publishers emit)
 #: must sit close to its own symbol's price level. Unlike a historical daily
 #: bar, an intraday tick has no excuse for being far away from the last
@@ -164,7 +185,7 @@ class PlausibilityReport:
 
 def _effective_floor(
     row: pd.Series,
-    reference_prices: dict[str, float] | None,
+    reference_prices: ReferenceLevel | dict[str, float] | None,
 ) -> float:
     """The lowest price this row may carry, given what the symbol itself trades at.
 
@@ -190,13 +211,14 @@ def _effective_floor(
         That is the safe direction: without evidence either way, the stricter
         check wins.
 
-    WHY THE REFERENCE IS THE LOW END OF THE RECENT RANGE
-    ---------------------------------------------------
-    The reference is the symbol's recent *minimum*, not its median, because
-    the median hides the case that actually bites. PARA (a US micro-cap that
-    has fallen from ~$4.90 to ~$0.42 over 2026) has a newest-partition
-    median of ~2.21, because that partition still holds a handful of
-    pre-split bars, while the symbol's true recent level is ~0.42.
+    WHY THE FLOOR REFERENCE IS THE LOW END OF THE RECENT RANGE
+    ----------------------------------------------------------
+    The floor reference is the symbol's recent *minimum*, not its median,
+    because the median hides the case that actually bites. PARA (a US
+    micro-cap that has fallen from ~$4.90 to ~$0.42 over 2026) has a
+    newest-partition median of ~2.21, because that partition still holds a
+    handful of pre-split bars, while the symbol's true recent level is
+    ~0.42.
 
     With a median of 2.21 as the reference, the absolute floor of 0.5 stays
     in force and the provider's real 0.425 bar is rejected as
@@ -205,23 +227,24 @@ def _effective_floor(
     compares against, so the right value is always the one that looks
     impossible.
 
-    Using the recent minimum as the reference fixes both halves: the floor
-    relaxes for PARA (because 0.42 < 0.5), and the magnitude check still
-    rejects a genuine unit error, because such an error is 1000x off the
-    minimum rather than 10x off it.
+    The low end answers exactly this question - "is this symbol cheap?" - and
+    the magnitude check (which uses the median, separately) is what catches
+    a real unit error.
     """
     symbol = row.get("symbol")
     if reference_prices and symbol is not None:
-        reference = reference_prices.get(str(symbol).upper())
-        if reference is not None and 0 < reference < MIN_PLAUSIBLE_PRICE:
-            return MIN_SUBUNIT_PRICE
+        level = reference_prices.get(str(symbol).upper())
+        if level is not None:
+            reference = level.get("floor") if isinstance(level, dict) else level
+            if reference is not None and 0 < reference < MIN_PLAUSIBLE_PRICE:
+                return MIN_SUBUNIT_PRICE
     return MIN_PLAUSIBLE_PRICE
 
 
 def _reason_for(
     row: pd.Series,
     now: pd.Timestamp,
-    reference_prices: dict[str, float] | None = None,
+    reference_prices: ReferenceLevel | dict[str, float] | None = None,
 ) -> str | None:
     """Return why ``row`` is impossible, or ``None`` if it looks real."""
 
@@ -259,7 +282,10 @@ def _reason_for(
     return None
 
 
-def _magnitude_reason(row: pd.Series, reference_prices: dict[str, float] | None) -> str | None:
+def _magnitude_reason(
+    row: pd.Series,
+    reference_prices: ReferenceLevel | dict[str, float] | None,
+) -> str | None:
     """Reject a price that contradicts the symbol's own recent level.
 
     This is the check that catches a VND quote divided by 1000: VCB's recent
@@ -278,7 +304,25 @@ def _magnitude_reason(row: pd.Series, reference_prices: dict[str, float] | None)
     symbol = row.get("symbol")
     if symbol is None:
         return None
-    reference = reference_prices.get(str(symbol).upper())
+    level = reference_prices.get(str(symbol).upper())
+    if level is None:
+        return None
+    # The magnitude check uses the MEDIAN of the symbol's recent range, not
+    # the low end. The two checks ask different questions and must not share
+    # one number:
+    #
+    #   floor     -> "is this symbol cheap?"  -> LOW end
+    #   magnitude -> "is this price wildly off?" -> MEDIAN
+    #
+    # Using the low end for the magnitude check would reject real history.
+    # PARA traded near $102 in 2021 and near $0.47 in 2026, so its low end
+    # sits ~200x below its median; a 200x legitimate move would be rejected
+    # as ``price_magnitude``. A unit error, which is what this check exists
+    # for, is 1000x off - far outside the band either reference produces.
+    if isinstance(level, dict):
+        reference = level.get("magnitude")
+    else:
+        reference = level
     if reference is None or reference <= 0:
         return None
 
@@ -310,7 +354,7 @@ def _magnitude_reason(row: pd.Series, reference_prices: dict[str, float] | None)
 def screen_batch(
     frame: pd.DataFrame,
     now: pd.Timestamp | None = None,
-    reference_prices: dict[str, float] | None = None,
+    reference_prices: ReferenceLevel | dict[str, float] | None = None,
 ) -> tuple[pd.DataFrame, PlausibilityReport]:
     """Drop rows that cannot possibly be real market data.
 
@@ -318,10 +362,14 @@ def screen_batch(
     never repaired - a row with an unknown-correct value is discarded, because
     guessing would put invented prices into the lake.
 
-    ``reference_prices`` maps symbol -> typical recent close and enables the
-    cross-check that catches unit errors (a VND price divided by 1000). Symbols
-    absent from the mapping get only the self-contained checks, so the screen
-    degrades safely rather than rejecting everything.
+    ``reference_prices`` maps symbol -> its recent price level and enables the
+    cross-check that catches unit errors (a VND price divided by 1000). Each
+    symbol's level carries two numbers: ``floor`` (the low end of the recent
+    range, used to relax the absolute price floor for a cheap instrument) and
+    ``magnitude`` (the median, used to catch a price that is wildly off). A
+    plain float is also accepted and is used for both. Symbols absent from the
+    mapping get only the self-contained checks, so the screen degrades safely
+    rather than rejecting everything.
     """
     report = PlausibilityReport()
     if frame.empty:
