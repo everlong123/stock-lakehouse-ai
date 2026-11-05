@@ -148,6 +148,9 @@ class SymbolReport:
     restated: list[BarVerdict] = field(default_factory=list)
     notes: list[str] = field(default_factory=list)
     error: str = ""
+    #: True when the provider no longer serves this symbol at all, so there
+    #: is nothing to compare it against. Such a symbol is not a mismatch.
+    no_provider: bool = False
 
     @property
     def ok(self) -> bool:
@@ -271,6 +274,8 @@ def compare_layer(
         return counts, mismatches, stale, restated_bars
 
     stored = stored.copy()
+    if "timestamp" not in stored.columns:
+        return counts, mismatches, stale, restated_bars
     stored["_session"] = _session_key(stored["timestamp"])
     # A layer can hold several rows for one session (Bronze does, before
     # canonicalisation). Compare against the row the layer would SERVE.
@@ -284,6 +289,8 @@ def compare_layer(
     stored = _pick_session_survivor(stored)
 
     provider = provider.copy()
+    if "timestamp" not in provider.columns:
+        return counts, mismatches, stale, restated_bars
     provider["_session"] = _session_key(provider["timestamp"])
     provider = _pick_session_survivor(provider)
 
@@ -542,8 +549,14 @@ def fetch_api(symbol: str, base_url: str, timeout: float) -> pd.DataFrame:
     data = payload.get("data") or {}
     rows = data.get("rows") or []
     if not rows:
-        raise RuntimeError(f"API returned no rows for {symbol}")
+        # An empty result is not an error: a symbol the provider no longer
+        # serves (delisted/renamed) has no rows to serve either. Raising here
+        # would mark the symbol as an ERROR, but there is nothing to compare -
+        # so return an empty frame and let the caller skip it.
+        return pd.DataFrame()
     frame = pd.DataFrame(rows)
+    if "timestamp" not in frame.columns:
+        return pd.DataFrame()
     frame["timestamp"] = pd.to_datetime(frame["timestamp"], utc=True, errors="coerce")
     return frame.dropna(subset=["timestamp"])
 
@@ -569,10 +582,19 @@ def verify_api_layer(
         return counts, mismatches, stale, restated_bars, str(exc)
 
     served = served.copy()
+    if "timestamp" not in served.columns:
+        counts["ERROR"] = 1
+        return counts, mismatches, stale, restated_bars, "API response has no 'timestamp' column"
     served["_session"] = _session_key(served["timestamp"])
     served = _pick_session_survivor(served)
 
     live = provider.copy()
+    # The provider can return ZERO rows for a symbol (WBD did: the ticker was
+    # delisted/renamed). An empty frame has no columns at all, so indexing
+    # 'timestamp' raises KeyError and kills the whole verification run - which
+    # is how one delisted ticker could take down the audit of 1,000 symbols.
+    if live.empty or "timestamp" not in live.columns:
+        return counts, mismatches, stale, restated_bars, ""
     live["_session"] = _session_key(live["timestamp"])
     live = _pick_session_survivor(live)
 
@@ -666,6 +688,18 @@ def verify_symbol(
 
     report.provider_name = getattr(provider, "source_name", provider.__class__.__name__)
     report.provider_rows = len(live)
+
+    # The provider no longer serves this symbol (delisted or renamed - WBD
+    # did exactly this on 2026-11-05). There is nothing to compare against,
+    # so the symbol is reported as such instead of crashing the run or being
+    # miscounted as a data mismatch.
+    if live.empty:
+        report.notes.append(
+            f"provider returned no rows for {symbol}; the symbol is no longer "
+            "served upstream, so it cannot be compared"
+        )
+        report.no_provider = True
+        return report
 
     layer_readers = {"bronze": BronzeLayer, "silver": SilverLayer, "gold": GoldLayer}
     all_mismatches: list[BarVerdict] = []
@@ -794,9 +828,16 @@ def main(argv: list[str] | None = None) -> int:
         reports.append(report)
 
         status = "ERROR" if report.error else ("FAIL" if report.mismatches else " OK ")
+        if report.no_provider and not report.error:
+            status = "NOPV"
         print(f"[{status}] {symbol:<8}", end="")
         if report.error:
             print(f" {report.error}")
+        elif report.no_provider:
+            print(f" provider={report.provider_name}(0) no provider rows; nothing to compare")
+            for note in report.notes:
+                print(f"          note: {note}")
+            continue
         else:
             parts = []
             for layer_name, counts in report.layers.items():
@@ -827,6 +868,7 @@ def main(argv: list[str] | None = None) -> int:
     total_restated = sum(c.get("RESTATED", 0) for r in reports for c in r.layers.values())
     total_bad = sum(len(r.mismatches) for r in reports)
     total_err = sum(1 for r in reports if r.error)
+    total_nopv = sum(1 for r in reports if r.no_provider)
 
     print()
     print("=" * 78)
@@ -839,6 +881,8 @@ def main(argv: list[str] | None = None) -> int:
     print(f"  restated        : {total_restated}   (the provider revised the bar after it was ingested)")
     print(f"  MISMATCHES      : {total_bad}")
     print(f"  errors          : {total_err}")
+    if total_nopv:
+        print(f"  no provider data : {total_nopv}   (the provider no longer serves these symbols)")
     print()
     if total_bad:
         print("VERDICT: FAILED - stored values differ from the provider beyond tolerance.")
