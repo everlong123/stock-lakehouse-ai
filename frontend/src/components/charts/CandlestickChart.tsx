@@ -9,7 +9,7 @@ interface CandleProps {
    * ISO currency of the quoted prices.
    *
    * WHY: the lakehouse stores unitless prices, and the tooltip labels them.
-   * Without this the chart would say "245.30 ₫" for a US dollar stock.
+   * Without this the chart would say "245.30 $" for a US dollar stock.
    */
   currency?: string | null;
 }
@@ -24,11 +24,11 @@ interface HoverInfo {
  * Interactive candlestick chart with crosshair + OHLCV tooltip.
  *
  * Built as raw SVG (instead of recharts) so we can:
- *   • render a vertical crosshair that snaps to the nearest bar
- *   • overlay an OHLCV tooltip card on hover
- *   • keep colors consistent with the up/down CSS variables
+ *   - render a vertical crosshair that snaps to the nearest bar
+ *   - overlay an OHLCV tooltip card on hover
+ *   - keep colors consistent with the up/down CSS variables
  */
-/** A bar whose four prices are all finite numbers — safe to draw. */
+/** A bar whose four prices are all finite numbers - safe to draw. */
 type ValidBar = OHLCVPoint & { open: number; high: number; low: number; close: number };
 
 export function CandlestickChart({ points, height = 320, currency }: CandleProps) {
@@ -40,7 +40,7 @@ export function CandlestickChart({ points, height = 320, currency }: CandleProps
   // WHY: `Math.max`/`Math.min` propagate NaN, so one bad bar makes max, min and
   // span all NaN. The old `span = max - min || 1` guard then quietly turned the
   // corrupted span into 1, every `y(...)` became NaN, and the SVG rendered
-  // `y="NaN"` — the whole chart vanished with no error and no empty state.
+  // `y="NaN"` - the whole chart vanished with no error and no empty state.
   // Filtering here also stops a bad bar from being mis-coloured: `NaN >= NaN`
   // is false, so a corrupt bar used to paint as a legitimate "down" day.
   //
@@ -104,9 +104,9 @@ export function CandlestickChart({ points, height = 320, currency }: CandleProps
 
   if (!layout) {
     return (
-      <div className="h-40 text-sm text-muted-foreground">
+      <div className="h-40 text-sm text-muted">
         {points.length
-          ? `Không có nến nào hợp lệ (${points.length} dòng dữ liệu lỗi).`
+          ? `Không có nền nềo hợp lệ (${points.length} dòng dữ liệu lới).`
           : "No chart data."}
       </div>
     );
@@ -165,14 +165,14 @@ export function CandlestickChart({ points, height = 320, currency }: CandleProps
               x2={width}
               y1={yPos}
               y2={yPos}
-              stroke="hsl(var(--border))"
+              stroke="hsl(var(--hairline))"
               strokeDasharray="3 3"
             />
             <text
               x={4}
               y={yPos + 4}
-              fontSize={10}
-              fill="hsl(var(--muted-foreground))"
+              fontSize={12}
+              fill="hsl(var(--muted))"
               fontFamily="JetBrains Mono"
             >
               {gridPrices[i].toFixed(0)}
@@ -184,7 +184,7 @@ export function CandlestickChart({ points, height = 320, currency }: CandleProps
         {bars.map((point, index) => {
           const x = 40 + (index + 0.5) * slot;
           const up = point.close >= point.open;
-          const color = up ? "hsl(var(--up))" : "hsl(var(--down))";
+          const color = up ? "hsl(var(--primary))" : "hsl(var(--negative))";
           const bodyTop = y(Math.max(point.open, point.close));
           const bodyBottom = y(Math.min(point.open, point.close));
           const bodyH = Math.max(1.5, bodyBottom - bodyTop);
@@ -242,20 +242,20 @@ export function CandlestickChart({ points, height = 320, currency }: CandleProps
       {/* OHLCV tooltip */}
       {active && hover ? (
         <div
-          className="pointer-events-none absolute top-2 z-10 rounded-md border border-border bg-card px-3 py-2 text-[11px] shadow-md"
+          className="pointer-events-none absolute top-2 z-10 rounded border border-hairline bg-surface px-3 py-2 text-label"
           style={{
             left: tooltipSide === "right" ? hover.x + 12 : hover.x - 200,
             minWidth: 180,
           }}
         >
-          <div className="mb-1 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+          <div className="mb-1 font-mono text-label uppercase tracking-wider text-muted">
             {shortDate(active.timestamp)}
           </div>
           <OHLCVRow label="O" value={active.open} currency={currency} />
           <OHLCVRow label="H" value={active.high} tone="up" currency={currency} />
           <OHLCVRow label="L" value={active.low} tone="down" currency={currency} />
           <OHLCVRow label="C" value={active.close} strong currency={currency} />
-          <div className="mt-1 flex justify-between border-t border-border pt-1 font-mono text-muted-foreground">
+          <div className="mt-1 flex justify-between border-t border-hairline pt-1 font-mono text-muted">
             <span>Vol</span>
             <span>{formatVolume(active.volume)}</span>
           </div>
@@ -266,10 +266,10 @@ export function CandlestickChart({ points, height = 320, currency }: CandleProps
           drops bars looks complete while quietly mis-representing the series. */}
       {dropped > 0 ? (
         <p
-          className="mt-1 text-right text-[10px] text-muted-foreground"
-          title="Các dòng không có OHLC hợp lệ đã được bỏ qua khi vẽ biểu đồ."
+          className="mt-1 text-right text-label text-muted"
+          title="Các dững không có OHLC hợp lệ được bỏ qua khi vị biểu dổ."
         >
-          ⚠ {dropped} dòng lỗi đã ẩn
+          ? {dropped} dòng lệi dữ đãn
         </p>
       ) : null}
     </div>
@@ -291,16 +291,16 @@ function OHLCVRow({
 }) {
   return (
     <div className="flex items-center justify-between gap-3 font-mono">
-      <span className="text-muted-foreground">{label}</span>
+      <span className="text-muted">{label}</span>
       <span
         className={
           tone === "up"
-            ? "text-up"
+            ? "text-primary"
             : tone === "down"
-            ? "text-down"
+            ? "text-negative"
             : strong
-            ? "font-semibold text-foreground"
-            : "text-foreground"
+            ? "font-semibold text-ink"
+            : "text-ink"
         }
       >
         {formatPrice(value, currency)}

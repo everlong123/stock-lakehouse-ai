@@ -79,17 +79,12 @@ def get_data_provider(name: str | None = None) -> StockDataProvider:
         logger.info("Using StockScraperProvider (HTTP scrape, no key).")
         return StockScraperProvider()
 
-    if selected in {"ssi_vn", "ssi", "vn_ssi", "vn_ws", "vn_ws_rest"}:
+    if selected in {"ssi_vn", "ssi", "vn_ssi"}:
         # All VN paths reuse the same public SSIVNProvider for historical
-        # OHLCV. Real-time data is delivered by VNStreamPublisher via the
-        # SSI iBoard WebSocket (vn_ws) or the REST poller fallback
-        # (vn_ws_rest) - both are FREE and require no API key.
+        # OHLCV. It reads daily bars from the SSI iBoard public REST API,
+        # which is FREE and requires no API key.
         logger.info(
-            "Using SSIVNProvider (SSI iBoard public API, HOSE/HNX/UPCOM). "
-            "Real-time channel: %s.",
-            "WebSocket (vn_ws)" if selected == "vn_ws" else
-            "REST polling (vn_ws_rest)" if selected == "vn_ws_rest" else
-            "via StreamPublisher (sse)",
+            "Using SSIVNProvider (SSI iBoard public API, HOSE/HNX/UPCOM)."
         )
         return SSIVNProvider()
 

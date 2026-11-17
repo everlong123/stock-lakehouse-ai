@@ -9,8 +9,8 @@ interface IndicatorChartProps {
 }
 
 const tooltipStyle = {
-  background: "hsl(var(--card))",
-  border: "1px solid hsl(var(--border))",
+  background: "hsl(var(--surface))",
+  border: "1px solid hsl(var(--hairline))",
   borderRadius: 6,
   fontSize: 12,
 };
@@ -20,15 +20,15 @@ export function IndicatorChart({ data, lines, referenceLines, height = 220 }: In
     <div className="w-full" style={{ height }}>
       <ResponsiveContainer>
         <LineChart data={data as Array<Record<string, string | number | null>>}>
-          <CartesianGrid stroke="hsl(220 14% 92%)" strokeDasharray="3 3" />
+          <CartesianGrid stroke="hsl(var(--hairline))" vertical={false} />
           <XAxis
             dataKey="timestamp"
             tickFormatter={shortDate}
             minTickGap={32}
-            stroke="hsl(220 10% 50%)"
-            fontSize={11}
+            stroke="hsl(var(--muted))"
+            fontSize={12}
           />
-          <YAxis stroke="hsl(220 10% 50%)" fontSize={11} />
+          <YAxis stroke="hsl(var(--muted))" fontSize={12} />
           <Tooltip contentStyle={tooltipStyle} labelFormatter={(v) => shortDate(String(v))} />
           {referenceLines?.map((ref) => (
             <ReferenceLine
@@ -36,7 +36,7 @@ export function IndicatorChart({ data, lines, referenceLines, height = 220 }: In
               y={ref.y}
               stroke={ref.color}
               strokeDasharray="3 3"
-              label={{ value: ref.label, fill: ref.color, fontSize: 11, position: "insideTopRight" }}
+              label={{ value: ref.label, fill: ref.color, fontSize: 12, position: "insideTopRight" }}
             />
           ))}
           {lines.map((line) => (

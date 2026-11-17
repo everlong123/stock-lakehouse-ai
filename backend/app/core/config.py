@@ -79,9 +79,7 @@ class Settings(BaseSettings):
     minio_bucket_gold: str = "stock-gold"
     minio_bucket_models: str = "stock-models"
     minio_bucket_backtests: str = "stock-backtests"
-    minio_bucket_silver_news: str = "stock-silver-news"
     minio_bucket_silver_fundamentals: str = "stock-silver-fundamentals"
-    minio_bucket_gold_features: str = "stock-gold-features"
 
     use_spark: bool = False
     spark_app_name: str = "stock-lakehouse"
@@ -114,6 +112,40 @@ class Settings(BaseSettings):
     #   auto_refresh_enabled -> incremental Bronze->Silver->Gold refresh pass
     #     (958 symbols by default) on startup, then every 6h.
     auto_refresh_enabled: bool = True
+
+    # Automatic next-session forecasting.
+    #
+    # When this is on, the refresh pass calls `predict_symbol()` for every
+    # symbol that has a trained model, right after its Silver/Gold layers
+    # are rebuilt, and stores the result in the `predictions` table.
+    #
+    # WHY IT IS OFF BY DEFAULT
+    # ------------------------
+    # The `predictions` table needs its Alembic migration (0002). With the
+    # flag on and the migration missing, the write fails - and a failed write
+    # must never take the refresh pass down with it. The code catches that
+    # and skips the symbol, but then the flag would be lying about what the
+    # system does, so it defaults to off until the migration is applied.
+    #
+    # NOTE: this NEVER trains a model. It only uses models that already
+    # exist on disk. Training happens manually, on a machine with enough
+    # RAM for the LSTM.
+    auto_predict_enabled: bool = False
+    # The model used for the automatic next-session forecast. It must be a
+    # model that has already been trained for the symbol.
+    #
+    # WHY LINEAR REGRESSION AND NOT ARIMA
+    # -----------------------------------
+    # Measured on the lakehouse (13/11/2026): 973 symbols have a trained
+    # `linear_regression` model, 8 have `arima`, 6 have `lstm`. Pointing
+    # this at `arima` would silently skip ~965 symbols - the forecast would
+    # "succeed" for a handful of tickers and produce nothing for the rest
+    # of the universe, without any error.
+    #
+    # Linear regression is also the model the scheduled universe job uses
+    # (`run_scheduled_job.py universe-forecast --model linear_regression`),
+    # so both paths agree on the number.
+    auto_predict_model: str = "linear_regression"
 
     # LLM provider selection: "gemini" (recommended - free tier) or "local"
     # (offline tool router fallback when no API key is configured).
@@ -169,8 +201,6 @@ class Settings(BaseSettings):
         "web_scraper",
         "vnstock",
         "ssi_vn",
-        "vn_ws",
-        "vn_ws_rest",
         "yahoo_http",
         "stooq",
         "multi_source",
@@ -180,67 +210,11 @@ class Settings(BaseSettings):
     finnhub_api_key: str = ""
     finnhub_webhook_secret: str = ""
 
-    # ── Finnhub WebSocket (Free tier caps at 50 symbols / ~50 msgs/sec) ───────
-    finnhub_ws_symbols: str = "AAPL,MSFT,GOOGL,AMZN,TSLA,NVDA,META,AMD"
-    finnhub_ws_ping_interval: int = 25
-    finnhub_ws_max_reconnect: int = 10
-
-    # ── SSI iBoard WebSocket (Vietnam - FREE, no API key, public endpoint) ──
-    # Endpoint: wss://iboard-pushstream.ssi.com.vn/realtime (used by iboard.ssi.com.vn)
-    # Boards: MAIN = HOSE, HNX = Hanoi, UPCOM = UPCoM
-    vn_ws_symbols: str = "FPT,VNM,VCB,HPG,MWG,VIC,VHM,MSN,BID,CTG"
-    vn_ws_boards: str = "MAIN,HNX,UPCOM"
-    vn_ws_dead_man_seconds: int = 60
-    vn_ws_max_reconnect: int = 10
-    vn_ws_enabled: bool = True
-
     # Crawler settings
     crawl_enabled: bool = True
     crawl_interval_seconds: int = 300  # 5 minutes
     # US stocks: top 5 liquid tickers — enough for the demo, easy to reason about.
     crawl_symbols: str = "AAPL,MSFT,NVDA,TSLA,GOOGL"
-
-    # ── US EOD poller (yfinance 1d bars, free) ─────────────────────────────
-    # Replaces the deprecated Finnhub REST candle endpoint (free tier no
-    # longer has access since 2025-04). Off by default — flip the env on if
-    # you want 1d bars published into the Kafka raw topic between batches.
-    us_eod_poller_enabled: bool = False
-    us_eod_poller_interval_seconds: int = 300  # 5 minutes
-    # Top 20 US blue-chips — keeps the lakehouse populated without tripping
-    # the unofficial yfinance rate limit (~2k req/hour from a single IP).
-    us_eod_poller_symbols: str = (
-        "AAPL,MSFT,NVDA,TSLA,GOOGL,AMZN,META,AMD,NFLX,INTC,"
-        "JPM,V,BAC,WMT,JNJ,UNH,XOM,KO,DIS,ORCL"
-    )
-    # Resolved on first tick so ``rest_poller`` is a backward-compat shim.
-    us_rest_poller_enabled: bool = False
-
-    # ── VN REST poller (SSI iBoard, public REST, no API key) ──────────────
-    # Vietnamese tickers (HOSE/HNX/UPCoM) are not on yfinance, so they need
-    # their own poll path. Pulls from the same SSI iBoard public REST endpoint
-    # the WebSocket path uses, at 1-minute cadence. Off by default.
-    vn_rest_poller_enabled: bool = False
-    vn_rest_poller_interval_seconds: int = 60
-
-    # ── Apache Iceberg ────────────────────────────────────────────────────────
-    use_iceberg: bool = False  # Set True to use Iceberg instead of raw Parquet
-    iceberg_catalog_uri: str = "http://localhost:8181"
-    iceberg_warehouse: str = "s3://stock-lakehouse/iceberg"
-
-    # ── Apache Kafka (Real-time Streaming) ────────────────────────────────────
-    use_kafka: bool = False  # Set True to enable Kafka streaming
-    kafka_bootstrap_servers: str = "localhost:9094"
-    kafka_topic_raw: str = "stock-ohlcv-raw"
-    kafka_consumer_group: str = "stock-lakehouse-consumer"
-
-    # ── Manual stream ingest (OFF by default) ──────────────────────────────────
-    # POST /api/v1/stream/ingest pushes caller-supplied bars into the Kafka
-    # topic, and from there into Bronze. It exists for a local smoke test
-    # only: any bar it accepts reaches the lakehouse looking exactly like a
-    # real observation, so leaving it open is an invitation to store invented
-    # prices. The UI's "demo" panel used it and left 18 hand-typed rows in
-    # Bronze for AAPL / MSFT / NVDA before it was removed.
-    allow_stream_ingest: bool = False
 
     log_level: str = "INFO"
     log_file: str = "logs/app.log"

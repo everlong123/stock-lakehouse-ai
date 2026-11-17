@@ -94,5 +94,17 @@ def simulate(
     # equity reflects a flat book rather than an open mark.
     if portfolio.is_long:
         portfolio.sell(timestamps[-1], float(closes[-1]), transaction_fee, slippage)
+        # The forced close changed the book, so the LAST equity point -
+        # which was marked while the position was still open, and therefore
+        # still included the exit fee and the slippage - has to be replaced
+        # with the value of the now-flat book.
+        #
+        # WHY: without this the last equity point was higher than the real
+        # final capital by exactly the cost of closing the position. The
+        # backtester then reported a final capital that no trade could
+        # reconcile with: on the test fixture the two disagreed by 12.63,
+        # which is the closing cost of the last position.
+        if portfolio.equity_curve:
+            portfolio.equity_curve[-1]["equity"] = portfolio.cash
 
     return portfolio, markers

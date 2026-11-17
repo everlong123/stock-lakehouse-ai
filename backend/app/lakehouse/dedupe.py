@@ -46,6 +46,8 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 
+from app.lakehouse.exchange_timezone import session_days
+
 # Relative tolerance for comparing float payloads across providers.
 #
 # Measured against the real lakehouse: AAPL 2026-10-09 is stored by yahoo_http
@@ -95,11 +97,21 @@ def _is_utc(series: pd.Series) -> bool:
     return bool(getattr(series.dt, "tz", None) is not None)
 
 
-def trading_day(timestamp: pd.Series) -> pd.Series:
-    """Return the calendar day (UTC) of each timestamp as a date."""
+def trading_day(timestamp: pd.Series, symbol: pd.Series | None = None) -> pd.Series:
+    """Return the calendar day (UTC) of each timestamp as a date.
+
+    ``symbol`` is optional. When it is given, a row whose exchange opens
+    before 00:00 UTC (the ASX) is placed in its LOCAL calendar day instead -
+    see `app.lakehouse.exchange_timezone` for why that matters. Without it,
+    the UTC day is used, which is correct for every market whose session
+    opens after midnight UTC.
+    """
     if not _is_utc(timestamp):
         timestamp = timestamp.dt.tz_localize("UTC")
-    return timestamp.dt.date
+    days = timestamp.dt.date
+    if symbol is None:
+        return days
+    return session_days(pd.DataFrame({"timestamp": timestamp, "symbol": symbol}))
 
 
 def session_stamp(timestamp: pd.Series) -> pd.Series:
@@ -171,7 +183,9 @@ def find_same_bar_duplicates(frame: pd.DataFrame) -> pd.DataFrame:
     if working.empty:
         return frame.iloc[0:0].copy()
 
-    working["_day"] = trading_day(working["timestamp"])
+    working["_day"] = trading_day(
+        working["timestamp"], working["symbol"] if "symbol" in working.columns else None
+    )
     working["_stamp"] = session_stamp(working["timestamp"])
 
     # FAST PATH: a frame that holds at most one row per (symbol, day) cannot

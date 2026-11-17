@@ -37,7 +37,13 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     APP_HOME=/app
 
 # Minimal runtime libs (PyMySQL + cryptography + curl for healthcheck)
+#
+# `cron` is here for the `scheduler` service, which mounts `backend/crontab`
+# into /etc/cron.d and runs `cron -f`. Debian's base image does not ship
+# cron, so without this package the scheduler container would exit
+# immediately with "cron: command not found".
 RUN apt-get update && apt-get install -y --no-install-recommends \
+    cron \
     curl \
     default-libmysqlclient-dev \
     pkg-config \
@@ -57,6 +63,12 @@ COPY --from=builder /opt/venv /opt/venv
 COPY --chown=app:app app ${APP_HOME}/app
 COPY --chown=app:app scripts ${APP_HOME}/scripts
 COPY --chown=app:app tests ${APP_HOME}/tests
+# The crontab is owned by ROOT, not by the runtime user, and is NOT
+# group/other-writable. cron refuses to load a crontab file that fails
+# those checks ("crontab: installing new crontab: (..): bad file mode"),
+# and it would refuse to run the `scheduler` container at all.
+COPY --chown=root:root crontab ${APP_HOME}/crontab
+RUN chmod 0644 ${APP_HOME}/crontab
 COPY --chown=app:app entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh && chown app:app /entrypoint.sh
 

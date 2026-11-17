@@ -61,7 +61,9 @@ from datetime import date
 
 import pandas as pd
 
-#: Sources whose rows are DAILY session bars. Everything else (manual, kafka,
+from app.lakehouse.exchange_timezone import exchange_timezone, session_days
+
+#: Sources whose rows are DAILY session bars. Everything else (manual,
 #: vn_ws, vn_rest, finnhub_ws, ...) is treated as an intraday observation.
 #:
 #: ``ssi_vn`` IS a daily source: the SSI iBoard endpoint returns one
@@ -291,7 +293,13 @@ def canonicalize_daily_sessions(frame: pd.DataFrame) -> tuple[pd.DataFrame, dict
     if working.empty:
         return frame.iloc[0:0].copy(), report
 
-    working["_day"] = working["timestamp"].dt.date
+    # The trading day of a row is NOT always its UTC calendar date: an
+    # exchange whose session opens before 00:00 UTC (the ASX opens at 23:00Z
+    # of the previous day) stamps a bar whose local date is one day LATER.
+    # Grouping those rows by the UTC date splits one trading session across
+    # two calendar days - which is exactly the defect the quality gate found
+    # in all 19 `.AX` symbols on 15/11/2026. See `exchange_timezone.py`.
+    working["_day"] = session_days(working)
     working["_stamp"] = working["timestamp"].dt.strftime("%H:%M")
     working["_is_daily_bar"] = working["source"].map(_is_daily_bar_source) if "source" in working.columns else True
 
@@ -445,7 +453,76 @@ def canonicalize_daily_sessions(frame: pd.DataFrame) -> tuple[pd.DataFrame, dict
     return out, report
 
 
-def session_date(ts: object) -> date | None:
+def as_utc_timestamp(value: object) -> pd.Timestamp:
+    """A timezone-aware UTC timestamp from whatever the caller passed.
+
+    WHY THIS EXISTS
+    ---------------
+    The API takes ``start`` and ``end`` as ISO strings, and the browser
+    sends them WITH a timezone (``2026-05-14T00:00:00.000Z``). The code
+    used to call ``pd.Timestamp(value, tz="UTC")``, which refuses a
+    value that already carries one:
+    ``ValueError: Cannot pass a datetime or Timestamp with tzinfo with
+    the tz parameter`` - so every ranged request failed with a 500.
+
+    A naive value is read as UTC (the lakehouse stores UTC), and an
+    aware value is converted to UTC.
+    """
+    stamp = pd.Timestamp(value)
+    if stamp.tzinfo is None:
+        return stamp.tz_localize("UTC")
+    return stamp.tz_convert("UTC")
+
+
+def slice_window(
+    frame: pd.DataFrame,
+    since: date | None = None,
+    until: date | None = None,
+) -> pd.DataFrame:
+    """The rows of a frame whose timestamp falls inside a window.
+
+    WHY THIS LIVES HERE
+    -------------------
+    The bounds are applied to the TIMESTAMP, not to the partition the
+    row came from: a partition is read because it CAN hold a row in the
+    window, and the exact cut is made afterwards. Both the Gold and the
+    Silver layer need the same cut, so it is defined once.
+
+    The bounds are inclusive on both ends, and a window that reaches
+    into a neighbouring month still returns the right rows because the
+    partition filter is only a coarse pre-selection.
+
+    WHY THE `until` BOUND COVERS THE WHOLE DAY
+    --------------------------------------------
+    The bounds are DATES, and a session's timestamp is the exchange
+    OPEN expressed in UTC - 14:30 for the NYSE, 02:00 for HOSE. A
+    naive ``timestamp <= until`` would compare against midnight of that
+    day and therefore throw away the session the window was supposed
+    to end on.
+
+    The bug was invisible in the UI for a long time, because the
+    dashboard drew a candle chart and a missing last candle looks like a
+    holiday. It became visible as soon as the numbers were compared
+    against the full history: NVDA's window ended one session early
+    and reported a last close of 166.19 instead of the stored 162.85.
+
+    So `until` is turned into the LAST INSTANT of that day, and every
+    session of the day is inside the window.
+    """
+    if frame.empty or (since is None and until is None):
+        return frame
+
+    stamps = frame["timestamp"]
+    if since is not None:
+        frame = frame[stamps >= pd.Timestamp(since, tz="UTC")]
+    if until is not None:
+        # The last representable instant of the `until` day.
+        end_of_day = pd.Timestamp(until, tz="UTC") + pd.Timedelta(days=1) - pd.Timedelta(nanoseconds=1)
+        frame = frame[frame["timestamp"] <= end_of_day]
+    return frame.reset_index(drop=True)
+
+
+def session_date(ts: object, symbol: object = None) -> date | None:
     """Return the trading day a stored timestamp belongs to.
 
     WHY THIS EXISTS
@@ -462,10 +539,17 @@ def session_date(ts: object) -> date | None:
     forever, which makes an incremental refresh rebuild them on every pass
     without ever converging.
 
-    The day is taken in UTC, which is the timezone every stored stamp uses.
-    For the markets in this lakehouse the session open always falls on the
-    same UTC day as the trade it describes (13:30 / 14:30 / 02:00 / 08:00
-    UTC), so no extra calendar shifting is needed.
+    The day is taken in UTC, which is the timezone every stored stamp uses -
+    EXCEPT for an exchange whose session opens before 00:00 UTC. The ASX
+    opens at 23:00Z of the previous day, so its bar stamped ``2026-11-11
+    23:00Z`` belongs to the trading session of 2026-11-12. Pass ``symbol``
+    so the day is derived in the exchange's own timezone; without it the UTC
+    day is used, which is correct for the other 983 symbols.
+
+    Measured on 15/11/2026: with the UTC day, all 19 ``.AX`` symbols failed
+    the quality gate's layer-agreement check on session 2026-11-12, because
+    Bronze reported the 13th's after-close quote (170.87) where Silver held
+    the 12th's real close (171.76).
     """
     if ts is None:
         return None
@@ -477,4 +561,46 @@ def session_date(ts: object) -> date | None:
         return None
     if stamp.tzinfo is None:
         stamp = stamp.tz_localize("UTC")
-    return stamp.date()
+    if symbol is None:
+        return stamp.date()
+    tz_name = exchange_timezone(symbol)
+    if tz_name is None:
+        return stamp.date()
+    try:
+        return stamp.tz_convert(tz_name).date()
+    except Exception:  # noqa: BLE001 - an unknown zone falls back to UTC
+        return stamp.date()
+
+
+def newest_bar_session_close(
+    frame: pd.DataFrame, symbol: object = None
+) -> tuple[date | None, float | None]:
+    """Return ``(session_date, close)`` of the newest bar in ``frame``.
+
+    WHY THIS IS A SHARED HELPER
+    ---------------------------
+    Bronze and Silver both need the trading day and the closing price of
+    their newest bar, and both need it WITHOUT reading their whole history:
+    a 10-year daily ticker is ~120 monthly parquet partitions, and the
+    auto-refresh runs this for every symbol on every pass.
+
+    ``symbol`` is passed so the trading day can be derived in the exchange's
+    own timezone - see `exchange_timezone.py` for why the ASX needs that.
+
+    Returns ``(None, None)`` when the frame carries no usable bar.
+    """
+    if frame is None or frame.empty:
+        return None, None
+    if "timestamp" not in frame.columns or "close" not in frame.columns:
+        return None, None
+    working = frame.loc[:, ["timestamp", "close"]].copy()
+    working["timestamp"] = pd.to_datetime(working["timestamp"], utc=True, errors="coerce")
+    working = working.dropna(subset=["timestamp"])
+    if working.empty:
+        return None, None
+    last = working.sort_values("timestamp").iloc[-1]
+    day = session_date(last["timestamp"], symbol)
+    close = pd.to_numeric(last["close"], errors="coerce")
+    if day is None or pd.isna(close):
+        return day, None
+    return day, float(close)

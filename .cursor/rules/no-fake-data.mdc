@@ -1,0 +1,178 @@
+---
+description: KHÔNG BAO GIỜ dùng dữ liệu giả (fake/mock/synthetic/dummy/demo) — mọi con số phải truy vết được về nguồn thật
+globs: ["backend/**/*.py", "frontend/src/**/*.{ts,tsx}", "scripts/**/*"]
+alwaysApply: true
+---
+
+# Luật cấm dữ liệu giả — "Real Data Only"
+
+Dự án này là một **lakehouse tài chính**. Giá trị của toàn bộ luận văn là ở chỗ
+mọi con số đều truy vết được tới một sàn giao dịch thật. Dữ liệu giả phá hủng
+đúng điều đó, nên ở đây nó bị **cấm tuyệt đối**, không phải "nên tránh".
+
+---
+
+## 1. Định nghĩa "dữ liệu giả"
+
+Bất kỳ giá trị nào **không** truy vết được về một nguồn thật, gồm:
+
+| Loại | Ví dụ trong dự án này |
+|---|---|
+| Giá/Volume được bịa | `AAPL ~332.5`, `MSFT ~415.2` — số gõ tay |
+| OHLCV sinh bằng hàm ngẫu nhiên | `random.uniform(-1.6, 1.7)`, `np.random.normal(...)` |
+| Fixture/seed dùng để "cho có số" | `{"close": 241.18, "rsi": 52.4}` hard-code trong code |
+| Metric bịa | `mae: 2.41`, `sharpe_ratio: 1.34` khi chưa chạy model thật |
+| Indicator giả | `ema_12 = sma20 * 1.002`, `rsi = 45 + sin(i/9)*28` |
+| Đếm số bản ghi bịa | `bronze: 114904` viết cứng trong response |
+| Timestamp bịa | `datetime(2026, 11, 9)` cố định thay vì thời điểm thật |
+| Bar "demo" đẩy vào Bronze | `POST /api/v1/stream/ingest` với bar tự chế |
+
+## 2. Nguồn thật được phép dùng
+
+Chỉ những nguồn sau mới được phép sinh ra số liệu:
+
+1. **Sàn / nhà cung cấp dữ liệu thật** — Yahoo Finance (v8 chart API / yfinance),
+   Finnhub, Alpha Vantage, Stooq, SSI iBoard (WebSocket + REST).
+2. **Các layer Medallion đã ingest** — Bronze (raw), Silver (clean), Gold (features/indicators).
+3. **Mô hình thật đã train trên dữ liệu thật** — kết quả backtest/forecast phải
+   đến từ `backend/app/backtesting/*` và `backend/app/forecasting/*` chạy trên
+   tập dữ liệu lakehouse.
+4. **Hệ thống/metadata thật** — trạng thái MySQL, MinIO, Kafka, số object đếm
+   được bằng `list_objects` (không phải con số nhớ từ trí nhớ).
+
+> Luồng dữ liệu bắt buộc:
+> `Provider thật → Bronze → Silver → Gold → API → UI`
+> UI không được cắt ngang bước nào.
+
+---
+
+## 3. Cấm tuyệt đối
+
+### 3.1 Không viết server giả
+
+Không tạo file kiểu `mock_api.py`, `fake_server.py`, `demo_server.py`, hay bất kỳ
+script nào **phục vụ số liệu bịa** cho frontend. Backend thật là
+`backend/app/main.py`; nếu nó chết thì phải **sửa nó**, không được dựng bản
+giả để che lỗi.
+
+Cách kiểm tra trước khi commit:
+
+```powershell
+# Tìm sinh dữ liệu ngẫu nhiên trong backend
+rg -n "random\.(uniform|randint|choice)|np\.random\.(rand|normal|uniform)" backend/app
+# Tìm chỗ số liệu bịa hard-code trong frontend
+rg -n "mock|fake|dummy|synthetic|Math\.random" frontend/src
+```
+
+### 3.2 Không fallback về giá trị giả
+
+Khi API lỗi / rỗng, phải trả về **lỗi thật hoặc empty state**, tuyệt đối không
+trả một con số "cho có". Số liệu không có thì hiển thị `—` kèm lý do, chứ không
+phải `0.00%` (xem `frontend/src/pages/Dashboard.tsx` — đó là cách làm đúng).
+
+### 3.3 Không ghi dữ liệu bịa vào lakehouse
+
+Mọi dòng lưu trong Bronze/Silver/Gold phải mang `source` của nhà cung cấp thật.
+Cổng `POST /api/v1/stream/ingest` mặc định **tắt** (`allow_stream_ingest=false`)
+vì nó từng đẩy 18 bar gõ tay của AAPL/MSFT/NVDA vào Bronze — không có gì
+phân biệt được chúng với giá thật. Giữ nguyên trạng thái tắt.
+
+### 3.4 Không dùng emoji/placeholder để bịa nội dung
+
+Chỗ trống phải nói rõ **tại sao trống** và **làm gì tiếp theo** — không chèn
+số giả để lấp chỗ trống.
+
+---
+
+## 4. Khi hạ tầng (MySQL / MinIO / Kafka) không chạy
+
+Đây là tình huống thường gặp. Thứ tự xử lý đúng:
+
+1. Bật hạ tầng thật:
+   `docker compose up -d mysql minio kafka` rồi kiểm tra cổng đang mở.
+2. Nếu chưa bật được, **báo cáo trung thực** endpoint nào đang lỗi và vì sao.
+3. **Không** dựng server giả để "cho UI chạy".
+
+Backend đã có sẵn đường lùi về filesystem cục bộ (`STORAGE_BACKEND=local`,
+dữ liệu nằm ở `backend/data/<layer>/symbol=.../`) — dùng đường lùi **thật**
+này thay vì bịa dữ liệu.
+
+### 4.1. Cách bật hạ tầng thật trên máy Windows (Đo ngày 10/11/2026)
+
+Docker engine chạy **native trong WSL2** (`Ubuntu-24.04`), không phải Docker Desktop:
+
+```powershell
+wsl --shutdown
+wsl -d Ubuntu-24.04 -u root -- systemctl start docker
+wsl -d Ubuntu-24.04 -u root -e bash -c "cd /mnt/d/School/kltn/stock-lakehouse-ai && docker compose up -d mysql minio kafka"
+```
+
+MinIO dùng `network_mode: host` nên Windows **không** vào được ổn định bằng
+`127.0.0.1:9000`. Đường đi ổn định là relay của chính dự án — chạy **bên trong WSL**:
+
+```bash
+python3 backend/scripts/relay_ports.py 13307:3307 19000:9000 19092:9092
+```
+
+Sau đó `backend/.env.local` trỏ vào: `MINIO_ENDPOINT=127.0.0.1:19000`,
+`MYSQL_PORT=13307`, `DATABASE_URL=mysql+pymysql://root:123456@127.0.0.1:13307/stock_lakehouse`.
+
+**Cấm đặt `USE_KAFKA=true` khi venv chưa có `kafka-python`** — `app/main.py` import
+`app.streaming.kafka_consumer` ngay lúc khởi động nên backend sẽ crash. Cài trước:
+
+```powershell
+.\backend\.venv\Scripts\python.exe -m pip install "kafka-python>=2.0.2"
+```
+
+---
+
+## 5. Kiểm tra trước khi commit
+
+- [ ] Không còn file sinh dữ liệu giả (`mock_api.py` và tương tự).
+- [ ] `rg -n "random\.(uniform|randint)" backend/app` không trả về kết quả
+      nào ngoài jitter/backoff hợp lệ.
+- [ ] Mọi con số trong UI đến từ API thật, không hard-code trong component.
+- [ ] Nếu hạ tầng chưa bật, tài liệu nói rõ endpoint nào đang lỗi — không che
+      bằng số giả.
+
+### 5.1. Kiểm chứng bằng số thật (chạy được, dùng để tự tin)
+
+```powershell
+# 1. Bucket có dữ liệu thật không
+python -c "from minio import Minio; c=Minio('127.0.0.1:19000',access_key='minioadmin',secret_key='minioadmin',secure=False); print([b.name for b in c.list_buckets()])"
+
+# 2. API trả về bar thật, có cột `source` truy vết được
+curl "http://127.0.0.1:8000/api/v1/stocks/AAPL/latest"
+# -> "source_layer":"gold", "source":"yahoo_http", "close":<số thật>
+
+# 3. Tầng Silver/Gold của một mã không bị file Parquet hỏng
+python backend/scripts/check_layer_divergence.py
+```
+
+> **Ghi chú quan trọng:** `source_layer: "gold"` / `source: "yahoo_http"` trong response
+> là **bằng chứng** dữ liệu thật. Nếu một response không có trường này mà vẫn có
+> số, hãy nghi ngờ ngay và truy ra nguồn.
+
+### 5.2. Cảnh báo: hai cách bịa dữ liệu tinh vi (Đo ngày 10/11/2026)
+
+1. **Số đúng nhưng sai nguồn** — ví dụ `close` lấy từ tầng `local` cũ trong khi tầng
+   `minio` đã được cập nhật. Số vẫn "thật" nhưng không truy vết được về lần ingest
+   mới nhất. Luôn kiểm tra `source_layer` khớp với tầng đang được bật.
+2. **Số đúng nhưng sai thời điểm** — ví dụ `timestamp` cố định thay vì lấy từ bar
+   cuối cùng. Kiểm tra `timestamp` của bar mới nhất có khớp ngày giao dịch gần nhất.
+
+---
+
+## 6. Khi phát hiện dữ liệu giả đã lọt vào lakehouse
+
+1. Dừng nguồn vi phạm (tắt nút/toggle ghi dữ liệu).
+2. Xóa dòng nhiễm bằng script có sẵn:
+   `backend/scripts/purge_fabricated_rows.py`.
+3. Ghi lại vào tài liệu (`docs/lakehouse.md` hoặc `docs/data_verification.md`):
+   **Triệu chứng → Vì sao xảy ra → Fix → Bằng chứng**, kèm ngày đo.
+4. Không "làm đẹp" số liệu: nếu kết quả sau khi xóa là 1008 symbol thay vì
+   1012, ghi đúng 1008.
+
+> **Câu hỏi tự kiểm trước khi kết thúc:** *"Nếu thầy giáo mở file này, có chỗ nào
+> ông tưởng là dữ liệu thật nhưng thực ra là số tôi tự chế ra không?"*
+> Nếu có — sửa trước khi kết thúc.

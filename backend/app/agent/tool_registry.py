@@ -26,16 +26,6 @@ from app.agent.tools.fundamental_tools import (
     MarketIndexInput,
     OrderBookInput,
 )
-from app.agent.tools.news_tools import (
-    get_market_news,
-    get_news_for_symbol,
-    get_sentiment_summary,
-    get_sentiment_timeseries,
-    MarketNewsInput,
-    NewsInput,
-    SentimentSummaryInput,
-    SentimentTimeseriesInput,
-)
 from app.agent.tools.stock_tools import (
     BacktestInput,
     calculate_indicators,
@@ -73,11 +63,6 @@ TOOL_FUNCTIONS: dict[str, Callable[..., dict[str, Any]]] = {
     # Backtesting
     "run_backtest": run_backtest,
     "run_walk_forward": run_walk_forward,
-    # News & Sentiment
-    "get_news_for_symbol": get_news_for_symbol,
-    "get_sentiment_summary": get_sentiment_summary,
-    "get_sentiment_timeseries": get_sentiment_timeseries,
-    "get_market_news": get_market_news,
     # Fundamental
     "get_fundamental_metrics": get_fundamental_metrics,
     "get_income_statement": get_income_statement,
@@ -101,10 +86,6 @@ TOOL_MODELS = {
     "compare_models": CompareInput,
     "run_backtest": BacktestInput,
     "run_walk_forward": WalkForwardInput,
-    "get_news_for_symbol": NewsInput,
-    "get_sentiment_summary": SentimentSummaryInput,
-    "get_sentiment_timeseries": SentimentTimeseriesInput,
-    "get_market_news": MarketNewsInput,
     "get_fundamental_metrics": FundamentalMetricsInput,
     "get_income_statement": IncomeStatementInput,
     "get_balance_sheet": BalanceSheetInput,
@@ -126,10 +107,6 @@ TOOL_DESCRIPTIONS = {
     "compare_models": "So sánh MAE/RMSE/MAPE/Directional Accuracy của các mô hình đã train.",
     "run_backtest": "Chạy backtest lịch sử MA Crossover hoặc RSI. Không phải giao dịch thật.",
     "run_walk_forward": "Chạy walk-forward validation - phương pháp backtest nghiêm ngặt, đánh giá trên nhiều windows để tránh overfitting.",
-    "get_news_for_symbol": "Lấy tin tức có phân tích sentiment cho một mã chứng khoán.",
-    "get_sentiment_summary": "Tóm tắt sentiment (tích cực/tiêu cực) cho một mã trong N ngày.",
-    "get_sentiment_timeseries": "Lấy dữ liệu sentiment theo thời gian để vẽ biểu đồ xu hướng.",
-    "get_market_news": "Lấy tin tức thị trường chung (không phải tin riêng của một mã).",
     "get_fundamental_metrics": "Lấy metrics tài chính (P/E, P/B, ROE, ROA, v.v.) cho một mã.",
     "get_income_statement": "Lấy báo cáo thu nhập (doanh thu, lợi nhuận) qua các năm.",
     "get_balance_sheet": "Lấy bảng cân đối kế toán (tài sản, nợ, vốn chủ sở hữu).",
@@ -139,8 +116,8 @@ TOOL_DESCRIPTIONS = {
     # System / project metadata tools (NEW)
     "get_symbols_info": "Trả về thống kê số mã hệ thống hỗ trợ (US, global, VN, crypto, indexes) kèm danh sách data providers. Dùng khi user hỏi 'có bao nhiêu mã?', 'track những mã nào?', 'có mã Việt Nam không?'.",
     "get_trained_models": "Liệt kê các mô hình ML đã train trong hệ thống (linear_regression, arima, lstm, xgboost) kèm MAE/RMSE/MAPE/DA. Lọc theo symbol nếu cần. Dùng khi user hỏi 'đã train model nào?', 'model nào đã train cho VCB?'.",
-    "get_system_architecture": "Mô tả kiến trúc runtime của hệ thống: Bronze/Silver/Gold, providers, tech stack (FastAPI/MinIO/MySQL/Kafka/Iceberg), auto-refresh, danh sách 16 tool. Dùng khi user hỏi 'kiến trúc?', 'stack gì?', 'hệ thống gồm gì?'.",
-    "get_storage_stats": "Thống kê số object + dung lượng từng bucket MinIO (bronze/silver/gold/models/news/fundamentals) + số symbol có dữ liệu thật ở mỗi layer. Dùng khi user hỏi 'MinIO có bao nhiêu file?', 'Bronze có dữ liệu chưa?'.",
+    "get_system_architecture": "Mô tả kiến trúc runtime của hệ thống: Bronze/Silver/Gold, providers, tech stack (FastAPI/MinIO/MySQL), auto-refresh, danh sách 17 tool. Dùng khi user hỏi 'kiến trúc?', 'stack gì?', 'hệ thống gồm gì?'.",
+    "get_storage_stats": "Thống kê số object + dung lượng từng bucket MinIO (bronze/silver/gold/models/backtests/fundamentals) + số symbol có dữ liệu thật ở mỗi layer. Dùng khi user hỏi 'MinIO có bao nhiêu file?', 'Bronze có dữ liệu chưa?'.",
 }
 
 

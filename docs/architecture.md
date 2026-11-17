@@ -1,7 +1,18 @@
-# Architecture – Stock Lakehouse AI
+﻿# Architecture – Stock Lakehouse AI
 
-> **Ngày cập nhật:** 02/10/2026
+> **Ngày cập nhật:** 10/11/2026
 > **File này:** Mô tả tổ chức code, vai trò từng thư mục/file, và luồng dữ liệu end-to-end.
+>
+> **Thay đổi lớn ngày 10/11/2026:** Apache Kafka và Apache Iceberg đã bị **gỡ khỏi
+> dự án**. Kiến trúc chuyển sang **brokerless**: Parquet trên MinIO + MySQL + một
+> container `scheduler` chạy cron. Hai hệ thống mới được thêm vào cùng ngày:
+> dự báo phiên kế tiếp tự động sau batch EOD, và bộ đếm cron.
+>
+> **Thay đổi ngày 12/11/2026:** toàn bộ **hệ thống tin tức** (2 tầng lưu, provider,
+> 4 endpoint, 4 tool AI, 1 trang giao diện, 2 lịch cron) đã bị **gỡ khỏi dự án**.
+> Kiến trúc còn lại là **một nhánh dữ liệu duy nhất**: giá → Bronze → Silver →
+> Gold → mô hình → API → web. Lý do và số liệu đo được nêu ở mục 5B.1 của
+> `HE_THONG_TOAN_DIEN_VA_GIAI_TRINH_KHOA_LUAN.md`.
 
 ---
 
@@ -19,14 +30,14 @@
    - [`app/features/` — Feature engineering (Gold layer)](#appfeatures--feature-engineering-gold-layer)
    - [`app/forecasting/` — ML models (LR/ARIMA/LSTM)](#appforecasting--ml-models-lrarimalstm)
    - [`app/indicators/` — Technical indicators (SMA/EMA/RSI/MACD/BB)](#appindicators--technical-indicators)
-   - [`app/lakehouse/` — Medallion layers + Iceberg](#applakehouse--medallion-layers--iceberg)
+   - [`app/lakehouse/` — Medallion layers (giá)](#applakehouse--medallion-layers-giá)
    - [`app/pipelines/` — Pipeline orchestrator](#apppipelines--pipeline-orchestrator)
    - [`app/schemas/` — Pydantic request/response models](#appschemas--pydantic-requestresponse-models)
    - [`app/services/` — Application services](#appservices--application-services)
-   - [`app/streaming/` — Kafka + WebSocket (real-time)](#appstreaming--kafka--websocket-real-time)
 4. [Đường dẫn import chuẩn](#4-đường-dẫn-import-chuẩn)
 5. [Database schema](#5-database-schema)
 6. [Docker services](#6-docker-services)
+7. [Đã gỡ gì và vì sao](#7-đã-gỡ-gì-và-vì-sao)
 
 ---
 
@@ -45,72 +56,126 @@ stock-lakehouse-ai/
 │   │   ├── features/                  # Feature engineering
 │   │   ├── forecasting/               # ML models
 │   │   ├── indicators/               # Technical indicators
-│   │   ├── lakehouse/               # Bronze / Silver / Gold + Iceberg
+│   │   ├── lakehouse/               # Bronze / Silver / Gold (giá)
 │   │   ├── pipelines/               # Pipeline orchestrator
 │   │   ├── schemas/                 # Pydantic models
 │   │   ├── services/                 # Application services
-│   │   └── streaming/                # Kafka + WebSocket
-│   ├── scripts/                     # CLI scripts (ingest, train, backtest, agent)
+│   │   └── streaming/                # WebSocket client
+│   ├── scripts/                     # CLI scripts (ingest, train, backtest, agent, cron jobs)
+│   ├── crontab                      # Lịch cron cho container `scheduler`
 │   └── tests/                       # pytest tests
 ├── frontend/                         # React 18 + Vite + TypeScript + TailwindCSS
-├── docs/                            # Tài liệu (PROGRESS_LAKEHOUSE.md, ...)
-├── docker-compose.yml               # 4 service: MySQL, MinIO, Iceberg REST, Kafka
+├── docs/                            # Tài liệu (HUONG_DAN_NGUOI_MOI.md, architecture.md, ...)
+├── docker-compose.yml               # 5 service: MySQL, MinIO, backend, frontend, scheduler
 └── .env                            # Config runtime
 ```
 
 ---
 
 ## 2. Luồng dữ liệu end-to-end
+```
+┌──────────────────────────────────────────────────────────────────────┐
+│                      EXTERNAL DATA SOURCES                           │
+│  yfinance · Finnhub · Alpha Vantage · Stooq · SSI iBoard (VN)        │
+└───────────────────────────────┬──────────────────────────────────────┘
+                                ▼
+┌──────────────────────────────────────────────────────────────────────┐
+│  app/data_sources/                                                   │
+│  DataSourceFactory + MultiSourceProvider                             │
+│  Failover chain · Lazy import                                        │
+└───────────────────────────────┬──────────────────────────────────────┘
+                                ▼
+┌──────────────────────────────────────────────────────────────────────┐
+│  app/lakehouse/bronze.py                                             │
+│  BRONZE LAYER                                                        │
+│  • Schema validation                                                 │
+│  • Partition symbol/year/month                                       │
+│  • Append-only · Dedup (keep=last)                                   │
+│  • Lineage JSON                                                      │
+│  • Bucket stock-bronze                                               │
+└───────────────────────────────┬──────────────────────────────────────┘
+                                ▼
+┌──────────────────────────────────────────────────────────────────────┐
+│  app/lakehouse/silver.py                                             │
+│  SILVER LAYER                                                        │
+│  • Timezone → UTC · Type coercion                                    │
+│  • Missing check                                                     │
+│  • Invalid OHLC (high<low, ...)                                      │
+│  • Duplicate check · Negative vol                                    │
+│  • _errors/ · _quality.json                                          │
+│  • Bucket stock-silver                                               │
+└───────────────────────────────┬──────────────────────────────────────┘
+                                ▼
+┌──────────────────────────────────────────────────────────────────────┐
+│  app/lakehouse/gold.py                                               │
+│  GOLD LAYER  ←  app/features/                                        │
+│  • SMA/EMA (5,10,20,50) · RSI(14)                                    │
+│  • MACD(12,26,9) · Bollinger(20,2σ)                                  │
+│  • ATR, ADX, Supertrend, Ichimoku                                    │
+│  • Targets: shift(-1) ← NO LEAKAGE                                   │
+│  • Bucket stock-gold                                                 │
+└───────────────────────────────┬──────────────────────────────────────┘
+                                ▼
+   ┌──────────────┼──────────────┬────────────────────┐
+   ▼              ▼              ▼                    ▼
+ Technical     Forecasting    Backtesting           AI Agent
+ Analysis      (LR/ARIMA/     (MA Cross/RSI)        (Gemini Free)
+ (app/api/)    LSTM)                                  │
+   │              │                                   │
+   │              │  next_session_forecast.py         │
+   │              │  (sau batch EOD)                  │
+   │              ▼                                   │
+   │   ┌──────────────────────────┐                   │
+   │   │  MySQL bảng `predictions` │                  │
+   │   │  unique (symbol, model,   │                  │
+   │   │          target_session)  │                  │
+   │   └────────────┬─────────────┘                   │
+   ▼                ▼                                    ▼
+┌──────────────────────────────────────────────────────────────────────┐
+│  FastAPI REST  ·  /stocks · /forecast · /backtest · /agent           │
+│  NextSessionCard (Dashboard)  ·  7 trang web                         │
+└──────────────────────────────────────────────────────────────────────┘
+```
+
+> **Ghi chú 12/11/2026:** trước đây sơ đồ này có **hai nhánh chạy song song** — nhánh
+> trái là dữ liệu giá, nhánh phải là tin tức (RSS → Bronze News → Silver News →
+> trang "Tin tức & Tâm lý"). Nhánh tin tức đã bị **gỡ khỏi dự án** vì đo được độ
+> phủ chỉ 0.00% (10 mã / 1.002 mã) và một số bài báo thật bị **gắn sai mã** do
+> trùng mã giữa các sàn. Chi tiết ở mục 5B.1 của `HE_THONG_TOAN_DIEN_VA_GIAI_TRINH_KHOA_LUAN.md`.
+>
+> Giờ đây còn **một nhánh duy nhất**: mọi con số trên web đều truy vết được về
+> đúng một nguồn — nhà cung cấp giá thật.
+### 2.1. Đường đi của batch EOD (chạy tự động bằng cron)
 
 ```
 ┌──────────────────────────────────────────────────────────────────────┐
-│                      EXTERNAL DATA SOURCES                            │
-│  yfinance · Finnhub · Alpha Vantage · SSI iBoard · Web Scraper     │
-└──────────────────────────┬───────────────────────────────────────────┘
-                           ▼
+│  container `scheduler`  →  cron -f  →  backend/crontab               │
+│  21:30 UTC (NYSE) và 03:30 UTC (HOSE)                                │
+└────────────────────────────┬─────────────────────────────────────────┘
+                             ▼
 ┌──────────────────────────────────────────────────────────────────────┐
-│  app/data_sources/         DataSourceFactory + MultiSourceProvider     │
-│  (17 provider files)       Failover chain · Lazy import             │
-└──────────────────────────┬───────────────────────────────────────────┘
-                           ▼
-┌──────────────────────────────────────────────────────────────────────┐
-│  app/lakehouse/bronze.py  BRONZE LAYER                              │
-│  • Schema validation   • Partition (symbol/year/month)               │
-│  • Append-only        • Dedup (keep=last)                          │
-│  • Lineage JSON       • StorageBackend abstraction                 │
-└──────────────────────────┬───────────────────────────────────────────┘
-                           ▼
-┌──────────────────────────────────────────────────────────────────────┐
-│  app/lakehouse/silver.py  SILVER LAYER                              │
-│  • Timezone → UTC    • Type coercion                              │
-│  • Missing check     • Invalid OHLC (high<low, high<open...)      │
-│  • Duplicate check   • Negative volume                            │
-│  • _errors/          • _quality.json                             │
-└──────────────────────────┬───────────────────────────────────────────┘
-                           ▼
-┌──────────────────────────────────────────────────────────────────────┐
-│  app/lakehouse/gold.py   GOLD LAYER  ←  app/features/                │
-│  • SMA/EMA (5,10,20,50)   • RSI(14)                             │
-│  • MACD(12,26,9)          • Bollinger Bands(20,±2σ)            │
-│  • Advanced: ATR, ADX, Supertrend, Ichimoku, Stochastic, MFI      │
-│  • Price: return, log_return, lag, rolling_std                    │
-│  • Targets: shift(-1) ← NO LEAKAGE                                │
-│  • Candlestick patterns, volume profile, composite signals          │
-│  • Market regime (bull/bear/neutral)                             │
-└──────────────────────────┬───────────────────────────────────────────┘
-                           ▼
-       ┌──────────────────┼──────────────────┐
-       ▼                  ▼                  ▼
- Technical Analysis   Forecasting      Backtesting         AI Agent
- (app/api/)          (app/forecasting/)  (app/backtesting/)  (app/agent/)
- (Recharts)           (LR/ARIMA/LSTM)    (MA Cross/RSI)    (Gemini Free)
-
-  ┌──────────┬──────────┬──────────┬──────────────┐
-  ▼          ▼          ▼          ▼              ▼
-FastAPI      PyTorch    scikit     statsmodels    React UI
-REST        LSTM        Linear     ARIMA          (Vite)
-            Regression  Reg
+│  scripts/run_scheduled_job.py eod                                    │
+│    └─ services/auto_refresh.py  run_once()                           │
+│         1. nạp giá vào Bronze                                        │
+│         2. dựng lại Silver + Gold                                    │
+│         3. next_session_forecast.predict_and_store()                 │
+│              └─ ghi vào MySQL bảng `predictions`                     │
+└──────────────────────────────────────────────────────────────────────┘
+                             │
+                             ▼
+              Dashboard đọc `next_session_forecast`
+              → hiện thẻ "Dự báo phiên kế tiếp"
 ```
+
+> **Đo ngày 11/11/2026:** các bước trên là luồng code đang chạy, đã kiểm chứng bằng
+> import và đọc mã nguồn. **Số mã thực tế được dự báo trong một lần chạy: chưa đo**
+> — cần bật hạ tầng rồi chạy `docker compose --profile app up -d scheduler` và
+> đọc `backend/logs/scheduled_jobs.log`.
+>
+> Phần ghi vào bảng `predictions` đã được kiểm chứng: bảng MySQL có **3 dòng**
+> (AAPL/arima, MSFT/linear_regression, VCB/arima), tất cả đều có
+> `source_layer = "gold"`. Xem mục Phần 6 của
+> `docs/HE_THONG_TOAN_DIEN_VA_GIAI_TRINH_KHOA_LUAN.md`.
 
 ---
 
@@ -122,13 +187,12 @@ REST        LSTM        Linear     ARIMA          (Vite)
 
 | File | Dòng | Mô tả |
 |------|-------|--------|
-| `agent.py` | 198 | AI Agent orchestrator — chọn Gemini Free hoặc local tool router |
-| `llm_client.py` | 183 | Gemini Free API adapter — fallback chain + throttle |
-| `tool_registry.py` | 136 | Wire 14+ tools vào function-calling JSON schema |
-| `prompts.py` | 11 | System prompt cho Agent |
-| `tools/stock_tools.py` | 159 | **Thực thi**: query_stock_data, get_market_summary, calculate_indicators, forecast_stock, compare_models, run_backtest |
-| `tools/news_tools.py` | 90 | News/sentiment wrappers |
-| `tools/fundamental_tools.py` | 94 | Fundamental metrics wrappers |
+| `agent.py` | 1.164 | AI Agent orchestrator — chọn Gemini Free hoặc local tool router |
+| `llm_client.py` | 553 | Gemini Free API adapter — fallback chain + throttle |
+| `tool_registry.py` | 156 | Wire 17 tools vào function-calling JSON schema |
+| `prompts.py` | 135 | System prompt cho Agent |
+| `tools/stock_tools.py` | 213 | **Thực thi**: query_stock_data, get_market_summary, calculate_indicators, forecast_stock, compare_models, run_backtest |
+| `tools/fundamental_tools.py` | 133 | Fundamental metrics wrappers |
 | `tools/walkforward_tools.py` | 39 | Walk-forward validation wrapper |
 
 **Cách hoạt động:**
@@ -146,7 +210,7 @@ REST        LSTM        Linear     ARIMA          (Vite)
 |------|-------|---------|--------|
 | `v1/router.py` | 14 | — | Gộp tất cả sub-routers |
 | `v1/endpoints/health.py` | 116 | `/health` | System health check |
-| `v1/endpoints/data.py` | 186 | `/data/*` | Ingest stock/fundamental/news/macro |
+| `v1/endpoints/data.py` | 186 | `/data/*` | Ingest stock/fundamental/macro |
 | `v1/endpoints/pipeline.py` | 223 | `/pipeline/*` | Run Bronze→Silver→Gold |
 | `v1/endpoints/stocks.py` | 52 | `/stocks/*` | Stock OHLCV data |
 | `v1/endpoints/indicators.py` | 31 | `/indicators/*` | Technical indicators |
@@ -219,12 +283,11 @@ GEMINI_API_KEY=<key>           # optional, fallback = local tool router
 | `factory.py` | 85 | `get_data_provider(name)` — factory pattern theo `DATA_SOURCE` env |
 | `multi_source.py` | 111 | Failover chain — thử nhiều provider → lấy cái đầu có data |
 | `yfinance_python_provider.py` | 256 | Provider chính cho US stocks — dùng package `yfinance` |
-| `finnhub_provider.py` | 235 | Finnhub REST + news + profile |
+| `finnhub_provider.py` | 235 | Finnhub REST + profile |
 | `alpha_vantage_provider.py` | 114 | Alpha Vantage REST |
 | `ssi_vn_provider.py` | 198 | SSI iBoard public API — 53 mã VN (HOSE/HNX/UPCOM) |
 | `web_scraper_provider.py` | 214 | CafeF scrape + Yahoo HTTP fallback |
 | `enhanced_fundamental_provider.py` | 326 | P/E, P/B, ROE, ROA, debt/equity, … |
-| `enhanced_news_sentiment_provider.py` | 507 | Tin tức + sentiment scoring (LLM-based) |
 | `macro_provider.py` | 399 | USD/VND, gold, oil, CPI, interest rate |
 | `market_index_provider.py` | 163 | ^GSPC (S&P 500), ^DJI, ^IXIC |
 | `orderbook_provider.py` | 239 | Bid/ask order book |
@@ -296,9 +359,9 @@ gold = build_gold_features(silver_frame)
 
 ---
 
-### `app/lakehouse/` — Medallion layers + Iceberg
+### `app/lakehouse/` — Medallion layers (giá)
 
-Đây là **module lớn nhất**, 14 file:
+Đây là **module lớn nhất**, 13 file:
 
 | File | Dòng | Mô tả |
 |------|-------|--------|
@@ -307,13 +370,10 @@ gold = build_gold_features(silver_frame)
 | `local_storage.py` | 71 | Ghi Parquet xuống `backend/data/{bronze,silver,gold}/` |
 | `minio_storage.py` | 114 | Ghi Parquet lên MinIO bucket |
 | `parquet_manager.py` | 24 | `split_by_partition()` — Hive-style path |
-| `iceberg_manager.py` | 633 | Iceberg REST → time travel, schema evolution, snapshot |
 | `spark_session.py` | 31 | Lazy Spark session (bật khi `USE_SPARK=true`) |
 | `bronze.py` | 98 | `BronzeLayer` — append-only, lineage, dedupe |
 | `silver.py` | 145 | `SilverLayer` — OHLC validation, `_errors/`, quality |
 | `gold.py` | 53 | `GoldLayer` — gọi `build_gold_features()` |
-| `gold_features.py` | 152 | `GoldFeaturesLayer` — sentiment/macro/index aggregate |
-| `news_silver.py` | 82 | Schema riêng cho tin tức (symbol, title, content, sentiment) |
 | `fundamentals_silver.py` | 98 | Schema riêng cho P/E, ROE, debt/equity |
 | `pipeline.py` | 394 | `LakehousePipeline` — multi-symbol orchestrator |
 
@@ -370,10 +430,11 @@ result = run_symbol_pipeline("VCB", ingest=True, skip_silver=True, skip_gold=Tru
 
 | File | Dòng | Mô tả |
 |------|-------|--------|
-| `data_ingestion_service.py` | 307 | Batch ingest stock/fundamental/news/macro |
+| `data_ingestion_service.py` | 307 | Batch ingest stock/fundamental/macro |
 | `crawler_service.py` | 124 | Background crawler (threading, gọi từ `main.py` startup) |
-| `unified_streaming_pipeline.py` | 321 | Integration tất cả nguồn + Kafka |
-| `market_service.py` | 130 | Market summary + synthetic fallback khi lakehouse trống |
+| `market_service.py` | 322 | Market summary — **không** có synthetic fallback (thiếu dữ liệu thì ném `NotFoundError`) |
+| `next_session_forecast.py` | 284 | Dự báo phiên kế tiếp + ghi vào bảng MySQL `predictions` |
+| `auto_refresh.py` | 780 | Batch EOD: nạp giá → dựng Silver/Gold → dự báo phiên kế tiếp |
 | `indicator_service.py` | 73 | Indicator computation |
 | `forecasting_service.py` | 95 | Train + predict |
 | `backtest_service.py` | 122 | Run backtest |
@@ -383,24 +444,26 @@ result = run_symbol_pipeline("VCB", ingest=True, skip_silver=True, skip_gold=Tru
 
 ---
 
-### `app/streaming/` — Kafka + WebSocket (real-time)
+### `app/streaming/` — WebSocket (real-time) — **ĐÃ XOÁ 11/11/2026**
 
-| File | Dòng | Mô tả |
-|------|-------|--------|
-| `finnhub_websocket.py` | 252 | Finnhub WebSocket client — auto-reconnect, PING keepalive |
-| `kafka_producer.py` | 382 | `StockKafkaProducer` — publish OHLCV raw → Kafka topic |
-| `kafka_consumer.py` | 339 | `StockKafkaConsumer` — consume → Lakehouse |
-| `stream_publisher.py` | 272 | `StreamPublisher` — gom tick thành 1s candle → Kafka |
-| `services/stream_service.py` | 235 | In-memory cache + Kafka bridge → REST (`/stream/latest`) |
-| `api/v1/endpoints/stream.py` | 75 | REST: latest / history / stats / ingest |
+| File | Tình trạng |
+|------|-----------|
+| `finnhub_websocket.py` | Đã xoá |
+| `services/stream_service.py` | Đã xoá |
+| `api/v1/endpoints/stream.py` | Đã xoá |
 
-**Luồng real-time:**
+**Vì sao xoá:** bộ nhớ đệm trong RAM đo được **0 mã / 0 bar** vì không còn
+tiến trình nào đẩy bar vào nó sau khi gỡ Kafka. Trang `/stream` vì thế chỉ hiện
+một ô trống. Realtime cũng **chưa bao giờ** ghi vào Bronze — toàn bộ kiến thức
+dài hạn của hệ thống đến từ batch cron, nên việc gỡ không mất bản ghi nào.
+
+**Luồng thay thế (đang chạy):**
 ```
-Finnhub WebSocket
-  → StreamPublisher (1s candle agg)
-  → Kafka topic "stock-ohlcv-raw"
-  → KafkaConsumer
+Provider thật (Yahoo / yfinance / Finnhub / Alpha Vantage / SSI iBoard)
+  → cron batch (backend/crontab)
   → Bronze → Silver → Gold
+  → GET /api/v1/stocks/tape  (giá đóng cửa đã lưu)
+  → UI
 ```
 
 ---
@@ -444,6 +507,7 @@ Bảng `stock_lakehouse` trong MySQL 8:
 | `model_runs` | Lịch sử train model |
 | `backtest_runs` | Lịch sử backtest |
 | `agent_conversations` | Lịch sử chat AI Agent |
+| `predictions` | Dự báo phiên kế tiếp (unique trên `(symbol, model_name, target_session)`) |
 
 ---
 
@@ -452,17 +516,86 @@ Bảng `stock_lakehouse` trong MySQL 8:
 | Service | Image | Port | Vai trò |
 |---------|-------|------|---------|
 | `mysql` | mysql:8.4 | 3307 | Metadata DB |
-| `minio` | quay.io/minio/minio | 9000/9001 | Object storage (S3-compatible) |
-| `iceberg-rest` | tabulario/iceberg-rest:0.9.0 | 8181 | Iceberg REST Catalog |
-| `kafka` | apache/kafka:3.8.0 | 9092/9094 | Streaming backbone |
+| `minio` | stock-lakehouse-minio (build `./minio`) | 9000/9001 | Object storage (S3-compatible), `network_mode: host` |
+| `backend` | stock-lakehouse-backend (build `./backend`) | 8000 | FastAPI |
+| `frontend` | stock-lakehouse-frontend (build `./frontend`) | 8081 | React SPA (nginx) |
+| `scheduler` | stock-lakehouse-backend (tái dùng image backend) | — | `cron -f` — chạy batch EOD 2 lần/ngày |
 
 **Chạy:**
 ```powershell
-docker compose up -d
+docker compose --profile infra up -d   # chỉ MySQL + MinIO
+docker compose --profile app  up -d   # backend + frontend + scheduler (kèm infra)
+docker compose --profile all  up -d   # mọi thứ (mặc định cho demo)
 ```
+
+> **Lưu ý về container `scheduler`:** nó dùng **chung image với backend** vì các
+> job là script Python import cùng một application package. Lịch nằm trong file
+> `backend/crontab` (mount vào `/etc/cron.d/stock-lakehouse`), `TZ=UTC` được ghim cứng
+> để giờ trong crontab luôn là UTC, và `restart: unless-stopped` để lịch sống sót
+> qua việc container bị recreate hay máy khởi động lại.
 
 ---
 
+## 7. Đã gỡ gì và vì sao (10/11/2026)
+
+### 7.1. Apache Kafka
+
+**Đã xoá:** container `kafka`, `backend/app/streaming/kafka_producer.py`,
+`kafka_consumer.py`, `rest_poller.py`, `vn_rest_poller.py`, `stream_publisher.py`,
+`vn_stream_publisher.py`, `yfinance_eod_poller.py`,
+`backend/app/services/unified_streaming_pipeline.py`,
+`backend/scripts/run_stream_publisher.py`, `run_stream_consumer.py`,
+`run_vn_stream_publisher.py`, và toàn bộ volume `kafka_data`.
+
+**Vì sao gỡ:**
+
+| Lý do | Giải thích đời thường |
+|---|---|
+| **Một bản sao dữ liệu thừa** | Kafka giữ dữ liệu ở topic để rồi đẩy sang Bronze. Nhưng Bronze **đã bất biến** và không ai đọc từ topic — dữ liệu bị lưu hai lần, và hai lần có thể lệch nhau. |
+| **Một JVM nữa phải vận hành** | Broker Kafka là một JVM. Nó phải được cấp RAM, phải được giám sát, và phải được khởi động lại khi chết. Bỏ nó là bỏ một nguồn lỗi. |
+| **Không có nhu cầu streaming ở đồ án này** | Đồ án nghiên cứu dữ liệu **daily**. Batch EOD chạy 2 lần/ngày (NYSE + HOSE) là đủ; một topic realtime không thêm giá trị nghiên cứu nào. |
+| **Không có người trực** | Topic realtime đòi hỏi một consumer chạy liên tục 24/7. Không có bộ đếm cron, container chết là dữ liệu im lặng — không ai biết. |
+
+**Thay bằng gì:** container `scheduler` chạy `cron` (mục 6) — lịch nằm trong **file
+trong repo** (`backend/crontab`), được Docker giám sát, và mỗi lần chạy đều ghi log
+có ngày giờ vào `backend/logs/scheduled_jobs.log`.
+
+### 7.2. Apache Iceberg
+
+**Đã xoá:** container `iceberg-rest`, `backend/app/lakehouse/iceberg_manager.py`,
+`backend/scripts/init_iceberg_tables.py`, và volume `iceberg_rest_data`.
+
+**Vì sao gỡ:**
+
+| Lý do | Giải thích đời thường |
+|---|---|
+| **Metadata thừa** | Iceberg catalog lưu manifest và metadata cho **cùng dữ liệu** mà Parquet đã lưu. Ở quy mô hiện tại (~10^5 partition), phần thừa đó không đổi được gì. |
+| **Một JVM nữa** | `iceberg-rest` là container Java — thêm một thứ phải giám sát. |
+| **Tính năng không dùng tới** | Time-travel và cập nhật/xoá từng dòng là thứ Iceberg mạnh. Lakehouse này **append-only**: Bronze không bao giờ bị sửa, Silver/Gold được dựng lại. Không có tác vụ nào cần sửa/xoá từng dòng. |
+| **Quy ước đường dẫn là đủ** | `symbol=.../year=.../month=...` + `_lineage.json` + `_quality.json` đã trả lời được "dữ liệu ở đâu, đến từ đâu, đã loại rác bao nhiêu". |
+
+### 7.3. Cái bị mất, nói thẳng
+
+- **Time-travel**: không còn đọc lại một phiên bản dữ liệu cũ theo mốc thời gian. Cách
+  thay thế: chạy lại Silver/Gold từ Bronze (Bronze bất biến nên kết quả lặp lại được).
+- **Schema evolution không cần viết lại dữ liệu**: khi thêm cột mới, phải dựng lại
+  tầng Silver/Gold. Với khối lượng hiện tại, thời gian dựng lại đo được ở Phần 2.4 của
+  `HE_THONG_TOAN_DIEN_VA_GIAI_TRINH_KHOA_LUAN.md`.
+- **Realtime bar từ nhà cung cấp**: cổng `POST /api/v1/stream/ingest` và toàn bộ
+  client WebSocket đã bị **xoá hẳn** ngày 11/11/2026 vì trước đây nó từng đẩy
+  bar gõ tay vào Bronze — không phân biệt được với giá thật. Hệ thống giờ chỉ
+  có **bar NGÀY** do cron nạp.
+
+> **Cách trả lời khi thầy hỏi "vì sao bỏ Kafka/Iceberg, đồ án còn đủ hấp dẫn không?":**
+> *"Đồ án nghiên cứu dữ liệu daily ở quy mô ~10^5 partition. Kafka và Iceberg giải quyết
+> những bài toán mà đồ án này không có: streaming realtime mà không ai dùng, và cập nhật
+> từng dòng trên object storage cho một pipeline append-only. Giữ chúng nghĩa là thêm
+> 2 JVM phải vận hành và 2 bản sao metadata, để đổi lấy 0 phần tính năng dùng được.
+> Phần thay thế không kém: lịch cron nằm trong file version control, batch EOD tự động
+> dự báo phiên kế tiếp và ghi vào MySQL, và luồng tin tức 2 tầng có chống rò rỉ tương lai
+> bằng quy tắc `session_date`."*
+
+---
 ## Change log refactor (02/10/2026)
 
 Những gì đã dọn:

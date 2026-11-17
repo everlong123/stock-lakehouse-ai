@@ -61,15 +61,6 @@ Write-Host "`n===== BATCH 5: Market indices =====" -ForegroundColor Cyan
 Quick-Test "market.indices" GET "$base/market/indices"
 Quick-Test "market.indices.sectors" GET "$base/market/indices/sectors"
 
-Write-Host "`n===== BATCH 6: News / sentiment =====" -ForegroundColor Cyan
-Quick-Test "data.news.market" GET "$base/data/news/market?limit=3"
-Quick-Test "data.news.AAPL" GET "$base/data/news/AAPL?limit=3"
-Quick-Test "data.sentiment.AAPL" GET "$base/data/sentiment/AAPL"
-Quick-Test "market.news.market" GET "$base/market/news/market?limit=3"
-Quick-Test "market.news.AAPL" GET "$base/market/news/AAPL?limit=3"
-Quick-Test "market.news.AAPL.sentiment-summary" GET "$base/market/news/AAPL/sentiment-summary"
-Quick-Test "market.news.AAPL.sentiment-timeseries" GET "$base/market/news/AAPL/sentiment-timeseries"
-
 Write-Host "`n===== BATCH 7: Fundamental =====" -ForegroundColor Cyan
 Quick-Test "data.fundamental.AAPL" GET "$base/data/fundamental/AAPL"
 Quick-Test "market.fundamental.AAPL" GET "$base/market/fundamental/AAPL"
@@ -82,11 +73,8 @@ Quick-Test "market.orderbook.AAPL" GET "$base/market/orderbook/AAPL"
 Quick-Test "market.trades.AAPL" GET "$base/market/trades/AAPL?limit=3"
 Quick-Test "market.trades.AAPL.summary" GET "$base/market/trades/AAPL/summary"
 
-Write-Host "`n===== BATCH 9: Streaming =====" -ForegroundColor Cyan
-Quick-Test "stream.latest" GET "$base/stream/latest"
-Quick-Test "stream.history" GET "$base/stream/history?limit=3"
-Quick-Test "stream.events" GET "$base/stream/events?limit=3"
-Quick-Test "stream.stats" GET "$base/stream/stats"
+Write-Host "`n===== BATCH 9: Market tape =====" -ForegroundColor Cyan
+Quick-Test "stocks.tape" GET "$base/stocks/tape?symbols=AAPL,MSFT"
 
 Write-Host "`n===== BATCH 10: Forecast / backtest / admin =====" -ForegroundColor Cyan
 Quick-Test "forecast.compare.AAPL" GET "$base/forecast/compare/AAPL"

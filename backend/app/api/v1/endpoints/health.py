@@ -59,10 +59,6 @@ def system_status() -> dict:
     else:
         agent_status = "local_tool_router"
 
-    # Quick HTTP probes for optional services (best-effort, non-blocking)
-    iceberg_ok = _probe_http(f"{settings.iceberg_catalog_uri}/v1/config", expect_status=[200, 400, 404, 405])
-    kafka_ok = _probe_tcp(settings.kafka_bootstrap_servers.split(",")[0].strip()) if settings.use_kafka else False
-
     # Each record_count lists every object key in a bucket, so run the three in
     # parallel instead of serially to keep this page responsive.
     counts = _layer_counts()
@@ -74,14 +70,6 @@ def system_status() -> dict:
             "label": "MinIO (S3)",
             "status": "connected" if minio_mode else "local_storage_mode",
         },
-        "iceberg": {
-            "label": "Iceberg REST",
-            "status": "online" if iceberg_ok else "disabled",
-        },
-        "kafka": {
-            "label": "Kafka",
-            "status": "online" if kafka_ok else ("disabled" if not settings.use_kafka else "offline"),
-        },
         "data_source": {"label": "Data Source", "status": settings.data_source},
         "ai_agent": {
             "label": "AI Agent",
@@ -92,7 +80,47 @@ def system_status() -> dict:
         "use_spark": settings.use_spark,
         "last_pipeline_run": _last_pipeline_run(),
     }
+
+    # The quality gate's verdict belongs on the status page: it is the one
+    # number that says whether the DATA is trustworthy, not just whether the
+    # services are up. A backend that is fully online while serving
+    # corrupted prices is not healthy, and this is the row that says so.
+    #
+    # It is read from the STORED SNAPSHOT, not recomputed here: the gate
+    # costs a provider round-trip per symbol, and the System Status page is
+    # polled every 15 seconds.
+    payload["data_quality"] = _quality_gate_status()
     return ok(payload)
+
+
+def _quality_gate_status() -> dict:
+    """The quality gate's verdict, in the shape the status page renders.
+
+    A gate that has never run reports ``unknown``, NOT ``passed``. The
+    difference matters: "the data is clean" and "nobody has checked" must
+    never look the same.
+    """
+    try:
+        from app.services.quality_gate_service import summary
+
+        summary_payload = summary()
+    except Exception as exc:  # noqa: BLE001 - a status page must not fail
+        logger.warning("quality gate summary failed: %s", exc)
+        return {
+            "label": "Data Quality",
+            "status": "unknown",
+            "verdict": "unknown",
+            "checked_at": None,
+        }
+
+    verdict = str(summary_payload.get("verdict") or "unknown")
+    return {
+        "label": "Data Quality",
+        "status": verdict,
+        "verdict": verdict,
+        "checked_at": summary_payload.get("checked_at"),
+        "verdict_trend": summary_payload.get("verdict_trend"),
+    }
 
 
 def _compute_layer_counts() -> dict[str, int]:
@@ -369,33 +397,6 @@ def restore_layer_counts() -> bool:
         _counts_cache["expires_at"] = 0.0
     logger.info("Restored layer counts from disk: %s", counts)
     return True
-
-
-def _probe_http(url: str, expect_status: list[int]) -> bool:
-    """Quick HEAD-like probe; returns True if any expected status comes back."""
-    try:
-        import urllib.request
-        import urllib.error
-        req = urllib.request.Request(url, method="GET")
-        with urllib.request.urlopen(req, timeout=2) as resp:
-            return resp.status in expect_status
-    except urllib.error.HTTPError as exc:
-        return exc.code in expect_status
-    except Exception:
-        return False
-
-
-def _probe_tcp(endpoint: str) -> bool:
-    """Quick TCP probe; returns True if connection succeeds."""
-    if not endpoint or ":" not in endpoint:
-        return False
-    host, port = endpoint.rsplit(":", 1)
-    try:
-        import socket
-        with socket.create_connection((host, int(port)), timeout=2):
-            return True
-    except Exception:
-        return False
 
 
 def _last_pipeline_run() -> dict | None:

@@ -1,0 +1,245 @@
+---
+description: Quy tắc thiết kế web cho dự án này — chống "AI vibe", áp dụng system design có chủ đích
+globs: ["frontend/src/**/*.{ts,tsx,css}", "frontend/index.html", "frontend/tailwind.config.js"]
+alwaysApply: false
+---
+
+# Quy tắc thiết kế web (không AI-vibe)
+
+Mọi thay đổi giao diện trong `frontend/` PHẢI tuân thủ file này. Đây là bộ quy tắc
+được chọn có chủ đích — không phải mặc định của framework, không phải "cho đẹp".
+
+**Nguyên tắc:** khi phải chọn giữa "an toàn và chung chung" với "có chủ đích và
+khác biệt", chọn cái thứ hai. Nếu một quyết định giống hệt mọi landing page AI
+sinh ra, nó sai.
+
+---
+
+## 1. Năm cỡ chữ. Không có cỡ thứ sáu.
+
+Hệ thống chỉ có **5 cỡ**. Mọi thứ phải ép về một trong 5 cỡ này:
+
+| Token | Size | Weight | Line-height | Tracking | Dùng cho |
+|---|---|---|---|---|---|
+| `display` | 40px | 600 | 1.1 | **-0.02em** | Số lớn nhất trang (giá, hero) |
+| `heading` | 24px | 600 | 1.3 | -0.01em | Tiêu đề section, tiêu đề card lớn |
+| `body` | 16px | 400 | 1.6 | 0 | Nội dung chính, đoạn văn |
+| `small` | 14px | 400 | 1.5 | 0 | Nội dung phụ, ô trong bảng, mô tả |
+| `label` | 12px | 500 | 1.4 | 0.04em | Nhãn uppercase, caption, header bảng |
+
+**Bắt buộc:**
+- `display` **phải** có `letter-spacing: -0.02em`. Tracking mặc định ở 40px trông
+  lỏng, và lỏng ở 40px trông như chưa xong. Negative tracking trên ≥32px là thay
+  đổi hiệu quả nhất trong danh sách này và hầu như không AI nào tự thêm.
+- `label` **phải** uppercase + `tracking: 0.04em`.
+- Cỡ `small` (14px) là cỡ nhỏ nhất được phép hiển thị chữ **đọc được**. Mọi thứ
+  nhỏ hơn 14px chỉ được dùng cho **số liệu trong bảng dữ liệu** hoặc **chữ mono
+  trong tooltip**, không dùng cho nhãn giao diện chung.
+- Không được dùng `text-[11px]`, `text-[12.5px]`, `text-[15px]`, `text-[17px]`,
+  `text-[19px]`, `text-[26px]`, `text-[32px]`, `text-[34px]` hay bất kỳ giá trị
+  tùy ý nào. Đó chính là "AI vibe": 17 cỡ chữ = 17 quyết định.
+
+---
+
+## 2. Bảy màu, mỗi màu một vai trò
+
+CSS **chỉ được chứa** 7 role này (thêm `surface-2` cho vùng lõm, và `negative`
+cho dữ liệu tài chính):
+
+```
+canvas       #F4F5F7   nền trang
+surface      #FCFCFD   card / panel nằm trên canvas
+surface-2    #EDEFF2   vùng lõm, header bảng
+ink          #14161A   tiêu đề + nội dung
+muted        #5F6672   text phụ, caption
+hairline     #E2E5EA   viền 1px, đường kẻ
+primary      #1B6B4A   accent duy nhất
+on-primary   #FFFFFF   chữ đặt trên primary
+negative     #C0392B   chỉ dùng cho "giảm" trong dữ liệu tài chính
+```
+
+**Bắt buộc:**
+- **Không có màu nào khác.** Thêm màu mới = thêm một quyết định không cần thiết.
+- `primary` có phạm vi đã định: chỉ dùng cho **hành động chính**, **trạng thái
+  active**, và **số liệu tăng**. KHÔNG dùng `primary` làm viền, làm badge nền,
+  làm icon, và làm hover state cùng lúc trên một màn hình.
+- Không dùng `ok/warn/info` ba màu trạng thái. Trạng thái = `ink` / `muted` /
+  `negative` / `primary`. Nếu cần cảnh báo thì dùng `negative`.
+- Đừng dùng gradient làm nền hoặc làm nút. Một màu nền phẳng + một accent.
+
+---
+
+## 3. Không dùng trắng tuyệt đối và đen tuyệt đối
+
+- `#FFFFFF` trên `#000000` = không có quyết định nào cả.
+- Hướng đi của dự án: **cool** — canvas lệch xanh nhạt, ink lệch xanh đậm.
+- Kiểm tra khi review: nếu có `#fff` và `#000` cứng trong CSS → sửa.
+
+---
+
+## 4. Xoá phần lớn các card
+
+Với mỗi card, hỏi: **bỏ viền + nền đi có mất thông tin không?**
+
+Thường là **không** — một tiêu đề + khoảng trắng đã làm đủ việc đó.
+
+- **Có** viền khi: phần tử thực sự tách rời và **bấm được** (lựa chọn model,
+  ô trong watchlist, dòng trong bảng), hoặc là khối dữ liệu chính (chart, bảng).
+- **Không** có viền khi: nhóm nội dung chỉ gồm heading + nội dung, số liệu thống
+  kê, hoặc khối giải thích. Dùng khoảng cách + hairline ngăn cách.
+
+Quy tắc: nếu nhìn trang mà **mọi thứ** đều nằm trong ô vuông → sai.
+
+---
+
+## 5. Một chiến lược nổi duy nhất: HAIRLINE
+
+Dự án nằm trên nền sáng → dùng **đường viền 1px + đổi màu bề mặt**.
+
+- **Không dùng `box-shadow` ở bất kỳ đâu** (trừ dropdown/popover cần tách khỏi
+  nền). Shadow đen trên nền sáng là "AI tell" phổ biến nhất.
+- Không dùng gradient overlay lên chart, không dùng gradient strip trên card.
+- Không có "hover:shadow-md", "hover:-translate-y-0.5", "hover:shadow-lg".
+
+---
+
+## 6. Một bo góc + một pill
+
+- Bo góc làm việc: **6px** (`rounded`). Dùng cho card, input, button, badge.
+- Pill: **9999px** (`rounded-full`) — chỉ cho thứ thực sự tròn: avatar, dot,
+  toggle, chip bo tròn.
+- Cấm: `rounded-sm`, `rounded-md`, `rounded-lg`, `rounded-xl`, `rounded-2xl`,
+  `rounded-3xl`. Nếu thấy 5 bo góc khác nhau trên một trang → sai.
+
+---
+
+## 7. Thang khoảng cách lấy từ một số gốc
+
+Gốc = **4px**. Chỉ dùng bội số của 4:
+
+```
+4 · 8 · 12 · 16 · 24 · 32 · 48 · 64
+```
+
+- Cấm tuyệt đối: 10px, 13px, 14px, 18px, 22px, 26px, 30px, 36px… (mọi giá trị
+  không chia hết cho 4).
+- Dùng **đầu lớn hơn cảm giác thoải mái**: section cách nhau 32–48px, không phải
+  16px. Khoảng cách lớn là phần lớn của cảm giác "cân nhắc" so với "chật".
+- Padding trong panel: 16px. Padding section: 32px. Gap giữa các khối: 24px.
+
+---
+
+## 8. Luật button — viết ra, không suy nghĩ mỗi lần
+
+| Variant | Fill | Border | Text |
+|---|---|---|---|
+| `primary` | `primary` | không | `on-primary` |
+| `secondary` | `ink` | không | `canvas` |
+| `outline` | trong suốt | 1px `hairline` | `ink` |
+| `text` | không | không | `ink` |
+
+- **Một `primary` mỗi màn hình.** Ba nút filled accent trên một trang = không
+  nút nào là hành động chính.
+- Chiều cao nút: 36px (mặc định) / 32px (`sm`) / 44px (mobile hit target).
+- Không gradient, không shadow, không bo góc lạ.
+
+---
+
+## 9. Typography — dùng đúng font, phân vai
+
+- **KHÔNG dùng Inter / Roboto / Open Sans làm font chính.** Đó là dấu hiệu
+  "tôi không nghĩ về typography".
+- Font của dự án:
+  - Tiêu đề: **Plus Jakarta Sans** 600/700 — có chữ Việt.
+  - Nội dung & UI: **DM Sans** 400/500 — có chữ Việt.
+  - Số liệu / bảng / code: **IBM Plex Mono** 400/500 — có chữ Việt, số tabular.
+- Heading và body phải **khác nhau rõ**: family khác, weight khác, và tracking
+  khác (heading âm, body bằng 0).
+- line-height heading 1.1–1.3, body 1.6–1.8. Không đặt `leading-relaxed` ở mọi
+  nơi như một mặc định.
+
+---
+
+## 10. Layout — phá vỡ công thức AI
+
+Cấm:
+- 3 cột card giống hệt nhau lặp lại ở 3+ section.
+- Mọi section theo khuôn "heading → mô tả → 3 card".
+- Mọi thứ center-align (body text mặc định **trái**).
+- Mọi section cùng một padding.
+
+Bắt buộc:
+- Trộn layout 1 cột / 2 cột / list. Mỗi section một cấu trúc khác nhau.
+- Section quan trọng → 48px; section liên quan → 24px.
+- Không có hero fullscreen + 2 CTA (đây là app tài chính, không phải landing page).
+
+---
+
+## 11. Copy — cụ thể, không sáo rỗng
+
+- Cấm từ: unlock, empower, seamless, leverage, streamline, robust, cutting-edge,
+  elevate, harness, delve, giải pháp toàn diện, mở ra tiềm năng.
+- Tiêu đề = danh từ cụ thể: "Chỉ số" không phải "Tính năng"; "Lịch sử lệnh" không
+  phải "Điều bạn có thể làm".
+- Subtitle **tối đa 1 câu**. Cần 2 câu → đó là body text.
+- CTA = động từ cụ thể + đối tượng: "Chạy backtest" tốt hơn "Tìm hiểu thêm".
+- Copy tiếng Việt phải tự nhiên, không dịch máy từ tiếng Anh.
+
+---
+
+## 12. Icon & ảnh
+
+- Chỉ dùng **Lucide** (đã cài). Tuyệt đối không dùng emoji làm icon.
+- Không dùng ảnh stock không liên quan. Không dùng ảnh AI sinh.
+- Không tạo ô placeholder gradient thay cho ảnh thật.
+
+---
+
+## 13. UX & tương tác
+
+- Không scroll-reveal animation trên mọi thứ. Nếu có thì phải đảm bảo nội dung
+  **vẫn hiển thị** khi JS/CSS lỗi.
+- Touch target tối thiểu **44×44px** trên mobile.
+- Tối đa 2 CTA mỗi section: primary + secondary.
+- Nội dung dài phải gập được (accordion, tab, "show more") — không đổ hết ra.
+- Empty state phải nói rõ **tại sao** trống và **làm gì tiếp theo**.
+
+---
+
+## 14. Không animation rác
+
+- Chỉ giữ animation có mục đích: chuyển trạng thái, skeleton, pulse cho live dot.
+- Cấm `hover:-translate-y-0.5`, `hover:shadow-md`, `scale-[0.98]`, gradient sweep.
+- Transition chỉ trên `background-color`, `border-color`, `color`, `opacity`.
+
+---
+
+## 15. Dữ liệu thật — tuyệt đối không fake
+
+Xem rule đầy đủ: `.cursor/rules/no-fake-data.mdc`.
+
+Tóm tắt cho phần UI:
+
+- **Không** viết server giả (`mock_api.py` hay tương tự) để cho UI "chạy được".
+  Backend thật là `backend/app/main.py`; nó lỗi thì phải sửa nó.
+- **Không** hard-code số liệu trong component (giá, RSI, MAE, sharpe, số bản
+  ghi). Mọi con số đến từ API thật đọc ra từ lakehouse.
+- API rỗng hoặc lỗi → hiển thị empty state / lỗi thật, **không** trả số "cho
+  có". `0.00%` khi chưa có giá cũ là sai; phải hiện `—` kèm lý do.
+- **Không** dùng `Math.random()`, `random.uniform()`, fixture hay seed để tạo
+  dữ liệu hiển thị.
+- Cổng ghi dữ liệu vào lakehouse (`/api/v1/stream/ingest`) mặc định **tắt** —
+  không bật lại để "demo cho đẹp".
+
+---
+
+## Checklist trước khi commit UI
+
+- [ ] Mở trang, đếm số cỡ chữ. Đúng 5.
+- [ ] Đếm bo góc. Đúng 2 (6px + pill).
+- [ ] Tìm `box-shadow` trong CSS/JSX. Không có (trừ dropdown).
+- [ ] Tìm màu ngoài 7 role + negative. Không có.
+- [ ] Tìm giá trị spacing không chia hết cho 4. Không có.
+- [ ] Đếm nút `primary` filled trên mỗi màn hình. Tối đa 1.
+- [ ] Đếm emoji trong JSX. Không có.
+- [ ] Bỏ hết chữ: layout còn nhận ra là app tài chính chứ không phải template?

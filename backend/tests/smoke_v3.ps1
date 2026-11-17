@@ -36,9 +36,8 @@ Quick-Test "agent.history.test123" GET "$base/agent/history/test123"
 $agentBody = @{ message = "Xin chào"; session_id = "smoke-test-1" }
 Quick-Test "agent.chat" POST "$base/agent/chat" $agentBody 30
 
-Write-Host "`n===== STREAM =====" -ForegroundColor Cyan
-Quick-Test "stream.ingest" POST "$base/stream/ingest" @{ symbol = "AAPL"; price = 100.5; volume = 1000 }
-Quick-Test "stream.stats" GET "$base/stream/stats"
+Write-Host "`n===== MARKET TAPE =====" -ForegroundColor Cyan
+Quick-Test "stocks.tape" GET "$base/stocks/tape?symbols=AAPL,MSFT"
 
 Write-Host "`n===== ADMIN =====" -ForegroundColor Cyan
 Quick-Test "admin.auto-refresh.status" GET "$base/admin/auto-refresh/status"
@@ -47,7 +46,6 @@ Write-Host "`n===== INGEST (data update) =====" -ForegroundColor Cyan
 Quick-Test "data.stocks.ingest (no body)" GET "$base/data/stocks/ingest"
 Quick-Test "data.fundamental.ingest" GET "$base/data/fundamental/ingest"
 Quick-Test "data.macro.ingest" GET "$base/data/macro/ingest"
-Quick-Test "data.news.ingest" GET "$base/data/news/ingest"
 
 Write-Host "`n===== DASHBOARD specific symbol =====" -ForegroundColor Cyan
 Quick-Test "dashboard.MSFT" GET "$base/dashboard/MSFT"

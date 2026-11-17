@@ -1,17 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
-import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  Cell,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-  Area,
-  AreaChart,
-} from "recharts";
+import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { fetchDashboard, fetchSystemStatus } from "@/api/agent";
 import { errorMessage } from "@/api/client";
 import { CandlestickChart } from "@/components/charts/CandlestickChart";
@@ -22,151 +10,37 @@ import { PageTitle } from "@/components/common/PageTitle";
 import { BarIntervalSelector } from "@/components/common/BarIntervalSelector";
 import { TimeRangeSelector, type TimeRange } from "@/components/common/TimeRangeSelector";
 import { LakehouseFlow } from "@/components/dashboard/LakehouseFlow";
-import { LiveWatchlist } from "@/components/dashboard/LiveWatchlist";
+import { LakehouseWatchlist } from "@/components/dashboard/LakehouseWatchlist";
 import { MarketCard } from "@/components/dashboard/MarketCard";
 import { MetricCard } from "@/components/dashboard/MetricCard";
+import { NextSessionCard, type NextSessionForecast } from "@/components/dashboard/NextSessionCard";
 import { RecentActivity } from "@/components/dashboard/RecentActivity";
 import { useMarket } from "@/hooks/useMarket";
 import { useI18n, t } from "@/lib/i18n";
 import { OHLCVPoint } from "@/types/stock";
-import { applyTimeRange, formatNumber, formatPercent, formatPrice, formatVolume, isUsableNumber, toFinite } from "@/utils/format";
+import { applyTimeRange, formatNumber, formatPercent, formatPrice, formatVolume, isUsableNumber, rangeStartDate } from "@/utils/format";
 import { resampleSolidBars, BAR_INTERVAL_LABELS, type BarInterval, type SolidBar } from "@/utils/resample";
 
-const TEAL = "hsl(165 52% 28%)";
-const TEAL_LIGHT = "hsl(165 45% 92%)";
-const BORDER = "hsl(210 18% 90% / 0.6)";
-const MUTED = "hsl(220 12% 45%)";
-const GRID = "hsl(210 20% 92%)";
-
-const cardStyle = (hover = false) => ({
-  borderRadius: 16,
-  border: `1px solid ${hover ? "hsl(210 18% 82%)" : "hsl(210 18% 90% / 0.6)"}`,
-  background: "white",
-  boxShadow: hover
-    ? "0 4px 12px -2px hsl(0 0 0% / 0.07), 0 2px 6px -2px hsl(0 0 0% / 0.04)"
-    : "0 1px 3px hsl(0 0 0% / 0.04), 0 1px 2px hsl(0 0 0% / 0.02)",
-  transition: "all 0.2s ease",
-} as React.CSSProperties);
-
-const tooltipStyle = {
-  background: "white",
-  border: `1px solid ${BORDER}`,
-  borderRadius: 12,
-  fontSize: 12,
-  fontFamily: "JetBrains Mono, monospace",
-  boxShadow: "0 4px 12px hsl(0 0 0% / 0.08)",
-  padding: "8px 12px",
-};
-
-// ── Price area chart with gradient fill ───────────────────────────────────────
-function PriceAreaChart({ data }: { data: Array<{ timestamp: string; price: number }> }) {
-  if (!data.length) return null;
-  return (
-    <ResponsiveContainer>
-      <AreaChart data={data} margin={{ top: 10, right: 16, left: 0, bottom: 0 }}>
-        <defs>
-          <linearGradient id="priceGradient" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="5%" stopColor={TEAL} stopOpacity={0.15} />
-            <stop offset="95%" stopColor={TEAL} stopOpacity={0} />
-          </linearGradient>
-        </defs>
-        <CartesianGrid stroke={GRID} strokeDasharray="3 3" vertical={false} />
-        <XAxis dataKey="timestamp" hide />
-        <YAxis
-          stroke={MUTED}
-          fontSize={11}
-          fontFamily="JetBrains Mono, monospace"
-          domain={["auto", "auto"]}
-          width={55}
-          tickFormatter={(v: number) => `$${v.toFixed(0)}`}
-        />
-        <Tooltip
-          contentStyle={tooltipStyle}
-          labelStyle={{ color: MUTED, fontSize: 10, marginBottom: 4 }}
-          formatter={(v: number) => [`$${v.toFixed(2)}`, "Price"]}
-          itemStyle={{ color: TEAL, fontWeight: 600 }}
-        />
-        <Area
-          type="monotone"
-          dataKey="price"
-          stroke={TEAL}
-          strokeWidth={2.5}
-          fill="url(#priceGradient)"
-          dot={false}
-          activeDot={{ r: 5, fill: TEAL, stroke: "white" as never, strokeWidth: 2 }}
-          animationDuration={600}
-          animationEasing="ease-out"
-        />
-      </AreaChart>
-    </ResponsiveContainer>
-  );
-}
-
-// ── Volume bar chart with up/down colors ──────────────────────────────────────
-function VolumeChart({ data }: { data: OHLCVPoint[] }) {
-  // Coerce here rather than trusting the caller: `entry.close >= entry.open`
-  // with either side null/undefined silently evaluates false and paints the bar
-  // red, i.e. a data gap is displayed as a down-volume day.
-  const bars = useMemo<Array<{ timestamp: string; volume: number; up: boolean }>>(
-    () =>
-      data.flatMap((d) => {
-        const volume = toFinite(d.volume);
-        if (volume === undefined) return [];
-        const open = toFinite(d.open);
-        const close = toFinite(d.close);
-        return [
-          {
-            timestamp: d.timestamp,
-            volume,
-            up: isUsableNumber(open) && isUsableNumber(close) ? close >= open : true,
-          },
-        ];
-      }),
-    [data],
-  );
-  if (!bars.length) return null;
-  return (
-    <ResponsiveContainer>
-      <BarChart data={bars} margin={{ top: 4, right: 16, left: 0, bottom: 0 }}>
-        <CartesianGrid stroke={GRID} strokeDasharray="3 3" vertical={false} />
-        <XAxis dataKey="timestamp" hide />
-        <YAxis
-          stroke={MUTED}
-          fontSize={11}
-          fontFamily="JetBrains Mono, monospace"
-          tickFormatter={(v: number) =>
-            v >= 1_000_000 ? `${(v / 1_000_000).toFixed(1)}M` : v >= 1000 ? `${(v / 1000).toFixed(0)}K` : `${v}`
-          }
-        />
-        <Tooltip
-          contentStyle={tooltipStyle}
-          labelStyle={{ color: MUTED, fontSize: 10, marginBottom: 4 }}
-          formatter={(v: number) => [formatVolume(v), "Volume"]}
-          itemStyle={{ color: MUTED }}
-        />
-        {/* ONE bar series with one <Cell> per row.
-            WHY: the previous code mapped the data to one `<Bar>` ELEMENT per
-            row (`data.map(entry => <Bar .../>)`). In recharts a `<Bar>` is a
-            *series*, not a bar: 2500 of them (the "Tất cả" range) means 2500
-            series, each with its own scale/axis/animation state. The browser
-            tab froze solid and never painted again. A single `<Bar>` plus
-            per-row `<Cell>` elements is the supported way to colour bars
-            individually, and it stays O(rows). */}
-        <Bar dataKey="volume" radius={[3, 3, 0, 0]} maxBarSize={24} isAnimationActive={false}>
-          {bars.map((entry, index) => (
-            <Cell
-              key={`vol-${entry.timestamp}-${index}`}
-              fill={entry.up ? "hsl(152 58% 38%)" : "hsl(4 80% 52%)"}
-            />
-          ))}
-        </Bar>
-      </BarChart>
-    </ResponsiveContainer>
-  );
-}
+/**
+ * The two recharts-based charts are loaded asynchronously.
+ *
+ * WHY: `recharts` is 407 kB raw / 110 kB gzipped - heavier than React, the
+ * router and the query client combined. Importing it directly meant the
+ * browser could not paint the metric row until all of it had been
+ * downloaded and parsed.
+ *
+ * With `React.lazy` the shell paints first and the charts fill in a frame
+ * later, behind a skeleton. The library itself is downloaded once and
+ * cached by the browser, so this costs nothing on the second visit.
+ */
+const PriceAreaChart = lazy(() =>
+  import("@/components/charts/DashboardCharts").then((m) => ({ default: m.PriceAreaChart })),
+);
+const VolumeChart = lazy(() =>
+  import("@/components/charts/DashboardCharts").then((m) => ({ default: m.VolumeChart })),
+);
 
 // ─────────────────────────────────────────────────────────────────────────────
-
 export function DashboardPage() {
   const { symbol } = useMarket();
   const { locale } = useI18n();
@@ -176,11 +50,33 @@ export function DashboardPage() {
   // client - see `utils/resample`.
   const [barInterval, setBarInterval] = useState<BarInterval>("1d");
 
+  // The window, applied SERVER-SIDE.
+  //
+  // WHY: the stored history of a ten-year daily ticker is ~121 monthly
+  // parquet partitions. Asking the backend for the last three months
+  // lets it download three of them instead of all 121 - the page opens
+  // in a fraction of the time, and the response shrinks with it.
+  //
+  // The anchor is the newest stored bar, which is not known before the
+  // first request, so the first request measures the window from now
+  // and the second - triggered by the anchor arriving - asks for the
+  // exact window.
+  const [anchorMs, setAnchorMs] = useState<number | null>(null);
+  const startDate = useMemo(() => rangeStartDate(range, anchorMs), [range, anchorMs]);
+
   const query = useQuery({
-    queryKey: ["dashboard", symbol],
-    queryFn: () => fetchDashboard(symbol),
+    queryKey: ["dashboard", symbol, startDate ?? "all"],
+    queryFn: () => fetchDashboard(symbol, startDate),
     retry: 1,
   });
+
+  useEffect(() => {
+    const candles = (query.data?.candles as { timestamp?: string }[] | undefined) ?? [];
+    const last = candles[candles.length - 1];
+    if (!last?.timestamp) return;
+    const parsed = Date.parse(last.timestamp);
+    if (!Number.isNaN(parsed)) setAnchorMs(parsed);
+  }, [query.data?.candles]);
 
   const statusQuery = useQuery({
     queryKey: ["system-status"],
@@ -270,7 +166,7 @@ export function DashboardPage() {
       : null;
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-12">
       {/* ── Page title ─────────────────────────────────────────── */}
       <PageTitle
         title={`${symbol} · ${t("dashboard.title", locale)}`}
@@ -278,25 +174,19 @@ export function DashboardPage() {
         meta="01 · Dashboard"
       />
 
-      {/* ── Live watchlist: real-time prices from Kafka stream ── */}
-      <section className="animate-fade-in-up" style={{ animationDelay: "0.05s" }}>
-        <LiveWatchlist maxTiles={30} />
-      </section>
-
-      {/* ── Metrics row ───────────────────────────────────────── */}
+      {/*
+        ── The metric row ───────────────────────────────────────────
+        Five numbers in a row, divided by hairlines, no boxes. The row
+        sits directly under the page title with a rule above the charts
+        below it, so it reads as the header band of the dashboard rather
+        than as five widgets that happen to be side by side.
+      */}
       <section>
-        <div className="mb-3 font-mono text-[10px] uppercase tracking-widest" style={{ color: MUTED }}>
-          {t("dashboard.metrics", locale)}
-        </div>
-        <div
-          className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5"
-          style={{ animation: "fade-in-up 0.4s ease-out both" }}
-        >
+        <div className="grid grid-cols-2 gap-x-6 gap-y-6 border-y border-hairline py-6 md:grid-cols-3 xl:grid-cols-5">
           <MetricCard label={t("dashboard.price", locale)} value={formatPrice(lastClose, currency)} delta={changePct} />
           <MetricCard
             label={t("dashboard.change_pct", locale)}
             value={formatPercent(changePct)}
-            delta={changePct}
           />
           <MetricCard
             label={t("dashboard.volume", locale)}
@@ -320,61 +210,53 @@ export function DashboardPage() {
         </div>
       </section>
 
-      {/* ── Main grid: charts + sidebar ────────────────────────── */}
-      <div className="grid gap-4 xl:grid-cols-3">
-        <div className="space-y-4 xl:col-span-2">
+      {/*
+        ── Two-column body ──────────────────────────────────────────
+        The wide column holds the charts (the reason to open this page);
+        the narrow column holds the reference material (watchlist, quote,
+        activity). The chart column is wider because a chart squeezed into
+        a third of the width is not readable.
+      */}
+      <div className="grid gap-12 xl:grid-cols-3">
+        <div className="space-y-12 xl:col-span-2">
 
-          {/* Lakehouse layer flow */}
-          <div className="animate-fade-in-up stagger-1" style={cardStyle()}>
-            {/* Only show a count once /system/status has actually answered.
-                `?? 0` rendered "0" while the query was loading or after it
-                failed, which is indistinguishable from a genuinely empty
-                Bronze layer — an empty lakehouse looks like a broken one. */}
-            <LakehouseFlow
-              bronzeCount={isUsableNumber(counts.bronze) ? counts.bronze : null}
-              silverCount={isUsableNumber(counts.silver) ? counts.silver : null}
-              goldCount={isUsableNumber(counts.gold) ? counts.gold : null}
-            />
-          </div>
-
-          {/* Price area chart */}
-          <div className="animate-fade-in-up stagger-2" style={cardStyle()}>
-            <div className="flex items-center justify-between border-b px-5 py-4" style={{ borderColor: BORDER }}>
+          {/* Price chart */}
+          <section>
+            <div className="section-head">
               <div>
-                <h3 className="text-[15px] font-semibold" style={{ color: "hsl(220 25% 10%)" }}>
-                  {t("dashboard.line_chart_title", locale)}
-                </h3>
-                <p className="mt-0.5 text-[11px]" style={{ color: MUTED }}>
-                  {t("dashboard.line_chart_sub", locale)}
-                </p>
+                <h2 className="section-title">{t("dashboard.line_chart_title", locale)}</h2>
+                <p className="section-sub">{t("dashboard.line_chart_sub", locale)}</p>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-3">
                 <BarIntervalSelector value={barInterval} onChange={setBarInterval} />
                 <TimeRangeSelector value={range} onChange={setRange} />
-                <span
-                  className="rounded-full px-2 py-0.5 font-mono text-[10px] font-medium"
-                  style={{ background: TEAL_LIGHT, color: TEAL }}
-                >
+                <span className="font-mono text-label uppercase text-muted">
                   {rangedCandles.length} bars · {BAR_INTERVAL_LABELS[barInterval]}
                 </span>
               </div>
             </div>
-            <div className="h-56 px-3 py-4">
-              {priceSeries.length ? <PriceAreaChart data={priceSeries} /> : <EmptyState message="No price data" />}
+            <div className="pt-4">
+              <div className="h-72">
+                {priceSeries.length ? (
+                  <Suspense fallback={<Loading variant="skeleton" className="h-72" />}>
+                    <PriceAreaChart data={priceSeries} />
+                  </Suspense>
+                ) : (
+                  <EmptyState message="Không có dữ liệu giá." />
+                )}
+              </div>
             </div>
-          </div>
+          </section>
 
           {/* Candlestick chart */}
-          <div className="animate-fade-in-up stagger-3" style={cardStyle()}>
-            <div className="border-b px-5 py-4" style={{ borderColor: BORDER }}>
-              <h3 className="text-[15px] font-semibold" style={{ color: "hsl(220 25% 10%)" }}>
-                {t("dashboard.candle_title", locale)}
-              </h3>
-              <p className="mt-0.5 text-[11px]" style={{ color: MUTED }}>
-                {t("dashboard.candle_sub", locale)}
-              </p>
+          <section>
+            <div className="section-head">
+              <div>
+                <h2 className="section-title">{t("dashboard.candle_title", locale)}</h2>
+                <p className="section-sub">{t("dashboard.candle_sub", locale)}</p>
+              </div>
             </div>
-            <div className="px-2 py-4">
+            <div className="pt-4">
               {rangedCandles.length ? (
                 /* The candle chart follows the selected range too, but is capped
                    at 180 sessions: the raw SVG draws one <g> per candle, and
@@ -389,51 +271,64 @@ export function DashboardPage() {
                 />
               )}
             </div>
-          </div>
+          </section>
+
+          {/* Volume chart */}
+          <section>
+            <div className="section-head">
+              <div>
+                <h2 className="section-title">{t("dashboard.volume_title", locale)}</h2>
+                <p className="section-sub">{t("dashboard.volume_sub", locale)}</p>
+              </div>
+              <span className="font-mono text-label uppercase text-muted">
+                {rangedCandles.length} bars · {BAR_INTERVAL_LABELS[barInterval]}
+              </span>
+            </div>
+            <div className="h-48 pt-4">
+              <Suspense fallback={<Loading variant="skeleton" className="h-48" />}>
+                <VolumeChart data={rangedCandles} />
+              </Suspense>
+            </div>
+          </section>
+
+          {/* Lakehouse layer flow */}
+          <LakehouseFlow
+            bronzeCount={isUsableNumber(counts.bronze) ? counts.bronze : null}
+            silverCount={isUsableNumber(counts.silver) ? counts.silver : null}
+            goldCount={isUsableNumber(counts.gold) ? counts.gold : null}
+          />
         </div>
 
-        {/* Sidebar: market info + activity */}
-        <div className="space-y-4">
-          <div className="animate-fade-in-up stagger-2" style={cardStyle()}>
-            <MarketCard
-              symbol={symbol}
-              price={lastClose}
-              source={String(data.data_source || "lakehouse")}
-              updated={candles.at(-1)?.timestamp}
-              currency={currency}
-            />
-          </div>
-          <div className="animate-fade-in-up stagger-3" style={cardStyle()}>
-            <RecentActivity
-              pipeline={data.pipeline as Record<string, unknown> | null}
-              model={prediction}
-              backtest={data.latest_backtest as Record<string, unknown> | null}
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* ── Volume chart ───────────────────────────────────────── */}
-      <div className="animate-fade-in-up stagger-4" style={cardStyle()}>
-        <div className="flex items-center justify-between border-b px-5 py-4" style={{ borderColor: BORDER }}>
-          <div>
-            <h3 className="text-[15px] font-semibold" style={{ color: "hsl(220 25% 10%)" }}>
-              {t("dashboard.volume_title", locale)}
-            </h3>
-            <p className="mt-0.5 text-[11px]" style={{ color: MUTED }}>
-              {t("dashboard.volume_sub", locale)}
-            </p>
-          </div>
-          <span
-            className="rounded-full px-2 py-0.5 font-mono text-[10px] font-medium"
-            style={{ background: TEAL_LIGHT, color: TEAL }}
-          >
-            {rangedCandles.length} bars · {BAR_INTERVAL_LABELS[barInterval]}
-          </span>
-        </div>
-        <div className="h-44 px-3 py-4">
-          <VolumeChart data={rangedCandles} />
-        </div>
+        {/* Sidebar: reference column. Its own hairline separates it from
+            the charts instead of a card around each block. */}
+        <aside className="space-y-12 xl:border-l xl:border-hairline xl:pl-8">
+          <MarketCard
+            symbol={symbol}
+            price={lastClose}
+            source={String(data.data_source || "lakehouse")}
+            updated={candles.at(-1)?.timestamp}
+            currency={currency}
+          />
+          <NextSessionCard
+            forecast={(data.next_session_forecast as NextSessionForecast | null) ?? null}
+            currency={currency}
+            modelCount={Array.isArray(data.published_forecasts) ? data.published_forecasts.length : 0}
+            historicalMae={
+              typeof data.forecast_model_mae === "number" ? data.forecast_model_mae : null
+            }
+            historicalDirectionalAccuracy={
+              typeof data.forecast_model_directional_accuracy === "number"
+                ? data.forecast_model_directional_accuracy
+                : null
+            }
+          />
+          <LakehouseWatchlist />
+          <RecentActivity
+            pipeline={data.pipeline as Record<string, unknown> | null}
+            model={prediction}
+            backtest={data.latest_backtest as Record<string, unknown> | null}
+          />
+        </aside>
       </div>
     </div>
   );

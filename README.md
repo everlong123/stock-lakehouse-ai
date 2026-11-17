@@ -29,13 +29,13 @@ Toàn bộ dữ liệu OHLCV trong project là dữ liệu thật từ các ngu�
 | **Metadata DB** | MySQL 8 (`stock_lakehouse`) | Lưu `users`, `pipeline_runs`, `model_runs`, `backtest_runs`, `agent_conversations` |
 | **Object Storage** | MinIO (S3-compatible) | Bucket `stock-bronze`, `stock-silver`, `stock-gold`, `stock-models`, `stock-backtests` |
 | **Lakehouse format** | Apache Parquet + Apache Iceberg (REST catalog) | Partition theo `symbol/year/month`, time-travel |
-| **Stream engine** | Apache Kafka 3.8 (KRaft mode) | Topic `stock-ohlcv-raw`, `stock-tick`, `stock-alerts`... |
+| **Ingest** | Cron-driven batch (`backend/crontab`) | Đọc thẳng từ provider, ghi vào Bronze |
 | **ML / Forecasting** | scikit-learn, statsmodels (ARIMA), PyTorch (LSTM) | Train/predict LR, ARIMA, LSTM |
-| **Backtest** | Engine tự viết (`app/backtesting/`) | MA Crossover, RSI Strategy, Sharpe / Drawdown |
+| **Backtest** | Engine tự viết (`app/backtesting/`) | MA Crossover, RSI Strategy, baseline mua & giữ, walk-forward |
 | **AI Agent** | Gemini Free API (`gemini-2.0-flash-exp`) + tool router | Tool calling vào backend thật |
 | **Data sources** | yfinance, Finnhub, Alpha Vantage, SSI iBoard | Multi-provider + failover |
-| **Frontend** | React 18, Vite 5, TypeScript, TailwindCSS, TanStack Query, Recharts, Lucide | Dashboard, indicator, forecast, backtest, agent chat |
-| **Container** | Docker Compose | mysql, minio, iceberg-rest, kafka |
+| **Frontend** | React 18, Vite 5, TypeScript, TailwindCSS, TanStack Query, Recharts, Lucide | Dashboard, dữ liệu thị trường, kỹ thuật, dự báo, đánh giá chiến lược, agent (7 trang) |
+| **Container** | Docker Compose | mysql, minio, iceberg-rest, scheduler |
 
 ---
 
@@ -44,7 +44,7 @@ Toàn bộ dữ liệu OHLCV trong project là dữ liệu thật từ các ngu�
 ```
 stock-lakehouse-ai/
 ├── backend/
-│   ├── app/                    # FastAPI app, lakehouse, forecasting, agent, streaming
+│   ├── app/                    # FastAPI app, lakehouse, forecasting, agent
 │   ├── scripts/                # CLI scripts (ingest, bootstrap, train, backtest, agent)
 │   ├── alembic/                # Database migrations
 │   ├── alembic.ini
@@ -54,10 +54,15 @@ stock-lakehouse-ai/
 │   ├── .env                    # VITE_API_BASE_URL
 │   └── package.json
 ├── docs/                       # Documentation (architecture, lakehouse, ai agent, ...)
-├── docker-compose.yml          # mysql + minio + iceberg-rest + kafka
-├── .env                        # Backend env (MySQL/MinIO/Kafka/API keys)
+│   └── BAN_DO_MA_NGUON.md      # Bản đồ: mỗi file/thư mục dùng để làm gì
+├── scripts/                    # Công cụ bảo trì (docs/ = sửa tài liệu, system/ = máy)
+├── docker-compose.yml          # mysql + minio + backend + frontend + scheduler
+├── .env                        # Backend env (MySQL/MinIO/API keys)
 └── README.md
 ```
+
+> **Muốn biết mỗi file dùng để làm gì?** Đọc [`docs/BAN_DO_MA_NGUON.md`](docs/BAN_DO_MA_NGUON.md).
+> Muốn biết script nào dùng khi nào? Đọc [`backend/scripts/README.md`](backend/scripts/README.md).
 
 ---
 
@@ -67,12 +72,16 @@ stock-lakehouse-ai/
 
 | Phần mềm | Phiên bản | Ghi chú |
 |----------|-----------|---------|
-| Docker Desktop | 4.x trở lên | Bắt buộc cho MySQL/MinIO/Iceberg/Kafka |
+| Docker Desktop | 4.x trở lên | Bắt buộc cho MySQL/MinIO |
 | Python | 3.11 | Tạo venv trong `backend/.venv` |
 | Node.js | 18 hoặc 20 LTS | Cho frontend Vite |
 | Git | bất kỳ | Clone repo |
 
-> Toàn bộ 4 service infra chạy bằng Docker Compose. Backend Python chạy local (không cần Docker cho app). Frontend chạy local qua `npm run dev`.
+> Toàn bộ hạ tầng chạy bằng Docker Compose (MySQL + MinIO). Backend Python chạy local (không cần Docker cho app). Frontend chạy local qua `npm run dev`.
+>
+> **Lưu ý (đo ngày 10/11/2026):** Kafka và Iceberg-REST đã bị gỡ khỏi dự án. Batch
+> pipeline đọc thẳng từ provider nên không cần message broker. Kiến trúc hiện tại:
+> **MySQL + MinIO + backend + frontend + scheduler (cron)**.
 
 ### Bước 1 - Khởi động Docker Infrastructure
 
@@ -82,16 +91,18 @@ docker compose up -d
 docker compose ps
 ```
 
-Sau ~20-30 giây, 4 container sau phải ở trạng thái `running`/`healthy`:
+Sau ~20-30 giây, 2 container hạ tầng sau phải ở trạng thái `running`/`healthy`:
 
 | Service | Container | Port (host) | URL quản lý |
 |---------|-----------|-------------|-------------|
 | MySQL 8 | stock-lakehouse-mysql | 3307 | (không có UI; dùng CLI hoặc MySQL client) |
 | MinIO | stock-lakehouse-minio | 9000 (API), 9001 (Console) | http://localhost:9001 (minioadmin / minioadmin) |
-| Iceberg REST | stock-lakehouse-iceberg-rest | 8181 | http://localhost:8181/v1/config |
-| Apache Kafka | stock-lakehouse-kafka | 9092 (internal), 9094 (external) | (không có UI) |
 
-Nếu container nào báo `unhealthy`, đợi thêm 15-30s rồi `docker compose ps` lại. Nếu Kafka lâu healthy, kiểm tra log: `docker compose logs -f kafka`.
+Nếu container nào báo `unhealthy`, đợi thêm 15-30s rồi `docker compose ps` lại. Nếu MySQL lâu healthy, kiểm tra log: `docker compose logs -f mysql`.
+
+> **Máy Windows + Docker trong WSL2:** MinIO dùng `network_mode: host` nên Windows
+> vào được ổn định qua relay của dự án. Xem [`LOCAL_DEV.md`](LOCAL_DEV.md) để biết
+> chạy relay cổng `13307:3307 19000:9000` và trỏ `backend/.env.local` vào đúng cổng.
 
 ### Bước 2 - Cấu hình `.env`
 
@@ -199,7 +210,7 @@ Real sources (yfinance / Finnhub / Alpha Vantage / SSI iBoard)
         +--> AI Agent (tool calling) --> Frontend
 ```
 
-Mỗi layer được giải thích chi tiết trong [`docs/lakehouse.md`](docs/lakehouse.md) và [`docs/PROGRESS_LAKEHOUSE.md`](docs/PROGRESS_LAKEHOUSE.md).
+Mỗi layer được giải thích chi tiết trong [`docs/lakehouse.md`](docs/lakehouse.md). Nếu bạn mới đọc dự án, hãy bắt đầu từ [`docs/HUONG_DAN_NGUOI_MOI.md`](docs/HUONG_DAN_NGUOI_MOI.md).
 
 ---
 
@@ -300,7 +311,7 @@ npm run preview     # preview production build
 |--------|------|----------|----------|
 | Yahoo Finance (HTTP v8) | Không | **958 ticker toàn cầu** (US + EU + JP + HK + KR + TW + CN + IN + BR + CA + AU + VN), 5 năm daily | Đã có sẵn (yfinance cũng dùng được) |
 | yfinance (Python) | Không | US stocks + crypto + indexes | `pip install yfinance` (đã có sẵn) |
-| Finnhub | Có (free) | US stocks + WS streaming | <https://finnhub.io/> |
+| Finnhub | Có (free) | US stocks, bar ngày | <https://finnhub.io/> |
 | Alpha Vantage | Có (free) | Fallback daily OHLCV | <https://www.alphavantage.co/support/#api-key> |
 | SSI iBoard | Không | Cổ phiếu VN (HOSE/HNX/UPCOM) | Public API của SSI |
 | Multi-source | Auto | Failover chain | Set `DATA_SOURCE=multi_source` |
@@ -312,15 +323,14 @@ npm run preview     # preview production build
 - `STORAGE_BACKEND=minio` (mặc định): dùng MinIO container đang chạy ở `localhost:9000`.
 - `STORAGE_BACKEND=local`: fallback về `backend/data/` nếu MinIO lỗi. Không cần Docker để dev nhanh.
 
-### Streaming (Kafka)
+### Ingest (cron, không có message broker)
 
-- `docker compose up -d kafka` đã bật Kafka ở KRaft mode (không cần ZooKeeper).
-- `scripts/bootstrap_infrastructure.py` tạo các topic: `stock-ohlcv-raw`, `stock-ohlcv-enriched`, `stock-alerts`, `stock-tick`, `stock-candle-1m`.
-- Producer / consumer chạy qua:
-  ```powershell
-  python scripts\run_stream_publisher.py --symbols AAPL,MSFT
-  python scripts\run_stream_consumer.py --topic stock-ohlcv-raw
-  ```
+- Apache Kafka bị gỡ khỏi dự án ngày 10/11/2026; toàn bộ đường dẫn realtime
+  (cache RAM phục vụ SSE, client WebSocket Finnhub + SSI iBoard) bị gỡ ngày
+  11/11/2026.
+- Dữ liệu được nạp bằng batch theo lịch cron trong container `scheduler`
+  (xem `backend/crontab`), đọc thẳng từ provider rồi ghi vào Bronze.
+- Không còn lệnh `run_stream_publisher.py` / `run_stream_consumer.py`.
 
 ---
 
@@ -329,12 +339,12 @@ npm run preview     # preview production build
 - Tất cả OHLCV trong Gold layer đều từ nguồn thật (yfinance / Finnhub / Alpha Vantage / SSI iBoard). Không có synthetic data trong production pipeline.
 - Minimum 5 năm daily data cho mỗi symbol được verify.
 - Walk-forward validation đảm bảo không có future leakage (chia time-series, target dùng `shift(-1)`).
-- Khi Lakehouse trống, `MarketService` có fallback synthetic deterministic (chỉ cho demo UI, không ghi vào Bronze/Silver/Gold) để chart không bị trống.
+- Khi Lakehouse trống, API trả về lý do cụ thể chứ không bịa số liệu thay thế.
 
 Verified datasets (snapshot 2026-09-30):
 - US stocks (AAPL, MSFT, GOOGL, NVDA, ...): ~2500 rows × ~10 năm mỗi mã.
 - Crypto (BTC-USD, ETH-USD): 3000-3650 rows × 8-10 năm.
-- VN stocks (VCB, FPT, HPG, MWG, ...): 50/53 symbols × 5-10 năm (xem `docs/vn_data_quality.md`).
+- VN stocks (VCB, FPT, HPG, MWG, ...): 50/53 symbols × 5-10 năm (báo cáo chi tiết trong `backend/docs/vn_quality_reports/`).
 
 ---
 
@@ -342,18 +352,22 @@ Verified datasets (snapshot 2026-09-30):
 
 | File | Mô tả |
 |------|-------|
-| [docs/PROGRESS_REPORT.md](docs/PROGRESS_REPORT.md) | **Báo cáo tiến độ tổng hợp cho thầy** — giọng kể, kiến trúc, bug đã sửa, việc còn lại |
-| [docs/PROGRESS_LAKEHOUSE.md](docs/PROGRESS_LAKEHOUSE.md) | Báo cáo tiến độ chi tiết cho thầy (Bronze/Silver/Gold + demo) |
-| [docs/PROGRESS.md](docs/PROGRESS.md) | Progress tracker tổng + setup guide |
+| [docs/HUONG_DAN_NGUOI_MOI.md](docs/HUONG_DAN_NGUOI_MOI.md) | **Bắt đầu từ đây nếu bạn chưa biết chứng khoán lẫn công nghệ** — giải thích nghiệp vụ, luồng dữ liệu, quan hệ giữa các thành phần, ví dụ và use case |
+| [docs/BAN_DO_MA_NGUON.md](docs/BAN_DO_MA_NGUON.md) | **Bản đồ mã nguồn — mỗi file/thư mục dùng để làm gì** (đọc để không phải mò) |
 | [docs/architecture.md](docs/architecture.md) | Kiến trúc tổng thể |
-| [docs/lakehouse.md](docs/lakehouse.md) | Chi tiết Bronze/Silver/Gold + Iceberg |
-| [docs/pipeline.md](docs/pipeline.md) | Pipeline orchestrator + streaming |
+| [docs/lakehouse.md](docs/lakehouse.md) | Chi tiết Bronze/Silver/Gold + MinIO |
+| [docs/data_verification.md](docs/data_verification.md) | **Bằng chứng dữ liệu thật**: đối chiếu từng tầng, số đo, ảnh chụp màn hình |
+| [docs/HE_THONG_TOAN_DIEN_VA_GIAI_TRINH_KHOA_LUAN.md](docs/HE_THONG_TOAN_DIEN_VA_GIAI_TRINH_KHOA_LUAN.md) | **Tài liệu luận văn chính** — toàn bộ kiến trúc + số đo, sẵn sàng bảo vệ |
+| [docs/SO_DO_MINH_HOA.md](docs/SO_DO_MINH_HOA.md) | Sơ đồ minh hoạ ASCII từng phần hệ thống |
+| [docs/CODE_EXPLAINED_FOR_BEGINNER.md](docs/CODE_EXPLAINED_FOR_BEGINNER.md) | Giải thích code từng dòng (dành cho người đã biết Python) |
 | [docs/database.md](docs/database.md) | MySQL schema (metadata) |
 | [docs/ai_agent.md](docs/ai_agent.md) | AI Agent tools + Gemini config |
 | [docs/data_sources.md](docs/data_sources.md) | Catalog data sources free |
 | [docs/tech_stack_matrix.md](docs/tech_stack_matrix.md) | Map công nghệ -> file implementation |
-| [docs/vn_data_quality.md](docs/vn_data_quality.md) | Quality report cho cổ phiếu VN |
-| [docs/system_health.md](docs/system_health.md) | System health audit (sau khi chạy audit script) |
+| [docs/NGHIEN_CUU_DA_MA_WALK_FORWARD.md](docs/NGHIEN_CUU_DA_MA_WALK_FORWARD.md) | Nghiên cứu walk-forward đa mã chi tiết |
+| [docs/QA_KIEM_THU_CHUYEN_SAU.md](docs/QA_KIEM_THU_CHUYEN_SAU.md) | Nhật ký QA: triệu chứng -> nguyên nhân -> fix -> bằng chứng |
+| [docs/OPERATIONS_RAM.md](docs/OPERATIONS_RAM.md) | Ghi chú vận hành: giải phóng RAM sau khi dừng WSL/Docker |
+| [backend/scripts/README.md](backend/scripts/README.md) | **86 script vận hành**: dùng script nào khi nào |
 
 ---
 

@@ -6,8 +6,6 @@
 # What this changes vs. the default stack:
 #   * Kafka and Iceberg-REST are not started at all (the `minimal` profile in
 #     docker-compose.yml only enables mysql + minio + backend + frontend).
-#   * The backend runs with USE_KAFKA=false, so it skips the streaming
-#     consumer and the Bronze/Silver Kafka pipeline consumer.
 #   * The background workers are switched off:
 #       - CRAWL_ENABLED=false        no continuous background fetch
 #       - AUTO_REFRESH_ENABLED=false no 958-symbol Bronze->Silver->Gold pass
@@ -25,7 +23,6 @@
 services:
   backend:
     environment:
-      USE_KAFKA: "false"
       USE_ICEBERG: "false"
       CRAWL_ENABLED: "false"
       AUTO_REFRESH_ENABLED: "false"

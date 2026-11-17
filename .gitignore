@@ -72,10 +72,33 @@ metastore_db/
 desktop.ini
 
 # Debug / one-off scripts (kept locally, not committed)
+# NOTE: the patterns below are anchored to the REPOSITORY ROOT on purpose.
+# An unanchored `test_*.py` also matched `backend/tests/test_*.py`, which
+# silently kept every new regression test out of version control - the
+# tests that pin down the auto-refresh divergence fix included.
 debug_*.py
 scratch_*.py
 *_scratch.py
-test_*.py
+/test_*.py
+
+# Ad-hoc probes and scratch scripts (NOT committed)
+#
+# WHY THE `backend/` PREFIX: an unanchored `_*.py` would also match
+# `backend/app/__init__.py`-style package markers and any legitimate
+# module that starts with an underscore. Anchoring to the two known
+# scratch locations keeps the pattern from ever swallowing real code.
+#
+# The real one-off probes that are worth keeping are committed with a
+# descriptive name (`scripts/train_universe.py`, `scripts/check_layer_divergence.py`).
+/backend/_*.py
+/backend/_*.txt
+/backend/scripts/_*.py
+
+# Maintenance scripts at the repo root (docs/ and system/ helpers).
+# Kept out of the repo because they are machine-specific helpers; the
+# project docs point at them by path.
+/scripts/docs/
+/scripts/system/
 
 # MySQL dumps (use proper migration instead)
 *_pre_refactor.sql

@@ -77,16 +77,7 @@ $results += Test-Endpoint "macro.interest-rates" GET "$base/data/macro/interest-
 $results += Test-Endpoint "market.indices" GET "$base/market/indices"
 $results += Test-Endpoint "market.indices.sectors" GET "$base/market/indices/sectors"
 
-# Batch 6: News + sentiment
-$results += Test-Endpoint "data.news.market" GET "$base/data/news/market?limit=5"
-$results += Test-Endpoint "data.news.AAPL" GET "$base/data/news/AAPL?limit=5"
-$results += Test-Endpoint "data.sentiment.AAPL" GET "$base/data/sentiment/AAPL"
-$results += Test-Endpoint "market.news.market" GET "$base/market/news/market?limit=5"
-$results += Test-Endpoint "market.news.AAPL" GET "$base/market/news/AAPL?limit=5"
-$results += Test-Endpoint "market.news.AAPL.sentiment-summary" GET "$base/market/news/AAPL/sentiment-summary"
-$results += Test-Endpoint "market.news.AAPL.sentiment-timeseries" GET "$base/market/news/AAPL/sentiment-timeseries"
-
-# Batch 7: Fundamental
+# Batch 6: Fundamental
 $results += Test-Endpoint "data.fundamental.AAPL" GET "$base/data/fundamental/AAPL"
 $results += Test-Endpoint "market.fundamental.AAPL" GET "$base/market/fundamental/AAPL"
 $results += Test-Endpoint "market.fundamental.AAPL.balance-sheet" GET "$base/market/fundamental/AAPL/balance-sheet"
@@ -98,11 +89,10 @@ $results += Test-Endpoint "market.orderbook.AAPL" GET "$base/market/orderbook/AA
 $results += Test-Endpoint "market.trades.AAPL" GET "$base/market/trades/AAPL?limit=5"
 $results += Test-Endpoint "market.trades.AAPL.summary" GET "$base/market/trades/AAPL/summary"
 
-# Batch 9: Streaming
-$results += Test-Endpoint "stream.latest" GET "$base/stream/latest"
-$results += Test-Endpoint "stream.history" GET "$base/stream/history?limit=5"
-$results += Test-Endpoint "stream.events" GET "$base/stream/events?limit=5"
-$results += Test-Endpoint "stream.stats" GET "$base/stream/stats"
+# Batch 9: Market tape (the lakehouse read path the UI quotes from).
+# The old /stream/* endpoints were removed on 11/11/2026 together with the
+# whole real-time path.
+$results += Test-Endpoint "stocks.tape" GET "$base/stocks/tape?symbols=AAPL,MSFT"
 
 # Batch 10: Forecast + backtest
 $results += Test-Endpoint "forecast.compare.AAPL" GET "$base/forecast/compare/AAPL"

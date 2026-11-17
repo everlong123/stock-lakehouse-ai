@@ -1,8 +1,8 @@
 # Stock Lakehouse Platform — Modern Compose Stack
 #
 # Chạy theo profile:
-#   docker compose --profile infra up -d   (chỉ MySQL/MinIO/Kafka/Iceberg)
-#   docker compose --profile app  up -d   (backend + frontend, kèm infra)
+#   docker compose --profile infra up -d   (chỉ MySQL/MinIO)
+#   docker compose --profile app  up -d   (backend + frontend + scheduler, kèm infra)
 #   docker compose --profile all  up -d   (mọi thứ, mặc định cho demo)
 #
 # Hoặc dùng Makefile:
@@ -33,7 +33,7 @@
 
 services:
   # ════════════════════════════════════════════════════════════════════════════
-  # INFRASTRUCTURE — hạ tầng dữ liệu (MySQL, Object Storage, Streaming, Catalog)
+  # INFRASTRUCTURE — hạ tầng dữ liệu (MySQL, Object Storage)
   # Profiles: infra, app, all (cần ở app để backend.depends_on resolve)
   # ════════════════════════════════════════════════════════════════════════════
 
@@ -91,70 +91,6 @@ services:
     # on any transient curl failure. We rely on the WSL host being able
     # to reach :9000 instead.
 
-  iceberg-rest:
-    profiles: ["infra", "app", "all"]
-    image: mirror.gcr.io/tabulario/iceberg-rest:0.9.0
-    container_name: stock-lakehouse-iceberg-rest
-    restart: unless-stopped
-    environment:
-      CATALOG_sqlite__catalog__uri: "sqlite:///var/lib/iceberg/iceberg_rest.db"
-      CATALOG_s3__endpoint: "http://minio:9000"
-      CATALOG_s3__access-key__id: "minioadmin"
-      CATALOG_s3__secret-access-key: "minioadmin"
-      CATALOG_s3__region: "us-east-1"
-      CATALOG_properties: "--unauthenticated"
-    ports:
-      - "8181:8181"
-    volumes:
-      - /var/lib/docker-data/iceberg-rest:/var/lib/iceberg
-    extra_hosts:
-      # Same as the backend: MinIO is on the host network, so it has no DNS
-      # entry in the app_net bridge. Point "minio" at the bridge gateway.
-      - "minio:172.18.0.1"
-    depends_on:
-      minio:
-        condition: service_started
-    networks:
-      - app_net
-
-  kafka:
-    profiles: ["infra", "app", "all"]
-    image: mirror.gcr.io/apache/kafka:3.8.0
-    container_name: stock-lakehouse-kafka
-    restart: unless-stopped
-    environment:
-      KAFKA_NODE_ID: 1
-      KAFKA_PROCESS_ROLES: controller,broker
-      KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093,EXTERNAL://:9094
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,EXTERNAL://localhost:9094
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,EXTERNAL:PLAINTEXT
-      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
-      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
-      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
-      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
-      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: "1"
-      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: "1"
-      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: "1"
-      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: "0"
-    ports:
-      - "9092:9092"
-      - "9094:9094"
-    volumes:
-      - /var/lib/docker-data/kafka:/var/lib/kafka/data
-    healthcheck:
-      # Lightweight TCP probe. The original check ran
-      # `kafka-topics.sh --list`, which forks a full JVM on every invocation.
-      # At a 30s interval that pinned ~100% CPU continuously on an otherwise
-      # idle broker and made the whole box feel laggy. A TCP connect to the
-      # broker port is enough to prove the listener is up.
-      test: ["CMD-SHELL", "timeout 3 bash -c 'exec 3<>/dev/tcp/127.0.0.1/9092' || exit 1"]
-      interval: 30s
-      timeout: 5s
-      retries: 5
-      start_period: 30s
-    networks:
-      - app_net
-
   # ════════════════════════════════════════════════════════════════════════════
   # APPLICATION — Backend API + Frontend SPA
   # Profile: app | all
@@ -179,9 +115,6 @@ services:
       MINIO_ENDPOINT: minio:9000
       MINIO_ACCESS_KEY: minioadmin
       MINIO_SECRET_KEY: minioadmin
-      KAFKA_BOOTSTRAP_SERVERS: "${KAFKA_BOOTSTRAP_SERVERS:-kafka:9092}"
-      USE_KAFKA: "${USE_KAFKA:-true}"
-      USE_ICEBERG: "${USE_ICEBERG:-false}"
       DATA_SOURCE: multi_source
       CORS_ORIGINS: "http://localhost,http://127.0.0.1,http://localhost:80,http://127.0.0.1:80"
       LLM_PROVIDER: gemini
@@ -211,85 +144,10 @@ services:
         condition: service_healthy
       minio:
         condition: service_started
-      kafka:
-        # `required: false` so the `minimal` profile can bring the backend up
-        # without a Kafka broker. The backend detects the missing broker at
-        # runtime and skips the streaming consumers.
-        condition: service_healthy
-        required: false
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://localhost:8000/api/v1/health"]
       interval: 15s
       timeout: 5s
-      retries: 5
-      start_period: 30s
-    networks:
-      - app_net
-
-  stream-publisher:
-    profiles: ["app", "all"]
-    image: stock-lakehouse-backend:latest
-    container_name: stock-lakehouse-stream-publisher
-    # 'on-failure' (not 'unless-stopped') so a missing FINNHUB_API_KEY does not
-    # silently keep a half-broken container running. The container will keep
-    # crashing-and-restarting until a real key is set in backend/.env.
-    restart: on-failure
-    depends_on:
-      kafka:
-        condition: service_healthy
-      backend:
-        condition: service_started
-    environment:
-      # Re-use the backend image so we don't have to ship a second Dockerfile.
-      # The publisher only needs Kafka + Finnhub; MySQL/MinIO are unused here.
-      APP_ENV: production
-      USE_KAFKA: "true"
-      KAFKA_BOOTSTRAP_SERVERS: "kafka:9092"
-      USE_ICEBERG: "false"
-      FINNHUB_API_KEY: "${FINNHUB_API_KEY:-}"   # REQUIRED — read from .env
-      CRAWL_SYMBOLS: "${STREAM_SYMBOLS:-AAPL,MSFT,GOOGL,NVDA,TSLA}"
-      LOG_LEVEL: INFO
-    command: ["python", "-m", "app.streaming.stream_publisher"]
-    healthcheck:
-      # This check fails (and restarts the container) when the WS connection
-      # is not alive. We rely on the in-process WS heartbeat for the real
-      # liveness signal; this just guarantees the process is up.
-      test: ["CMD-SHELL", "python -c \"from kafka import KafkaConsumer; c=KafkaConsumer(bootstrap_servers=['kafka:9092']); c.close(); print('ok')\""]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 30s
-    networks:
-      - app_net
-
-  vn-stream-publisher:
-    profiles: ["app", "all"]
-    image: stock-lakehouse-backend:latest
-    container_name: stock-lakehouse-vn-stream-publisher
-    # 'on-failure' (not 'unless-stopped') so a misconfiguration does not
-    # silently keep a half-broken container running. Note: SSI iBoard
-    # WebSocket is FREE and does NOT require an API key.
-    restart: on-failure
-    depends_on:
-      kafka:
-        condition: service_healthy
-      backend:
-        condition: service_started
-    environment:
-      APP_ENV: production
-      USE_KAFKA: "true"
-      KAFKA_BOOTSTRAP_SERVERS: "kafka:9092"
-      USE_ICEBERG: "false"
-      VN_WS_SYMBOLS: "${VN_WS_SYMBOLS:-FPT,VNM,VCB,HPG,MWG,VIC,VHM,MSN,BID,CTG}"
-      VN_WS_BOARDS: "${VN_WS_BOARDS:-MAIN,HNX,UPCOM}"
-      VN_WS_DEAD_MAN_SECONDS: "${VN_WS_DEAD_MAN_SECONDS:-60}"
-      VN_WS_ENABLED: "${VN_WS_ENABLED:-true}"
-      LOG_LEVEL: INFO
-    command: ["python", "-m", "app.streaming.vn_stream_publisher"]
-    healthcheck:
-      test: ["CMD-SHELL", "python -c \"from kafka import KafkaConsumer; c=KafkaConsumer(bootstrap_servers=['kafka:9092']); c.close(); print('ok')\""]
-      interval: 30s
-      timeout: 10s
       retries: 5
       start_period: 30s
     networks:
@@ -317,6 +175,98 @@ services:
       timeout: 5s
       retries: 3
       start_period: 20s
+    networks:
+      - app_net
+
+  # ════════════════════════════════════════════════════════════════════════════
+  # SCHEDULER — the 24/7 cron that drives the batch jobs
+  # Profile: app | all
+  # ════════════════════════════════════════════════════════════════════════════
+  #
+  # WHY A SEPARATE CONTAINER
+  # ------------------------
+  # The previous schedule ran inside the API process (a background thread)
+  # or as a standalone `schedule`-library script. Both die with the
+  # machine and neither is supervised: a container recreate, an OOM kill
+  # or a host reboot silently ends the schedule until somebody notices.
+  #
+  # A real cron in its own container is supervised by the runtime.
+  # `restart: unless-stopped` brings it back, and the timetable lives in
+  # `backend/crontab`, which is a file in the repository rather than a
+  # runtime decision.
+  #
+  # WHY IT REUSES THE BACKEND IMAGE
+  # -------------------------------
+  # The jobs are ordinary Python scripts that import the same application
+  # package. A second image would be a second dependency set to keep in
+  # sync for no benefit.
+  #
+  # WHY THE TIMEZONE IS PINNED TO UTC
+  # --------------------------------
+  # The crontab's times are written in UTC, and this makes that explicit
+  # rather than depending on the host's timezone. A VPS deployed in a
+  # different zone would otherwise run the EOD batch at the wrong hour.
+  scheduler:
+    profiles: ["app", "all"]
+    image: stock-lakehouse-backend:latest
+    container_name: stock-lakehouse-scheduler
+    restart: unless-stopped
+    # cron has to run as root: it reads /etc/cron.d, which it refuses to
+    # load for a non-root user, and it needs the privilege to switch to
+    # the user named in the crontab's sixth field.
+    user: root
+    depends_on:
+      backend:
+        condition: service_started
+      mysql:
+        condition: service_healthy
+      minio:
+        condition: service_started
+    environment:
+      APP_ENV: production
+      TZ: UTC
+      MYSQL_HOST: mysql
+      MYSQL_PORT: "3306"
+      MYSQL_USER: root
+      MYSQL_PASSWORD: "123456"
+      MYSQL_DATABASE: stock_lakehouse
+      STORAGE_BACKEND: minio
+      MINIO_ENDPOINT: minio:9000
+      MINIO_ACCESS_KEY: minioadmin
+      MINIO_SECRET_KEY: minioadmin
+      DATA_SOURCE: multi_source
+      LOG_LEVEL: INFO
+      # The EOD batch is driven by cron here, so the in-process refresh
+      # thread stays OFF - otherwise the two would fetch the same symbols
+      # at the same time.
+      AUTO_REFRESH_ENABLED: "${AUTO_REFRESH_ENABLED:-false}"
+      # The batch produces the next-session forecast for the symbols that
+      # have a trained model.
+      #
+      # The model MUST be one that is trained for (almost) every symbol:
+      # measured on the lakehouse (13/11/2026) there are 973
+      # `linear_regression` models, 8 `arima` and 6 `lstm`. Pointing this
+      # at `arima` would skip ~965 symbols silently.
+      AUTO_PREDICT_ENABLED: "${AUTO_PREDICT_ENABLED:-true}"
+      AUTO_PREDICT_MODEL: "${AUTO_PREDICT_MODEL:-linear_regression}"
+    extra_hosts:
+      - "minio:172.18.0.1"
+    volumes:
+      - type: bind
+        source: ./backend/crontab
+        target: /etc/cron.d/stock-lakehouse
+        read_only: true
+      # The trained models live on the local filesystem, not in MinIO. They
+      # MUST be mounted, or the batch finds no model and the forecast step
+      # is skipped.
+      - type: bind
+        source: ./backend/data/models
+        target: /app/data/models
+      - type: bind
+        source: ./backend/logs
+        target: /app/logs
+    # `cron -f` runs in the foreground so Docker can supervise it.
+    command: ["cron", "-f", "-L", "15"]
     networks:
       - app_net
 
@@ -367,8 +317,9 @@ networks:
 # The named volumes below are kept ONLY for backward compatibility with
 # `docker compose down -v` and any external tooling that references them by
 # name. They are empty unless something in this file still mounts them.
+#
+# NOTE: `iceberg_rest_data` and `kafka_data` were removed on 10/11/2026 when
+# the Iceberg catalog and the Kafka broker were deleted from the project.
 volumes:
   mysql_data:
   minio_data:
-  iceberg_rest_data:
-  kafka_data:

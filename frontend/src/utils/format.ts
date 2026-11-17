@@ -66,7 +66,7 @@ export function formatPrice(value: number | null | undefined, currency?: string 
 /**
  * The quote currency of a symbol, derived from the symbol itself.
  *
- * WHY the frontend needs its own copy: the stream endpoints return a bare
+ * WHY the frontend needs its own copy: some read endpoints return a bare
  * bar with no currency field, so a watchlist tile has to work the unit out
  * from the ticker. The backend resolves the same way (see
  * `app.core.constants.currency_for_symbol`), and the two agree because both
@@ -200,11 +200,19 @@ export function tradingDay(timestamp: string): string {
   return match ? match[1] : timestamp.slice(0, 10);
 }
 
+/**
+ * Colour for a signed change.
+ *
+ * WHY rising maps to `primary` and not a separate "up" green: the design
+ * system has exactly one accent, and a rise is the one thing in this app
+ * that deserves it. A second green (`up`) beside the accent green would
+ * put two near-identical colours on the same screen.
+ */
 export function changeClass(value: number | null | undefined): string {
-  if (value === null || value === undefined) return "text-muted-foreground";
-  if (value > 0) return "text-up";
-  if (value < 0) return "text-down";
-  return "text-muted-foreground";
+  if (!isUsableNumber(value)) return "text-muted";
+  if (value > 0) return "text-primary";
+  if (value < 0) return "text-negative";
+  return "text-muted";
 }
 
 export function relativeTime(iso?: string | null): string {
@@ -233,6 +241,30 @@ const RANGE_DAYS: Record<Exclude<TimeRange, "ALL">, number> = {
   "6M": 183,
   "1Y": 366,
 };
+
+export { RANGE_DAYS };
+
+/**
+ * The window as a START DATE for the server.
+ *
+ * WHY THE WINDOW IS APPLIED SERVER-SIDE
+ * -------------------------------------
+ * The stored history of a ten-year daily ticker is ~121 monthly parquet
+ * partitions. Asking the backend for "the last three months" lets it
+ * download three of them instead of all 121, so the page opens in a
+ * fraction of the time and the response shrinks with it.
+ *
+ * The anchor is the newest stored bar, which is not known before the
+ * first request - so the first request measures the window from now and
+ * the second, triggered by the anchor arriving, asks for the exact
+ * window. Both requests return real stored rows.
+ */
+export function rangeStartDate(range: TimeRange, anchorMs?: number | null): string | undefined {
+  if (range === "ALL") return undefined;
+  const anchor = anchorMs ?? Date.now();
+  const cutoff = new Date(anchor - RANGE_DAYS[range] * 86400_000);
+  return cutoff.toISOString();
+}
 
 export function applyTimeRange<T extends { timestamp: string }>(
   points: T[],

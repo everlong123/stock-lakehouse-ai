@@ -7,6 +7,8 @@ probes four times per request), which made list operations crawl.
 
 from __future__ import annotations
 
+import time
+
 from app.core.config import settings
 from app.core.logging_config import get_logger
 from app.lakehouse.local_storage import LocalStorageBackend

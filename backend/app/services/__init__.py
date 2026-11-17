@@ -1,15 +1,7 @@
-"""Application services."""
+"""Application services.
 
-from app.services.unified_streaming_pipeline import (
-    UnifiedStreamingPipeline,
-    get_pipeline,
-    start_pipeline,
-    stop_pipeline,
-)
-
-__all__ = [
-    "UnifiedStreamingPipeline",
-    "get_pipeline",
-    "start_pipeline",
-    "stop_pipeline",
-]
+The services are imported from their own modules (``app.services.auto_refresh``,
+``app.services.dashboard_service``, ...) rather than re-exported here, so this
+package stays a namespace instead of an import hub that pulls the whole
+application in at import time.
+"""

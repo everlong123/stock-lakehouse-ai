@@ -1,23 +1,30 @@
 import { HTMLAttributes } from "react";
 import { cn } from "@/lib/utils";
 
+/**
+ * Badge ? the small uppercase chip that tags a value's state.
+ *
+ * WHY ONLY TWO COLOURS: a badge that carries meaning uses `primary` (live,
+ * active, good) or `negative` (failed, falling). Everything else is a
+ * neutral tag with no semantic weight and stays `muted`. A badge palette
+ * of five colours turns every chip into a competing accent.
+ */
 export function Badge({
   variant = "default",
   className,
   ...props
-}: HTMLAttributes<HTMLSpanElement> & { variant?: "default" | "primary" | "outline" | "warn" | "success" | "danger" }) {
+}: HTMLAttributes<HTMLSpanElement> & {
+  variant?: "default" | "primary" | "negative";
+}) {
   const styles = {
-    default: "border border-border bg-muted text-muted-foreground",
+    default: "border border-hairline bg-surface-2 text-muted",
     primary: "border border-primary/30 bg-primary/10 text-primary",
-    outline: "border border-border bg-transparent text-foreground",
-    warn:    "border border-warn/30 bg-warn/10 text-warn",
-    success: "border border-up/30 bg-up/10 text-up",
-    danger:  "border border-down/30 bg-down/10 text-down",
+    negative: "border border-negative/30 bg-negative/10 text-negative",
   };
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1.5 rounded px-2 py-0.5 font-mono text-[10px] font-medium uppercase tracking-wider",
+        "inline-flex items-center gap-1 rounded border px-2 py-1 font-mono text-label font-medium uppercase",
         styles[variant],
         className,
       )}

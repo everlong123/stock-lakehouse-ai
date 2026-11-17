@@ -1,0 +1,36 @@
+---
+description: Khi sửa code backend/frontend có mô tả trong docs/ thì phải cập nhật tài liệu theo đúng quy chuẩn trong docs-style.mdc — không để tài liệu nói dối
+alwaysApply: true
+---
+
+# Đồng bộ tài liệu với code
+
+Khi bạn sửa code ở `backend/` hoặc `frontend/`, hãy kiểm tra: **tài liệu nào trong `docs/` mô tả phần code vừa đổi?**
+
+| Bạn vừa đổi | Tài liệu liên quan cần cập nhật |
+|---|---|
+| `app/lakehouse/*` | `docs/lakehouse.md`, `docs/data_sources.md`, `docs/data_verification.md` |
+| `app/forecasting/*` | `docs/HE_THONG_TOAN_DIEN_VA_GIAI_TRINH_KHOA_LUAN.md` (Phần 6) |
+| `app/backtesting/*` | `docs/HE_THONG_TOAN_DIEN_VA_GIAI_TRINH_KHOA_LUAN.md` (Phần 7–8) |
+| `app/core/heavy_worker.py`, `request_gate.py` | Phần 5.5–5.6 |
+| `app/services/market_service.py`, `auto_refresh.py` | Phần 5.3–5.4 |
+| `app/agent/*` | Phần 9 |
+| `frontend/src/**` | Phần 10–11 |
+| Cấu hình, số bản ghi, số mã | Phần 2.4 + Phần 14.4 |
+
+## Quy tắc bắt buộc
+
+1. **Đọc `.cursor/rules/documentation-style.mdc` trước khi viết** — áp dụng đúng cấu trúc ① Hiểu đơn giản → ② Thuật ngữ → ③ Chi tiết kỹ thuật.
+2. **Cập nhật số liệu cũ** khi hành vi đổi. Con số cũ còn nằm trong tài liệu là tài liệu đang nói dối.
+3. **Ghi ngày đo** cho mọi số đo mới: `Đo ngày DD/MM/YYYY`.
+4. **Không tự ý làm đẹp số liệu.** Nếu kết quả xấu hơn, ghi kèm giải thích vì sao đó là phát hiện có giá trị.
+5. Nếu sửa một bug, cập nhật luôn mục "Triệu chứng / Vì sao xảy ra / Fix / Bằng chứng" trong tài liệu.
+6. **Không dùng emoji trong tài liệu.** Sau khi viết xong, chạy:
+   ```powershell
+   python scripts/docs/remove_emoji.py docs/
+   python scripts/docs/align_ascii_diagrams.py docs/<file>.md
+   python scripts/docs/check_ascii_diagrams.py docs/<file>.md
+   ```
+   Lý do và cách thay thế: xem mục **8.1b** của `documentation-style.mdc`.
+
+> **Sau khi sửa code, câu hỏi tự kiểm:** *"Người đọc tài liệu có tin nhầm gì về hệ thống sau thay đổi này không?"* Nếu có, phải sửa tài liệu trước khi kết thúc.

@@ -163,7 +163,7 @@ if ($dailyRefresh -and $dailyRefresh.State -ne "Running") {
 # ---- Bring the infra containers back up ----
 # `docker compose stop` marks a container as manually stopped, so
 # `restart: unless-stopped` will NOT bring it back - only `compose up -d` does.
-# Without this step the infra (mysql/kafka/minio/iceberg-rest) stays down and
+# Without this step the infra (mysql/minio) stays down and
 # the backend fails to connect to MySQL.
 #
 # Named services, NOT `--profile all`: the `backend` container publishes
@@ -173,14 +173,18 @@ if ($dailyRefresh -and $dailyRefresh.State -ne "Running") {
 # container owns it) and reports "[OK] Backend listening" even though the
 # local uvicorn died with "address already in use".
 #
-# `--no-deps` is REQUIRED, not just an optimisation: `stream-publisher` and
-# `vn-stream-publisher` declare `depends_on: backend` (for start ordering only
-# - the comment in docker-compose.yml says they only need Kafka + Finnhub).
-# Without --no-deps, compose pulls the backend container up as a side effect
-# and it takes :8000 away from the local dev backend.
+# `--no-deps` is REQUIRED, not just an optimisation: without it, compose
+# pulls the backend container up as a side effect and it takes :8000 away
+# from the local dev backend.
+#
+# WHY ONLY mysql AND minio: Apache Kafka and Apache Iceberg were removed
+# from the project on 10/11/2026, so there is no broker and no catalog to
+# start. The `scheduler` container (cron) is also left alone here: on this
+# workstation the batch is driven by the in-process refresh thread, and the
+# cron container would fetch the same symbols at the same time.
 Write-Host "[docker] Starting infra containers..." -ForegroundColor Cyan
 $wslRoot = "/mnt/d/School/kltn/stock-lakehouse-ai"
-$composeUp = "cd $wslRoot && docker compose up -d --no-deps --wait --wait-timeout 120 mysql minio iceberg-rest kafka stream-publisher vn-stream-publisher"
+$composeUp = "cd $wslRoot && docker compose up -d --no-deps --wait --wait-timeout 120 mysql minio"
 
 # Release :8000 / :8081 first in case the app containers are still up from a
 # previous session - they must not hold those ports.

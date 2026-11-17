@@ -2,17 +2,20 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 
 import pandas as pd
 
 from app.core.exceptions import DataValidationError
 from app.core.logging_config import get_logger
 from app.lakehouse.bronze import symbol_prefix
+from app.lakehouse import frame_cache
 from app.lakehouse.dedupe import dedupe_same_bars
-from app.lakehouse.parquet_manager import split_by_partition
+from app.lakehouse.session import slice_window
+from app.lakehouse.parquet_manager import partitions_from, split_by_partition
 from app.lakehouse.parallel_write import write_partitions_concurrently as _write_partitions_concurrently
-from app.lakehouse.session import canonicalize_daily_sessions
+from app.lakehouse.session import canonicalize_daily_sessions, newest_bar_session_close
+from app.lakehouse.exchange_timezone import session_days
 from app.lakehouse.spark_session import get_spark_session, spark_enabled
 from app.lakehouse.storage_base import StorageBackend
 from app.lakehouse.storage_factory import get_storage_backend
@@ -37,7 +40,12 @@ class SilverLayer:
             return self._transform_spark(bronze_frame, spark)
         return self._transform_pandas(bronze_frame)
 
-    def write(self, silver_frame: pd.DataFrame, quality_report: dict) -> dict:
+    def write(
+        self,
+        silver_frame: pd.DataFrame,
+        quality_report: dict,
+        changed_since: date | None = None,
+    ) -> dict:
         """Overwrite Silver partitions for the symbols present in the frame.
 
         The partitions are written CONCURRENTLY.
@@ -48,24 +56,148 @@ class SilverLayer:
         so that serial time dominated the whole refresh. The writes are
         independent and idempotent (each key is written exactly once), so a
         thread pool is safe and cuts the wall-clock to a fraction of a second.
+
+        WHY `changed_since` MATTERS
+        --------------------------
+        The Silver transform is row-local: it deduplicates exact timestamps,
+        collapses re-stamped sessions and canonicalises intraday ticks into
+        one bar per session. None of those decisions depend on a bar that
+        arrives LATER, so a rebuild triggered by a new bar at the end of
+        the history produces exactly the same rows for every earlier
+        session - and writing their partitions again is pure waste.
+
+        `changed_since` is the earliest session whose content may have
+        changed. Only the partitions from that month onwards are written.
+        Passing None writes everything, which is what a full backfill must
+        do.
         """
         partitions = split_by_partition(silver_frame)
-        paths = _write_partitions_concurrently(self.storage, self.layer_name, partitions)
+        selected = partitions_from(partitions, changed_since)
+        paths = _write_partitions_concurrently(self.storage, self.layer_name, selected)
         for symbol in silver_frame["symbol"].unique():
             self.storage.write_json(
                 self.layer_name,
                 f"symbol={symbol}/_quality.json",
                 quality_report,
             )
+            # The stored data just changed, so the cached copy of this
+            # symbol is stale and has to go.
+            frame_cache.invalidate_cached(self.layer_name, str(symbol))
         return {"paths": paths, "records": int(len(silver_frame))}
 
     def read(self, symbol: str) -> pd.DataFrame:
+        """The symbol's Silver rows, through the shared frame cache.
+
+        The cache makes the repeated reads free: the auto-refresh pass
+        reads a symbol's Silver frame to compare it with Bronze, the
+        pipeline reads it again to build Gold, and the API reads it when
+        Gold has nothing for the symbol. Without the cache each of
+        those was a full download of the symbol's ~121 monthly
+        partitions.
+        """
+        cached = frame_cache.get_cached(self.layer_name, symbol)
+        if cached is not None:
+            return cached
+
         frame = self.storage.read_prefix(self.layer_name, symbol_prefix(symbol))
         if frame.empty:
             return frame
         frame["timestamp"] = pd.to_datetime(frame["timestamp"], utc=True)
         frame = frame.loc[:, ~frame.columns.duplicated()]
+        frame = frame.sort_values("timestamp").reset_index(drop=True)
+        frame_cache.put_cached(self.layer_name, symbol, frame)
+        return frame
+
+    def read_window(
+        self,
+        symbol: str,
+        since: date | None = None,
+        until: date | None = None,
+    ) -> pd.DataFrame:
+        """The symbol's Silver rows inside a date window.
+
+        WHY THIS EXISTS
+        ---------------
+        A ten-year daily symbol is stored as ~121 monthly partitions. A
+        request for "the last six months" needs six of them, and the
+        other 115 were downloaded, parsed and thrown away - so the
+        request cost was set by the symbol's HISTORY rather than by the
+        window the caller asked for.
+
+        A WINDOWED READ IS NEVER CACHED. The cache holds a symbol's
+        COMPLETE history, and storing a partial frame under the symbol's
+        key would make every later reader believe the symbol has only
+        the rows of that window.
+        """
+        if since is None and until is None:
+            return self.read(symbol)
+
+        cached = frame_cache.get_cached(self.layer_name, symbol)
+        if cached is not None:
+            return slice_window(cached, since, until)
+
+        frame = self.storage.read_prefix_window(
+            self.layer_name, symbol_prefix(symbol), since=since, until=until
+        )
+        if frame.empty:
+            return frame
+        frame["timestamp"] = pd.to_datetime(frame["timestamp"], utc=True)
+        frame = frame.loc[:, ~frame.columns.duplicated()]
+        frame = frame.sort_values("timestamp").reset_index(drop=True)
+        return slice_window(frame, since, until)
+
+    def read_newest(self, symbol: str) -> pd.DataFrame:
+        """The symbol's NEWEST stored Silver rows, without reading its history.
+
+        WHY THIS EXISTS
+        ---------------
+        A ten-year daily symbol is stored as ~121 monthly partitions. A
+        caller that only wants the newest bar was downloading all 121
+        of them. Measured on 14/11/2026: the ten-symbol tape took 11.7 s
+        cold because each quote pulled the symbol's whole history.
+
+        The result is the SAME stored rows - the newest partition holds
+        the symbol's most recent sessions.
+        """
+        frame = self.storage.read_newest_partition(self.layer_name, symbol_prefix(symbol))
+        if frame.empty:
+            return frame
+        frame["timestamp"] = pd.to_datetime(frame["timestamp"], utc=True)
+        frame = frame.loc[:, ~frame.columns.duplicated()]
         return frame.sort_values("timestamp").reset_index(drop=True)
+
+    def newest_session_close(self, symbol: str) -> tuple[object, float | None]:
+        """Return ``(session_date, close)`` of the newest stored bar.
+
+        WHY A DEDICATED READER
+        ------------------------
+        ``read()`` pulls every year/month parquet partition of the symbol (a
+        10-year daily ticker is ~120 objects) just to look at the newest bar.
+        The auto-refresh runs that for every symbol on every pass, which
+        dominates the pass duration - the reason Bronze has a
+        ``latest_timestamp`` that reads a single partition.
+
+        This is the Silver counterpart: it lists the partition keys, sorts them
+        descending (they are ``year=YYYY/month=MM/...`` so lexicographic order
+        is chronological) and fetches only the newest one, falling back to the
+        previous month if the last one is empty.
+        """
+        keys = self.storage.list_objects(self.layer_name, symbol_prefix(symbol))
+        data_keys = [k for k in keys if k.endswith(".parquet")]
+        if not data_keys:
+            return None, None
+        for key in sorted(data_keys, reverse=True)[:2]:
+            try:
+                frame = self.storage.read_parquet(self.layer_name, key)
+            except Exception as exc:  # noqa: BLE001
+                logger.warning("Silver newest_session_close read failed for %s: %s", symbol, exc)
+                continue
+            if frame is None or frame.empty:
+                continue
+            result = newest_bar_session_close(frame, symbol)
+            if result[0] is not None:
+                return result
+        return None, None
 
     def record_count(self, symbol: str | None = None) -> int:
         """Count stored objects without downloading/parsing parquet payloads."""

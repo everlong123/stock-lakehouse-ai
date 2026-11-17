@@ -50,72 +50,72 @@ export function LakehouseFlow({
   ];
 
   return (
-    <div className="rounded-md border border-border bg-card">
-      <div className="flex items-center justify-between border-b border-border px-4 py-3">
+    <section>
+      <div className="flex flex-wrap items-baseline justify-between gap-3 pb-4">
         <div className="flex items-center gap-2">
-          <Layers size={14} className="text-muted-foreground" />
-          <h3 className="text-sm font-semibold text-foreground">Medallion lakehouse flow</h3>
+          <Layers size={15} className="text-muted" />
+          <h2 className="font-display text-body font-semibold text-ink">
+            Medallion lakehouse flow
+          </h2>
         </div>
-        <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+        <span className="font-mono text-label uppercase text-muted">
           Data &rarr; Bronze &rarr; Silver &rarr; Gold
         </span>
       </div>
 
-      <div className="px-4 py-4">
-        <div className="mb-3 flex flex-wrap items-center gap-2">
-          <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-            Sources
+      <div className="flex flex-wrap items-center gap-2 pb-4">
+        <span className="label">Sources</span>
+        {SOURCES.map((name) => (
+          <span
+            key={name}
+            className="rounded border border-hairline bg-surface-2 px-2 py-1 font-mono text-label uppercase text-muted"
+          >
+            {name}
           </span>
-          {SOURCES.map((name) => (
-            <span
-              key={name}
-              className="rounded border border-border bg-muted px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-muted-foreground"
-            >
-              {name}
-            </span>
-          ))}
-        </div>
+        ))}
+      </div>
 
-        <div className="grid grid-cols-1 gap-2 md:grid-cols-3">
-          {layers.map(({ node, count }, idx) => (
-            <div
-              key={node.label}
-              className="relative rounded-md border border-border bg-card p-3"
-            >
-              <div className="flex items-start justify-between gap-2">
-                <div>
-                  <div className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-                    Layer {idx + 1}
-                  </div>
-                  <div className="mt-1 text-sm font-semibold text-foreground">{node.label}</div>
-                  <div className="text-[11px] text-muted-foreground">{node.desc}</div>
-                </div>
-                <div className="text-right">
-                  <div className="font-mono text-lg font-semibold text-foreground">
-                    {isUsableNumber(count) ? count.toLocaleString("en-US") : "—"}
-                  </div>
-                  <div className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-                    {/*
-                      WHY "files", not "records": the backend counts stored
-                      objects (parquet partitions), not rows. Bronze holds
-                      ~2.3M rows across ~113k partitions, so calling 114,904
-                      "records" overstates the row count by 20x. The label has
-                      to match what is actually being counted.
-                    */}
-                    {isUsableNumber(count) ? "files" : "chưa có dữ liệu"}
-                  </div>
+      {/* The three layers are a pipeline, not three equal cards. They are
+          separated by arrows and share one continuous rule, which reads as
+          a flow left-to-right instead of a row of identical widgets. */}
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+        {layers.map(({ node, count }, idx) => (
+          <div key={node.label} className="relative">
+            <div className="flex items-baseline justify-between gap-3 border-b border-hairline pb-2">
+              <div>
+                <span className="font-mono text-label uppercase text-muted">
+                  Layer {idx + 1}
+                </span>
+                <div className="mt-1 font-display text-body font-semibold text-ink">
+                  {node.label}
                 </div>
               </div>
-              {idx < 2 ? (
-                <ArrowRight
-                  size={14}
-                  className="absolute -right-2 top-1/2 hidden -translate-y-1/2 bg-card text-muted-foreground md:block"
-                />
-              ) : null}
+              <div className="text-right">
+                <div className="font-mono text-heading font-semibold tabular-nums text-ink">
+                  {isUsableNumber(count) ? count.toLocaleString("en-US") : "?"}
+                </div>
+                {/*
+                  WHY "files", not "records": the backend counts stored
+                  objects (parquet partitions), not rows. Bronze holds
+                  ~2.3M rows across ~113k partitions, so calling 114,904
+                  "records" overstates the row count by 20x. The label has
+                  to match what is actually being counted.
+                */}
+                <div className="label">
+                  {isUsableNumber(count) ? "files" : "chưa có dữ liệu"}
+                </div>
+              </div>
             </div>
-          ))}
-        </div>
+            <p className="mt-2 text-small text-muted">{node.desc}</p>
+            {idx < 2 ? (
+              <ArrowRight
+                size={16}
+                className="absolute -right-3 top-0 hidden text-muted md:block"
+              />
+            ) : null}
+          </div>
+        ))}
       </div>
-    </div>
+    </section>
   );
 }

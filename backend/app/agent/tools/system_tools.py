@@ -62,7 +62,7 @@ class SystemArchitectureInput(BaseModel):
 class StorageStatsInput(BaseModel):
     layer: str = Field(
         default="all",
-        description="Lớp lakehouse: 'all' (tổng), 'bronze', 'silver', 'gold', 'models', 'news', 'fundamentals'.",
+        description="Lớp lakehouse: 'all' (tổng), 'bronze', 'silver', 'gold', 'models', 'fundamentals'.",
     )
 
 
@@ -148,26 +148,22 @@ def get_symbols_info(region: str = "all") -> dict[str, Any]:
             "us": len(US_SYMBOLS),
             "global": len(GLOBAL_SYMBOLS),
             "vn": len(VN_SYMBOLS),
-            "vn_top10_streamed": [
-                s.strip() for s in settings.vn_ws_symbols.split(",") if s.strip()
-            ],
             "market_indexes": len(MARKET_INDEXES),
             "crypto": len(CRYPTO_SYMBOLS),
         },
         "supported_symbols_count": len(SUPPORTED_SYMBOLS),
-        "vn_realtime_enabled": settings.vn_ws_enabled,
         "data_sources": [
             "yfinance (Python package, key-less, 10y+ history)",
             "yahoo_http (direct v8 chart API, browser UA)",
             "alpha_vantage (API key, free tier)",
-            "finnhub (API key, free tier, real-time WebSocket)",
+            "finnhub (API key, free tier, daily candles)",
             "ssi_vn (SSI iBoard public, HOSE/HNX/UPCoM)",
         ],
         "notes": (
             "US_SYMBOLS là tập curated gồm các blue-chip/mid-cap có thanh khoản tốt. "
             "GLOBAL_SYMBOLS = US_SYMBOLS + EU/JP/HK/CN/IN/BR/CA/AU/KR/TW + ETFs. "
             "Mã Việt Nam chưa có trong GLOBAL_SYMBOLS vì yfinance không cover HOSE/HNX/UPCoM "
-            "— chúng đi qua provider ssi_vn và top-10 được stream realtime qua WebSocket."
+            "— chúng đi qua provider ssi_vn, bar NGÀY từ SSI iBoard public API."
         ),
     }
 
@@ -177,9 +173,7 @@ def get_symbols_info(region: str = "all") -> dict[str, Any]:
     elif region == "global":
         payload["global_symbols_total"] = len(GLOBAL_SYMBOLS)
     elif region == "vn":
-        payload["vn_top10_streamed"] = [
-            s.strip() for s in settings.vn_ws_symbols.split(",") if s.strip()
-        ]
+        payload["vn_symbols_sample"] = VN_SYMBOLS[:25]
         payload["vn_provider"] = "ssi_vn (SSI iBoard public REST)"
     elif region == "crypto":
         payload["crypto_symbols"] = CRYPTO_SYMBOLS
@@ -255,7 +249,7 @@ def get_system_architecture(detail_level: str = "summary") -> dict[str, Any]:
 
     Dùng kèm PROJECT_CONTEXT trong system prompt: prompt mang thông tin tóm
     tắt, tool này mang thông tin runtime (storage backend đang dùng là gì,
-    có Kafka không, có Iceberg không...).
+    có bật Spark không...).
     """
     storage = get_storage_backend()
     detail_level = (detail_level or "summary").lower().strip()
@@ -277,7 +271,7 @@ def get_system_architecture(detail_level: str = "summary") -> dict[str, Any]:
             },
             "silver": {
                 "description": "Dữ liệu đã làm sạch: chuẩn hoá timezone, loại bỏ OHLC không hợp lệ, dedup.",
-                "extras": ["news_silver", "fundamentals_silver"],
+                "extras": ["fundamentals_silver"],
             },
             "gold": {
                 "description": "Features + targets phục vụ ML (không look-ahead leakage).",
@@ -309,8 +303,8 @@ def get_system_architecture(detail_level: str = "summary") -> dict[str, Any]:
             "backend": "FastAPI (Python 3.11+)",
             "storage": "MinIO (S3-compatible) — fallback local filesystem khi MinIO down.",
             "metadata_db": "MySQL (Alembic migrations, pymysql driver).",
-            "streaming": "Apache Kafka (opt-in, USE_KAFKA=true).",
-            "table_format": "Apache Iceberg REST catalog (opt-in, USE_ICEBERG=true).",
+            "ingestion": "Cron-driven batch (container `scheduler`, crontab trong backend/crontab) — đọc provider rồi ghi thẳng Bronze.",
+            "live_view": "Server-Sent Events từ bộ nhớ đệm trong tiến trình (không có message broker).",
             "compute": "Pandas (mặc định), PySpark (opt-in, USE_SPARK=true).",
             "frontend": "React + Vite (FE tách biệt, giao tiếp qua REST).",
         },
@@ -318,21 +312,19 @@ def get_system_architecture(detail_level: str = "summary") -> dict[str, Any]:
             "storage_backend": storage.backend_name,
             "data_source": settings.data_source,
             "use_spark": settings.use_spark,
-            "use_kafka": settings.use_kafka,
-            "use_iceberg": settings.use_iceberg,
             "llm_provider": settings.llm_provider,
         },
-        "agent_tools_count": 16,
+        "agent_tools_count": 17,
         "agent_tools": [
             "query_stock_data", "get_market_summary",
             "calculate_indicators",
             "forecast_stock", "compare_models",
             "run_backtest", "run_walk_forward",
-            "get_news_for_symbol", "get_sentiment_summary",
-            "get_sentiment_timeseries", "get_market_news",
             "get_fundamental_metrics", "get_income_statement",
             "get_balance_sheet", "get_cash_flow",
             "get_market_index", "get_orderbook",
+            "get_symbols_info", "get_trained_models",
+            "get_system_architecture", "get_storage_stats",
         ],
         "disclaimer": (
             "Đây là prototype nghiên cứu học thuật. Kết quả KHÔNG phải khuyến nghị "
@@ -342,14 +334,17 @@ def get_system_architecture(detail_level: str = "summary") -> dict[str, Any]:
 
     if detail_level == "full":
         payload["env_keys_relevant"] = [
-            "DATA_SOURCE", "STORAGE_BACKEND", "USE_SPARK", "USE_KAFKA",
-            "USE_ICEBERG", "AUTO_REFRESH_ON_START", "AUTO_REFRESH_INTERVAL_SECONDS",
+            "DATA_SOURCE", "STORAGE_BACKEND", "USE_SPARK",
+            "AUTO_REFRESH_ENABLED", "AUTO_PREDICT_ENABLED",
             "GEMINI_API_KEY", "LLM_PROVIDER",
         ]
-        payload["vietnam_realtime"] = {
-            "ws_provider": "SSI iBoard (wss://iboard-pushstream.ssi.com.vn/realtime)",
+        payload["vietnam_data_source"] = {
+            "provider": "SSI iBoard public REST API (ssi_vn)",
             "boards": ["MAIN (HOSE)", "HNX", "UPCOM"],
-            "opt_in": "VN_WS_ENABLED=true (mặc định) + Kafka streaming",
+            "note": (
+                "Dữ liệu Việt Nam là bar NGÀY từ SSI iBoard. Không có kênh "
+                "realtime/tick trong hệ thống này nữa (đã bỏ 11/11/2026)."
+            ),
         }
 
     return payload
@@ -368,9 +363,7 @@ def get_storage_stats(layer: str = "all") -> dict[str, Any]:
         ("gold", "stock-gold"),
         ("models", "stock-models"),
         ("backtests", "stock-backtests"),
-        ("silver_news", "stock-silver-news"),
         ("silver_fundamentals", "stock-silver-fundamentals"),
-        ("gold_features", "stock-gold-features"),
     )
 
     storage = get_storage_backend()

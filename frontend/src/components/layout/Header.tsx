@@ -10,6 +10,18 @@ import { useMarketBusy } from "@/hooks/useMarketBusy";
 import { useI18n, t } from "@/lib/i18n";
 import { fetchSymbols } from "@/api/stocks";
 
+/**
+ * The global top bar.
+ *
+ * WHY IT LOOKS THE WAY IT DOES
+ * ------------------------------
+ * A finance app's top bar is a single flat row: wordmark on the left, the
+ * symbol picker next to it, small controls on the right. No gradient, no
+ * shadow, no floating pill. The wordmark uses the DISPLAY font family so
+ * the brand reads as a title, while every control around it uses the body
+ * font - that contrast is what stops the bar looking like one flat strip
+ * of grey.
+ */
 export function Header() {
   const { symbol, setSymbol } = useMarket();
   const fetching = useMarketBusy();
@@ -46,36 +58,46 @@ export function Header() {
   };
 
   return (
-    <header
-      className="sticky top-0 z-20 border-b"
-      style={{
-        borderColor: "hsl(210 18% 90% / 0.7)",
-        background: "linear-gradient(180deg, hsl(0 0% 100% / 0.97) 0%, hsl(210 20% 97% / 0.95) 100%)",
-        backdropFilter: "blur(16px) saturate(180%)",
-        WebkitBackdropFilter: "blur(16px) saturate(180%)",
-        boxShadow: "0 1px 0 hsl(210 18% 90% / 0.5), 0 2px 12px -4px hsl(0 0% 0% / 0.04)",
-      }}
-    >
-      <div className="flex flex-wrap items-center gap-3 px-8 py-3">
+    <header className="sticky top-0 z-30 border-b border-hairline bg-surface">
+      <div className="flex h-14 items-center gap-6 px-6">
+        {/* -- Brand ----------------------------------------------- */}
+        <div className="flex items-center gap-3">
+          <div className="flex h-8 w-8 items-center justify-center rounded bg-primary text-on-primary">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
+              <path
+                d="M3 17.5 9 10l4.5 4.5L21 5"
+                stroke="currentColor"
+                strokeWidth="2.2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </div>
+          <div className="hidden leading-none sm:block">
+            <div className="font-display text-small font-bold tracking-tight text-ink">
+              {t("app.title", locale)}
+            </div>
+            <div className="mt-1 font-mono text-label uppercase text-muted">
+              {t("app.subtitle", locale)}
+            </div>
+          </div>
+        </div>
 
-        {/* ── Symbol search ──────────────────────────────────────── */}
+        {/* -- Symbol picker --------------------------------------- */}
         <div className="relative flex items-center">
           <Search
-            size={13}
-            className="absolute left-3 pointer-events-none"
-            style={{ color: "hsl(220 12% 55%)" }}
+            size={14}
+            className="pointer-events-none absolute left-3 text-muted"
           />
           <select
             value={symbol}
             onChange={(e) => setSymbol(e.target.value)}
             onFocus={() => setSymbolFocused(true)}
             onBlur={() => setSymbolFocused(false)}
-            className="appearance-none rounded-xl border bg-white pl-8 pr-8 py-1.5 font-mono text-sm font-semibold shadow-sm transition-all duration-200 focus:outline-none"
+            className="appearance-none rounded border bg-surface py-2 pl-8 pr-8 font-mono text-small font-medium text-ink outline-none transition-colors"
             style={{
-              borderColor: symbolFocused ? "hsl(165 52% 28%)" : "hsl(210 18% 85%)",
-              color: "hsl(220 25% 10%)",
-              boxShadow: symbolFocused ? "0 0 0 3px hsl(165 52% 28% / 0.12), 0 1px 3px rgb(0 0 0 / 0.06)" : "0 1px 3px rgb(0 0 0 / 0.05)",
-              minWidth: 120,
+              borderColor: symbolFocused ? "hsl(var(--primary))" : "hsl(var(--hairline))",
+              minWidth: 140,
             }}
             aria-label="Symbol"
           >
@@ -85,115 +107,63 @@ export function Header() {
               </option>
             ))}
           </select>
-          {/* Custom dropdown arrow */}
-          <div
-            className="absolute right-2.5 pointer-events-none"
-            style={{ color: "hsl(220 12% 55%)" }}
-          >
+          <div className="pointer-events-none absolute right-3 text-muted">
             <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
               <path d="M2 4l3 3 3-3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </div>
         </div>
 
-        {/* ── Interval switcher ──────────────────────────────────── */}
-        <div className="flex items-center gap-2">
+        {/* -- Interval switcher ------------------------------------ */}
+        <div className="flex items-center gap-3">
           <IntervalSwitcher busy={fetching > 0} />
-          {fetching > 0 && (
-            <span
-              className="animate-pulse font-mono text-[10px] uppercase tracking-wider"
-              style={{ color: "hsl(165 52% 35%)" }}
-            >
+          {fetching > 0 ? (
+            <span className="font-mono text-label uppercase text-primary">
               {t("interval.loading", locale)}
             </span>
-          )}
+          ) : null}
         </div>
 
-        {/* ── Pipeline button ───────────────────────────────────── */}
-        <Button
-          onClick={refresh}
-          disabled={busy}
-          size="sm"
-          className="rounded-xl shadow-sm transition-all duration-200"
-          style={{
-            background: "linear-gradient(135deg, hsl(165 52% 28%) 0%, hsl(165 58% 35%) 100%)",
-            border: "none",
-            boxShadow: busy ? "none" : "0 1px 4px hsl(165 52% 28% / 0.3)",
-          }}
-        >
-          <RefreshCw
-            size={13}
-            className={`${busy ? "animate-spin" : ""} transition-transform duration-200`}
-            style={{ color: "white" }}
-          />
-          <span style={{ color: "white", fontSize: 12 }}>
-            {busy
-              ? (locale === "vi" ? "Đang chạy…" : "Running…")
-              : t("system.refresh", locale)}
-          </span>
-        </Button>
-
-        {/* ── Right controls ─────────────────────────────────────── */}
+        {/* -- Right controls --------------------------------------- */}
         <div className="ml-auto flex items-center gap-3">
-
           {/* Locale toggle */}
           <div
-            className="flex items-center rounded-xl border p-0.5"
-            style={{
-              borderColor: "hsl(210 18% 88%)",
-              background: "hsl(210 20% 96%)",
-            }}
+            className="flex items-center rounded border border-hairline p-1"
             role="group"
             aria-label="Language"
           >
-            <button
-              type="button"
-              onClick={() => setLocale("vi")}
-              aria-pressed={locale === "vi"}
-              className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1 font-mono text-[11px] font-semibold uppercase tracking-wider transition-all duration-200"
-              style={
-                locale === "vi"
-                  ? {
-                      background: "linear-gradient(135deg, hsl(165 52% 28%), hsl(165 58% 35%))",
-                      color: "white",
-                      boxShadow: "0 1px 3px hsl(165 52% 28% / 0.3)",
-                    }
-                  : { color: "hsl(220 12% 50%)" }
-              }
-            >
-              <Languages size={11} />
-              VI
-            </button>
-            <button
-              type="button"
-              onClick={() => setLocale("en")}
-              aria-pressed={locale === "en"}
-              className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1 font-mono text-[11px] font-semibold uppercase tracking-wider transition-all duration-200"
-              style={
-                locale === "en"
-                  ? {
-                      background: "linear-gradient(135deg, hsl(165 52% 28%), hsl(165 58% 35%))",
-                      color: "white",
-                      boxShadow: "0 1px 3px hsl(165 52% 28% / 0.3)",
-                    }
-                  : { color: "hsl(220 12% 50%)" }
-              }
-            >
-              EN
-            </button>
+            {(["vi", "en"] as const).map((code) => (
+              <button
+                key={code}
+                type="button"
+                onClick={() => setLocale(code)}
+                aria-pressed={locale === code}
+                className="inline-flex items-center gap-1 rounded px-2 py-1 font-mono text-label font-medium uppercase transition-colors"
+                style={
+                  locale === code
+                    ? { background: "hsl(var(--primary))", color: "hsl(var(--on-primary))" }
+                    : { color: "hsl(var(--muted))" }
+                }
+              >
+                {code === "vi" ? <Languages size={11} /> : null}
+                {code.toUpperCase()}
+              </button>
+            ))}
           </div>
 
+          {/* Pipeline button */}
+          <Button onClick={refresh} disabled={busy} size="sm" variant="outline">
+            <RefreshCw size={13} className={busy ? "animate-spin" : ""} />
+            {busy
+              ? (locale === "vi" ? "Đang chạy…" : "Running…")
+              : t("system.refresh", locale)}
+          </Button>
+
           {/* Live indicator */}
-          <div
-            className="flex items-center gap-2 rounded-xl border px-3 py-1.5"
-            style={{
-              borderColor: "hsl(152 58% 38% / 0.3)",
-              background: "hsl(152 58% 38% / 0.06)",
-            }}
-          >
-            <span className="pulse-dot" />
-            <span className="font-mono text-[11px] font-semibold uppercase tracking-wider" style={{ color: "hsl(152 58% 38%)" }}>
-              Lakehouse Live
+          <div className="flex items-center gap-2 rounded border border-hairline px-2 py-1">
+            <span className="dot dot-live" />
+            <span className="font-mono text-label font-medium uppercase text-primary">
+              Live
             </span>
           </div>
         </div>

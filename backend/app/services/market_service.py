@@ -10,15 +10,16 @@ from __future__ import annotations
 import threading
 import time
 import os
-from datetime import datetime
+from datetime import date, datetime
 
 import pandas as pd
 
 from app.core.constants import SUPPORTED_INTERVALS, currency_for_symbol
 from app.core.exceptions import DataValidationError, NotFoundError
 from app.lakehouse.bronze import BronzeLayer
+from app.lakehouse import frame_cache
 from app.lakehouse.gold import GoldLayer
-from app.lakehouse.session import canonicalize_daily_sessions
+from app.lakehouse.session import as_utc_timestamp, canonicalize_daily_sessions, slice_window
 from app.lakehouse.silver import SilverLayer
 from app.core.logging_config import get_logger
 
@@ -132,6 +133,53 @@ def _canonicalize_read_frame(frame: pd.DataFrame) -> pd.DataFrame:
     return canonical if not canonical.empty else frame
 
 
+def _as_utc_timestamp(value: datetime) -> pd.Timestamp:
+    """A timezone-aware UTC timestamp from whatever the caller passed.
+
+    WHY THIS EXISTS
+    ---------------
+    The API takes ``start`` and ``end`` as ISO strings, and the browser
+    sends them WITH a timezone (``2026-05-14T00:00:00.000Z``). The old
+    code called ``pd.Timestamp(value, tz="UTC")``, which refuses a value
+    that already carries one:
+    ``ValueError: Cannot pass a datetime or Timestamp with tzinfo with
+    the tz parameter`` - so every ranged request failed with a 500.
+
+    A naive value is read as UTC (the lakehouse stores UTC), and an
+    aware value is converted to UTC.
+    """
+    return as_utc_timestamp(value)
+
+
+def _load_symbol_latest_uncached(symbol: str) -> tuple[pd.DataFrame, str]:
+    """The symbol's newest bar, read from the newest partition only.
+
+    WHY THIS EXISTS
+    ---------------
+    The market tape shows a price strip for ten tickers, and each quote
+    used to load the symbol's WHOLE history - ~121 monthly partitions
+    from MinIO - only to look at the last row.
+
+    Measured on 14/11/2026: the tape took 11.7 s cold and ~1.0 s
+    afterwards. Reading the newest partition instead of the whole
+    history brings it down to a listing plus one object download per
+    symbol.
+
+    The layer order is the same as the full read (Gold -> Silver ->
+    Bronze), and the rows are the SAME stored rows - nothing is
+    recomputed or invented.
+    """
+    for layer, source_layer in (
+        (GoldLayer(), "gold"),
+        (SilverLayer(), "silver"),
+        (BronzeLayer(), "bronze"),
+    ):
+        frame = layer.read_newest(symbol)
+        if not frame.empty:
+            return _canonicalize_read_frame(frame), source_layer
+    return pd.DataFrame(), "gold"
+
+
 def _load_symbol_frame(symbol: str) -> tuple[pd.DataFrame, str]:
     """Load one symbol from Gold -> Silver -> Bronze, memoised with a short TTL.
 
@@ -147,10 +195,51 @@ def _load_symbol_frame(symbol: str) -> tuple[pd.DataFrame, str]:
     return frame, source_layer
 
 
+def _load_symbol_frame_window(
+    symbol: str,
+    since: date | None,
+    until: date | None,
+) -> tuple[pd.DataFrame, str]:
+    """Load a symbol's rows inside a date window, layer by layer.
+
+    WHY THIS EXISTS
+    ---------------
+    A ten-year daily symbol is stored as ~121 monthly partitions. The
+    caller asked for a six-month window, so only six of them are needed
+    - the other 115 were downloaded, parsed and discarded, which made the
+    request cost scale with the symbol's HISTORY rather than with the
+    window.
+
+    The memoised full frame is preferred when it is already in memory:
+    slicing it costs nothing, and reading six partitions would cost a
+    round-trip. The windowed read is used only when the full frame has
+    to be fetched anyway.
+    """
+    cached = _cache_get(symbol)
+    if cached is not None:
+        frame, source_layer = cached
+        return slice_window(frame, since, until), source_layer
+
+    layers = (
+        (GoldLayer(), "gold"),
+        (SilverLayer(), "silver"),
+        (BronzeLayer(), "bronze"),
+    )
+    for layer, source_layer in layers:
+        frame = layer.read_window(symbol, since=since, until=until)
+        if not frame.empty:
+            return _canonicalize_read_frame(frame), source_layer
+    return pd.DataFrame(), "gold"
+
+
 def clear_symbol_cache() -> None:
     """Drop memoised symbol frames (call after a pipeline run writes new data)."""
     with _cache_lock:
         _cache_store.clear()
+    # The shared lakehouse cache holds the same frames, so it has to be
+    # dropped as well - otherwise a rewritten symbol would keep serving
+    # its pre-write rows from the other cache.
+    frame_cache.clear_cached()
 
 
 def invalidate_symbol_cache(symbol: str) -> None:
@@ -171,6 +260,9 @@ def invalidate_symbol_cache(symbol: str) -> None:
     """
     with _cache_lock:
         _cache_store.pop(symbol.upper(), None)
+    frame_cache.invalidate_cached("gold", symbol)
+    frame_cache.invalidate_cached("silver", symbol)
+    frame_cache.invalidate_cached("bronze", symbol)
 
 
 class MarketService:
@@ -193,17 +285,26 @@ class MarketService:
                 f"Unsupported interval '{interval}'. This lakehouse ingests "
                 f"{SUPPORTED_INTERVALS} only; no data exists for other intervals."
             )
-        frame, source_layer = _load_symbol_frame(symbol)
+        frame, source_layer = _load_symbol_frame_window(
+            symbol,
+            since=_as_utc_timestamp(start).date() if start is not None else None,
+            until=_as_utc_timestamp(end).date() if end is not None else None,
+        )
         if frame.empty:
+            if start is not None or end is not None:
+                raise NotFoundError(
+                    f"No market data for {symbol} inside the selected range. "
+                    f"The symbol may not be covered by the requested dates."
+                )
             raise NotFoundError(
                 f"No lakehouse data for {symbol}. The auto-refresh service may still "
                 f"be ingesting this symbol, or it is unavailable from the data provider."
             )
         frame = frame.sort_values("timestamp")
         if start:
-            frame = frame[frame["timestamp"] >= pd.Timestamp(start, tz="UTC")]
+            frame = frame[frame["timestamp"] >= _as_utc_timestamp(start)]
         if end:
-            frame = frame[frame["timestamp"] <= pd.Timestamp(end, tz="UTC")]
+            frame = frame[frame["timestamp"] <= _as_utc_timestamp(end)]
         if frame.empty:
             raise NotFoundError("No market data available for the selected range.")
         frame = frame.copy()
@@ -213,8 +314,48 @@ class MarketService:
         return frame.reset_index(drop=True)
 
     def get_latest(self, symbol: str, interval: str = "1d") -> dict:
-        frame = self.get_history(symbol, interval=interval)
-        return self.latest_from_frame(symbol, frame, interval)
+        """The symbol's newest bar, read WITHOUT loading its whole history.
+
+        WHY THIS EXISTS
+        ---------------
+        The market tape shows ten tickers in the navigation bar, and the
+        ``/stocks/{symbol}/latest`` endpoint serves one quote. Both used
+        to call ``get_history``, which loads the symbol's WHOLE history -
+        ~121 monthly partitions from MinIO - to look at the last row.
+
+        Measured on 14/11/2026: the ten-symbol tape took 11.7 s cold
+        and ~1.0 s warm, because each of the ten quotes pulled ~121
+        objects out of MinIO.
+
+        Now only the newest partitions are read. The rows are the SAME
+        stored rows - the newest partition holds the symbol's most recent
+        sessions - so the quote is the quote, not an approximation.
+
+        The full frame is used when it is already in memory: slicing it
+        costs nothing, while a partition download costs a round-trip.
+        """
+        symbol = symbol.upper()
+        if interval not in SUPPORTED_INTERVALS:
+            raise DataValidationError(
+                f"Unsupported interval '{interval}'. This lakehouse ingests "
+                f"{SUPPORTED_INTERVALS} only; no data exists for other intervals."
+            )
+
+        cached = _cache_get(symbol)
+        if cached is not None:
+            frame, source_layer = cached
+            return self.latest_from_frame(symbol, frame, interval=interval)
+
+        frame, source_layer = _load_symbol_latest_uncached(symbol)
+        if frame.empty:
+            raise NotFoundError(
+                f"No lakehouse data for {symbol}. The auto-refresh service may still "
+                f"be ingesting this symbol, or it is unavailable from the data provider."
+            )
+        frame = frame.copy()
+        frame["layer"] = source_layer
+        frame["interval"] = interval
+        return self.latest_from_frame(symbol, frame, interval=interval)
 
     def latest_from_frame(
         self,

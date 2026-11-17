@@ -13,26 +13,22 @@ const LABELS: Record<TimeRange, string> = {
 };
 
 /**
- * Compact 1M/3M/6M/1Y/All range pill group, Vietnamese-first.
- * Returns the selected range; parents derive a cutoff timestamp themselves.
+ * Range picker: how far back to look.
+ *
+ * WHY THIS IS A SEGMENTED CONTROL AND NOT A SELECT: the five options are
+ * the primary axis of the dashboard and are worth showing at once. A
+ * dropdown would hide the choice behind a click and make the chart's
+ * window ambiguous.
  */
 export function TimeRangeSelector({
   value,
   onChange,
-  size = "sm",
 }: {
   value: TimeRange;
   onChange: (next: TimeRange) => void;
-  size?: "sm" | "md";
 }) {
   return (
-    <div
-      role="tablist"
-      aria-label="Khoảng thời gian"
-      className={cn(
-        "inline-flex items-center rounded-md border border-border bg-card p-0.5",
-      )}
-    >
+    <div role="tablist" aria-label="Khoảng thời gian" className="segmented">
       {RANGES.map((r) => {
         const active = r === value;
         return (
@@ -42,13 +38,7 @@ export function TimeRangeSelector({
             aria-selected={active}
             onClick={() => onChange(r)}
             type="button"
-            className={cn(
-              "rounded font-mono uppercase tracking-wider transition-colors",
-              size === "sm" ? "px-2 py-0.5 text-[10px]" : "px-3 py-1 text-[11px]",
-              active
-                ? "bg-primary text-primary-foreground"
-                : "text-muted-foreground hover:bg-muted",
-            )}
+            className={cn("segmented-item", active && "bg-primary text-on-primary")}
           >
             {LABELS[r]}
           </button>

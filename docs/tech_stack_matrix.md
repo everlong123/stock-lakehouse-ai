@@ -28,15 +28,14 @@ Python / config chịu trách nhiệm implementation.
 
 | Provider              | File / Implementation                                                                          | Ghi chú |
 |-----------------------|------------------------------------------------------------------------------------------------|---------|
-| **yfinance package**  | `backend/app/data_sources/yfinance_python_provider.py`                                        | Primary khi `DATA_SOURCE=yfinance`; `yfinance>=1.0` + `curl_cffi` để bypass Yahoo TLS fingerprint block. Hỗ trợ 1m/5m/15m/1h/1d + news. |
+| **yfinance package**  | `backend/app/data_sources/yfinance_python_provider.py`                                        | Primary khi `DATA_SOURCE=yfinance`; `yfinance>=1.0` + `curl_cffi` để bypass Yahoo TLS fingerprint block. Hỗ trợ 1m/5m/15m/1h/1d. |
 | **yfinance HTTP**     | `backend/app/data_sources/yfinance_provider.py`                                               | Fallback khi thiếu package `yfinance`. |
-| **Finnhub Free**      | `backend/app/data_sources/finnhub_provider.py`                                                | OHLCV + news + company profile. Tôn trọng giới hạn Free tier (60 req/min). |
+| **Finnhub Free**      | `backend/app/data_sources/finnhub_provider.py`                                                | OHLCV + company profile. Tôn trọng giới hạn Free tier (60 req/min). |
 | **Alpha Vantage**     | `backend/app/data_sources/alpha_vantage_provider.py`                                          | Daily + intraday (25 req/day free). |
 | **SSI iBoard (VN)**   | `backend/app/data_sources/ssi_vn_provider.py`                                                 | HOSE/HNX/UPCOM, public API. |
 | **Web scraper**       | `backend/app/data_sources/web_scraper_provider.py`                                            | CafeF (VN) + Yahoo HTTP fallback. |
 | **Macro provider**    | `backend/app/data_sources/macro_provider.py`                                                  | USD/VND, gold, oil (Vietcombank, SJC, EIA). |
 | **Fundamental**       | `backend/app/data_sources/fundamental_provider.py`, `enhanced_fundamental_provider.py`        | Revenue/EPS/ROE/P/E cho VN stocks. |
-| **News sentiment**    | `backend/app/data_sources/news_sentiment_provider.py`, `enhanced_news_sentiment_provider.py`   | Crawl + lexicon VN/EN. |
 | **Order book**        | `backend/app/data_sources/orderbook_provider.py`                                              | Snapshot orderbook. |
 | **Market indexes**    | `backend/app/data_sources/market_index_provider.py`                                           | ^GSPC, ^DJI, ^IXIC. |
 | **Multi-source failover** | `backend/app/data_sources/multi_source.py`                                                | Auto failover chain. |
@@ -58,16 +57,24 @@ Python / config chịu trách nhiệm implementation.
 
 ---
 
-## Streaming (Near-real-time)
+## Streaming (Near-real-time) — **ĐÃ XOÁ 11/11/2026**
 
-| Component             | File                                                                  | Vai trò |
-|-----------------------|----------------------------------------------------------------------|---------|
-| **Finnhub WebSocket** | `backend/app/streaming/finnhub_websocket.py`                          | Auto-reconnect + PING + per-second OHLCV aggregation. |
-| **Stream Publisher**  | `backend/app/streaming/stream_publisher.py`                           | WS -> 1s bars -> Kafka topic `stock-ohlcv-raw`. |
-| **Kafka Producer**    | `backend/app/streaming/kafka_producer.py`                             | Publish OHLCV/alerts. |
-| **Kafka Consumer**    | `backend/app/streaming/kafka_consumer.py`                             | Subscribe -> Bronze/Silver/Gold. |
-| **Aggregator**        | `backend/app/streaming/kafka_consumer.py` (`RealTimeAggregator`)      | 1m -> 5m/15m/1h/1d resample. |
-| **CLI runner**        | `backend/scripts/run_stream_publisher.py`, `run_stream_consumer.py`   | CLI chạy standalone. |
+Toàn bộ nhóm này đã bị gỡ khỏi dự án. Bộ nhớ đệm trong RAM đo được **0 mã /
+0 bar** vì không còn tiến trình nào đẩy bar vào nó sau khi gỡ Kafka (10/11/2026).
+Realtime cũng chưa bao giờ ghi vào Bronze, nên việc gỡ không mất bản ghi nào.
+
+| Đã xoá | Vai trò (lịch sử) |
+|-----------------------|---------|
+| `backend/app/streaming/finnhub_websocket.py` | Auto-reconnect + PING + per-second OHLCV aggregation. |
+| `backend/app/streaming/stream_publisher.py` | WS -> 1s bars -> Kafka topic `stock-ohlcv-raw`. |
+| `backend/app/streaming/kafka_producer.py` | Publish OHLCV/alerts. |
+| `backend/app/streaming/kafka_consumer.py` | Subscribe -> Bronze/Silver/Gold. |
+| `backend/app/services/stream_service.py` | In-memory cache -> REST `/stream/latest`. |
+| `backend/app/api/v1/endpoints/stream.py` | REST: latest / history / stats / ingest. |
+
+**Thay thế bằng:** batch EOD theo lịch cron (`backend/crontab`) đọc thẳng từ
+provider rồi ghi Bronze -> Silver -> Gold. Giao diện đọc giá qua
+`GET /api/v1/stocks/tape`.
 
 ---
 
@@ -122,13 +129,12 @@ Python / config chịu trách nhiệm implementation.
 | **Agent core**        | `backend/app/agent/agent.py`                  | Orchestrator (Gemini + local router fallback). |
 | **LLM client**        | `backend/app/agent/llm_client.py`             | Gemini Free API client with fallback chain + retry/backoff. |
 | **Prompts**           | `backend/app/agent/prompts.py`                | System instructions. |
-| **Tool registry**     | `backend/app/agent/tool_registry.py`          | 9+ tool definitions. |
+| **Tool registry**     | `backend/app/agent/tool_registry.py`          | 17 tool definitions. |
 | **Stock tools**       | `backend/app/agent/tools/stock_tools.py`      | Latest price, history, compare. |
 | **Indicator tools**   | `backend/app/agent/tools/indicator_tools.py`  | RSI/MACD/SMA queries. |
 | **Forecast tools**    | `backend/app/agent/tools/forecast_tools.py`   | LR/ARIMA/LSTM predictions. |
 | **Backtest tools**    | `backend/app/agent/tools/backtest_tools.py`   | MA crossover/RSI backtests. |
 | **Walk-forward tools**| `backend/app/agent/tools/walkforward_tools.py`| Walk-forward validation. |
-| **News tools**        | `backend/app/agent/tools/news_tools.py`       | News headlines. |
 | **Fundamental tools** | `backend/app/agent/tools/fundamental_tools.py`| EPS/P/E ratios. |
 | **Service**           | `backend/app/services/agent_service.py`       | Persist conversations vào MySQL. |
 | **CLI runner**        | `backend/scripts/run_agent.py`                | Headless agent test. |

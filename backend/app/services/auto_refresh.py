@@ -24,7 +24,7 @@ import os
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 from typing import Iterable
 
 import pandas as pd
@@ -38,7 +38,7 @@ from app.data_sources.factory import get_data_provider
 from app.lakehouse.bronze import BronzeLayer
 from app.lakehouse.silver import SilverLayer
 from app.lakehouse.gold import GoldLayer
-from app.lakehouse.session import session_date
+from app.lakehouse.session import newest_bar_session_close, session_date
 from app.pipelines.orchestrator import transform_to_silver, build_gold_layer
 from app.pipelines.worker import rebuild_gold_job, rebuild_silver_job
 
@@ -100,6 +100,133 @@ def _memory_headroom_ok() -> bool:
         # Could not read the value; do not block the refresh on a guess.
         return True
     return available >= MEMORY_HEADROOM_MB
+
+
+# Two closes count as equal when they agree to this relative tolerance. It is
+# the same tolerance the divergence checker and the verifier apply, so all
+# three agree on what "the same value" means.
+_CLOSE_TOLERANCE = 1e-6
+
+
+def _newest_session_close(frame: pd.DataFrame) -> tuple[str | None, float | None]:
+    """Return ``(session_date, close)`` of the newest bar in ``frame``.
+
+    Returns ``(None, None)`` when the frame carries no usable bar.
+    """
+    return newest_bar_session_close(frame)
+
+
+def _closes_differ(a: float | None, b: float | None) -> bool:
+    """True when two closes disagree beyond the relative tolerance."""
+    if a is None or b is None:
+        return False
+    scale = max(abs(a), abs(b), 1e-9)
+    return abs(a - b) / scale > _CLOSE_TOLERANCE
+
+
+def _changed_since_from_result(res: dict) -> date | None:
+    """The earliest session whose content may have changed after a refresh.
+
+    WHY THIS EXISTS
+    ---------------
+    Every feature in Silver and Gold is causal - a rolling mean, an
+    exponential average and a session canonicalisation all look BACKWARD
+    only. A rebuild triggered by a new bar at the END of the history
+    therefore produces exactly the same rows for every earlier session,
+    and writing their partitions again is pure waste: 2.7 s of MinIO
+    round-trips per symbol, measured 14/11/2026.
+
+    The refresh result carries the START of the fetch window in ``from``.
+    Every changed row - a new bar AND a restated one - is at or after
+    that instant, so it is the right cut-off. One extra day of slack
+    covers the timezone edge between the fetch window and the session
+    stamp.
+
+    A symbol that was fetched for the first time has no stored history to
+    preserve, so None is returned and every partition is written.
+    """
+    if res.get("is_new_symbol"):
+        return None
+
+    raw = res.get("from")
+    if not raw:
+        return None
+
+    try:
+        moment = pd.Timestamp(raw)
+    except Exception:  # noqa: BLE001 - an unparsable date means "write everything"
+        return None
+
+    if moment.tzinfo is not None:
+        moment = moment.tz_convert("UTC").tz_localize(None)
+    return (moment - pd.Timedelta(days=1)).date()
+
+
+def _silver_diverged_from_bronze(
+    symbol: str,
+    bronze: BronzeLayer,
+    silver: SilverLayer,
+) -> bool:
+    """True when Silver holds a different close than Bronze for the newest session.
+
+    WHY THIS EXISTS
+    ---------------
+    The refresh normally decides to rebuild Silver/Gold from what the Bronze
+    append itself reported: ``new_records > 0`` (the partition grew) or
+    ``updated_records > 0`` (the provider restated a bar that was already
+    stored). Both of those describe a change in **Bronze**.
+
+    They say nothing about **Silver**. Silver and Gold are rebuilt FROM
+    Bronze, so a rebuild always copies whatever Bronze holds at that moment -
+    including a bar that is still FORMING. A daily bar for a market that is
+    still open is stamped at the session OPEN, and the provider serves the
+    price as of the last fetch. So a refresh that runs during the session
+    stores a mid-session snapshot, and Silver/Gold are rebuilt from it.
+
+    The provider then settles that same bar with the closing price. The next
+    refresh overwrites the Bronze row (same symbol+timestamp, different
+    close) and reports ``updated_records = 1``, so Silver/Gold ARE rebuilt
+    and converge. That path works.
+
+    It stops working when the Bronze write happens but the Silver/Gold
+    rebuild does NOT - for example when the process was killed between the
+    two writes, when the rebuild was skipped for lack of memory, or when
+    another writer (an ingest script, the API) updated Bronze directly.
+    Bronze then holds the settled close while Silver and Gold keep the
+    mid-session snapshot.
+
+    From that moment on the divergence is INVISIBLE to the refresh: the next
+    pass fetches the same settled bar, Bronze already holds it, so the
+    append reports ``new_records = 0`` AND ``updated_records = 0`` - nothing
+    changed in Bronze - and the trading-day watermark guard compares equal
+    because both layers carry the SAME session date. Silver and Gold are
+    never rebuilt, so the stale close is served to the web FOREVER.
+
+    This was measured on 2026-11-12 on 78 symbols: 0001.HK served close
+    68.95 (the 07:28 mid-session snapshot) while Bronze held 69.35 (the
+    settled close), a relative gap of 0.58% on the newest bar, and the
+    symbol could never recover on its own.
+
+    Comparing the newest close of Bronze against the newest close of Silver
+    closes that hole: the refresh now sees the layers disagreeing and
+    rebuilds, which restores convergence.
+    """
+    try:
+        bronze_day, bronze_close = bronze.newest_session_close(symbol)
+        if bronze_day is None or bronze_close is None:
+            return False
+        silver_day, silver_close = silver.newest_session_close(symbol)
+        if silver_day is None or silver_close is None:
+            # Silver is missing or empty - that is a rebuild too.
+            return True
+        if silver_day != bronze_day:
+            # Silver is behind on the trading day; the watermark guard below
+            # already covers that case, so do not double-report it here.
+            return False
+        return _closes_differ(bronze_close, silver_close)
+    except Exception as exc:  # noqa: BLE001 - a probe failure must not break the pass
+        logger.warning("AutoRefresh: divergence probe failed for %s: %s", symbol, exc)
+        return False
 
 
 class AutoRefreshService:
@@ -229,7 +356,11 @@ class AutoRefreshService:
         # symbol means every pass makes forward progress that survives a kill.
         from app.lakehouse.gold import GoldLayer
         _gold = GoldLayer()
+        # Silver is read by the divergence probe below, which compares the
+        # newest close Silver holds against the newest close Bronze holds.
+        _silver = SilverLayer()
         silver_done, gold_done = 0, 0
+        predicted_done = 0
         _counts_lock = threading.Lock()
 
         def _rebuild_layers(sym: str, res: dict) -> None:
@@ -252,6 +383,60 @@ class AutoRefreshService:
             # Counting the batch made every symbol look "changed" and forced a
             # full Silver + Gold rebuild for all ~950 symbols on every pass.
             needs_rebuild = res.get("new_rows", 0) > 0
+            # A provider RESTATEMENT does not grow Bronze - the same bar, with
+            # a revised close - so `new_rows` is 0 while Silver and Gold still
+            # hold the pre-revision value. Without this branch the refreshed
+            # close never reached the web, and the verification pass kept
+            # reporting those bars as RESTATED forever.
+            if res.get("updated_rows", 0) > 0:
+                logger.info(
+                    "AutoRefresh: %s had %s row(s) restated by the provider, "
+                    "rebuilding Silver/Gold",
+                    sym, res["updated_rows"],
+                )
+                needs_rebuild = True
+            if not needs_rebuild:
+                # Bronze is unchanged for this symbol, but Silver/Gold can still
+                # hold a DIFFERENT close than Bronze for the same session.
+                #
+                # WHY THIS BRANCH IS NEEDED
+                # -------------------------
+                # A daily bar is stamped at the session OPEN, so a refresh that
+                # runs while the market is still open stores a mid-session
+                # snapshot, and Silver/Gold are rebuilt from it. The provider
+                # later settles that bar with the closing price. If the Bronze
+                # write lands but the Silver/Gold rebuild does not (the process
+                # was killed between the two writes, the rebuild was skipped for
+                # lack of memory, or another writer updated Bronze directly),
+                # Bronze holds the settled close while Silver and Gold keep the
+                # mid-session snapshot.
+                #
+                # From then on the divergence is invisible to every other
+                # trigger: the next pass fetches the same settled bar, Bronze
+                # already holds it, so the append reports new_records = 0 AND
+                # updated_records = 0, and the trading-day watermark guard
+                # compares equal because both layers carry the SAME session
+                # date. Silver/Gold are never rebuilt and the stale close is
+                # served to the web forever.
+                #
+                # Measured on 2026-11-12: 78 symbols were stuck this way, e.g.
+                # 0001.HK serving 68.95 (07:28 mid-session) while Bronze held
+                # 69.35 (settled close) - a 0.58% gap on the newest bar that
+                # no amount of re-fetching would fix.
+                try:
+                    diverged = _silver_diverged_from_bronze(sym, bronze, _silver)
+                except Exception as exc:  # noqa: BLE001
+                    logger.warning(
+                        "AutoRefresh: divergence probe failed for %s: %s", sym, exc
+                    )
+                    diverged = False
+                if diverged:
+                    logger.info(
+                        "AutoRefresh: %s Silver disagrees with Bronze on the "
+                        "newest session, rebuilding Silver/Gold",
+                        sym,
+                    )
+                    needs_rebuild = True
             if not needs_rebuild:
                 # Bronze unchanged for this symbol, but a previous pass may have
                 # been killed between the Bronze write and the Gold write, which
@@ -263,8 +448,8 @@ class AutoRefreshService:
                     # hold an after-hours bar at 20:00 UTC for a session that
                     # Gold stamps at 13:30, and comparing those raw values
                     # would rebuild the symbol on every pass forever.
-                    bronze_day = session_date(bronze_ts)
-                    gold_day = session_date(gold_ts)
+                    bronze_day = session_date(bronze_ts, symbol)
+                    gold_day = session_date(gold_ts, symbol)
                     needs_rebuild = bronze_day is not None and (
                         gold_day is None or gold_day < bronze_day
                     )
@@ -316,14 +501,40 @@ class AutoRefreshService:
             #
             # A child process has its own GIL, so the refresh keeps its
             # throughput AND the request path keeps its speed.
+            #
+            # WHY `changed_since` IS PASSED ALONG
+            # -------------------------------------
+            # Every feature in Silver and Gold is causal - it looks BACKWARD
+            # only - so a rebuild triggered by a new bar at the END of the
+            # history produces exactly the same rows for every earlier
+            # session. Writing all ~121 partitions again was 2.7 s of MinIO
+            # round-trips per symbol (measured 14/11/2026) for content that
+            # did not change. Only the partitions from the changed session
+            # onwards are written now.
+            #
+            # The date is the START of the fetch window, so it covers both a
+            # new bar and a RESTATED one. One extra day of slack covers the
+            # timezone edge between the fetch window and the session stamp.
+            changed_since = _changed_since_from_result(res)
             try:
-                run_in_process(rebuild_silver_job, sym, "1d", pool_name="background")
+                run_in_process(
+                    rebuild_silver_job,
+                    sym,
+                    "1d",
+                    changed_since,
+                    pool_name="background",
+                )
                 with _counts_lock:
                     silver_done += 1
             except Exception as exc:
                 logger.warning("AutoRefresh silver rebuild failed for %s: %s", sym, exc)
             try:
-                run_in_process(rebuild_gold_job, sym, pool_name="background")
+                run_in_process(
+                    rebuild_gold_job,
+                    sym,
+                    changed_since,
+                    pool_name="background",
+                )
                 with _counts_lock:
                     gold_done += 1
             except Exception as exc:
@@ -340,6 +551,43 @@ class AutoRefreshService:
             # request — turning a 1s page load into a multi-minute hang that
             # the frontend's 90s timeout cut off.
             invalidate_symbol_cache(sym)
+
+            # ── Next-session forecast ─────────────────────────────────────
+            #
+            # The symbol's Gold layer now holds the newest session, so the
+            # model can be asked what it expects for the session that opens
+            # next. The forecast is stored in the `predictions` table, which
+            # is what the Dashboard reads.
+            #
+            # This NEVER trains a model. Only models that already exist on
+            # disk are used; a symbol without a trained model is skipped and
+            # logged, and the rest of the pass continues. That matters on the
+            # VPS, where the LSTM is trained on a workstation and copied
+            # over.
+            if settings.auto_predict_enabled:
+                try:
+                    from app.services.next_session_forecast import predict_and_store
+
+                    forecast = predict_and_store(
+                        sym,
+                        model_name=settings.auto_predict_model,
+                        horizon=1,
+                        source="auto_eod_batch",
+                    )
+                    if forecast.get("available"):
+                        with _counts_lock:
+                            predicted_done += 1
+                    else:
+                        logger.info(
+                            "AutoRefresh: no next-session forecast for %s (%s)",
+                            sym,
+                            forecast.get("reason", "no trained model"),
+                        )
+                except Exception as exc:  # noqa: BLE001
+                    # A forecast failure must NEVER take the refresh pass
+                    # down. The price layers are already rebuilt; the
+                    # forecast is an addition to that, not a precondition.
+                    logger.warning("AutoRefresh: forecast failed for %s: %s", sym, exc)
 
         # Rebuilds run on their own pool so a slow Silver/Gold write for one
         # symbol never stalls the HTTP fetch of the next ~950.
@@ -404,8 +652,8 @@ class AutoRefreshService:
                 symbols_with_new_data.append(res["symbol"])
 
         logger.info(
-            "AutoRefresh: %d/%d symbols had Silver/Gold rebuilt (silver=%d gold=%d)",
-            max(silver_done, gold_done), len(target_symbols), silver_done, gold_done,
+            "AutoRefresh: %d/%d symbols had Silver/Gold rebuilt (silver=%d gold=%d forecasts=%d)",
+            max(silver_done, gold_done), len(target_symbols), silver_done, gold_done, predicted_done,
         )
 
         finished = datetime.now(timezone.utc)
@@ -419,6 +667,7 @@ class AutoRefreshService:
             "total_new_rows": sum(r.get("new_rows", 0) for r in results),
             "silver_rebuilt": silver_done,
             "gold_rebuilt": gold_done,
+            "next_session_forecasts": predicted_done,
             "errors": [r for r in results if r.get("error")],
         }
         self._last_run_at = finished
@@ -537,6 +786,12 @@ class AutoRefreshService:
                 },
             )
             new_rows = int(meta.get("new_records", 0))
+            # Rows the provider RESTATED: the same bar, revised. These do not
+            # grow the partition, so `new_rows` stays 0 - but Bronze now holds
+            # a different close than Silver and Gold do, and the web would
+            # serve the stale one. The rebuild has to happen on a restatement
+            # too, not only when a new bar appears.
+            updated_rows = int(meta.get("updated_records", 0))
         except Exception as exc:
             logger.warning("AutoRefresh: bronze append failed for %s: %s", symbol, exc)
             return {"symbol": symbol, "error": str(exc), "new_rows": 0, "is_new_symbol": is_new_symbol}
@@ -544,6 +799,7 @@ class AutoRefreshService:
         return {
             "symbol": symbol,
             "new_rows": new_rows,
+            "updated_rows": updated_rows,
             "is_new_symbol": is_new_symbol,
             "from": start_naive.isoformat() if hasattr(start_naive, "isoformat") else str(start_naive),
             "to": end_naive.isoformat(),

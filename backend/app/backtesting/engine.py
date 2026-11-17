@@ -6,11 +6,13 @@ from datetime import datetime
 
 import pandas as pd
 
+from app.backtesting.benchmark import run_buy_and_hold
 from app.backtesting.metrics import compute_metrics, drawdown_series
 from app.backtesting.simulator import simulate
 from app.backtesting.strategies import STRATEGY_MAP
 from app.core.exceptions import BacktestError
 from app.core.logging_config import get_logger
+from app.lakehouse.session import as_utc_timestamp
 
 logger = get_logger(__name__)
 
@@ -51,6 +53,17 @@ class BacktestEngine:
         )
 
         metrics = compute_metrics(portfolio.equity_curve, portfolio.realized_trades, initial_capital)
+
+        # The buy-and-hold benchmark on the SAME bars, with the SAME fees
+        # and the SAME next-bar execution convention. Without it the
+        # strategy's return has nothing to be measured against.
+        bench_metrics, bench_equity, bench_drawdown = run_buy_and_hold(
+            frame,
+            initial_capital=initial_capital,
+            transaction_fee=transaction_fee,
+            slippage=slippage,
+        )
+
         result = {
             "symbol": symbol.upper(),
             "strategy": strategy_name,
@@ -90,10 +103,34 @@ class BacktestEngine:
                     "quantity": trade.quantity,
                     "pnl": trade.pnl,
                     "return_pct": trade.return_pct,
+                    # Both the entry and the exit fee. The PnL above is
+                    # already net of them.
+                    "fees": trade.fees,
                 }
                 for trade in portfolio.realized_trades
             ],
             "markers": markers,
+            # The baseline the strategy has to beat. The UI draws it on
+            # the same axis as the strategy's equity curve.
+            "benchmark": {
+                "name": "buy_and_hold",
+                "total_return": bench_metrics.get("total_return"),
+                "sharpe_ratio": bench_metrics.get("sharpe_ratio"),
+                "maximum_drawdown": bench_metrics.get("maximum_drawdown"),
+                "final_capital": bench_metrics.get("final_capital"),
+                "equity_curve": bench_equity,
+                "drawdown": bench_drawdown,
+            },
+            # The two headline comparisons, so a reader does not have to
+            # subtract the numbers by hand.
+            "excess_return_vs_benchmark": (
+                metrics["total_return"] - bench_metrics["total_return"]
+                if bench_metrics else None
+            ),
+            "beat_benchmark": (
+                metrics["total_return"] > bench_metrics["total_return"]
+                if bench_metrics else None
+            ),
             "disclaimer": (
                 "Backtesting evaluates historical hypothetical performance only. "
                 "It does not prove that a strategy will be profitable in the future."
@@ -139,9 +176,9 @@ class BacktestEngine:
             )
         frame = frame.sort_values("timestamp").reset_index(drop=True)
         if start_date:
-            frame = frame[frame["timestamp"] >= pd.Timestamp(start_date, tz="UTC")]
+            frame = frame[frame["timestamp"] >= as_utc_timestamp(start_date)]
         if end_date:
-            frame = frame[frame["timestamp"] <= pd.Timestamp(end_date, tz="UTC")]
+            frame = frame[frame["timestamp"] <= as_utc_timestamp(end_date)]
         frame = frame.dropna(subset=["open", "high", "low", "close"]).reset_index(drop=True)
         if len(frame) < 60:
             raise BacktestError("Need at least 60 bars to backtest this strategy.")

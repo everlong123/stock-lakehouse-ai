@@ -3,215 +3,298 @@
 @tailwind utilities;
 
 /*
- * Theme: Modern Financial Dashboard
- * White/green-teal palette with subtle glass effects, smooth transitions,
- * and layered depth. Inspired by professional trading platforms.
+ * The design system.
+ * =====================================================================
+ * Everything below obeys .cursor/rules/web-design-system.mdc:
+ *
+ *   - SEVEN colour roles (plus `negative` for falling prices). No other
+ *     colour may exist in this codebase.
+ *   - FIVE type sizes. No arbitrary `text-[13px]`.
+ *   - TWO border radii: 6px and 9999px.
+ *   - ONE elevation strategy: hairline borders. No shadows except popovers.
+ *   - Spacing is a multiple of 4px, always.
+ *
+ * Both canvas and ink are shifted off pure white/black. A warm canvas with
+ * cool ink is the classic accidental mismatch, so this picks one direction
+ * and stays in it: cool.
  */
-:root {
-  /* ── Surface hierarchy ──────────────────────────────────────── */
-  --background: 210 20% 98%;
-  --foreground: 220 25% 10%;
+@layer base {
+  :root {
+    /* ── Colour roles ────────────────────────────────────────────── */
+    --canvas:      220 20% 97%;   /* #F4F5F7 — page background        */
+    --surface:     220 33% 99%;   /* #FCFCFD — cards, panels          */
+    --surface-2:   220 16% 94%;   /* #EDEFF2 — recessed, table heads  */
+    --ink:         220 19% 9%;    /* #14161A — headings, body         */
+    --muted:       220 9% 42%;    /* #5F6672 — secondary text         */
+    --hairline:    220 20% 90%;   /* #E2E5EA — 1px borders           */
+    --primary:     158 60% 26%;   /* #1B6B4A — the one accent         */
+    --on-primary:  0 0% 100%;     /* #FFFFFF — text on primary        */
+    --negative:    4 62% 49%;     /* #C0392B — falling prices only    */
 
-  /* Cards sit slightly above background with subtle elevation */
-  --card: 0 0% 100%;
-  --card-foreground: 220 25% 10%;
+    /* ── Type scale — five sizes, no more ───────────────────────── */
+    --fs-display: 40px;
+    --fs-heading: 24px;
+    --fs-body:    16px;
+    --fs-small:   14px;
+    --fs-label:   12px;
 
-  /* Muted elements (secondary text, input backgrounds) */
-  --muted: 210 20% 95%;
-  --muted-foreground: 220 12% 45%;
+    /* ── Spacing — base 4px ──────────────────────────────────────── */
+    --sp-1:  4px;
+    --sp-2:  8px;
+    --sp-3:  12px;
+    --sp-4:  16px;
+    --sp-6:  24px;
+    --sp-8:  32px;
+    --sp-12: 48px;
+    --sp-16: 64px;
 
-  /* Borders — softer, more refined */
-  --border: 210 18% 90%;
-  --input: 210 18% 88%;
+    /* ── Radii — one working radius, one pill ───────────────────── */
+    --radius:    6px;
+    --radius-pill: 9999px;
 
-  /* ── Brand: deep emerald-teal ─────────────────────────────── */
-  --primary: 165 52% 28%;          /* deep teal — brand, CTA */
-  --primary-hover: 165 52% 22%;     /* darker on hover */
-  --primary-foreground: 0 0% 100%;
+    /* ── The single allowed shadow (true overlays only) ──────────── */
+    --shadow-popover: 0 8px 24px -6px rgb(20 22 26 / 0.18);
+  }
 
-  /* Accent: soft teal wash for hover/selection states */
-  --accent: 165 40% 95%;
-  --accent-foreground: 165 52% 22%;
+  *, *::before, *::after { box-sizing: border-box; }
 
-  /* ── Market semantics ─────────────────────────────────────── */
-  --up:     152 58% 38%;   /* emerald green */
-  --down:   4   80% 52%;   /* rose red */
-  --warn:   38  92% 50%;   /* amber */
-  --info:   200 80% 50%;   /* sky blue */
+  html { scroll-behavior: smooth; }
+  html, body, #root { min-height: 100%; }
 
-  /* ── Layered depth: glass / elevated surfaces ─────────────── */
-  --glass:        0 0% 100% / 0.7;
-  --glass-border: 210 18% 90% / 0.6;
-  --shadow-sm:    0 1px 3px 0 rgb(0 0 0 / 0.06), 0 1px 2px -1px rgb(0 0 0 / 0.04);
-  --shadow-md:    0 4px 6px -1px rgb(0 0 0 / 0.07), 0 2px 4px -2px rgb(0 0 0 / 0.05);
-  --shadow-lg:    0 10px 15px -3px rgb(0 0 0 / 0.08), 0 4px 6px -4px rgb(0 0 0 / 0.05);
-  --shadow-glow:  0 0 20px -4px hsl(var(--primary) / 0.25);
+  body {
+    margin: 0;
+    background: hsl(var(--canvas));
+    color: hsl(var(--ink));
+    font-family: "DM Sans", system-ui, -apple-system, sans-serif;
+    font-size: var(--fs-small);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
 
-  /* ── Typography ───────────────────────────────────────────── */
-  --body-font: "DM Sans", "Inter", system-ui, -apple-system, sans-serif;
-  --mono-font: "JetBrains Mono", "Fira Code", "Cascadia Code", monospace;
+  /* Headings get their own family and tighter tracking. This is what makes
+     the page read as a system instead of one font at five sizes. */
+  h1, h2, h3, h4 {
+    font-family: "Plus Jakarta Sans", system-ui, sans-serif;
+    color: hsl(var(--ink));
+    letter-spacing: -0.01em;
+    margin: 0;
+  }
+  h1 { font-size: var(--fs-heading); line-height: 1.3; font-weight: 600; }
+  h2 { font-size: var(--fs-heading); line-height: 1.3; font-weight: 600; }
+  h3 { font-size: var(--fs-body); line-height: 1.6; font-weight: 600; }
+
+  /* Numbers are tabular everywhere so columns line up. */
+  .font-mono, .tabular-nums { font-variant-numeric: tabular-nums; }
+
+  ::selection {
+    background: hsl(var(--primary) / 0.16);
+    color: hsl(var(--ink));
+  }
+
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb {
+    background: hsl(var(--hairline));
+    border-radius: 9999px;
+  }
+  ::-webkit-scrollbar-thumb:hover { background: hsl(var(--muted) / 0.4); }
+
+  :focus-visible {
+    outline: 2px solid hsl(var(--primary));
+    outline-offset: 2px;
+    border-radius: 3px;
+  }
 }
 
-/* ── Base resets & global polish ─────────────────────────────────────────── */
-*, *::before, *::after { box-sizing: border-box; }
-
-html { scroll-behavior: smooth; }
-
-html, body, #root { min-height: 100%; }
-
-body {
-  margin: 0;
-  background: hsl(var(--background));
-  color: hsl(var(--foreground));
-  font-family: var(--body-font);
-  font-feature-settings: "cv11", "ss01", "ss03";
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  letter-spacing: -0.01em;
-  line-height: 1.5;
-}
-
-/* ── Text selection ──────────────────────────────────────────────────────── */
-::selection {
-  background: hsl(var(--primary) / 0.15);
-  color: hsl(var(--foreground));
-}
-
-/* ── Custom scrollbar ────────────────────────────────────────────────────── */
-::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb {
-  background: hsl(var(--border));
-  border-radius: 999px;
-}
-::-webkit-scrollbar-thumb:hover { background: hsl(var(--muted-foreground) / 0.4); }
-
-/* ── Focus states ────────────────────────────────────────────────────────── */
-:focus-visible {
-  outline: 2px solid hsl(var(--primary));
-  outline-offset: 2px;
-  border-radius: 4px;
-}
-
-/* ── Component base classes ──────────────────────────────────────────────── */
+/* ═══════════════════════════════════════════════════════════════════════════
+   COMPONENT LAYER
+   Everything is flat. A hairline says "this is a region" better than a
+   shadow does, and it survives on a light canvas where shadows go muddy.
+   ════════════════════════════════════════════════════════════════════════════ */
 @layer components {
-  /* Standard panel — elevated card */
+  /* ── Panel: the one container primitive ────────────────────────────
+     Kept deliberately few. If a region needs grouping but is not
+     interactive and not a data block, use a hairline rule + whitespace
+     instead of a panel. */
   .panel {
-    @apply rounded-xl border border-border bg-card;
-    box-shadow: var(--shadow-sm);
-    transition: box-shadow 0.2s ease, border-color 0.2s ease;
-  }
-  .panel:hover {
-    box-shadow: var(--shadow-md);
-    border-color: hsl(var(--border) / 0.8);
+    @apply rounded border border-hairline bg-surface;
   }
 
-  /* Muted panel — recessed surface */
-  .panel-muted {
-    @apply rounded-xl border border-border bg-muted;
+  /* A recessed region: table heads, inactive strips, code blocks. */
+  .recessed {
+    @apply rounded border border-hairline bg-surface-2;
   }
 
-  /* Glass panel — frosted overlay */
-  .glass {
-    background: hsl(var(--glass));
-    backdrop-filter: blur(12px) saturate(180%);
-    -webkit-backdrop-filter: blur(12px) saturate(180%);
-    border: 1px solid hsl(var(--glass-border));
-    box-shadow: var(--shadow-sm);
+  /* ── Section header: title left, controls right, hairline under ─── */
+  .section-head {
+    @apply flex flex-wrap items-end justify-between gap-4 border-b border-hairline pb-4;
+  }
+  .section-title {
+    @apply font-display text-heading text-ink;
+  }
+  .section-sub {
+    @apply mt-1 text-small text-muted;
   }
 
-  /* Keyboard badge */
-  .kbd {
-    @apply inline-flex items-center rounded-md border border-border bg-muted px-1.5 py-0.5
-           font-mono text-[10px] text-muted-foreground;
+  /* ── The label: uppercase, tracked, 12px. Every UI caption. ─────── */
+  .label {
+    @apply font-mono text-label uppercase text-muted;
   }
 
-  /* Pulse dot — for live indicators */
-  .pulse-dot {
+  /* ── Buttons: four variants, one filled accent per view ──────────── */
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded whitespace-nowrap
+           font-medium transition-colors disabled:pointer-events-none disabled:opacity-40
+           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary
+           focus-visible:ring-offset-2 focus-visible:ring-offset-canvas;
+  }
+  .btn-primary {
+    @apply bg-primary text-on-primary;
+  }
+  .btn-secondary {
+    @apply bg-ink text-canvas;
+  }
+  .btn-outline {
+    @apply border border-hairline bg-transparent text-ink;
+  }
+  .btn-text {
+    @apply bg-transparent text-ink;
+  }
+  .btn-h   { @apply h-9 px-4 text-small; }
+  .btn-sm  { @apply h-8 px-3 text-small; }
+
+  /* ── Data table: the workhorse of this app ───────────────────────── */
+  .table {
+    @apply w-full text-left text-small;
+  }
+  .table thead th {
+    @apply whitespace-nowrap border-b border-hairline bg-surface-2 px-3 py-2
+           text-label font-medium uppercase text-muted;
+  }
+  .table tbody td {
+    @apply border-b border-hairline px-3 py-2 align-middle;
+  }
+  .table tbody tr:last-child td { @apply border-b-0; }
+  .table tbody tr:hover { @apply bg-surface-2; }
+
+  /* ── Segmented control ────────────────────────────────────────────── */
+  .segmented {
+    @apply inline-flex items-center rounded border border-hairline bg-surface p-1;
+  }
+  .segmented-item {
+    @apply rounded px-3 py-1 font-mono text-label uppercase text-muted transition-colors;
+  }
+  .segmented-item:hover { @apply bg-surface-2 text-ink; }
+  .segmented-item[aria-selected="true"],
+  .segmented-item[aria-pressed="true"] {
+    @apply bg-primary text-on-primary;
+  }
+
+  /* ── Nav tab: a bordered button, not a bare link ────────────────────
+     WHY A BUTTON SHAPE: eight underlined links in a row read as a
+     sitemap. A reader has to hunt for the active one, and the hit area
+     is only as tall as the text. Wrapping each item in a 6px-radius
+     border with a 44px minimum height gives every destination a real
+     target, makes the active page obvious at a glance, and lets the
+     whole row stretch into one solid full-width band of navigation
+     instead of a small cluster floating in the middle of the page.
+     ─────────────────────────────────────────────────────────────────── */
+  .navtab {
+    @apply inline-flex min-h-11 min-w-max items-center justify-center gap-2
+           whitespace-nowrap rounded border border-hairline bg-surface px-4
+           text-small font-medium text-muted transition-colors;
+  }
+  .navtab:hover { @apply border-ink/30 bg-surface-2 text-ink; }
+  .navtab:focus-visible { @apply outline-none border-primary text-ink; }
+  .navtab[aria-current="page"] {
+    @apply border-primary bg-primary text-on-primary;
+  }
+  .navtab[aria-current="page"]:hover { @apply bg-primary text-on-primary; }
+
+  /* ── Status dot: green when live, muted when idle ─────────────────── */
+  .dot {
     @apply inline-block h-2 w-2 rounded-full;
-    background: hsl(var(--up));
+    background: hsl(var(--muted) / 0.4);
+  }
+  .dot-live {
+    background: hsl(var(--primary));
+    animation: pulse-ring 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+  .dot-warn {
+    background: hsl(var(--negative));
     animation: pulse-ring 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
   }
 
-  /* Gradient overlay for chart areas */
-  .chart-gradient {
-    background: linear-gradient(
-      180deg,
-      hsl(var(--primary) / 0.06) 0%,
-      hsl(var(--primary) / 0.01) 70%,
+  /* ── Market tape: the scrolling price strip in the nav bar ───────────
+     WHY A CSS KEYFRAME AND NOT A JS TICKER: a JS ticker has to run on
+     every frame, re-measure the track width, and re-position it — that is
+     a layout read every frame, which is exactly the kind of hidden cost
+     that makes a page feel heavy. The track is rendered twice and the
+     animation translates it by exactly -50%, so the loop is seamless with
+     a compositor-only transform.
+
+     WHY IT PAUSES ON HOVER: a trader needs to read one row without it
+     sliding out from under the pointer. Pausing is the one interaction
+     the strip has to support.
+
+     The mask is a hard edge, not a gradient: a faded edge would put a
+     colour ramp on the page, and the design system allows exactly one
+     accent colour per surface. */
+  .tape-viewport {
+    mask-image: linear-gradient(
+      to right,
+      transparent 0,
+      #000 24px,
+      #000 calc(100% - 24px),
       transparent 100%
     );
   }
-}
+  .tape-track {
+    animation: tape-scroll 64s linear infinite;
+  }
+  .tape-viewport:hover .tape-track,
+  .tape-viewport:focus-within .tape-track {
+    animation-play-state: paused;
+  }
 
-/* ── Skeleton loading ────────────────────────────────────────────────────── */
-.skeleton-bar {
-  background: linear-gradient(
-    90deg,
-    hsl(var(--muted)) 25%,
-    hsl(var(--background)) 50%,
-    hsl(var(--muted)) 75%
-  );
-  background-size: 200% 100%;
-  animation: skeleton-shimmer 1.5s ease-in-out infinite;
-}
-
-/* ── Brand utilities ─────────────────────────────────────────────────────── */
-@layer utilities {
-  .bg-brand       { background-color: hsl(var(--primary)); }
-  .bg-brand-soft  { background-color: hsl(var(--accent)); }
-  .text-brand     { color: hsl(var(--primary)); }
-  .border-brand   { border-color: hsl(var(--primary)); }
-
-  /* Glow effect for active/selected elements */
-  .glow {
-    box-shadow: var(--shadow-glow);
+  /* ── Skeleton ─────────────────────────────────────────────────────── */
+  .skeleton {
+    background: linear-gradient(
+      90deg,
+      hsl(var(--surface-2)) 25%,
+      hsl(var(--surface)) 50%,
+      hsl(var(--surface-2)) 75%
+    );
+    background-size: 200% 100%;
+    animation: skeleton-shimmer 1.5s ease-in-out infinite;
   }
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
    ANIMATIONS
-═══════════════════════════════════════════════════════════════════════════ */
-
+   Only purposeful ones: state changes, skeletons, the live pulse.
+   ════════════════════════════════════════════════════════════════════════════ */
 @keyframes skeleton-shimmer {
   0%   { background-position: 200% 0; }
   100% { background-position: -200% 0; }
 }
 
 @keyframes pulse-ring {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50%       { opacity: 0.6; transform: scale(1.15); }
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.35; }
 }
 
-@keyframes fade-in-up {
-  from { opacity: 0; transform: translateY(10px); }
-  to   { opacity: 1; transform: translateY(0); }
+/* The tape track is rendered twice; translating by -50% moves exactly one
+   copy, so the second copy lands where the first started and the loop
+   has no seam. */
+@keyframes tape-scroll {
+  from { transform: translate3d(0, 0, 0); }
+  to   { transform: translate3d(-50%, 0, 0); }
 }
 
-@keyframes fade-in {
-  from { opacity: 0; }
-  to   { opacity: 1; }
+@media (prefers-reduced-motion: reduce) {
+  .tape-track { animation: none; }
+  .dot-live,
+  .dot-warn  { animation: none; }
 }
-
-@keyframes slide-in-right {
-  from { opacity: 0; transform: translateX(12px); }
-  to   { opacity: 1; transform: translateX(0); }
-}
-
-@keyframes scale-in {
-  from { opacity: 0; transform: scale(0.95); }
-  to   { opacity: 1; transform: scale(1); }
-}
-
-/* Entrance animation utilities */
-.animate-fade-in-up    { animation: fade-in-up 0.4s ease-out both; }
-.animate-fade-in        { animation: fade-in 0.3s ease-out both; }
-.animate-slide-in-right { animation: slide-in-right 0.3s ease-out both; }
-.animate-scale-in       { animation: scale-in 0.25s ease-out both; }
-
-/* Stagger delays for list items */
-.stagger-1 { animation-delay: 0.05s; }
-.stagger-2 { animation-delay: 0.10s; }
-.stagger-3 { animation-delay: 0.15s; }
-.stagger-4 { animation-delay: 0.20s; }
-.stagger-5 { animation-delay: 0.25s; }

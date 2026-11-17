@@ -297,12 +297,21 @@ canonicalize). Symbol nào **không** có daily bar thì chart hiện giá sai. 
 đó đúng là ba symbol mà auto-refresh không bao giờ quét tới — vì
 `CRYPTO_SYMBOLS` không nằm trong universe refresh.
 
-### 8.2 `manual` — giá gõ tay từ nút "demo"
+### 8.2 `manual` — giá gõ tay từ nút "demo" (LỊCH SỬ — đã xoá)
 
-Trang Live Stream có một panel "demo" đẩy 3 bar gõ tay mỗi mã (AAPL ~332.5,
-MSFT ~415.2, NVDA ~510.0) qua `POST /api/v1/stream/ingest` → Kafka → Bronze.
+Trang Live Stream từng có một panel "demo" đẩy 3 bar gõ tay mỗi mã (AAPL ~332.5,
+MSFT ~415.2, NVDA ~510.0) qua `POST /api/v1/stream/ingest` → Bronze.
 18 row đó tới được Bronze với `source = "manual"` và **không có gì phân biệt
 được chúng với một print thật**.
+
+> **Đo ngày 10/11/2026:** các row `manual` đã bị **xoá khỏi Bronze** (xem mục 8.6
+> bên dưới) và cổng `POST /api/v1/stream/ingest` bị **tắt**
+> (`allow_stream_ingest=false`).
+>
+> **Đo ngày 11/11/2026:** cổng này cùng toàn bộ file `stream.py` đã bị **xoá
+> hẳn**, kèm `allow_stream_ingest` trong cấu hình. Không còn đường nào ghi bar
+> thủ công vào Bronze — đây là trạng thái tốt nhất cho luật "real data only".
+> Xem mục 14.6 của `HE_THONG_TOAN_DIEN_VA_GIAI_TRINH_KHOA_LUAN.md`.
 
 ### 8.3 `ssi_vn` — nguồn thật nhưng bị phân loại sai
 
@@ -392,11 +401,191 @@ Giá sau khi sửa (đọc thẳng từ API):
   streaming nằm cách giá của chính symbol quá 2.5 lần bị loại. (Cùng một
   session, nên không thể xa giá như vậy.) Bản 100x trước đó quá lỏng — nó
   không bắt được NVDA (855 vs 237 = 3.6 lần) và TSLA.
-* `POST /api/v1/stream/ingest` **mặc định trả 403**. Nó chỉ mở khi
-  `ALLOW_STREAM_INGEST=true`, và chỉ dành cho smoke test local.
-* Panel "demo" đã bị xoá khỏi `LiveStream.tsx`.
+* `POST /api/v1/stream/ingest` **đã bị xoá hẳn** (đo 11/11/2026) — không còn
+  đường nào ghi bar thủ công vào Bronze.
+* Toàn bộ trang Live Stream đã bị xoá (đo 11/11/2026).
 * `CRYPTO_SYMBOLS` (giờ gồm cả `COIN`) đã vào universe của auto-refresh, nên
   crypto không còn đứng ngoài và bị bỏ quên.
+
+### 8.8 Sổ tay kiểm chứng dự báo — 200 dòng bịa trong MySQL (2026-11-15)
+
+Lần quét này mở rộng phạm vi: không chỉ Bronze/Silver/Gold, mà cả **bảng
+`predictions`** — bảng ghi lại những gì hệ thống **đã công bố** trước khi phiên
+mở cửa, và tự chấm điểm bằng giá đóng cửa thật.
+
+**Triệu chứng:** bảng `predictions` chứa **200 dòng** cho các mã `TST0` ..
+`TST199`. Mọi dòng có **cùng một cặp số bịa** (`reference_close = 100.0`,
+`predicted_close = 101.0`, `predicted_return = 0.01`), cùng nhãn
+`source = "auto_eod_batch"`, và được tạo trong **1 giây** (08:20:32 → 08:20:33
+ngày 14/11/2026).
+
+**Vì sao xảy ra:** các dòng đó **không đi qua đường ghi của hệ thống**:
+
+| Nơi kiểm tra | Kết quả |
+|---|---|
+| Bronze / Silver / Gold | 1.002 mã thật, **0 mã** tên `TST*` |
+| `backend/data/models/` | 1.003 thư mục model, **0** thư mục `TST*` |
+| Mã nguồn trong `backend/` | **không có** chỗ nào sinh ra tên `TST*` |
+
+Nghĩa là chúng được ghi **thẳng vào MySQL**, và đường ghi đó không có nghị quyết
+nào hỏi "mã này có thật không". Kết quả: số "đã kiểm chứng" mà bảng điều khiển
+hiển thị đã chứa cả 200 dòng giả, và chúng **không còn phân biệt được** với dự
+báo thật.
+
+**Fix (ba lớp):**
+
+1. **Chặn ở đường ghi** — `backend/app/core/data_integrity.py` + guard trong
+   `PredictionRepository.upsert()` (đường ghi duy nhất vào bảng `predictions`):
+   mã bắt đầu bằng `TST`, `TEST`, `DEMO`, `MOCK`, `FAKE`, `DUMMY`, `SAMPLE`,
+   `PLACEHOLDER` hoặc `XXX` bị từ chối trước khi chạm vào cơ sở dữ liệu.
+2. **Quét theo tầng lưu trữ** — `backend/scripts/purge_fake_predictions.py` tìm
+   mọi dòng mà mã **không tồn tại trong tầng Gold**. Đây là phép kiểm tra
+   **mạnh hơn** denylist: nó bắt được cả dòng giả mang tên một mã có vẻ thật.
+   Script mặc định dry-run, cần `--apply` mới ghi.
+3. **Ghim bằng test** — `backend/tests/test_no_fake_data.py`.
+
+**Bằng chứng (đo ngày 15/11/2026):**
+
+| Chỉ số | Trước | Sau |
+|---|---|---|
+| Tổng dòng trong bảng `predictions` | 46.609 | **46.409** |
+| Dòng của mã fixture (`TST*`) | **200** | **0** |
+| Số mã khác nhau trong bảng | 1.173 | **973** |
+| Mã trong bảng nhưng **không có** trong Gold | 200 | **0** |
+| Cụm giá trị trùng lặp bất thường (≥20 dòng) | 1 | **0** |
+
+Đối chiếu cả ba tầng lưu trữ với MySQL sau khi sửa:
+
+| Bảng | Số mã | Mã không có trong Gold |
+|---|---|---|
+| `predictions` | 973 | **0** |
+| `model_runs` | 14 | **0** |
+| `backtest_runs` | 13 | **0** |
+
+**Vì sao xoá chứ không sửa:** một dòng dự báo là **kết quả của một mô hình**.
+Với mã không có lịch sử thì mô hình không chạy được, nên **không có giá trị đúng
+để khôi phục** — trạng thái trung thực là dòng vắng mặt, không phải một dòng điền
+số giả để lấp chỗ trống.
+
+### 8.9 Giá dự báo không tồn tại — 76 dòng, và 99,993% của tổng sai số (2026-11-15)
+
+**Triệu chứng:** báo cáo kiểm chứng hiển thị **sai số tương đối trung bình
+263,85%** trên toàn bộ nhóm, trong khi **trung vị chỉ 1,15%**. Con số trung bình
+đó vô lý với mọi hệ thống dự báo thực.
+
+**Giả thuyết ban đầu (SAI):** "mẫu số nhỏ". Người viết tài liệu đoán rằng các
+mã giá rất nhỏ (ví dụ `VIV.PA` giá 1,69) làm sai số tương đối của chúng phình
+to, nên trung bình bị kéo lên.
+
+**Kết quả kiểm chứng (đo ngày 15/11/2026):**
+
+| Kiểm tra | Kết quả | Kết luận |
+|---|---|---|
+| Số dòng đã chấm của `VIV.PA` | **1** (sai số 3,93%) | `VIV.PA` không gây ra vấn đề |
+| Trung bình sau khi loại **mọi** dòng `reference_close < 1,0` | **91,95%** | Vẫn hỏng → giả thuyết bị bác bỏ |
+| Tổng `|error_pct|` của toàn bộ 44.676 dòng | 11.792.660 | — |
+| Trong đó, `PARA` một mình | **11.791.832 (99,993%)** | Một mã giữ hết |
+| Trung bình sau khi loại riêng `PARA` | **-0,0329%** | Trung vị 1,15% là con số đúng |
+
+**Vì sao `PARA` hỏng:** lịch sử giá của nó trong Bronze/Gold trải trên **ba bậc
+độ lớn** (101.500 năm 2021 → 1.648 năm 2024 → 0,104 năm 11/2026) vì **bốn lần
+chia ngược** (1:50 ngày 19/09/2024, 1:10 ngày 08/07/2025, 1:20 ngày 08/05/2026,
+1:10 ngày 27/10/2026). Lakehouse nạp dữ liệu qua nhiều ngày nên các partition
+lưu **không cùng một quy mô giá**.
+
+Mô hình `linear_regression` dùng **mức giá** làm đặc trưng. Huấn luyện trên
+một chuỗi nhiều thang giá thì hệ số hồi quy học được không có ý nghĩa, và phần
+**ngoại suy** rơi vào bất kỳ đâu:
+
+| Phiên | Tham chiếu | Dự báo | Thực | Sai số |
+|---|---|---|---|---|
+| PARA 12/11/2026 | 0,072 | **242.751** | 0,101 | +337.154,0% |
+| PARA 05/11/2026 | 0,319 | **329.139** | 0,164 | +103.178,0% |
+| PARA 28/10/2026 | 4,1395 | **-942,13** | 3,36 | -228,4% |
+
+Ngoài ra còn **19 dòng có giá dự báo ÂM** — không phải "sai số lớn" mà là **giá
+không tồn tại**: `LCID` -4,0937; `ACH` -0,1143; `SOXS` **-359.121.000**;
+`UVXY` -33.570,80; `SQQQ` -647,88; `SPXU` -33,47; `VXX` -1,87.
+
+Đối chiếu cùng chuỗi đó, **ARIMA** cho MAPE 10,6% (`PARA`), 4,27% (`LCID`),
+4,7% (`ACH`) → lỗi nằm ở **cách đặc trưng của mô hình**, không nằm ở dữ liệu.
+
+**Fix (bốn lớp):**
+
+1. **Chặn ở đường ghi** — `backend/app/core/data_integrity.py`:
+   `is_impossible_price()` từ chối `predicted_close <= 0` và mọi tỷ lệ lệch quá
+   **100 lần** so với giá tham chiếu. `PredictionRepository.upsert()` (đường ghi
+   duy nhất vào bảng) ném `ValueError`.
+2. **Dò điểm gãy thang giá** — `backend/app/lakehouse/scale_repair.py`:
+   - `detect_scale_discontinuity()` — dò **nhảy cục bộ** giữa hai phiên liền kề.
+   - `detect_scale_span()` — dò **độ rộng toàn cục** giữa 1/3 đầu và 1/3 cuối.
+   - `is_scale_contaminated()` — hợp nhất hai kiểm tra.
+3. **Lọc + công khai số dòng bị loại** — `accuracy_summary()` và
+   `median_error_pct()` chỉ tính trên dòng sạch, đồng thời trả
+   `excluded_impossible` để **không giấu** những gì đã loại.
+4. **Dọn dẹp sổ tay** — `backend/scripts/purge_impossible_predictions.py`
+   (dry-run mặc định, `--apply` mới ghi). Đã xoá **76 dòng**
+   (57 lệch thang giá + 19 giá âm).
+
+**Bằng chứng (đo ngày 15/11/2026):**
+
+| Chỉ số | Trước | Sau |
+|---|---|---|
+| Sai số tương đối trung bình (có dấu) | **+26.385,49%** | **+0,43%** |
+| Sai số tương đối trung bình (tuyệt đối) | 26.395,96% | **2,24%** |
+| Sai số tương đối TRUNG VỊ | 1,15% | **1,15%** |
+| WAPE (chưa có) | — | **2,73%** |
+| Số dòng đã chấm | 45.430 | 44.606 |
+| Dòng có giá không tồn tại | 76 | **0** |
+
+> **Đo lại ngày 17/11/2026** (sau khi sửa lỗi "Lock wait timeout" và chấm thêm
+> 695 dòng): WAPE toàn bảng là **2,75%**, số dòng đã chấm là **46.385**
+> (45.631 dòng có giá tham chiếu hợp lệ). Sai số tương đối trung vị giữ nguyên
+> **1,15%** — con số này **không đổi** khi thêm dữ liệu, và đó là dấu hiệu tốt:
+> sai số của một dự báo điển hình không phụ thuộc vào việc hệ thống đã chạy
+> thêm bao nhiêu phiên.
+
+**Vì sao ngưỡng 100 lần, không chặt hơn:** `PARA` thật sự giao dịch 0,104 → 0,164
+→ 0,319 → 2,72 trong ba phiên thật tháng 11/2026. Ngưỡng chặt hơn sẽ **báo oan**
+một biến động thật.
+
+**Bài học quan trọng nhất của lần quét này:** dò **nhảy cục bộ** một mình là
+**không đủ**. Chạy bộ dò đó trên toàn bộ 1.002 mã của tầng Gold (đo ngày
+15/11/2026) cho thấy:
+
+| Kết quả quét | Số |
+|---|---|
+| Mã có ít nhất một nhảy cục bộ | 46 |
+| Hệ số lớn nhất tìm được | **6,15x** (`OVV`, tháng 3/2020) |
+| Số mã bị gắn cờ ở mức ≥ 10 lần | **0** |
+
+`PARA` **không** nằm trong 46 mã đó — dù nó giữ 99,993% tổng sai số. Lý do:
+`PARA` không gãy trong **một** bước mà trải trên **hàng nghìn lần** qua nhiều
+bước nhỏ, mỗi bước trông bình thường. Đó là lý do phải có thêm kiểm tra
+**độ rộng toàn cục** (`detect_scale_span`).
+
+**Số đo độ rộng toàn cục trên toàn bộ 1.002 mã** (đo ngày 15/11/2026):
+
+| Mã | Độ rộng | Số nhảy cục bộ | Kết luận |
+|---|---|---|---|
+| **`PARA`** | **3.503x** | 2 | **Nhiễm** — giữ 99,993% tổng sai số |
+| `OCGN` | 97,9x | 7 | **Nhiễm** — 7 lần chia ngược |
+| `CELH` | 31,8x | **0** | Tăng trưởng thật |
+| `NVDA` | 30,6x | **0** | Tăng trưởng thật |
+| 35 mã còn lại | < 5x | 1–2 | Bình thường |
+
+Vì vậy ngưỡng độ rộng là **100 lần**: ở mức 20 lần thì `NVDA` và `CELH` cũng
+bị gắn cờ — mà chúng là hai mã khỏe mạnh chỉ vì **tăng trưởng**. Một lần
+báo oan cũng tệ như một lần bỏ sót: nó dạy người đọc không tin báo cáo.
+
+**Ghim bằng test:**
+
+- `backend/tests/test_forecast_plausibility.py` — quy tắc chặn (12 test).
+- `backend/tests/test_scale_repair.py` — dò gãy cục bộ + độ rộng toàn cục
+  (13 test).
+- `backend/tests/test_accuracy_report.py` — bảo đảm trung bình báo cáo không bị
+  dòng hỏng phá.
+- `backend/tests/test_no_fake_data.py` — chặn ở đường ghi (giá âm, lệch thang).
 
 ---
 
@@ -524,10 +713,24 @@ backfill được từ 2016 — không phụ thuộc SSI iBoard.
 * Layer count đếm **object (file parquet)**, không phải record, nhưng UI ghi
   "RECORDS" — người đọc tưởng Bronze có 114.904 *record* thay vì 114.904 *file*
   (thực tế ~2,3 triệu row). Đã sửa thành "files" / "Số file parquet theo layer".
+* **Sửa lần 2 (13/11/2026):** nhãn "Số file parquet theo layer" vẫn **không
+  chính xác**, vì `count_objects()` đếm **mọi object** trong bucket, không chỉ
+  file `.parquet`. Đo ngày 13/11/2026 cho thấy chênh lệch rõ rệt:
+
+  | Tầng | Số object đếm được | Trong đó là partition `.parquet` | Phần còn lại |
+  |---|---|---|---|
+  | Bronze | 116.110 | 115.101 | 1.007 manifest `.json` + 1 probe + 1 `.txt` |
+  | Silver | 116.593 | 115.101 | 490 file `_errors/` + 1.002 báo cáo `_quality.json` |
+  | Gold | 115.101 | 115.101 | 0 |
+
+  Ba tầng có **cùng 115.101 partition** — chỉ khác nhau ở các file phụ trợ.
+  Nhãn đã sửa thành "**Số object theo layer**" / "Objects by layer", đúng với
+  cái nó thực sự đếm. Số liệu trong `docs/` ghi rõ đây là **object**, không
+  phải record và không phải riêng file parquet.
 * `data_source` trong `/system/status` là **object** `{label, status}`, nhưng UI
   làm `String(obj)` → hiển thị literal `[object Object]`. Đã sửa.
 * Panel "Sources" liệt kê **Finnhub** — nguồn đã bị xoá hoàn toàn khỏi Bronze
-  sau khi phát hiện nó gán nhầm instrument. Đã bỏ khỏi danh sách.
+  sau khi phát hiện nó gán nhầm instrument. Đã bỏ khỏi danh liệt.
 
 ---
 
@@ -623,10 +826,10 @@ không làm suy yếu guard.
 
 | Symbol | Giá thật | Reference cũ | Kết quả |
 |---|---|---|---|
-| `PARA` (2026) | \$0.425 | median 2.21 | ❌ bị loại (`implausible_open`) |
-| `PARA` (2021) | \$101.500 | thấp 0.47 | ❌ bị loại (`price_magnitude`) |
-| `PARA` (2026) | \$0.425 | thấp 0.47 | ✅ |
-| `PARA` (2021) | \$101.500 | median 0.55 | ❌ bị loại (đúng: 200.000x) |
+| `PARA` (2026) | \$0.425 | median 2.21 | bị loại (`implausible_open`) |
+| `PARA` (2021) | \$101.500 | thấp 0.47 | bị loại (`price_magnitude`) |
+| `PARA` (2026) | \$0.425 | thấp 0.47 | OK |
+| `PARA` (2021) | \$101.500 | median 0.55 | bị loại (đúng: 200.000x) |
 
 Lưu ý dòng cuối: lịch sử 2021 của PARA **vẫn bị loại** khi re-ingest, và điều
 đó là **đúng** — một biến động 200.000 lần vượt ngưỡng, và dữ liệu đã lưu đã
@@ -661,7 +864,652 @@ trông "còn mới".
 
 ---
 
-## 10. Giới hạn của phương pháp này
+## 9.9. Provider sửa lịch sử → Bronze đúng nhưng Silver/Gold vẫn sai (2026-11-05)
+
+Sau 9.8, verifier báo **0 mismatch** nhưng vẫn còn **275 bar "restated"** trên
+30 symbol Châu Âu. Đây không phải dữ liệu sai — đây là **dữ liệu đúng ở tầng
+sai**.
+
+### Ba lỗi riêng biệt, cùng một hậu quả
+
+**Lỗi 1 — `new_records` không thấy một bar bị provider sửa.**
+
+Bronze dedupe theo `(symbol, timestamp)`, giữ dòng mới nhất. Nên khi provider
+sửa giá một bar đã có, Bronze **ghi đè** được bar cũ. Nhưng số dòng của
+partition **không đổi** — và `new_records` đo *sự lớn lên* của partition:
+
+```
+new_records += max(0, len(combined) - existing_count)
+```
+
+Nên một lần provider sửa bar ⇒ `new_records = 0` ⇒ auto-refresh đọc
+"symbol này không có gì mới" ⇒ **không rebuild Silver/Gold** ⇒ Silver và Gold
+giữ nguyên giá cũ **vĩnh viễn**. Fetch lại bao nhiêu lần cũng vô ích, vì
+vấn đề không nằm ở lần fetch mà ở chỗ một thay đổi **nội dung** bị nhầm là
+**no-op**.
+
+Đo được: `ADS.DE` ngày `2026-11-03` — Bronze đã có `168.10` (provider đã sửa),
+Silver/Gold vẫn có `168.85` (giá provider phục vụ hôm trước).
+
+**Sửa:** `BronzeLayer.append()` báo thêm `updated_records` — số dòng mà
+provider **sửa** (cùng `(symbol, timestamp)` nhưng khác payload giá). So sánh
+dùng **tương đối** (`1e-6`, đúng bằng tolerance của verifier): một sàn
+absolute floor sẽ sai, vì `1e-9` trên `ACH` (0.21) là `5e-9` tương đối — thay
+đổi thật, nhưng trên `VCB` (54.200) là `2e-14` — nhiễu float.
+
+**Lỗi 2 — auto-refresh chỉ rebuild khi `new_rows > 0`.**
+
+Đã sửa thêm nhánh: `res.get("updated_rows", 0) > 0` cũng kích hoạt rebuild.
+Cần cả hai: `new_rows` bắt bar **mới**, `updated_rows` bắt bar **bị sửa**.
+
+**Lỗi 3 — `reingest_window.py` chỉ so Bronze.**
+
+Script so Bronze với provider, thấy "không khác" nên **bỏ qua luôn bước
+rebuild** — kể cả khi Silver/Gold đang lệch. Đây là lý do `ADS.DE` sửa xong
+vẫn còn 1 bar restated.
+
+**Sửa:** script so **cả Bronze, Silver, Gold** với provider, và rebuild khi
+**bất kỳ** tầng nào lệch. Khi Bronze đã đúng mà Silver/Gold lệch thì không
+ghi lại Bronze (không có gì để ghi) nhưng **vẫn rebuild**.
+
+**Lỗi 4 — cache API không bị xoá vì dùng sai HTTP method.**
+
+`/admin/auto-refresh/cache/invalidate` là endpoint **POST**. Script gọi bằng
+`urllib.urlopen(url)` — tức GET — nên nhận `405 Method Not Allowed`. Exception
+bị nuốt ở mức `logger.debug`, nên không ai thấy. API vẫn phục vụ frame cũ
+trong 15 phút, và verifier chạy ngay sau đó báo "restated" cho những bar
+thực ra đã đúng.
+
+**Sửa:** dùng `urllib.request.Request(url, method="POST")`, và nâng log lên
+`warning` để lỗi này không bị giấu lần nữa.
+
+### Kiểm chứng
+
+* `ADS.DE`, `BTF`: **0 restated**, 240 bar khớp tuyệt đối.
+* 30 symbol Châu Âu còn lại: re-ingest sửa được các phiên chênh **2%–6%**
+  (ví dụ `IFX.DE` 2026-11-04: `53.51 → 50.24`, `FRE.DE` 2026-11-04:
+  `48.535 → 51.380` — tức là giá provider đã sửa mạnh, và bản web đang phục vụ
+  giá cũ).
+* Sau khi sửa: **30/30 PASS, 7.100 bar khớp tuyệt đối, 0 mismatch, 0 restated.**
+
+### Bài học: kiểm tra Bronze mà không kiểm tra Silver/Gold là kiểm tra sai
+
+Verifier ban đầu so Bronze với provider → thấy khớp → báo "PASS", trong khi
+web vẫn hiển thị giá cũ. Đã thêm `backend/scripts/check_layer_divergence.py` để so
+**nội dung** của ba tầng với nhau theo từng phiên.
+
+Khi chạy lần đầu, script báo **~1.000 symbol lệch** — nhưng đó là **báo động
+giả**: Bronze giữ **tick intraday thô** (VTI ngày `2026-10-26` có 2 dòng: 13:30
+và 16:56) còn Silver/Gold giữ **một bar/ngày**. Script đã sửa để canonicalize
+trước khi so. Sau đó còn **14 symbol** lệch thật (`ALV.DE`, `PXS`, …) — đều là
+trường hợp Silver/Gold giữ *ảnh chụp giữa phiên* trong khi Bronze đã có bar đã
+chốt. Rebuild `--force` cho 14 symbol đó.
+
+Kết quả cuối: **1.002/1.002 symbol — Silver và Gold khớp Bronze tuyệt đối.**
+
+> **Bài học cốt lõi:** "Bronze đúng" ≠ "web đúng". Đường dẫn
+> provider → Bronze → Silver → Gold → API cache → UI có **năm** chỗ có thể
+> đứt gãy, và mỗi chỗ đều cần một kiểm tra riêng.
+
+---
+
+## 10. Kiểm chứng toàn universe — kết quả cuối (2026-11-05)
+
+Lần chạy đầu chia 4 lát song song để tận dụng băng thông, nhưng **backend bị
+giết** giữa chừng (4 tiến trình verify cùng đọc MinIO + 4 tiến trình backend
+cùng viết → hết RAM). 35 symbol báo lỗi `WinError 10061` (API bị tắt), không
+phải lỗi dữ liệu.
+
+Đã chạy lại **tuần tự** trên 111 symbol đó:
+
+```
+symbols checked : 111
+exact matches   : 19612
+tolerant        : 0
+stale/explained : 312
+restated        : 0
+MISMATCHES      : 0
+errors          : 27   (provider không còn phục vụ)
+```
+
+### 9.10. Provider ngừng phục vụ 33 symbol — không phải lỗi dữ liệu (2026-11-05)
+
+27 symbol trả lỗi provider là những mã mà **Yahoo đã ngừng phục vụ**, không phải
+mã hỏng. Bằng chứng:
+
+* `query1` và `query2` cùng trả `404`.
+* `v7/finance/download` trả `406`.
+* Interleave thử với symbol đang hoạt động: `CVX`/`BLK`/`AAPL`/`MSFT` trả
+  đủ 714 bar, còn `TCO`/`CHK`/`WBA` vẫn 404 → **lỗi theo từng mã**, không phải
+  IP bị chặn.
+* `v1/finance/search?q=TCO` không còn trả `TCO` (chỉ còn `TCOM`, `TCO.AX`) →
+  Yahoo đã **đổi/hủy niêm yết** mã đó.
+* Bar cuối cùng trong lakehouse dừng đúng ngày **2026-10-19 07:17** — tức là
+  ngày provider ngừng phục vụ.
+
+Vì vậy "provider không còn phục vụ" **không được phép đồng nghĩa với "lakehouse
+chứa rác"**. Đã thêm `backend/scripts/check_unserved_symbols.py` để kiểm tra phần còn lại
+theo hướng khác: thay vì so với provider (không còn để so), kiểm tra tính
+**nhất quán nội tại** của dữ liệu đã lưu:
+
+* `high >= open, close` và `low <= open, close` (quan hệ OHLC đúng),
+* `volume >= 0`, giá > 0,
+* không có session trùng, timestamp đơn điệu,
+* bar mới nhất không lệch quá 100x so với median → loại lỗi đơn vị (10:1, 100:1),
+* Bronze / Silver / Gold thống nhất về giá đóng cửa mới nhất.
+
+Kết quả: **33/33 symbol PASS** (`CMA CPRX CTRA DAWN DENN EXPR FOLD HAB HNG HOLX
+IDC IPG KLG LTHM PEAK PGRE PGS PLL PVB PVC PVE PVS PXS TCO TGNA VCS WBA AKRO
+ALXN ATSG BK BLUE CCRN`). Lịch sử đã lưu là **thật** và nhất quán.
+
+### Tổng kết kiểm chứng toàn universe
+
+Lần chạy cuối chạy **một lần tuần tự toàn bộ 1.002 symbol** (không chia lát — 4
+lát song song làm backend bị giết vì hết RAM):
+
+```
+symbols checked : 1002
+exact matches   : 229950
+tolerant        : 0
+stale/explained : 1125
+restated        : 0
+MISMATCHES      : 0
+errors          : 34   (provider không còn phục vụ)
+no provider data: 1
+```
+
+`stale/explained` (1.125 bar) là bar đang trong phiên hoặc bar provider đã
+re-stamp — không phải mismatch. 34 lỗi là 34 mà Yahoo đã ngừng phục vụ (mục
+9.10), đã kiểm tra riêng và đều PASS.
+
+### Đồng bộ 3 tầng: `check_layer_divergence.py`
+
+Sau lần verify dài nhất, 6 symbol (`ROKU RRC RSG RVMD S SCHW`) lệch ở phiên
+`2026-11-04`: Bronze đã có giá provider sửa, nhưng Silver/Gold còn giá cũ —
+do auto-refresh chạy song song với lúc verify và bị xen giữa.
+
+Đã rebuild `--force` cho 6 symbol đó và chạy lại toàn universe:
+
+```
+symbols checked        : 1002
+symbols with divergence: 0
+read errors            : 0
+VERDICT: every symbol's Silver and Gold agree with Bronze.
+```
+
+Sau rebuild, verify lại 6 symbol đó: **60/60 exact ở cả Bronze, Silver, Gold
+và API, 0 mismatch, 0 restated**.
+
+### Lỗi 12: 78 symbol bị kẹt giữa Bronze và Silver/Gold — refresh KHÔNG BAO GIỜ tự sửa được
+
+**Đo ngày 12/11/2026.**
+
+**Triệu chứng:** `check_layer_divergence.py` báo **78 symbol lệch** giữa Bronze và
+Silver/Gold, tất cả tập trung ở phiên `2026-11-12`. Ví dụ `0001.HK`:
+
+| Tầng | Giá đóng cửa 2026-11-12 | Volume | `ingestion_time` |
+|---|---|---|---|
+| Bronze | **69,35** | 9.121.791 | 12:02:50 UTC (sau giờ đóng cửa) |
+| Silver | 68,95 | 7.064.471 | 07:28:44 UTC (trong phiên) |
+| Gold | 68,95 | 7.064.471 | 07:28:44 UTC (trong phiên) |
+
+Lệch tương đối trung vị **0,457%**, lớn nhất **6,25%**. API trả về 68,95 — tức là
+**giá chốt trong phiên**, không phải giá chốt phiên.
+
+**Vì sao xảy ra:** Một bar ngày được đóng dấu thời điểm **mở cửa**, và provider phục vụ
+giá tính đến lần gọi cuối cùng. Nên một lượt refresh chạy **trong khi thị trường còn
+mở** sẽ ghi một ảnh chụp giá giữa phiên, rồi Silver/Gold được dựng lại từ ảnh chụp đó.
+Provider sau đó chốt bar đó bằng giá đóng cửa. Lượt refresh kế tiếp ghi đè dòng Bronze
+(cùng `symbol` + `timestamp`, close khác) và báo `updated_records = 1`, nên Silver/Gold
+**được** dựng lại và hội tụ — đường đi này vốn chạy đúng.
+
+Đường đi đó **hỏng** khi lần ghi Bronze đã xong nhưng lần dựng Silver/Gold **không**
+chạy: process bị kill giữa hai lần ghi, lần dựng bị bỏ qua vì thiếu RAM, hoặc một
+writer khác (script ingest, API) ghi thẳng vào Bronze. Lúc đó Bronze giữ giá đóng cửa
+còn Silver/Gold giữ ảnh chụp giữa phiên.
+
+Từ thời điểm đó **mọi tín hiệu phát hiện khác đều im lặng**:
+
+| Tín hiệu | Giá trị | Vì sao không bắt được |
+|---|---|---|
+| `new_records` | 0 | Phân vùng không lớn thêm |
+| `updated_records` | 0 | Bronze **đã** giữ giá chốt rồi, provider không "sửa" gì thêm |
+| So ngày giao dịch Bronze ↔ Gold | bằng nhau | Cả hai cùng mang ngày `2026-11-12` |
+
+⇒ Silver/Gold **không bao giờ** được dựng lại, và giá cũ được phục vụ **vĩnh viễn**.
+Đây đúng là loại lệch mà "cứ fetch lại" không bao giờ chữa được, vì vấn đề không
+nằm ở lần fetch.
+
+**Bằng chứng (tái hiện trên storage cô lập):** dựng lại đúng trạng thái kẹt ở trên,
+rồi chạy lại `BronzeLayer.append` với batch mà refresh thực sự fetch:
+
+```
+REPLAY của lượt refresh 12:02 trên Bronze hiện tại:
+  new_records     = 0
+  updated_records = 0   <-- tín hiệu rebuild
+  duplicate_count = 5
+```
+
+Bronze đã giữ giá chốt ⇒ append không thấy thay đổi nào ⇒ không có tín hiệu nào báo
+rebuild. Đây là lý do fix **không thể** đặt trong Bronze.
+
+**Fix:** thêm một tín hiệu rebuild thứ tư trong `app/services/auto_refresh.py` —
+so **giá đóng cửa phiên mới nhất** của Bronze với giá của Silver. Khi hai tầng lệch
+nhau trên cùng một ngày giao dịch thì rebuild.
+
+```python
+def _silver_diverged_from_bronze(symbol, bronze_frame, silver) -> bool:
+    bronze_day, bronze_close = _newest_session_close(bronze_frame)
+    silver_day, silver_close = _newest_session_close(silver.read(symbol))
+    if bronze_day != silver_day:
+        return False   # để guard watermark ngày giao dịch lo
+    return _closes_differ(bronze_close, silver_close)
+```
+
+**Bằng chứng (sau khi sửa):**
+
+* Tái hiện trên storage cô lập: phát hiện lệch = `True`, và sau khi rebuild
+  **Bronze = Silver = Gold = 69,35** — ba tầng hội tụ.
+* Sửa dữ liệu thật: rebuild `--force` **78/78 symbol** thành công (3,1 phút).
+* Quét lại toàn universe:
+  ```
+  symbols checked        : 1002
+  symbols with divergence: 0
+  errors                 : 0
+  ```
+* API xác nhận trả giá đúng: `0001.HK` → `close: 69.35` (trước: `68.95`),
+  `0005.HK` → `close: 140.70` (trước: `141.00`).
+* Test mới: `backend/tests/test_silver_divergence_recovery.py` — 15/15 check PASS.
+  Toàn bộ `pytest` vẫn **112/112 PASS**.
+
+**Script quét nhanh:** `check_layer_divergence.py` đọc *toàn bộ* lịch sử của từng
+symbol theo thứ tự tuần tự — đo được 20 symbol mất 52 giây, tức ~44 phút cho 1.002
+symbol. Đã thêm `backend/scripts/scan_divergence_fast.py` (đọc partition tháng mới
+nhất, chạy song song 16 luồng): **1.002 symbol trong 95 giây**, 0 lỗi.
+
+> **Cách trả lời khi thầy hỏi "làm sao biết dữ liệu trên web là dữ liệu mới nhất?"**
+> *"Em viết một script đối chiếu nội dung ba tầng với nhau, không chỉ so Bronze với
+> provider. Lần chạy đầu em tìm ra 78 mã bị kẹt: Bronze đã có giá chốt phiên nhưng
+> Silver và Gold còn giữ ảnh chụp giữa phiên. Nguyên nhân là bar ngày được đóng dấu
+> ở thời điểm mở cửa, nên lúc thị trường còn mở thì hệ thống ghi nhầm giá giữa phiên;
+> và nếu lần ghi Bronze xong nhưng lần dựng Silver/Gold không chạy, thì từ đó mọi
+> tín hiệu phát hiện đều im lặng vì Bronze không còn thay đổi nữa. Em đã thêm một
+> tín hiệu thứ tư — so giá đóng cửa phiên mới nhất của Bronze với Silver — và sau
+> khi sửa thì quét lại 1.002 mã cho ra 0 mã lệch, API trả đúng giá chốt phiên, và
+> 112/112 test vẫn xanh."*
+
+### Đồng bộ Web ↔ MinIO đã kiểm bằng trình duyệt
+
+| Trang | Kết quả |
+|---|---|
+| Dashboard | AAPL $349.51, RSI 57.78, model `linear_regression` MAE 2.86, số file Bronze/Silver/Gold 116.109 / 116.426 / 115.100 |
+| Dữ liệu thị trường | 2.534 phiên, nến + bảng 80 phiên cuối, nguồn `gold` |
+| Phân tích kỹ thuật | `IFX.DE`: RSI 39.50, MACD, Bollinger — tính từ series **đã sửa** (`50.24` ngày 2026-11-04, trước đó `53.51`) |
+| Dự báo | 3 model train thật: linear MAE 2.86 / LSTM 47.31 / ARIMA 86.33 |
+| Backtest | +57.39%, Sharpe 0.49, max drawdown −28.24%, win rate 44.44% |
+| AI Agent | Trả lời `ADS.DE` bằng giá thật (179.45) và **thừa nhận không có bar 2026-11-04** thay vì bịa |
+| Trạng thái hệ thống | Backend online, MySQL connected, MinIO connected, storage `minio` |
+
+`/api/v1/system/status` xác nhận storage backend là **minio** (không phải local
+fallback) và cả ba layer đều đang được phục vụ.
+
+---
+## 10b. Hệ thống tin tức — đã gỡ khỏi dự án (đo ngày 12/11/2026)
+
+> **Đo ngày 12/11/2026 — trạng thái: ĐÃ GỠ BỎ TOÀN BỘ.**
+>
+> Dự án từng có một hệ thống tin tức riêng (2 tầng lưu Bronze/Silver, provider
+> đọc RSS, 4 endpoint, 4 tool AI, 1 trang giao diện, 2 lịch cron). Nó đã bị
+> **gỡ khỏi dự án**. Mục này ghi lại **số đo thật** dẫn tới quyết định đó, và
+> cách kiểm chứng trạng thái sau khi gỡ.
+
+### 10b.1. Số đo dẫn tới quyết định gỡ
+
+**Đo ngày 11/11/2026** — phép đo độ phủ tin tức trên **toàn bộ** danh sách mã:
+
+| Trường | Giá trị |
+|---|---|
+| Số mã được đo | **1.002 / 1.002** |
+| Tổng số phiên giao dịch trong mẫu | 356.803 |
+| Số phiên có tin tức | 15 |
+| `overall_coverage_pct` | **0,0%** |
+| Độ phủ trung vị (theo từng mã) | **0,00%** |
+| `read_errors` | **0** |
+| `failed_symbols` | (rỗng) |
+
+Kèm theo:
+
+| Kiểm tra | Kết quả |
+|---|---|
+| File Parquet trong `stock-bronze-news` | 16 |
+| File Parquet trong `stock-silver-news` | 15 |
+| Số bài đã ingest (Bronze) | **89** |
+| Số mã có ít nhất 1 bài | **10** |
+
+**Đọc con số này:** trong 356.803 phiên giao dịch, chỉ **15 phiên** có tin tức sẵn
+sàng trước giờ mở cửa. Tỉ lệ phủ trung vị theo từng mã là **0,00%**. Một hệ thống
+chỉ hoạt động trên **0,89%** mẫu số không thể dùng để kết luận điều gì — không
+một thí nghiệm sentiment nào trên nền dữ liệu đó có ý nghĩa.
+
+### 10b.2. Lý do thứ hai, nặng hơn: tin thật gắn sai mã
+
+Trong 10 mã "có tin", kiểm tra từng bài báo cho thấy một số bài báo **thật nhưng
+gắn sai mã chứng khoán**. Nguyên nhân là **trùng mã giữa các sàn**:
+
+| Mã trong hệ thống | Bài báo thực tế được gán | Nguyên nhân |
+|---|---|---|
+| `MWG` (Mobile World, Việt Nam) | Tin về Multi Ways Holdings (Singapore) | Yahoo tra cứu RSS theo mã, `MWG` là mã của cả hai |
+| `VCB` (Vietcombank, Việt Nam) | Tin về quỹ ETF Vanguard | Cùng lý do: `VCB` trùng mã với quỹ Vanguard |
+| `FPT`, `HPG`, `CTG` | Tin chung thị trường của VnExpress | Logic dự phòng: khi số bài "liên quan" quá ít, hệ thống đổ tin chung vào để không trống trải |
+
+Bài báo là **thật** — không có bài nào bịa ra. Nhưng bài báo **thật gắn sai mã**
+vẫn là sai: bảng dữ liệu ghi "MWG có tin về Multi Ways Holdings" là một dòng dữ
+liệu **không truy vết được**, và đó là vi phạm cùng loại với số liệu bịa.
+
+### 10b.3. Trạng thái sau khi gỡ (kiểm chứng ngày 12/11/2026)
+
+| Hạng mục | Trước | Sau |
+|---|---|---|
+| Route REST chứa `news`/`sentiment` | 8 | **0** (tổng còn 61 route) |
+| Endpoint trong `tool_registry.py` | 21 | **17** |
+| Bucket MinIO có chữ `news` | 2 | **0** |
+| Thư mục local `data/bronze_news`, `data/silver_news` | 2 | **0** |
+| File `data/news_coverage.json` | 1 | **0** |
+| Trang giao diện | 8 | **7** |
+| Test backend | 111 pass + 1 lỗi import | **112 pass, 0 lỗi** |
+
+Cách kiểm chứng lại sau khi gỡ:
+
+```powershell
+# 1. Không còn route news nào
+Invoke-WebRequest "http://127.0.0.1:8000/openapi.json" -UseBasicParsing |
+  Select-Object -ExpandProperty Content | ConvertFrom-Json |
+  ForEach-Object { $_.paths.PSObject.Properties.Name } |
+  Where-Object { $_ -match "news|sentiment" }
+# -> không in ra gì
+
+# 2. Không còn bucket news nào
+cd backend
+.\.venv\Scripts\python.exe -c "
+from minio import Minio
+from app.core.config import settings
+c = Minio(settings.minio_endpoint, access_key=settings.minio_access_key,
+          secret_key=settings.minio_secret_key, secure=False)
+print([b.name for b in c.list_buckets() if 'news' in b.name] or 'NONE')
+"
+# -> NONE
+
+# 3. Test backend vẫn xanh
+.\.venv\Scripts\python.exe -m pytest tests\ -q
+# -> 112 passed
+```
+
+### 10b.4. Điều KHÔNG thay đổi
+
+Việc gỡ tin tức **không đụng vào** bất kỳ đặc trưng nào của mô hình dự báo:
+
+- Tập đặc trưng của Gold **không có** cột sentiment — trước và sau khi gỡ.
+- Tầng giá (Bronze/Silver) **không bị tác động** — số record không đổi.
+- Kết quả backtest và walk-forward **không đổi** — chúng chưa bao giờ dùng tin tức.
+
+> **Cách trả lời khi thầy hỏi "bỏ tin tức thì dự án có bị thiếu gì không?":**
+> *"Không, vì nó chưa bao giờ được dùng vào mô hình nào. Tôi đo độ phủ trước khi
+> quyết định: 1.002 mã, 356.803 phiên, chỉ 15 phiên có tin — 0,0%. Tệ hơn, kiểm tra
+> từng bài thì thấy `MWG` của Mobile World nhận tin của Multi Ways Holdings và `VCB`
+> của Vietcombank nhận tin của quỹ Vanguard, do trùng mã giữa các sàn. Bài báo thật
+> nhưng sai mã là dữ liệu không truy vết được, mà luật của tôi là mọi con số phải
+> truy vết được. Nên tôi gỡ hẳn. Phần còn lại là giá, chỉ báo, dự báo, backtest và
+> walk-forward — phần có dữ liệu thật và kết quả thật."*
+
+---
+---
+
+## 10c. Kiểm chứng phép đo đa mã (đo ngày 11/11/2026)
+
+> **Đo ngày 11/11/2026 — trạng thái: ĐÃ CHẠY, 0 lỗi đọc.**
+
+Phép đo walk-forward đa mã đọc dữ liệu từ cùng đường `Gold → Silver → Bronze`
+mà mọi endpoint khác dùng, nên nó thừa hưởng toàn bộ kiểm chứng ở Phần 1–10.
+Phần này ghi lại **những gì riêng của phép đo này**.
+
+### 10c.1. Mẫu lấy từ đâu, và vì sao lấy theo tầng
+
+Mẫu được rút từ **tập mã có mặt trong Bronze** — tức là những mã đã thực sự được
+ingest, không phải một danh sách gõ tay.
+
+| Sàn | Số mã trong universe | Số mã lấy mẫu |
+|---|---|---|
+| NYSE/NASDAQ | 697 | 8 |
+| HOSE (Việt Nam) | 81 | 8 |
+| TSE (Nhật) | 39 | 8 |
+| Euronext | 31 | 8 |
+| XETRA (Đức) | 29 | 8 |
+| HKEX | 20 | 8 |
+| KRX (Hàn Quốc) | 20 | 8 |
+| TWSE (Đài Loan) | 20 | 8 |
+| Nasdaq Nordic | 19 | 8 |
+| TSX (Canada) | 17 | 8 |
+| LSE (Anh) | 15 | 8 |
+| SIX (Thụy Sĩ) | 5 | 5 (hết mã) |
+| BME (Tây Ban Nha) | 4 | 4 (hết mã) |
+| **Tổng** | **1.002** | **101** |
+
+Vì sao phải lấy theo tầng: 697/1.002 mã là NYSE/NASDAQ (69,6%). Nếu lấy mẫu
+ngẫu nhiên, phần "phân phối theo sàn" sẽ gần như chỉ nói về thị trường Mỹ, và
+bảng so sánh 13 sàn trở nên vô nghĩa.
+
+Nguồn: `select_symbols()` trong `backend/scripts/run_multi_symbol_walkforward.py`.
+
+### 10c.2. Bằng chứng dữ liệu thật trong báo cáo
+
+| Kiểm chứng | Kết quả | Ý nghĩa |
+|---|---|---|
+| Số mã có dữ liệu dùng được | 101/101 | Không mã nào rơi vào tình trạng "không đủ dữ liệu" |
+| Số mã lỗi khi đọc | **0** | `errors: []` trong file báo cáo |
+| Số cửa sổ kiểm tra | 3.687 | Trung bình ~36 cửa sổ/mã với cấu hình 365/90/90 |
+| Thời gian chạy | 112 s (MA) · 118 s (RSI) | Trên 1.002 mã, ~2 phút/chiến lược |
+
+### 10c.3. Đường cơ sở dùng cùng dữ liệu, cùng chi phí
+
+Đường cơ sở mua & giữ được mô phỏng bằng **cùng hàm `simulate()`**, trên
+**cùng một DataFrame phiên** mà chiến lược dùng, với **cùng mức phí** và **cùng
+độ trượt giá**. Bằng chứng cụ thể:
+
+* Số điểm equity của hai bên bằng nhau (AAPL: 2.538 điểm cả hai bên).
+* Timestamp đầu và cuối của hai đường equity **trùng khớp tuyệt đối**.
+* Chênh lệch giữa hai bên được tính **theo từng cửa sổ** (so sánh cặp), không
+  phải hiệu của hai trung bình độc lập.
+
+Bốn bất biến này có test riêng trong `backend/tests/test_backtest_benchmark.py`.
+
+### 10c.4. Điều phép đo này KHÔNG chứng minh
+
+* **Không chứng minh chiến lược sẽ thắng trong tương lai.** Đây là phép đo
+  lịch sử.
+* **Không phải phép thống kê kiểm định giả thuyết.** Chưa có kiểm định ý nghĩa
+  thống kê (t-test, bootstrap) trên phân phối excess return — đó là hướng mở
+  rộng.
+* **Tham số chiến lược không được tối ưu trên đoạn train.** Bản hiện tại dùng
+  tham số mặc định (MA 20/50, RSI 14/30/70) cho mọi mã, nên đây là phép đo của
+  một cấu hình cố định, không phải của quy trình tối ưu tham số.
+* **Mẫu 101 mã, không phải toàn bộ 1.002 mã.**
+
+Tài liệu chi tiết: [`docs/NGHIEN_CUU_DA_MA_WALK_FORWARD.md`](NGHIEN_CUU_DA_MA_WALK_FORWARD.md).
+
+---
+
+## 10d. Bar đóng băng giữa phiên trong Bronze (đo ngày 15/11/2026)
+
+### Triệu chứng
+
+Quality gate FAIL ở check `source_agreement` với hai mã `AMD` và `INTC`.
+Cả hai trông như hai nguồn giá nói khác nhau về cùng một phiên:
+
+| Mã | Ngày | Nguồn | Close | Volume |
+|---|---|---|---|---|
+| `AMD` | 2026-10-28 | `yfinance_eod` | 567,00 | 7.367.032 |
+| `AMD` | 2026-10-28 | `yahoo_http` | 578,44 | 18.848.600 |
+| `INTC` | 2026-10-28 | `yfinance_eod` | 93,93 | 33.148.315 |
+| `INTC` | 2026-10-28 | `yahoo_http` | 95,53 | — |
+
+### Vì sao xảy ra
+
+Dòng `yfinance_eod` được nạp lúc **16:29 UTC = 12:29 EDT**, tức là **3,5
+giờ trước giờ đóng cửa NYSE** (16:00 EDT). `close` của nó là giá giao dịch
+cuối cùng tại thời điểm đó, và `volume` là khối lượng đã giao dịch cho tới
+lúc đó. Đây là **ảnh chụp giữa phiên bị đóng băng thành bar ngày**, không
+phải hai nguồn nói khác nhau.
+
+Bằng chứng độc lập: provider phục vụ giá đóng cửa đã chốt của `AMD` ngày
+`2026-10-28` là **578,44** — đúng bằng dòng `yahoo_http`, và lệch **2,0%**
+so với dòng `yfinance_eod`.
+
+### Phạm vi: không chỉ 6 mã
+
+Quét toàn bộ Bronze (tháng 10–11/2026) cho thấy **1.138 phiên** bị đóng băng
+trên **752 mã**. Phần lớn **không phải** `yfinance_eod` mà là `yahoo_http` được
+đóng dấu đúng phút fetch chạy (`16:41`, `17:32`, `04:02`, ...). Đặc điểm
+chung là như nhau: dòng được ghi **khi phiên của chính nó còn đang mở**.
+
+### Quan hệ bao hình — tín hiệu cấu trúc
+
+Trong một phiên, `high` và `low` chỉ có thể **nở ra**, và `volume` chỉ có thể
+**tăng**. Nên bar đã chốt **luôn chứa** bar đang hình thành:
+
+```
+forming.high   <= settled.high
+forming.low    >= settled.low
+forming.volume <  settled.volume
+forming.close  != settled.close
+```
+
+Quan hệ này **không cần lịch sàn giao dịch**: nó so hai dòng của *cùng một
+phiên* với nhau, nên đúng với mọi thị trường trong universe (NYSE, HOSE,
+ASX, TWSE) mà không cần biết sàn nào mở lúc nào.
+
+**Đây là điểm khác biệt cốt lõi với mục 9.8.** Mục 9.8 xử lý bar crypto
+"hôm nay" bằng cách so timestamp với nửa đêm UTC. Bar crypto đóng dấu lúc
+00:00Z nên "bar hôm nay" là bar đang hình thành — nhưng chỉ với crypto.
+Bar **cổ phiếu** đóng dấu lúc **giờ mở cửa**, nên với cổ phiếu thì bar
+"hôm nay" đã **chốt rồi** và không cần canh. Cái bị đóng băng ở đây là bar
+của **phiên hôm qua**, bị chụp lúc 16:29 UTC vì lúc đó phiên hôm qua **còn
+đang mở**.
+
+### Kiểm chứng độ chính xác của luật
+
+Luật bao hình được kiểm chứng trên **1.120 phiên** đối chiếu trực tiếp với
+provider đang chạy:
+
+| Kết quả | Số phiên |
+|---|---|
+| Dòng mà luật gọi là "đã chốt" **khớp** giá provider | **1.116** |
+| Dòng mà luật gọi là "đã chốt" **không khớp** | 4 |
+
+4 ca còn lại đều **không phải** snapshot:
+* 3 ca `CMG` — **stock split 50:1** ngày 10/2026 (giá `19.750 → 27,52`, lệch
+  717 lần). Đây là **điểm gãy thang giá**, không phải ảnh chụp giữa phiên, và
+  nó đã được xử lý riêng bởi `app/lakehouse/scale_repair.py`.
+* 1 ca `COL.AX` — sàn ASX, phiên chéo nửa đêm UTC.
+
+Vì vậy luật **loại trừ** những cặp tỉ lệ giá ≥ `10` lần: đó là dấu hiệu
+điểm gãy thang giá, không phải ảnh chụp giữa phiên. Sau khi loại, độ chính
+xác là **1.116/1.120 = 99,6%**.
+
+### Tầng nào giữ dòng nào
+
+Đo trực tiếp trên `AMD` 2026-10-28:
+
+```
+bronze   2026-10-28 04:00:00Z  close 567.00  vol  7,367,032  yfinance_eod   <- đóng băng
+bronze   2026-10-28 13:30:00Z  close 578.44  vol 18,848,600  yahoo_http     <- đã chốt
+silver   2026-10-28 13:30:00Z  close 578.44  vol 18,848,600  yahoo_http     <- đã chốt
+gold     2026-10-28 13:30:00Z  close 578.44  vol 18,848,600  yahoo_http     <- đã chốt
+```
+
+**Silver và Gold đã chọn đúng dòng** — vì chúng ưu tiên dấu phiên chuẩn.
+Chỉ **Bronze** giữ cả hai. Vì vậy:
+
+* **Sản phẩm đang phục vụ đúng.** Web vẽ giá đã chốt, không vẽ giá đóng băng.
+* **Bronze vẫn giữ dòng sai** — và điều đó phải được *gọi đúng tên*, vì một
+  dòng trái với provider sẽ khiến mọi đợt kiểm toán sau đó hiểu nhầm là
+  "provider sai" thay vì "dòng này bị chụp giữa phiên".
+
+### Sửa
+
+1. **Module mới** `backend/app/lakehouse/forming_bar.py` — hiện thực luật bao
+   hình, không cần lịch sàn giao dịch.
+2. **Check mới trong quality gate**: `forming_snapshots`. Nó **không xoá gì** —
+   Bronze là tầng raw, nó được phép giữ cái provider đã nói, và dòng đã chốt
+   sau đó thay thế dòng đóng băng. Check này báo **warning**, không phải
+   failed, vì nó mô tả sự thật về tầng raw chứ không phải lỗi làm hỏng thứ
+   web phục vụ.
+3. **Frontend**: thêm nhãn cho check mới trong `QualityGatePanel.tsx`.
+
+### Kiểm chứng
+
+* Chạy check trên toàn bộ lakehouse: `status=warning`, `checked=1002`,
+  `warned=752`, `frozen_sessions=1138`.
+* Test: `backend/tests/test_forming_bar.py` — 17 test, tất cả PASS.
+* Test loại trừ: `backend/tests/test_source_agreement_exclusions.py` — 8 test.
+* Đối chiếu provider trực tiếp: 1.116/1.120 phiên đúng (99,6%).
+
+### Kết quả quality gate trước và sau
+
+Chạy toàn bộ gate trên 1.002 mã (đo ngày **15/11/2026**):
+
+| Check | Trước | Sau |
+|---|---|---|
+| `source_agreement` | **failed** (2 mã: `AMD`, `INTC`) | **passed** (0 mã) |
+| `forming_snapshots` | *(chưa có)* | **warning** (752 mã, 1.138 phiên) |
+| **Verdict tổng** | **failed** | **warning** |
+
+Chi tiết mới trong `source_agreement.details`:
+`explained_by_mid_session_snapshot: 2` — hai phiên `AMD` và `INTC` được giải
+thích bằng ảnh chụp giữa phiên, nên không còn là "xung đột provider".
+
+*Toàn bộ bộ test backend: **565/565 PASS** (đo ngày 16/11/2026).*
+
+### Dọn dẹp dự án (đo ngày 16/11/2026)
+
+Việc dọn dẹp **không được làm thay đổi dữ liệu thật**. Cụ thể:
+
+| Việc | Kết quả | Ảnh hưởng dữ liệu |
+|---|---|---|
+| Xoá 346 file log trong `backend/logs/` (41,9 MB) | Không | **Không** — log không phải dữ liệu thị trường |
+| Xoá 9 file probe API rác trong `backend/tests/` | Không | **Không** — đó là response lỗi "Invalid API key" |
+| Xoá `frontend/dist/`, `__pycache__/`, `.pytest_cache/`, `.sentry-native/` | Không | **Không** — tất cả đều tự sinh lại |
+| Xoá `backend/data/gold_features/`, `backend/data/quality/` (rỗng) | Không | **Không** — 0 file, không code nào tham chiếu |
+| Sửa `test_no_missing_imports.py` để bỏ qua `backend/data/` | Không | **Không** — chỉ đổi cách test tìm file `.py` |
+| **Giữ nguyên** `minio_data/` và `backend/data/` | — | Đây là dữ liệu thật, không được đụng |
+
+Bằng chứng dữ liệu vẫn nguyên vẹn sau khi dọn (đo 16/11/2026):
+
+- `GET /api/v1/forecast/accuracy` → 200, vẫn **44.606** dòng đã chấm điểm.
+- `GET /api/v1/quality/gate` → 200, `layer_agreement` **passed** với **61.656**
+  phiên so sánh, 0 phân kỳ.
+- `pytest tests` → **565 test, 0 failure, 0 error**.
+
+> **Cập nhật 17/11/2026** (đo lại sau khi sửa lỗi "Lock wait timeout" và thêm
+> dự báo đa mô hình):
+> - `GET /api/v1/forecast/accuracy` → 200, **45.631** dòng đã chấm điểm hợp lệ
+>   (46.318 dòng có `actual_close`), median sai số **1,15%** — **không đổi**.
+> - `pytest tests` → **572 test, 0 failure, 0 error, 0 skipped**, **139 giây**.
+
+### Điều này KHÔNG chứng minh
+
+* **Không chứng minh Bronze sạch.** Bronze vẫn giữ 1.138 dòng đóng băng. Đó là
+  quyết định có chủ đích (tầng raw giữ nguyên lời của provider), nhưng phải
+  nói ra thay vì giấu.
+* **Không chứng minh mọi mã đều đúng.** Check này chỉ soi các phiên có **nhiều
+  hơn một dòng** trong cửa sổ 60 phân vị. Một phiên chỉ có một dòng đóng
+  băng mà không có bản đã chốt thì không bị phát hiện — và cũng không làm hỏng
+  gì, vì dòng đó là dữ liệu thật của thời điểm đó.
+* **Không chứng minh lịch sử sâu hơn tháng 11/2026 sạch.** Cửa sổ kiểm tra là
+  60 phân vị gần nhất.
+
+---
+
+## 11. Giới hạn của phương pháp này
 
 Nói thẳng để không tạo cảm giác an toàn giả:
 

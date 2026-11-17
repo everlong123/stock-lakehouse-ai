@@ -16,7 +16,14 @@ from sqlalchemy import create_engine, text
 from app.core.config import settings
 from app.core.logging_config import get_logger
 from app.database.base import Base
-from app.database.models import AgentConversation, BacktestRun, ModelRun, PipelineRun, User  # noqa: F401
+from app.database.models import (  # noqa: F401
+    AgentConversation,
+    BacktestRun,
+    ModelRun,
+    PipelineRun,
+    Prediction,
+    User,
+)
 from app.database.session import get_engine
 
 logger = get_logger(__name__)

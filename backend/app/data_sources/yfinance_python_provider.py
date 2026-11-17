@@ -1,7 +1,7 @@
 """Yahoo Finance provider backed by the official ``yfinance`` package.
 
 This provider uses the third-party ``yfinance`` library (already listed in
-``requirements.txt``) to fetch OHLCV, fundamentals and news.  It is the
+``requirements.txt``) to fetch OHLCV and fundamentals.  It is the
 preferred way to consume Yahoo data once the package is installed - the
 direct REST wrapper (``YFinanceProvider``) remains as a fallback for
 restricted environments where ``yfinance`` cannot be imported.
@@ -51,7 +51,7 @@ class YFinancePythonProvider(StockDataProvider):
     Supports:
     - Historical OHLCV (1m/5m/15m/1h/1d) - subject to Yahoo's range rules
     - Latest quote via ``Ticker.history``
-    - Company info, news and recommendations (used by AI Agent)
+    - Company info and recommendations (used by AI Agent)
     """
 
     source_name = "yfinance_python"
@@ -237,7 +237,7 @@ class YFinancePythonProvider(StockDataProvider):
             return "5y"
         return "max"
 
-    # ----------------------------------------------------------- extras / news
+    # ----------------------------------------------------------- extras
 
     def get_company_info(self, symbol: str) -> dict[str, Any]:
         """Return the static company profile (sector, market cap, ...)."""
@@ -265,47 +265,3 @@ class YFinancePythonProvider(StockDataProvider):
             "longBusinessSummary",
         )
         return {key: info.get(key) for key in keys if info.get(key) is not None}
-
-    def get_news(self, symbol: str, limit: int = 20) -> pd.DataFrame:
-        """Return a DataFrame of recent news items."""
-
-        ticker = self.yf.Ticker(symbol.upper())
-        try:
-            items = ticker.news or []
-        except Exception as exc:
-            raise DataSourceError(f"yfinance news() failed for {symbol}: {exc}") from exc
-
-        records: list[dict[str, Any]] = []
-        for item in items[:limit]:
-            content = item.get("content", item) if isinstance(item, dict) else {}
-            ts = (
-                item.get("providerPublishTime")
-                or content.get("pubDate")
-                or content.get("displayTime")
-            )
-            try:
-                published = (
-                    datetime.fromtimestamp(ts, tz=timezone.utc).isoformat()
-                    if isinstance(ts, (int, float))
-                    else str(ts)
-                )
-            except Exception:
-                published = str(ts) if ts else datetime.now(timezone.utc).isoformat()
-
-            records.append(
-                {
-                    "symbol": symbol.upper(),
-                    "title": content.get("title") or item.get("title", ""),
-                    "publisher": content.get("provider", {}).get("displayName")
-                    if isinstance(content.get("provider"), dict)
-                    else item.get("publisher"),
-                    "link": content.get("canonicalUrl", {}).get("url")
-                    if isinstance(content.get("canonicalUrl"), dict)
-                    else item.get("link"),
-                    "published_at": published,
-                    "summary": content.get("summary", ""),
-                    "source": self.source_name,
-                }
-            )
-
-        return pd.DataFrame(records)

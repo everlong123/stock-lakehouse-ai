@@ -7,10 +7,14 @@
 #   make health        # check trạng thái các service
 #
 # Profiles trong docker-compose.yml:
-#   minimal → MySQL, MinIO, backend, frontend (nhẹ nhất, không Kafka/Iceberg)
-#   infra  → MySQL, MinIO, Kafka, Iceberg-REST (4 services hạ tầng)
-#   app    → backend, frontend (cần infra chạy trước, sẽ tự start)
-#   all    → cả 6 services
+#   minimal → MySQL, MinIO, backend, frontend (nhẹ nhất, tắt tiến trình nền)
+#   infra  → MySQL, MinIO (2 services hạ tầng)
+#   app    → backend, frontend, scheduler (cần infra chạy trước, sẽ tự start)
+#   all    → cả 5 services
+#
+# Ghi chú lịch sử: Kafka và Iceberg-REST đã bị gỡ khỏi dự án ngày 10/11/2026 —
+# batch pipeline đọc thẳng từ provider, không cần message broker. Cũng không
+# còn service `jupyter`.
 #
 # IMPORTANT: `make down` KHÔNG xóa data. Data chỉ mất khi `make nuke` (cẩn thận!).
 
@@ -19,7 +23,7 @@ PROFILE_INFRA := --profile infra
 PROFILE_APP  := --profile app
 PROFILE_ALL  := --profile all
 
-# Bản minimal cần thêm override file để tắt Kafka và các tiến trình nền.
+# Bản minimal cần thêm override file để tắt các tiến trình nền.
 DC_MINIMAL := docker compose -f docker-compose.yml -f docker-compose.minimal.yml
 
 # Trên Windows PowerShell, dùng `docker compose` (v2). Không cần `-it`.
@@ -38,14 +42,14 @@ help: ## Xem tất cả lệnh có sẵn
 # UP — Khởi động services theo profile
 # ════════════════════════════════════════════════════════════════════════════
 
-up-infra: ## Chỉ chạy hạ tầng (MySQL, MinIO, Kafka, Iceberg)
+up-infra: ## Chỉ chạy hạ tầng (MySQL, MinIO)
 	$(DC) $(PROFILE_INFRA) up -d
 	@echo "✓ Infra đang khởi động. Đợi ~30s cho MySQL healthy, rồi 'make health'"
 
-up-minimal: ## Chạy bản NHẸ (MySQL + MinIO + backend + frontend, không Kafka, tắt tiến trình nền)
+up-minimal: ## Chạy bản NHẸ (MySQL + MinIO + backend + frontend, tắt tiến trình nền)
 	$(DC_MINIMAL) $(PROFILE_MINIMAL) up -d
 	@echo "✓ Minimal stack đang khởi động. Đợi ~30s cho MySQL healthy, rồi 'make health-minimal'"
-	@echo "  (Bản này KHÔNG có Kafka/Iceberg và KHÔNG chạy nền — nhẹ hơn nhiều)"
+	@echo "  (Bản này KHÔNG chạy scheduler và không chạy nền — nhẹ hơn nhiều)"
 
 down-minimal: ## Tắt bản minimal (giữ data)
 	$(DC_MINIMAL) $(PROFILE_MINIMAL) stop
@@ -176,8 +180,8 @@ clean-volumes: ## ⚠ Xóa anonymous volumes KHÔNG dùng (giữ named volumes c
 	@docker volume prune -f
 	@echo "✓ Anonymous volumes đã xóa. Named volumes (mysql_data, minio_data, ...) AN TOÀN."
 
-nuke: ## ⚠⚠⚠ XÓA TẤT CẢ — bao gồm data (MySQL, MinIO, Kafka, Iceberg). KHÔNG DÙNG nếu không chắc!
-	@echo "⚠ CẢNH BÁO: lệnh này sẽ XÓA TẤT CẢ DATA trong MySQL, MinIO, Kafka, Iceberg."
+nuke: ## ⚠⚠⚠ XÓA TẤT CẢ — bao gồm data (MySQL, MinIO). KHÔNG DÙNG nếu không chắc!
+	@echo "⚠ CẢNH BÁO: lệnh này sẽ XÓA TẤT CẢ DATA trong MySQL và MinIO."
 	@echo "Nhấn Ctrl+C trong 5 giây để hủy..."
 	@timeout 5 > nul 2>&1
 	$(DC) $(PROFILE_ALL) down -v --remove-orphans

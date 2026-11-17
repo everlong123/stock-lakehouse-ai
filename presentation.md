@@ -1,4 +1,4 @@
-# 🎓 BÀI THUYẾT TRÌNH KHÓA LUẬN TỐT NGHIỆP
+﻿# BÀI THUYẾT TRÌNH KHÓA LUẬN TỐT NGHIỆP
 ## "Xây dựng nền tảng Data Lakehouse phân tích và dự báo chứng khoán ứng dụng học sâu và AI Agent"
 
 ---
@@ -12,7 +12,7 @@
 # MỤC LỤC
 
 1. [Lời mở đầu](#1-lời-mở-đầu--em-sẽ-trình-bày-gì)
-2. **[🌟 Từ điển cho người mới — Đọc chương này trước nhé](#2--từ-điển-cho-người-mới--đọc-chương-này-trước-nhé)**
+2. **[Từ điển cho người mới — Đọc chương này trước nhé](#2--từ-điển-cho-người-mới--đọc-chương-này-trước-nhé)**
 3. [Bối cảnh – Vì sao em chọn đề tài này?](#3-bối-cảnh--vì-sao-em-chọn-đề-tài-này)
 4. [Mục tiêu & phạm vi đề tài](#4-mục-tiêu--phạm-vi-đề-tài)
 5. [Em làm cái gì? – Bức tranh toàn cảnh bằng ví dụ "Tiệm phở của em"](#5-em-làm-cái-gì--bức-tranh-toàn-cảnh-bằng-ví-dụ-tiệm-phở-của-em)
@@ -27,10 +27,13 @@
 14. [Kết quả thực nghiệm – "Sức khỏe" của hệ thống](#14-kết-quả-thực-nghiệm--sức-khỏe-của-hệ-thống)
 15. [Hạn chế & phạm vi giới hạn – Em thành thật với thầy cô](#15-hạn-chế--phạm-vi-giới-hạn--em-thành-thật-với-thầy-cô)
 16. [Đóng góp mới & Hướng phát triển](#16-đóng-góp-mới--hướng-phát-triển)
-17. **[🌟 25 câu hỏi hội đồng + câu trả lời của em](#17--25-câu-hỏi-hội-đồng--câu-trả-lời-của-em)**
-18. [Lời cảm ơn & kết thúc](#18-lời-cảm-ơn--kết-thúc)
+17. **[25 câu hỏi hội đồng + câu trả lời của em](#17--25-câu-hỏi-hội-đồng--câu-trả-lời-của-em)**
+18. **[Hệ thống mới & quyết định gỡ bỏ (10 – 12/11/2026) – Dự báo phiên kế tiếp & Gỡ luồng tin tức](#19-hệ-thống-mới-và-quyết-định-gỡ-bỏ-10--12112026)**
+19. [Lời cảm ơn & kết thúc](#18-lời-cảm-ơn--kết-thúc)
 
 **Phụ lục:** Bảng lệnh thường dùng & URL truy cập nhanh.
+
+> **Ghi chú về thứ tự chương:** Chương 19 (hai hệ thống mới) được em đặt **trước chương lời cảm ơn** trong bản trình bày. Trong file này, nó nằm ở cuối để em dễ sửa.
 
 ---
 
@@ -56,7 +59,7 @@ Em xin mời thầy cô sang chương 2.
 
 ---
 
-# 2. 🌟 TỪ ĐIỂN CHO NGƯỜI MỚI – ĐỌC CHƯƠNG NÀY TRƯỚC NHÉ
+# 2. TỪ ĐIỂN CHO NGƯỜI MỚI – ĐỌC CHƯƠNG NÀY TRƯỚC NHÉ
 
 Kính thưa thầy cô, em biết đề tài có rất nhiều thuật ngữ IT. Em xin phép giải thích từng thuật ngữ bằng ví dụ đời thường trước khi đi vào chi tiết. Em sẽ giải thích theo thứ tự alphabet để thầy cô dễ tra cứu.
 
@@ -169,14 +172,19 @@ Trong đồ án, em "ingest" = tải giá cổ phiếu từ Yahoo Finance về m
 
 Khi frontend hỏi backend "cho tôi thông tin cổ phiếu VCB", backend trả về một **JSON**. Thầy cô không cần đọc JSON — frontend sẽ hiển thị nó thành bảng đẹp.
 
-## K – Kafka
+## K – Lịch chạy tự động (Cron)
 
-**Apache Kafka** = một hệ thống giúp **truyền tin nhắn liên tục** giữa nhiều chương trình, theo thời gian thực.
+**Cron** = một danh sách giờ cố định, mà máy tính đọc và **tự làm theo đúng giờ** — giống bảng ca của nhà hàng: "5:00 sáng ai bán bánh, 11:00 trưa ai nấu phở".
 
 **Ví dụ đời thường:**
-Hãy tưởng tượng thầy cô mở một **nhóm chat trên Zalo** cho cả công ty. Mọi người gửi tin vào nhóm, ai cần thì đọc. Kafka giống vậy, nhưng dành cho máy tính.
+Một tiệm bánh mì cần biết trước 4 giờ sáng, ai sẽ ra bếp. Nếu bảng ca đó nằm **trong một cuốn sổ trong tủ**, thì mất cuốn sổ là mất lịch. Nếu bảng ca đó **được dán trên cửa phòng bếp** và có người trực, thì hễ có người, lịch vẫn còn.
 
-Trong đồ án em dùng Kafka để truyền dữ liệu real-time (cập nhật giá liên tục) giữa các thành phần.
+Em đặt bảng ca đó vào **một container riêng** (`scheduler`), và **file `backend/crontab`** là bảng ca. Container có `restart: unless-stopped` nên máy khởi động lại thì lịch vẫn giữ nguyên.
+
+**Trong đồ án em dùng cron để chạy 1 việc** (giờ ghi trong UTC):
+- **21:30 và 03:30** (thứ 2 – thứ 6) — `eod`: lấy giá đóng cửa của ngày vừa rồi, dựng lại tầng Silver/Gold, rồi dự báo cho phiên sắp tới.
+
+> **Ghi chú thành thật:** em đã **dùng Kafka trong bản đầu** của đồ án, rồi **gỡ bỏ ngày 10/11/2026**. Lý do em trình bày ở mục 6.4 và ở Câu 16. Em cũng **gỡ luôn 2 job `news`/`coverage`** trong cron ngày 12/11/2026 (mục 19.1).
 
 ## L – Lakehouse
 
@@ -207,7 +215,9 @@ Giống như một cuốn sổ tay, mỗi trang có: phần giải thích (toàn
 
 **Open source** = mã nguồn mở, nghĩa là **ai cũng có thể xem, sửa, dùng miễn phí**. Ngược lại với phần mềm trả phí (như Windows, Photoshop).
 
-Trong đồ án em dùng toàn phần mềm open source: Python, FastAPI, React, Apache Kafka, Apache Iceberg, PostgreSQL, MySQL, MinIO... Tất cả đều miễn phí.
+Trong đồ án em dùng toàn phần mềm open source: Python, FastAPI, React, MySQL, MinIO, Parquet (PyArrow), Pandas, scikit-learn, statsmodels, PyTorch... Tất cả đều miễn phí.
+
+> **Ghi chú thành thật:** bản đầu của đồ án còn có **Apache Kafka** và **Apache Iceberg** trong danh sách này. Ngày **10/11/2026** em đã **gỡ cả hai** khỏi dự án — lý do ở mục 6.4 và Câu 16. Danh sách ở trên là những gì **thực sự còn nằm trong máy** sau khi gỡ.
 
 ## P – Pandas
 
@@ -243,7 +253,17 @@ Trong đồ án em **không dùng Spark** (vì data chưa đủ lớn), nhưng c
 **Time-travel** = khả năng **truy vấn dữ liệu tại một thời điểm trong quá khứ**.
 
 **Ví dụ đời thường:**
-Trong Google Docs, thầy cô có thể xem lại version "từ tháng 3" dù hiện tại đã qua tháng 10. Apache Iceberg cho phép data cũng vậy — em hỏi "giá VCB ngày 15/03/2024", hệ thống trả về giá tại thời điểm đó.
+Trong Google Docs, thầy cô có thể xem lại version "từ tháng 3" dù hiện tại đã qua tháng 10. Dữ liệu của em cũng vậy — em hỏi "giá VCB ngày 15/03/2024", hệ thống trả về đúng giá của ngày đó.
+
+**Cách em làm trong đồ án này:** dữ liệu được **chia vào thư mục con theo mã và theo tháng**, nên giá của một ngày nằm nằm sẵn trong đúng một file:
+
+```
+stock-bronze/symbol=VCB/year=2024/month=03/part-001.parquet
+```
+
+Muốn xem lại tháng 3/2024 thì mở đúng thư mục `month=03` là ra — không cần một "đồng hồ ngược" nào cả. Chi tiết ở mục 7.2.
+
+> **Ghi chú thành thật:** bản đầu đồ án dùng **Apache Iceberg** để làm tính năng "du hành thời gian" này. Ngày **10/11/2026** em đã gỡ Iceberg khỏi dự án; tính năng xem dữ liệu cũ giờ do **cách chia thư mục** đảm nhiệm, không cần catalog riêng.
 
 ## U – URL
 
@@ -271,7 +291,7 @@ Cụm từ chung để chỉ việc **đọc, lọc, tính toán, lưu trữ d�
 
 **YAML** là một dạng file cấu hình, đơn giản hơn JSON nhưng cùng mục đích. File `docker-compose.yml` của em là dạng YAML.
 
-## Z – Z-index (chỉ để cho vui thôi ạ 😅)
+## Z – Z-index (chỉ để cho vui thôi ạ)
 
 Đây là thuật ngữ CSS dành cho lập trình viên frontend, chắc thầy cô không cần quan tâm.
 
@@ -371,27 +391,27 @@ Kính thưa thầy cô, để thầy cô dễ hình dung, em xin phép ví von c
 
 ```
 ┌──────────────────────────────────────────────────────────────────┐
-│ 🛒 CHỢ NGUYÊN LIỆU (Data Sources - 6 nguồn free)                 │
-│   Yahoo Finance · Finnhub · Alpha Vantage · SSI iBoard · ...      │
+│    CHỢ NGUYÊN LIỆU (Data Sources - 6 nguồn free)                 │
+│   Yahoo Finance · Finnhub · Alpha Vantage · SSI iBoard · ...     │
 └─────────────────────────────┬────────────────────────────────────┘
                               ▼ Em đi chợ mua nguyên liệu
 ┌──────────────────────────────────────────────────────────────────┐
-│ 🥬 KHO RAU THÔ (Bronze Layer)                                    │
-│   Rau còn nguyên đất cát, chưa rửa                                │
+│    KHO RAU THÔ (Bronze Layer)                                    │
+│   Rau còn nguyên đất cát, chưa rửa                               │
 └─────────────────────────────┬────────────────────────────────────┘
                               ▼
 ┌──────────────────────────────────────────────────────────────────┐
-│ 🥗 RAU ĐÃ SƠ CHẾ (Silver Layer)                                  │
+│    RAU ĐÃ SƠ CHẾ (Silver Layer)                                  │
 │   Rửa sạch, cắt bỏ phần héo, phần sâu                            │
 └─────────────────────────────┬────────────────────────────────────┘
                               ▼
 ┌──────────────────────────────────────────────────────────────────┐
-│ 🍜 BÁT PHỞ HOÀN CHỈNH (Gold Layer)                              │
+│    BÁT PHỞ HOÀN CHỈNH (Gold Layer)                               │
 │   94 gia vị: SMA, RSI, MACD, Bollinger, ...                      │
 │   Sẵn sàng dùng cho phân tích, dự báo, backtest                  │
 └──────────┬──────────┬─────────────┬──────────────┬───────────────┘
            ▼          ▼             ▼              ▼
-   📊 Phở "Phân     🔮 Phở "Dự   🧪 Phở "Backtest"  🤖 Phở "AI"
+      Phở "Phân        Phở "Dự      Phở "Backtest"     Phở "AI"
    tích kỹ thuật"    báo giá"     (Thử nấu mới)
    (SMA, RSI...)     (LSTM...)     (xem có ngon)
 ```
@@ -417,10 +437,11 @@ Kính thưa thầy cô, để nấu phở thì em cần **bếp, nồi, bếp ga
 | Bếp gas | Máy chủ ảo | **Docker** |
 | Nồi | Nơi lưu trữ dữ liệu | **MinIO** |
 | Tủ lạnh | Cơ sở dữ liệu metadata | **MySQL** |
-| Lò nướng | Truyền tin real-time | **Apache Kafka** |
-| Mâm | Catalog quản lý bảng | **Apache Iceberg** |
+| Đồng hồ bàm giờ trong bếp | Lịch chạy tự động | **Cron (container `scheduler`)** |
 
 Tất cả 4 cái này em đóng gói vào **Docker Compose** — gọi là "file cấu hình" để một lệnh duy nhất chạy được cả 4.
+
+> **Ghi chú thành thật:** bản đầu của đồ án có **5 hộp** — thêm **Kafka** (truyền tin) và **Iceberg** (catalog bảng). Ngày **10/11/2026** em đã gỡ cả hai, vì lý do em trình bày ở mục 6.4 ngay dưới đây. Bảng trên là trạng thái **hiện tại**.
 
 ## 6.2. Docker là gì? (Giải thích cho người chưa biết)
 
@@ -436,37 +457,75 @@ Docker giải quyết bằng cách: **mỗi phần mềm bỏ vào 1 chiếc h�
 ## 6.3. 4 "hộp" em dùng
 
 ### Hộp 1: **MySQL** (như cuốn sổ cái)
-- **Tác dụng**: Ghi chép "ai đã chạy pipeline lúc nào, model nào đã train, backtest nào đã chạy".
+- **Tác dụng**: Ghi chép "ai đã chạy pipeline lúc nào, model nào đã train, backtest nào đã chạy, dự báo phiên tới".
 - **Ví dụ đời thường**: Giống cuốn **sổ nhật ký** của tiệm phở — ghi ngày nào bán bao nhiêu tô, ai mua.
 - **Port (cổng kết nối)**: `3307`.
+- **Các bảng trong sổ cái**: `pipeline_runs`, `models`, `backtests`, `agent_conversations`, và `predictions` (bảng lưu dự báo cho phiên sắp tới — thêm vào ngày 10/11/2026, xem mục 19).
 
 ### Hộp 2: **MinIO** (như nhà kho to)
-- **Tác dụng**: Lưu trữ **toàn bộ dữ liệu chứng khoán** (hàng triệu file).
+- **Tác dụng**: Lưu trữ **toàn bộ dữ liệu chứng khoán** (hàng trăm nghìn file Parquet).
 - **Ví dụ đời thường**: Giống **kho hàng** của tiệm phở — chứa tất cả gạo, bánh phở, thịt, rau khô.
 - **Port**: `9000` (cho app truy cập), `9001` (cho admin xem giao diện web).
 - **Đặc biệt**: Thầy cô có thể mở `http://localhost:9001` trên trình duyệt, đăng nhập `minioadmin` / `minioadmin` → thấy toàn bộ file em đã upload lên.
+- **Các kho em có** (mỗi kho một `bucket` riêng):
+  | Kho | Chứa gì |
+  |---|---|
+  | `stock-bronze` | Giá thô theo ngày, chưa rửa |
+  | `stock-silver` | Giá đã rửa, đã kiểm tra logic |
+  | `stock-gold` | Giá + 94 chỉ báo kỹ thuật |
+  | `stock-models` | Mô hình đã huấn luyện |
+  | `stock-backtests` | Kết quả backtest |
 
-### Hộp 3: **Apache Iceberg REST** (như cuốn catalog)
-- **Tác dụng**: Quản lý "bảng dữ liệu" (table) — biết bảng nào có cột gì, phiên bản nào, dữ liệu từ lúc nào.
-- **Ví dụ đời thường**: Giống **bảng kê hàng hóa** trong kho — ghi rõ mỗi mặt hàng có bao nhiêu, phiên bản nào, ai nhập lúc nào.
-- **Port**: `8181`.
+### Hộp 3: **Cron trong container `scheduler`** (như đồng hồ bàm giờ trong bếp)
+- **Tác dụng**: **Tự động** chạy việc lấy dữ liệu, dựng lại tầng Silver/Gold và dự báo cho phiên tới — đúng giờ, không cần ai nhớ.
+- **Ví dụ đời thường**: Giống **đồng hồ bàm giờ trong bếp**. Không có nó, đầu bếp phải nhớ mình phải bắt đầu nấu lúc 5 giờ sáng. Có nó, thì giờ nấu được ghim vào một tấm bảng — **tấm bảng đó là file `backend/crontab`** — và máy sẽ tự nhắc.
+- **Vì sao tách riêng thành 1 container?** Vì lịch phải **sống sót** khi máy khởi động lại. Nếu lịch nằm trong một tiến trình Python, tiến trình đó chết là lịch chết, và không ai biết là lịch đã chết. Container có `restart: unless-stopped` nên Docker lo phần giám sát.
+- **Múi giờ**: mọi giờ trong `backend/crontab` ghi theo **UTC** (giờ quốc tế), không theo giờ máy. Lý do: nếu deploy lên VPS ở múi giờ khác thì giờ chạy sẽ bị lệch.
+- **Một việc em hẹn giờ**:
+  | Việc | Chạy lúc (UTC) | Làm gì |
+  |---|---|---|
+  | `eod` | 21:30 và 03:30, thứ 2 – 6 | Lấy giá đóng cửa ngày vừa rồi → dựng lại Silver/Gold → dự báo phiên sắp tới |
 
-### Hộp 4: **Apache Kafka** (như hệ thống loa phát thanh nội bộ)
-- **Tác dụng**: Truyền **tin nhắn real-time** giữa các phần mềm.
-- **Ví dụ đời thường**: Giống **hệ thống PA** trong tiệm — phát thông báo mới cho mọi người nghe.
-- **Port**: `9092` và `9094`.
+> **Ghi chú:** ngày 12/11/2026 em đã gỡ 2 job `news` và `coverage` (mục 19.1) — hiện crontab chỉ còn `eod`.
 
-## 6.4. Tại sao em chọn Kafka KRaft (không cần ZooKeeper)?
+### Hộp 4: **Đã gỡ — Luồng tin tức 3 tầng** (chi tiết ở mục 19.1)
+- Em từng xây luồng tin tức 3 tầng (Bronze thô → Silver đã gán phiên). Ngày **12/11/2026** em **đo độ phủ thật** rồi **gỡ bỏ toàn bộ** vì chỉ 10/1.002 mã có tin (độ phủ 0,00%).
+- Cơ sở đo và lý do gỡ: mục 19.1.
+## 6.4. Vì sao em KHÔNG dùng Kafka và Iceberg nữa?
 
-Kafka cũ có một component phụ tên là **ZooKeeper** (quản lý cụm Kafka). Phi bản mới (≥ 3.3) cho phép **KRaft mode** — bỏ ZooKeeper, đơn giản hơn nhiều. Em chỉ chạy 1 broker Kafka (đồ án) nên KRaft là lựa chọn hợp lý.
+Đây là câu hỏi thầy cô rất có quyền hỏi, nên em xin trả lời thẳng và trung thực.
+
+**Bối cảnh:** bản đầu của đồ án em **có** dùng Apache Kafka (một broker truyền tin) và Apache Iceberg (một catalog quản lý bảng dữ liệu). Ngày **10/11/2026** em đã **gỡ cả hai** khỏi dự án và viết lại phần kiến trúc cho khớp.
+
+**Lý do 1 — Broker chỉ giữ một bản sao thứ hai của dữ liệu vốn đã có.**
+Kiến trúc cũ chạy như thế: sàn giao dịch → Kafka → Bronze/Silver/Gold. Nhưng ở đồ án này, dữ liệu mà broker đi qua **chính là dữ liệu daily OHLCV** — tức là dữ liệu đã được ghi vào bucket rồi. Broker không tạo ra dữ liệu nào mới; nó chỉ giữ thêm một bản sao. Với lưu lượng của đồ án (vài trăm nghìn file Parquet, cập nhật 1 lần/ngày), bản sao thứ hai đó là **chi phí không đem lại lợi ích**.
+
+**Lý do 2 — Mỗi broker là thêm một tiến trình phải giữ sống.**
+Kafka chạy trên **JVM**. Nghĩa là mỗi lần bật stack của em, thêm một tiến trình nặng, một cổng riêng, một thư mục log riêng, và một thứ có thể treo. Với đồ án chạy trên một chiếc laptop, đó là tài nguyên lấy đi từ những việc quan trọng hơn. Ngày 10/11/2026 em cũng ghi lại trong code rằng Kafka chỉ là "một bản sao thứ hai cộng thêm một JVM cần giữ sống".
+
+**Lý do 3 — Iceberg thì cần một catalog riêng, mà dữ liệu của em đã tự mô tả.**
+Để Iceberg biết "bảng này có cột gì, phiên bản nào", phải có **một catalog riêng** (`iceberg-rest`) chạy kèm. Nhưng dữ liệu của em đã có sẵn **quy ước đặt tên thư mục** — tầng Bronze/Silver/Gold là 3 thư mục gốc, mỗi mã là 1 thư mục con, mỗi năm/mỗi tháng là 1 thư mục con nữa. Quy ước đó **tự nó đã là catalog**: muốn đọc tầng Gold của VCB năm 2024 tháng 3 thì đi đúng đường dẫn đó là ra. Thêm một dịch vụ nữa để làm việc mà cái tên thư mục đã làm được là **thêm bộ máy, thêm nguy cơ hỏng**.
+
+**Lý do 4 — Bài toán "real-time" của em không cần broker.**
+Em vẫn còn xem giá trong phiên (trang Live Stream). Cái đó em làm bằng **WebSocket trực tiếp tới nhà cung cấp** (Finnhub cho thị trường Mỹ, SSI iBoard cho Việt Nam) đẩy thẳng vào một **bộ nhớ đệm trong RAM** của backend, rồi phát ra trình duyệt bằng SSE. Ở đây không có chỗ nào cần "đóng gói tin vào hộp rồi chuyển qua một trung chuyển" — dữ liệu đi thẳng từ nguồn tới người dùng. Một broker ở giữa chỉ làm thêm một chỗ phải trông coi.
+
+**Vậy thay bằng gì?**
+| Nhu cầu | Bản cũ | Bản hiện tại |
+|---|---|---|
+| Truyền dữ liệu giữa các phần | Kafka broker | **Cron** chạy batch (`backend/crontab` + `backend/scripts/run_scheduled_job.py`) |
+| Biết bảng dữ liệu nào có cột gì | Iceberg REST catalog | **Quy ước thư mục** `stock-bronze` / `stock-silver` / `stock-gold` |
+| Xem lại dữ liệu cũ | Iceberg time-travel | **Mở đúng thư mục** `symbol=VCB/year=2024/month=03/` |
+| Xem giá trong phiên | Kafka + consumer | ~~WebSocket + bộ nhớ đệm trong RAM~~ → **đã gỡ 11/11/2026**, chỉ còn bar NGÀY đọc từ lakehouse |
+
+**Em nói thật phần còn thiếu:** cách mới **giảm được độ phức tạp vận hành**, nhưng **đánh đổi** khả năng mở rộng theo kiểu "nhiều máy cùng ghi vào một stream". Với đồ án thì không sao; nếu lên production với hàng trăm nghìn symbol và nhiều người ghi cùng lúc, em sẽ cân nhắc đưa broker trở lại. Em ghi điều này ở mục 15.3.
 
 ## 6.5. Một vài câu hỏi em thường gặp
 
-**❓ Tại sao không dùng Postgres mà dùng MySQL?**
+** Tại sao không dùng Postgres mà dùng MySQL?**
 
 Vì MySQL phổ biến trong doanh nghiệp Việt Nam và dễ cài. Quan trọng hơn: trong đồ án MySQL chỉ lưu "sổ cái", toàn bộ dữ liệu chứng khoán nằm ở MinIO. Đổi Postgres cũng OK.
 
-**❓ Tại sao không dùng Apache Spark?**
+** Tại sao không dùng Apache Spark?**
 
 Vì Spark cần thêm JVM, thêm memory tuning. Trong phạm vi 1,1 triệu rows, Pandas đủ xử lý mượt. Code của em có sẵn đường Spark, chỉ cần bật env.
 
@@ -480,9 +539,9 @@ Medallion là **một pattern (khuôn mẫu)** thiết kế data lake do công t
 
 | Lớp | Tiếng Anh | Vai trò | Ví dụ đời thường |
 |---|---|---|---|
-| 🥉 **Bronze** | Bronze = đồng | Dữ liệu **thô**, append-only | Kho rau vừa nhập về, còn nguyên đất cát |
-| 🥈 **Silver** | Silver = bạc | Dữ liệu **đã sạch**, đã validate | Rau đã rửa, cắt bỏ phần héo |
-| 🥇 **Gold** | Gold = vàng | Dữ liệu **business-ready**, đã tính feature | Bát phở hoàn chỉnh sẵn ăn |
+| **Bronze** | Bronze = đồng | Dữ liệu **thô**, append-only | Kho rau vừa nhập về, còn nguyên đất cát |
+| **Silver** | Silver = bạc | Dữ liệu **đã sạch**, đã validate | Rau đã rửa, cắt bỏ phần héo |
+| **Gold** | Gold = vàng | Dữ liệu **business-ready**, đã tính feature | Bát phở hoàn chỉnh sẵn ăn |
 
 ## 7.2. Bronze – Kho rau thô
 
@@ -509,12 +568,12 @@ Medallion là **một pattern (khuôn mẫu)** thiết kế data lake do công t
 
 2. **Phân vùng theo `symbol/year/month`** (folder theo mã + năm + tháng):
    ```
-   📁 stock-bronze/
-       📁 symbol=VCB/
-           📁 year=2024/
-               📁 month=01/  (tháng 1)
-                   📄 part-001.parquet
-               📁 month=02/  (tháng 2)
+      stock-bronze/
+          symbol=VCB/
+              year=2024/
+                  month=01/  (tháng 1)
+                      part-001.parquet
+                  month=02/  (tháng 2)
    ```
    Khi em hỏi "giá VCB năm 2024", hệ thống chỉ cần mở 12 folder (12 tháng) thay vì cả triệu file. Nhanh hơn rất nhiều.
 
@@ -977,8 +1036,8 @@ Kính thưa thầy cô, em thử hỏi ChatGPT miễn phí: "RSI hiện tại c�
 
 **Ví dụ đời thường:**
 Thầy cô hỏi trợ lý ảo: "Thời tiết hôm nay thế nào?"
-- ❌ **Cách cũ (không có tool)**: Trợ lý ảo "đoán": "Hôm nay nắng nhẹ, khoảng 30°C" — nhưng có khi sai.
-- ✅ **Cách mới (có tool)**: Trợ lý ảo gọi **công cụ weather API** → lấy nhiệt độ thật từ trạm khí tượng → trả lời: "30.5°C, có mây" — chính xác.
+- **Cách cũ (không có tool)**: Trợ lý ảo "đoán": "Hôm nay nắng nhẹ, khoảng 30°C" — nhưng có khi sai.
+- **Cách mới (có tool)**: Trợ lý ảo gọi **công cụ weather API** → lấy nhiệt độ thật từ trạm khí tượng → trả lời: "30.5°C, có mây" — chính xác.
 
 ## 11.3. Luồng hoạt động
 
@@ -996,21 +1055,29 @@ User: "RSI của VCB hiện tại bao nhiêu?"
 [Gemini] tổng hợp: "RSI(VCB) hiện tại = 62.4, gần vùng quá mua, cần thận trọng."
 ```
 
-## 11.4. 11 tool em đăng ký
+## 11.4. 17 tool em đăng ký (đo ngày 12/11/2026)
 
 | Tên tool | Tác dụng |
 |---|---|
-| `get_market_summary` | Tổng quan thị trường |
 | `query_stock_data` | Lấy OHLCV lịch sử |
+| `get_market_summary` | Tổng quan thị trường |
 | `calculate_indicators` | Tính SMA/EMA/RSI/MACD/Bollinger |
 | `forecast_stock` | Dự báo N-day bằng LR/ARIMA/LSTM |
 | `compare_models` | So sánh 3 model |
 | `run_backtest` | Chạy MA Cross/RSI Strategy |
-| `walk_forward` | Walk-forward validation |
-| `get_news` | Tin tức |
-| `get_company_profile` | Thông tin công ty |
+| `run_walk_forward` | Walk-forward validation |
 | `get_fundamental_metrics` | P/E, ROE... |
-| `get_sentiment_summary` | Sentiment tổng hợp |
+| `get_income_statement` | Báo cáo thu nhập |
+| `get_balance_sheet` | Bảng cân đối kế toán |
+| `get_cash_flow` | Báo cáo lưu chuyển tiền tệ |
+| `get_market_index` | Chỉ số US (S&P 500, Dow, Nasdaq) |
+| `get_orderbook` | Sổ lệnh bid/ask |
+| `get_symbols_info` | Thống kê số mã hệ thống hỗ trợ |
+| `get_trained_models` | Liệt kê model ML đã train |
+| `get_system_architecture` | Kiến trúc runtime của hệ thống |
+| `get_storage_stats` | Số object + dung lượng từng bucket MinIO |
+
+> Trước đây bảng này có 4 tool về tin tức/cảm xúc. Ngày 12/11/2026 em gỡ chúng sau khi đo được độ phủ tin chỉ 0,00% (mục 19.1).
 
 ## 11.5. Local Router (khi không có Gemini API key)
 
@@ -1110,10 +1177,12 @@ Em xin trình bày luồng em đã chạy thực tế.
 
 ## 13.1. Bước 1 – Khởi động "nhà bếp"
 ```powershell
-docker compose up -d
-docker compose ps
-# 4 hộp: mysql, minio, iceberg-rest, kafka → chạy healthy
+docker compose --profile all up -d
+docker compose --profile all ps
+# 5 hộp: mysql, minio, backend, frontend, scheduler
 ```
+
+> **Đo ngày 10/11/2026:** sau khi `docker compose --profile all up -d`, `docker ps` cho ra đúng **5 container** của dự án: `stock-lakehouse-mysql`, `stock-lakehouse-minio`, `stock-lakehouse-backend`, `stock-lakehouse-frontend`, `stock-lakehouse-scheduler`. Container `minio-data-restore` chỉ chạy 1 lần để khôi phục dữ liệu cũ nên không nằm trong danh sách này.
 
 ## 13.2. Bước 2 – Khởi tạo sổ cái (database)
 ```powershell
@@ -1121,6 +1190,7 @@ cd backend
 .\.venv\Scripts\Activate.ps1
 python scripts\init_database.py
 # Tạo database + chạy migrations
+# Migration 0002_predictions tạo bảng `predictions` cho dự báo phiên sắp tới
 ```
 
 ## 13.3. Bước 3 – Ingest dữ liệu thật
@@ -1153,9 +1223,9 @@ python scripts\run_agent.py --symbol VCB --question "RSI hiện tại bao nhiêu
 
 ## 14.1. System Health Report
 
-Em chạy file `tests/_system_audit.py` ngày 30/09/2026, kết quả:
+Em chạy file `backend/tests/_system_audit.py`. Lần chạy **đầy đủ nhất** em trình bày trong luận văn là ngày **30/09/2026**, khi hệ thống còn có Kafka và Iceberg:
 
-| ✅ Pass | ⚠️ Warn | ❌ Fail | Tổng |
+| Pass | Warn | Fail | Tổng |
 |---|---|---|---|
 | **28** | 0 | 0 | **28** |
 
@@ -1170,26 +1240,60 @@ Các bài test chia nhóm:
 - **TCP** (5): MinIO API/Console, Kafka internal/external, Kafka UI đều mở được.
 - **Docker** (1): 8 container stock-lakehouse đang chạy.
 
+### Sau khi gỡ Kafka và Iceberg (10/11/2026)
+
+Hai dòng "Streaming" và "TCP" ở bảng trên **không còn áp dụng** — vì không còn broker và không còn catalog để kiểm tra. Em đã sửa file audit cho khớp:
+
+- **Streaming (1)**: ~~thay 2 bài kiểm tra Kafka bằng 1 bài kiểm tra **bộ nhớ đệm stream** qua endpoint `GET /api/v1/stream/stats`~~ → ngày 11/11/2026 đường dẫn stream bị gỡ hẳn, thay bằng kiểm tra **dải giá lakehouse** qua `GET /api/v1/stocks/tape`.
+- **TCP (2)**: còn lại MinIO API (`9000`) và MinIO Console (`9001`).
+- **Docker (1)**: đếm số container `stock-lakehouse` đang chạy.
+
+**Đo ngày 10/11/2026 — trạng thái stack sau khi bật lại:**
+
+| Container | Trạng thái |
+|---|---|
+| `stock-lakehouse-mysql` | Up (healthy) |
+| `stock-lakehouse-minio` | Up |
+| `stock-lakehouse-backend` | Up |
+| `stock-lakehouse-scheduler` | Up |
+| `stock-lakehouse-frontend` | Up |
+
+> **Ghi chú thành thật:** con số **28/28** ở trên là của **bản cũ** (30/09/2026). Em **chưa chạy lại** toàn bộ file audit trên bản hiện tại để lấy một con số tổng mới, nên em **không** ghi con số nào cho bản hiện tại. Cách đo lại: `python backend/tests/_system_audit.py` với backend đang chạy.
+
 ## 14.2. Universe & Coverage (cập nhật 06/10/2026)
 
 | Khu vực | Số mã | Ví dụ |
 |---|---|---|
-| 🇺🇸 Mỹ | ~300 | AAPL, MSFT, NVDA |
-| 🇪🇺 Châu Âu | ~95 | SAP.DE, MC.PA, SHEL.L |
-| 🇯🇵 Nhật | ~40 | 7203.T, 6758.T |
-| 🇭🇰 Hồng Kông | ~20 | 0700.HK, 9988.HK |
-| 🇨🇳 Trung Quốc (ADR) | ~22 | BABA, JD, PDD |
-| 🇰🇷 Hàn Quốc | ~20 | 005930.KS |
-| 🇹🇼 Đài Loan | ~20 | 2330.TW |
-| 🇮🇳 Ấn Độ | ~8 | INFY, IBN |
-| 🇧🇷 Brazil | ~10 | VALE, ITUB |
-| 🇨🇦 Canada | ~19 | SHOP, RY.TO |
-| 🇦🇺 Úc | ~20 | BHP.AX, CBA.AX |
-| 🇻🇳 Việt Nam | ~50 | VCB, FPT, HPG |
+| Mỹ | ~300 | AAPL, MSFT, NVDA |
+| Châu Âu | ~95 | SAP.DE, MC.PA, SHEL.L |
+| Nhật | ~40 | 7203.T, 6758.T |
+| Hồng Kông | ~20 | 0700.HK, 9988.HK |
+| Trung Quốc (ADR) | ~22 | BABA, JD, PDD |
+| Hàn Quốc | ~20 | 005930.KS |
+| Đài Loan | ~20 | 2330.TW |
+| Ấn Độ | ~8 | INFY, IBN |
+| Brazil | ~10 | VALE, ITUB |
+| Canada | ~19 | SHOP, RY.TO |
+| Úc | ~20 | BHP.AX, CBA.AX |
+| Việt Nam | ~50 | VCB, FPT, HPG |
 | ETF (quỹ chỉ số) | ~85 | XLK, GLD, TLT |
 | **Tổng** | **958** | trong đó 917 mã đã ingest thật |
 
 **Tổng dữ liệu**: ~1,1 triệu dòng OHLCV × 3 tầng = ~3,3 triệu file Parquet trên MinIO.
+
+### Số đo trên máy local (đo ngày 10/11/2026)
+
+Khi chạy backend với `STORAGE_BACKEND=local` (đường lùi về filesystem), file `backend/data/layer_counts.json` ghi lại số object đếm được ở từng tầng:
+
+| Tầng | Số dòng (đo ngày 10/11/2026) |
+|---|---|
+| Bronze | 116.110 |
+| Silver | 116.520 |
+| Gold | 115.101 |
+
+Nguồn: `backend/data/layer_counts.json` (sinh bởi `backend/app/api/v1/endpoints/health.py` khi đếm object trong từng bucket).
+
+> **Ghi chú:** con số này là của **bản local** trên máy em, **không phải** bản MinIO đầy đủ. Với MinIO, cách đo là: `GET /api/v1/system/status` (trường `counts`) — cùng một cơ chế đếm, chạy nền trong một tiến trình riêng để không làm nghẽn API.
 
 ---
 
@@ -1215,15 +1319,19 @@ Kính thưa thầy cô, em xin nói thật các hạn chế em biết.
 
 ## 15.3. Hạn chế về hạ tầng
 
-1. **Chạy 1 broker Kafka** – chưa phân tán nhiều node. Cho đồ án đủ, cho production thì chưa.
+1. **Không có broker truyền tin.** Em đã gỡ Kafka (10/11/2026) vì ở khối lượng dữ liệu của đồ án nó chỉ giữ bản sao thứ hai. Đổi lại, em **không còn đường vào nhiều người ghi cùng lúc** — nếu lên production với hàng trăm nghìn symbol và nhiều tiến trình cùng ghi, em sẽ phải đưa broker trở lại.
 
-2. **Pandas thay vì Spark.** 1,1M rows OK nhưng nếu lên 100M rows thì cần Spark. Code đã có sẵn đường Spark.
+2. **Không có lịch ngữ cảnh sản xuất.** Cron chạy theo giờ UTC cố định. Nếu một lần batch bị lỗi giữa chừng, lịch không tự thử lại — em phải vào log (`backend/logs/scheduled_jobs.log`) để biết và chạy tay.
 
-3. **Single-node Docker** – không có Kubernetes, không auto-scaling.
+3. **Pandas thay vì Spark.** 1,1M rows OK nhưng nếu lên 100M rows thì cần Spark. Code đã có sẵn đường Spark.
+
+4. **Single-node Docker** – không có Kubernetes, không auto-scaling.
+
+5. **Không có catalog bảng dữ liệu.** Sau khi gỡ Iceberg, "bảng nào có cột gì" được giải quyết bằng **quy ước thư mục**. Dữ liệu lớn hơn hoặc nhiều người ghi cùng lúc thì quy ước tay sẽ trở nên khó quản lý — lúc đó cần catalog.
 
 ## 15.4. Hạn chế về AI Agent
 
-1. **Tool calling chỉ 11 tool.** Chưa pluggable (mỗi tool mới phải đăng ký thủ công).
+1. **Tool calling chỉ 17 tool.** Chưa pluggable (mỗi tool mới phải đăng ký thủ công).
 
 2. **Gemini Free 60 req/phút** có thể hết quota khi demo liên tục. Đã có Local Router fallback.
 
@@ -1240,15 +1348,17 @@ Nếu thầy cô hỏi "1–10 em cho đồ án mấy điểm", em sẽ nói:
 
 # 16. ĐÓNG GÓP MỚI & HƯỚNG PHÁT TRIỂN
 
-## 16.1. 5 đóng góp mới của đồ án
+## 16.1. 7 đóng góp mới của đồ án
 
-Nếu thầy cô hỏi "đồ án này có gì mới so với các đồ án cũ?", em xin nêu 5 điểm:
+Nếu thầy cô hỏi "đồ án này có gì mới so với các đồ án cũ?", em xin nêu 7 điểm:
 
 1. **Lakehouse đa tầng cho chứng khoán thật**, không phải demo data.
 2. **Storage abstraction** (MinIO + Local fallback) – không mất data khi MinIO chết.
 3. **94 features** comprehensive, **không look-ahead** (không nhìn trộm tương lai).
 4. **Walk-forward validation thật sự robust** – không chỉ train/test 1 lần.
 5. **AI Agent với tool-calling** – không bịa số.
+6. **Dự báo phiên kế tiếp được ghi sẵn vào cơ sở dữ liệu** (mục 19.2) – con số có ngày tháng, có model, có mốc neo, và **không bao giờ** là con số bịa.
+7. **Em đo độ phủ trước khi dùng, và gỡ bỏ khi không đủ** (mục 19.1) – luồng tin tức bị gỡ vì chỉ phủ 0,00% phiên; một quyết định thiết kế dựa trên đo lường, không phải trên cảm tính.
 
 ## 16.2. 9 hướng phát triển
 
@@ -1264,7 +1374,7 @@ Nếu thầy cô hỏi "đồ án này có gì mới so với các đồ án cũ
 
 ---
 
-# 17. 🌟 25 CÂU HỎI HỘI ĐỒNG + CÂU TRẢ LỜI CỦA EM
+# 17. 25 CÂU HỎI HỘI ĐỒNG + CÂU TRẢ LỜI CỦA EM
 
 > Em tự đặt câu hỏi như thầy cô có thể hỏi rồi tự trả lời bằng ngôn ngữ đời thường nhất có thể ạ.
 
@@ -1419,21 +1529,35 @@ Nếu thầy cô hỏi "đồ án này có gì mới so với các đồ án cũ
 
 > **Có.** Code đã có Dockerfile multi-stage.
 >
-> - **AWS**: ECS Fargate (backend), S3 (thay MinIO), RDS (MySQL), MSK (Kafka).
-> - **GCP**: Cloud Run, Cloud Storage.
+> - **AWS**: ECS Fargate (backend), S3 (thay MinIO), RDS (MySQL), và EventBridge Scheduler thay cho container cron.
+> - **GCP**: Cloud Run, Cloud Storage, Cloud Scheduler.
 > - **Local**: Docker Compose (như hiện tại, 0đ).
 >
 > Em chọn local dev vì đồ án sinh viên budget = 0, và reviewer có thể chạy lại trên máy mình (reproducible).
+>
+> Lưu ý: nếu mở rộng lên nhiều node cùng ghi dữ liệu, em sẽ cần thêm broker (xem Câu 16).
 
 ---
 
 ### Câu 16: "Sao em dùng batch mà không dùng Kafka?"
 
-> Em dùng cả hai:
-> - **Batch** (script) cho dữ liệu lịch sử 5-10 năm (chạy 1 lần, xong thì ổn định).
-> - **Streaming** (Kafka + Finnhub WebSocket) cho dữ liệu real-time (dashboard cập nhật liên tục).
+> **Câu hỏi rất đúng, và em xin trả lời thẳng: bản đầu đồ án em CÓ dùng Kafka. Ngày 10/11/2026 em đã gỡ bỏ.**
 >
-> Hai mode phục vụ hai mục đích khác nhau.
+> **Vì sao em gỡ?**
+>
+> 1. **Broker chỉ giữ một bản sao thứ hai của dữ liệu vốn đã có.** Dữ liệu đi qua Kafka trong thiết kế cũ là dữ liệu daily OHLCV — dữ liệu đã được ghi vào bucket rồi. Broker không sinh ra dữ liệu mới, chỉ giữ thêm một bản sao. Ở khối lượng của đồ án, đó là chi phí không đem lại lợi ích.
+> 2. **Mỗi broker là thêm một tiến trình phải giữ sống.** Kafka chạy trên JVM. Bật stack của em sẽ thêm một tiến trình nặng, một cổng, một thư mục log — trên một chiếc laptop, đó là tài nguyên lấy đi từ việc quan trọng hơn.
+> 3. **Iceberg cần một catalog riêng, mà quy ước thư mục đã làm được việc đó.** Tầng Bronze/Silver/Gold là 3 thư mục gốc, mỗi mã/năm/tháng là 1 thư mục con. Muốn đọc tầng Gold của VCB năm 2024 tháng 3 thì đi đúng đường dẫn đó là ra — không cần thêm một dịch vụ `iceberg-rest` chạy kèm.
+>
+> **Thay bằng gì?**
+> - **Batch** → cron thật trong container `scheduler` (`backend/crontab`), giờ ghi theo UTC: `eod` lúc 21:30 và 03:30 (job `news`/`coverage` đã bị gỡ ngày 12/11/2026).
+> - **Streaming** → WebSocket trực tiếp tới nhà cung cấp (Finnhub cho Mỹ, SSI iBoard cho Việt Nam) đẩy vào bộ nhớ đệm trong RAM của backend, phát ra trình duyệt bằng SSE. **Không có broker ở giữa.**
+>
+> **Cái giá em trả:**
+> - Mất khả năng "nhiều máy cùng ghi vào một stream". Với đồ án thì không sao; lên production em sẽ phải đưa broker trở lại.
+> - Mất tính năng "du hành thời gian" của Iceberg — nhưng em thay bằng cách chia thư mục theo mã/năm/tháng, vẫn xem lại được dữ liệu cũ.
+>
+> Em nói điều này ở đây trước vì thầy cô có quyền hỏi, và thà trả lời thật còn hơn giả vờ Kafka chưa từng tồn tại. Chi tiết ở mục 6.4.
 
 ---
 
@@ -1442,18 +1566,33 @@ Nếu thầy cô hỏi "đồ án này có gì mới so với các đồ án cũ
 > Em có pytest tests ở `backend/tests/`.
 >
 > - Test cho từng hàm indicator (RSI có tính đúng không, MACD có sign đúng không).
-> - Test cho Iceberg manager.
+> - Test cho lớp lưu trữ (MinIO và local) và cho các tầng Bronze/Silver/Gold.
 > - Test cho backtest engine (kết quả có deterministic không).
+> - Test cho quy tắc gán phiên của tin tức (`app/lakehouse/news_silver.py`) — **đã xoá cùng toàn bộ luồng tin ngày 12/11/2026** (mục 19.1).
 >
 > Chưa có 100% coverage, chỉ test các hàm quan trọng.
+>
+> Ngoài ra em có file `backend/tests/_system_audit.py` — chạy một vòng kiểm tra sức khỏe toàn hệ thống (MinIO, tầng dữ liệu, nhà cung cấp dữ liệu, 10 endpoint, bộ nhớ đệm stream, cổng TCP, số container). Kết quả 28/28 của ngày 30/09/2026 là từ file này.
 
 ---
 
 ### Câu 18: "Restart giữa chừng có mất data không?"
 
-> **Không.** Mọi data nằm ở MinIO, MySQL, Iceberg. Restart container chỉ stop process, data vẫn còn do **named volumes**.
+> **Không.** Restart container chỉ dừng tiến trình, dữ liệu nằm ở filesystem và vẫn còn.
 >
-> `docker compose down` KHÔNG xóa volume, chỉ `down -v` mới xóa (cẩn thận).
+> **Cơ chế lưu trữ hiện tại: dùng _bind mount_ (mount thư mục), KHÔNG dùng named volume.**
+> Dữ liệu được mount từ các thư mục trên đĩa ext4 bên trong WSL2:
+>
+> | Dữ liệu | Mount từ | Mount vào container |
+> |---|---|---|
+> | MySQL | `/var/lib/docker-data/mysql` | `/var/lib/mysql` |
+> | MinIO | `/var/lib/docker-data/minio` | `/data` |
+>
+> Vì sao lại là bind mount chứ không phải named volume? Vì Docker Engine của em chạy **native trong WSL2** (không phải Docker Desktop). Ghi 11 GB file Parquet từ container qua cầu 9P/NTFS xuống ổ `/mnt/d` của Windows chỉ khoảng **20 MB/phút**, còn ghi ext4→ext4 thì khoảng **1 GB/phút**. Nên dữ liệu phải nằm trên ext4, không nằm trên ổ D:.
+>
+> **Cách xem dữ liệu từ Windows:** đường dẫn là `\\wsl$\Ubuntu-24.04\var\lib\docker-data\...`
+>
+> `docker compose down` KHÔNG xóa dữ liệu. `docker compose down -v` cũng **không** xóa dữ liệu này, vì nó không nằm trong named volume — nhưng lệnh `rm -rf` thủ công trên `/var/lib/docker-data` thì có. Cẩn thận.
 
 ---
 
@@ -1461,7 +1600,11 @@ Nếu thầy cô hỏi "đồ án này có gì mới so với các đồ án cũ
 
 > Vì 90% query là "lấy dữ liệu của 1 mã trong 1 khoảng thời gian".
 >
-> Partition `symbol=VCB/year=2024/*` → Iceberg/MinIO chỉ quét 12 folder (12 tháng) thay vì cả triệu file. Benchmark: nhanh gấp ~50 lần.
+> Partition `symbol=VCB/year=2024/*` → hệ thống chỉ quét **12 folder (12 tháng)** thay vì cả triệu file. Đó là điểm mấu chốt của việc chia thư mục kiểu Hive.
+>
+> **Về con số "nhanh gấp ~50 lần":** em **không giữ con số đó**, vì em **không đo lại** nó trên bản hiện tại và không muốn đưa ra một con số không truy vết được. Cách đo lại nếu thầy cô hỏi: cùng một câu truy vấn, chạy 2 lần — một lần quét toàn bộ bucket, một lần quét đúng 12 thư mục `month=` — rồi so sánh thời gian.
+>
+> Trước khi gỡ Iceberg, việc chia thư mục này do **catalog** quản lý. Bây giờ nó do **quy ước tên thư mục** đảm nhiệm — cùng một kết quả, ít bộ máy hơn.
 
 ---
 
@@ -1475,7 +1618,7 @@ Nếu thầy cô hỏi "đồ án này có gì mới so với các đồ án cũ
 
 > **Không.** Em thiết kế idempotent (chạy nhiều lần cho cùng kết quả):
 > - Tạo bucket: check tồn tại trước khi tạo.
-> - Kafka topic: Kafka tự ignore nếu topic đã có.
+> - Migration `predictions`: có ràng buộc duy nhất `(symbol, model_name, target_session)`, nên chạy lại batch cho cùng một phiên sẽ **ghi đè** dòng cũ chứ không sinh dòng trùng.
 > - `init_database.py`: check DB tồn tại trước khi migrate.
 
 ---
@@ -1491,18 +1634,22 @@ Nếu thầy cô hỏi "đồ án này có gì mới so với các đồ án cũ
 ### Câu 23: "Em mất bao lâu để hoàn thành?"
 
 > Tổng cộng ~4 tháng:
-> - Tháng 1: Học Lakehouse theory (Iceberg, Delta, Hudi).
+> - Tháng 1: Học Lakehouse theory (Medallion, Delta, Hudi, Iceberg).
 > - Tháng 2: Docker, ingest, pipeline Bronze-Silver-Gold.
 > - Tháng 3: ML models, backtest, walk-forward.
 > - Tháng 4: AI Agent, frontend, viết docs, test.
+>
+> **Tháng 5 (thêm):** làm lại kiến trúc — gỡ Kafka và Iceberg, thay bằng cron + quy ước thư mục, thêm dự báo phiên kế tiếp; rồi ngày 12/11/2026 đo độ phủ tin tức và **gỡ luôn luồng tin tức** vì không đủ dữ liệu (mục 19.1).
 
 ---
 
 ### Câu 24: "Tài liệu tham khảo?"
 
 > Chính:
-> - Apache Iceberg documentation
 > - Databricks Medallion Architecture whitepaper
+> - Apache Parquet tài liệu định dạng file (mã nguồn)
+> - MinIO documentation (API tương thích Amazon S3)
+> - MySQL 8.4 reference manual
 > - yfinance, Finnhub, Alpha Vantage API docs
 > - PyTorch LSTM tutorial, scikit-learn docs
 > - Gemini function-calling guide
@@ -1511,6 +1658,8 @@ Nếu thầy cô hỏi "đồ án này có gì mới so với các đồ án cũ
 > - "Advances in Financial Machine Learning" – Marcos López de Prado
 > - "Evidence-Based Technical Analysis" – David Aronson
 > - Paper về LSTM for stock prediction (Fischer & Krauss, 2018)
+>
+> **Tài liệu em đã đọc nhưng KHÔNG còn dùng trong hệ thống** (vì đã gỡ ngày 10/11/2026): Apache Iceberg documentation, Apache Kafka documentation. Em giữ lại trong danh sách này vì chúng là tài liệu em đã học và dùng để thiết kế bản đầu.
 
 ---
 
@@ -1524,11 +1673,266 @@ Nếu thầy cô hỏi "đồ án này có gì mới so với các đồ án cũ
 
 ---
 
+# 19. HỆ THỐNG MỚI VÀ QUYẾT ĐỊNH GỠ BỎ (10 – 12/11/2026)
+
+Kính thưa thầy cô, trong lần làm lại cuối đồ án em thêm **dự báo phiên kế tiếp** vào hệ thống, đồng thời **đo rồi gỡ bỏ luồng tin tức** sau khi thấy nó không đủ dữ liệu. Em trình bày theo đúng 3 tầng: **① hiểu đơn giản** → **② thuật ngữ** → **③ chi tiết kỹ thuật**.
+
+---
+
+## 19.1. Hệ thống tin tức – đã đo, thấy không đủ, và đã gỡ bỏ (12/11/2026)
+
+### ① Hiểu đơn giản
+
+**Bối cảnh vấn đề:** Em từng xây một hệ thống tin tức riêng, theo đúng bài bản "bàn tuyển vàng trong tòa soạn": tin tức từ nguồn thật về, bỏ tin trùng, rồi **gán mỗi tin vào đúng phiên giao dịch mà nó có thể được dùng** để dự báo (tin đăng lúc 8 giờ tối thuộc về phiên hôm sau, không phải phiên hôm nay). Quy tắc đó chống được lỗi nhìn thấy tương lai — và em xây nó đúng.
+
+**Nhưng em phải trả lời một câu hỏi trước khi xây tiếp:** *"Bao nhiêu phiên giao dịch thực sự có tin?"*
+
+Em đã đo (đo ngày 11/11/2026, đủ 1.002 mã, 0 lỗi đọc):
+
+| Chỉ số | Giá trị |
+|---|---|
+| Tổng số phiên giao dịch trong mẫu | **356.803** |
+| Số phiên có tin tức | **15** |
+| Độ phủ chung | **0,00%** |
+| Độ phủ trung vị theo từng mã | **0,00%** |
+| Số mã có ít nhất 1 bài | **10 / 1.002** |
+| Tổng số bài đã lưu | **89** |
+
+Nghĩa là **99% số phiên không có dữ liệu**. Một hệ thống chỉ hoạt động trên 0,89% mẫu số thì **không thể dùng để kết luận điều gì** — dù nó có quy tắc gán phiên đúng đến mấy.
+
+**Vấn đề thứ hai, nặng hơn nhiều:** khi kiểm tra từng bài báo, em thấy một số bài báo **thật nhưng gắn sai mã chứng khoán**:
+
+| Mã trong hệ thống | Bài báo thực tế bị gán | Nguyên nhân |
+|---|---|---|
+| `MWG` (Mobile World, Việt Nam) | Tin về Multi Ways Holdings (Singapore) | Mã `MWG` trùng giữa hai công ty |
+| `VCB` (Vietcombank, Việt Nam) | Tin về quỹ ETF Vanguard | Mã `VCB` trùng với quỹ Vanguard |
+| `FPT`, `HPG`, `CTG` | Tin chung thị trường của VnExpress | Logic dự phòng: khi số bài "liên quan" quá ít thì đổ tin chung vào cho không trống |
+
+Bài báo là **thật** — không có bài nào bịa ra. Nhưng bài **thật gắn sai mã** vẫn là sai: bảng ghi "MWG có tin về Multi Ways Holdings" là một dòng **không truy vết được**. Và luật em tự đặt ra cho dự án là: mọi con số phải truy vết được tới một nguồn thật.
+
+### ② Quyết định: gỡ bỏ toàn bộ (12/11/2026)
+
+Em chọn **gỡ hẳn** thay vì giữ một trang rỗng rồi giải thích là "đang thử nghiệm". Lý do: phần còn lại của dự án (giá → chỉ báo → dự báo → backtest → walk-forward) là **đầy đủ và truy vết được**, còn phần tin tức thì **chưa bao giờ đủ dữ liệu** để làm nghiên cứu.
+
+**Đã xoá (backend):**
+
+| File | Vai trò |
+|---|---|
+| `app/api/v1/endpoints/news.py` | 4 endpoint đọc tin tức |
+| `app/agent/tools/news_tools.py` | 4 tool cho AI Agent |
+| `app/lakehouse/news_bronze.py` | Tầng Bronze tin tức |
+| `app/lakehouse/news_silver.py` | Tầng Silver tin tức |
+| `app/data_sources/enhanced_news_sentiment_provider.py` | Provider đọc RSS |
+| `scripts/measure_news_coverage.py` | Script đo độ phủ |
+| `scripts/probe_news_source_coverage.py` | Script dò nguồn |
+| `tests/test_news_anti_lookahead.py` | Test chống rò rỉ tương lai |
+
+**Đã xoá (frontend):** `src/pages/NewsSentiment.tsx`, `src/api/news.ts`.
+**Đã xoá (MinIO):** bucket `stock-bronze-news` (17 object), `stock-silver-news` (15 object).
+**Đã xoá (dữ liệu local):** `data/bronze_news/`, `data/silver_news/`, `data/news_coverage.json`.
+
+### ③ Hình vẽ
+
+```
+┌───────────────────────────────────────────────────────────────────────────┐
+│  NHÀ CUNG CẤP GIÁ THẬT                                                    │
+│  Yahoo Finance · Finnhub · Alpha Vantage · Stooq · SSI iBoard (VN)        │
+└──────────────────────────────────────┬────────────────────────────────────┘
+                                       ▼
+┌───────────────────────────────────────────────────────────────────────────┐
+│  BRONZE   bucket stock-bronze                                             │
+│  OHLCV nguyên bản · append-only · partition symbol/year/month             │
+└──────────────────────────────────────┬────────────────────────────────────┘
+                                       ▼
+┌───────────────────────────────────────────────────────────────────────────┐
+│  SILVER   bucket stock-silver                                             │
+│  bỏ OHLC sai · dedup (symbol, timestamp) · chuẩn hoá giờ UTC             │
+└──────────────────────────────────────┬────────────────────────────────────┘
+                                       ▼
+┌───────────────────────────────────────────────────────────────────────────┐
+│  GOLD     bucket stock-gold                                               │
+│  23 đặc trưng + 3 cột đáp án · KHÔNG look-ahead leakage                 │
+└──────────────────────────────────────┬────────────────────────────────────┘
+                                       ▼
+┌───────────────────────────────────────────────────────────────────────────┐
+│  MÔ HÌNH · BACKTEST · WALK-FORWARD                                       │
+│  → API FastAPI (61 endpoint) → 7 trang web                               │
+└───────────────────────────────────────────────────────────────────────────┘
+```
+
+### ④ Đọc hình vẽ bằng lời đời thường
+
+Hình này là **một đường thẳng, không có nhánh**. Mọi con số trên web đều truy vết
+được về **đúng một** nguồn: nhà cung cấp giá thật. Trước 12/11/2026 hình này có
+thêm **một nhánh song song** cho tin tức — nhánh đó đã bị gỡ.
+
+### ⑤ Bằng chứng
+
+| Kiểm tra | Trước | Sau |
+|---|---|---|
+| Route REST chứa `news`/`sentiment` | 8 | **0** (tổng còn 61 route) |
+| Tool của AI Agent | 21 | **17** |
+| Bucket MinIO có chữ `news` | 2 | **0** |
+| Thư mục local tin tức | 2 | **0** |
+| Trang web | 8 | **7** |
+| Test backend | 111 pass + 1 lỗi import | **112 pass, 0 lỗi** |
+
+**Điều KHÔNG đổi:** tập đặc trưng của Gold **không có** cột sentiment (trước và
+sau khi gỡ); tầng giá không bị tác động; kết quả backtest và walk-forward không
+đổi — chúng **chưa bao giờ** dùng tin tức.
+
+**Cách trả lời khi thầy hỏi "vì sao bỏ trang tin tức, dự án không bị thiếu gì sao?":**
+
+> *"Đúng, dự án không bị thiếu gì, và đó là lý do em gỡ nó chứ không phải giữ nó.
+> Em đo độ phủ trước khi quyết định: trên 1.002 mã, chỉ 10 mã có tin và tổng cộng
+> 89 bài — độ phủ chung 0,00%, trung vị 0,00%. Nghĩa là 99% số phiên không có dữ
+> liệu để nghiên cứu. Tệ hơn, khi kiểm tra từng bài, em thấy mã `MWG` của Mobile
+> World nhận tin của Multi Ways Holdings, mã `VCB` của Vietcombank nhận tin của quỹ
+> Vanguard — vì các mã này trùng nhau giữa các sàn. Bài báo thật nhưng gắn sai mã,
+> mà luật của dự án em tự đặt ra là mọi con số phải truy vết được. Nên em chọn gỡ
+> hẳn thay vì giữ một trang rỗng rồi giải thích là 'đang thử nghiệm'. Phần còn lại —
+> giá, chỉ báo, dự báo, backtest, walk-forward — là phần có dữ liệu thật và kết quả
+> thật, và em tập trung sức vào đó."*
+
+---
+
+
+## 19.2. Dự báo phiên kế tiếp – "Chuyên gia viết sẵn phiếu dự báo tối hôm trước"
+
+### ① Hiểu đơn giản
+
+**Bối cảnh vấn đề:** Trước đây, mỗi lần thầy cô bấm nút "Dự báo" trên web, hệ thống **chạy mô hình ngay lúc đó**. Nhưng điều đó có 2 vấn đề:
+1. Mỗi lần bấm là một con số **khác nhau** (vì mô hình có phần ngẫu nhiên), nên thầy cô không biết con số nào là "con số chính thức".
+2. Con số đó **không có ngày tháng**. Câu hỏi "hôm nay dự báo gì?" không có câu trả lời, vì nó phụ thuộc vào lúc bấm.
+
+**Hậu quả nếu không xử lý:** Dashboard hiển thị một con số "đẹp" nhưng không ai dựa vào được, vì không ai biết nó được tính lúc nào và từ dữ liệu nào.
+
+**Cách hệ thống xử lý:** Giống cách một **chuyên gia viết sẵn phiếu dự báo tối hôm trước**:
+- Tối sau khi sàn đóng cửa, hệ thống **tự động** chạy mô hình và **viết phiếu dự báo ra giấy** — ghi rõ: mã, phiên nào, mức giá dự báo, mức tăng dự kiến, và mô hình nào đã dùng.
+- Sáng hôm sau, khi thầy cô mở Dashboard, thầy cô thấy **chính tờ phiếu đó** — không phải một con số được tính lại lúc thầy cô đang xem.
+
+**Ví dụ đời thường:**
+Thầy cô gửi bản dự báo cho đồng nghiệp lúc 8 giờ tối. Sáng hôm sau đồng nghiệp mở email thấy **đúng bản em gửi tối qua** — không phải một bản mới sinh lúc họ mở email. Nếu bản em gửi lúc 8 giờ tối là "AAPL dự báo 332,1", thì sáng hôm sau đồng nghiệp phải thấy 332,1, **không phải** 335,7 vì hệ thống vừa tính lại lúc em mở email.
+
+### ② Thuật ngữ
+
+| Cách gọi đời thường | Thuật ngữ | Nghĩa là gì | Dùng ở đâu |
+|---|---|---|---|
+| **Phiếu dự báo** | Prediction | Một dòng trong bảng `predictions`, ghi kết quả dự báo cho một phiên | `backend/app/database/models/prediction.py` |
+| **Phiên sắp tới** | `target_session` | Phiên giao dịch mà bản dự báo nhắm tới | `backend/app/database/models/prediction.py` |
+| **Mốc neo** | `reference_close` | Giá đóng cửa của phiên **trước** phiên đích — mốc để so sánh | `backend/app/services/next_session_forecast.py` |
+| **Mức tăng dự kiến** | `predicted_return` | `(giá dự báo − giá mốc) / giá mốc`, tính bằng phần trăm | `backend/app/services/next_session_forecast.py` |
+| **Dự báo tự động đêm** | `source = auto_eod_batch` | Bản do batch tối tự viết | `backend/app/services/auto_refresh.py` |
+| **Dự báo thủ công** | `source = manual_api` | Bản do người dùng bấm nút | `backend/app/api/v1/endpoints/forecasting.py` |
+| **Chỉ dự báo, không huấn luyện** | `predict_symbol` | Hệ thống **không bao giờ** huấn luyện model trong batch, chỉ dùng model có sẵn | `backend/app/forecasting/predictor.py` |
+
+### ③ Hình vẽ
+
+```
+┌───────────────────────────────────────────────────────────────────────────┐
+│  Cron "eod"  —  21:30 UTC (NYSE)  /  03:30 UTC (HOSE),  thứ 2 đến thứ 6   │
+└──────────────────────────────────────┬────────────────────────────────────┘
+                                       ▼
+┌───────────────────────────────────────────────────────────────────────────┐
+│  BATCH EOD   scripts/run_scheduled_job.py eod                             │
+│  1. Lấy bar ngày vừa rồi từ nhà cung cấp → Bronze                         │
+│  2. Dựng lại Silver (rửa) và Gold (94 chỉ báo) cho mã vừa có dữ liệu      │
+└──────────────────────────────────────┬────────────────────────────────────┘
+                                       ▼
+┌───────────────────────────────────────────────────────────────────────────┐
+│  DỰ BÁO   app/services/next_session_forecast.py                           │
+│  • dùng model ĐÃ HUẤN LUYỆN (không bao giờ huấn luyện trong batch)        │
+│  • lấy điểm đầu tiên chưa có giá thực tế trong chuỗi dự báo               │
+│  • nếu mã chưa có model → trả về "không có model", KHÔNG bịa giá          │
+└──────────────────────────────────────┬────────────────────────────────────┘
+                                       ▼
+┌───────────────────────────────────────────────────────────────────────────┐
+│  LƯU VÀO DB   bảng `predictions`  (MySQL)                                 │
+│  khóa duy nhất: (symbol, model_name, target_session)                      │
+│  → chạy lại batch cho cùng 1 phiên sẽ GHI ĐÈ, không sinh dòng trùng       │
+└──────────────────────────────────────┬────────────────────────────────────┘
+                                       ▼
+┌───────────────────────────────────────────────────────────────────────────┐
+│  ĐỌC RA UI                                                                │
+│  • GET /api/v1/forecast/next-session/{symbol}   (xem, không lưu)          │
+│  • POST /api/v1/forecast/next-session/{symbol}/store   (lưu thủ công)     │
+│  • Dashboard đọc CHÍNH bảng `predictions` → NextSessionCard.tsx           │
+└───────────────────────────────────────────────────────────────────────────┘
+```
+
+### ④ Đọc hình vẽ bằng lời thường
+
+Hình vẽ đi từ trên xuống. Trên cùng là **đồng hồ** — cron đánh thúc đúng 2 lần mỗi ngày thứ 2 đến thứ 6. Bên dưới là **việc làm** — lấy giá, rửa, tính chỉ báo. Rồi đến **bước dự báo** — chỉ dùng mô hình đã có, không bao giờ huấn luyện mới trong lúc chạy batch. Cuối cùng là **tờ phiếu** được ghi vào sổ (bảng `predictions`), và **người đọc** (Dashboard) lấy đúng tờ phiếu đó.
+
+**Mũi tên quan trọng nhất** là mũi tên từ "LƯU VÀO DB" xuống "ĐỌC RA UI": nó đi qua **sổ**, không đi thẳng. Nghĩa là Dashboard **đọc sổ**, chứ không tự tính lại. Đây chính là điểm em muốn thầy cô kiểm chứng: bấm nút ở web 20 lần thì con số vẫn là **một**, không đổi.
+
+### ⑤ Chi tiết kỹ thuật
+
+**Quy tắc quan trọng nhất — không bịa số:** nếu một mã **chưa có model đã huấn luyện**, hệ thống trả về `available: false` kèm lý do cụ thể, **không** trả về một con số dự báo. Cùng nguyên tắc với toàn bộ dự án: không có dữ liệu thật thì nói "không biết", không bịa.
+
+```
+{"available": false,
+ "symbol": "XYZ",
+ "reason": "No trained model exists for XYZ. Train one before a next-session forecast can be produced."}
+```
+
+**Bảng `predictions`** (tạo bởi migration `backend/alembic/versions/0002_predictions.py`):
+
+| Cột | Ý nghĩa |
+|---|---|
+| `symbol` | Mã cổ phiếu |
+| `model_name` | Mô hình nào đã dùng (ví dụ `arima`) |
+| `target_session` | Phiên giao dịch mà bản dự báo nhắm tới |
+| `reference_close` | Giá đóng cửa của phiên trước — mốc so sánh |
+| `predicted_close` | Giá đóng cửa dự báo |
+| `predicted_return` | Mức tăng dự kiến, tính bằng **phần trăm** (`0.0084` = +0,84%) |
+| `horizon` | Số phiên được dự báo (mặc định 1) |
+| `source` | `auto_eod_batch` hay `manual_api` |
+| `source_layer` | Tầng dữ liệu mà đầu vào được đọc từ (mặc định `gold`) |
+| `created_at` | Lúc dòng này được ghi |
+
+**Vì sao mỗi phiên chỉ có 1 dòng?** Ràng buộc duy nhất `(symbol, model_name, target_session)` trong migration. Batch EOD có thể chạy lại cho cùng một phiên (ví dụ máy bị tắt rồi khởi động lại), và lần chạy sau sẽ **ghi đè** dòng cũ. Nhờ vậy bảng luôn chứa **bản dự báo mới nhất** cho mỗi phiên — đúng thứ mà Dashboard cần.
+
+**Vì sao batch KHÔNG huấn luyện model?** Huấn luyện LSTM cần khoảng **32 GB RAM**; máy chủ đích của em chỉ có 8 GB. Nên model được **huấn luyện thủ công trên máy workstation rồi copy lên máy chủ** (`backend/scripts/sync_models_to_vps.py`). Batch chỉ **dùng** model có sẵn. Đây là một quyết định có chủ đích, em ghi thẳng trong docstring của `next_session_forecast.py`.
+
+**Số đo:**
+
+| Chỉ số | Giá trị | Nguồn / Cách đo |
+|---|---|---|
+| Số dòng trong bảng `predictions` | **chưa đo** | Cách đo: `SELECT COUNT(*) FROM predictions;` trong MySQL (`docker exec -it stock-lakehouse-mysql mysql -uroot -p123456 stock_lakehouse -e "SELECT COUNT(*) FROM predictions;"`) |
+| Số mã có dự báo cho phiên tới | **chưa đo** | Cách đo: `SELECT COUNT(DISTINCT symbol) FROM predictions WHERE target_session = (SELECT MAX(target_session) FROM predictions);` |
+| Sai số của bản dự báo so với giá thực tế | **chưa đo** | Cách đo: join `predictions` với giá đóng cửa thực tế của `target_session` trong tầng Gold, tính MAE. Em **chưa chạy** phép so sánh này |
+
+> **Ghi chú thành thật:** Tại thời điểm em viết luận văn này, các bảng `predictions` ở trên **chưa được đo**. Em ghi "chưa đo" kèm câu lệnh đo cụ thể thay vì đưa ra con số ước lượng — vì một con số không truy vết được thì tệ hơn không có con số.
+
+**Cách trả lời khi thầy hỏi "Dự báo có chính xác không?"**
+
+> *"Em chưa đo được độ chính xác của những bản dự báo này trên bản hiện tại, nên em không dám đưa ra một con số MAE cho chỗ này. Cái em **có** và **đã** kiểm chứng là cơ chế: mỗi bản dự báo đều gắn mã mô hình, phiên đích và mốc neo; và hệ thống **không bao giờ** đưa ra con số khi mã chưa có model — đó là thứ em coi là quan trọng hơn cả việc bản dự báo có đẹp hay không."*
+
+---
+
+## 19.3. Tóm tắt hai quyết định của tháng 11/2026
+
+| | Luồng tin tức (**đã gỡ 12/11/2026**) | Dự báo phiên kế tiếp (**đang chạy**) |
+|---|---|---|
+| **Kích hoạt bởi** | Cron `news` (mỗi 30 phút) — **đã bỏ khỏi crontab** | Cron `eod` (21:30 và 03:30 UTC) |
+| **Đầu vào** | RSS từ nhiều nguồn | Tầng Gold sau khi dựng lại |
+| **Đầu ra** | `stock-bronze-news` → `stock-silver-news` — **đã xoá bucket** | Bảng `predictions` trong MySQL |
+| **Trang web** | `/news` — **đã bỏ route** | `/` (Dashboard) |
+| **Quy tắc chống sai** | Tin chỉ dùng cho phiên mở **sau** lúc đăng | Không có model thì **không** đưa ra con số |
+| **Số đo** | Độ phủ tin: **0,00%** → quyết định gỡ | Số dòng `predictions` — **chưa đo** |
+
+---
+
 # 18. LỜI CẢM ƠN & KẾT THÚC
 
 Kính thưa thầy cô, trên đây là toàn bộ bài thuyết trình khóa luận tốt nghiệp của em.
 
 Em xin tóm tắt bằng một câu: **em đã xây dựng một nền tảng Data Lakehouse end-to-end cho dữ liệu chứng khoán, từ ingest đa nguồn → Medallion Bronze-Silver-Gold → 94 features không look-ahead → 3 mô hình forecast (LR/ARIMA/LSTM) → backtest engine tự viết với walk-forward validation → AI Agent tool-calling đảm bảo không bịa số, tất cả chạy trên Docker Compose với 0 đồng chi phí hạ tầng**.
+
+**Và hai việc em làm lại ở lần cuối (10 – 12/11/2026):** một **dự báo phiên kế tiếp** được cron ghi sẵn vào bảng `predictions` sau mỗi phiên — kèm nguyên tắc không bao giờ đưa ra con số khi mã chưa có mô hình; và một **quyết định gỡ bỏ luồng tin tức** sau khi em đo được độ phủ chỉ 0,00% phiên giao dịch. Em xin nói thẳng điều này: một trang đầy đủ nhưng dữ liệu không đủ thì tệ hơn là không có trang, và thà gỡ còn hơn giữ.
+
+**Và một điều em muốn nói thẳng:** hệ thống này **đã từng có Kafka và Iceberg**, rồi em **gỡ bỏ** vì chúng chỉ giữ bản sao thứ hai của dữ liệu vốn đã có, cộng thêm một JVM phải giữ sống. Thay vào đó là **cron** (lịch chạy thật, giờ UTC) và **quy ước thư mục** (tầng Bronze/Silver/Gold). Em trình bày đầy đủ lý do ở mục 6.4 và Câu 16 — vì thà nói thật còn hơn giả vờ.
 
 Em xin nhấn mạnh lại: **đây là prototype nghiên cứu học thuật** – không giao dịch thật, không đặt lệnh, không cam kết lợi nhuận, không khẳng định LSTM là tốt nhất, backtest chỉ đánh giá hiệu suất lịch sử.
 
@@ -1538,7 +1942,7 @@ Em xin chân thành cảm ơn:
 - **Các bạn cùng lớp** đã góp ý và review code.
 - **Gia đình** đã hỗ trợ em trong suốt thời gian qua.
 
-Em xin hết bài thuyết trình. Em sẵn sàng trả lời các câu hỏi của thầy cô ạ. 🙏
+Em xin hết bài thuyết trình. Em sẵn sàng trả lời các câu hỏi của thầy cô ạ.
 
 ---
 
@@ -1546,9 +1950,9 @@ Em xin hết bài thuyết trình. Em sẵn sàng trả lời các câu hỏi c�
 
 | Mục đích | Lệnh |
 |---|---|
-| Khởi động hạ tầng | `docker compose up -d` |
+| Khởi động toàn bộ stack | `docker compose --profile all up -d` |
 | Khởi tạo database | `python scripts\init_database.py` |
-| Bootstrap MinIO + Kafka | `python scripts\bootstrap_infrastructure.py` |
+| Bootstrap MinIO (tạo bucket) | `python scripts\bootstrap_infrastructure.py` |
 | Ingest 917 mã | `python scripts\ingest_historical.py --source multi_source --years 10` |
 | Ingest cổ phiếu VN | `python scripts\ingest_vn.py --years 10` |
 | Pipeline 1 mã | `python scripts\run_pipeline.py --symbol VCB` |
@@ -1556,6 +1960,9 @@ Em xin hết bài thuyết trình. Em sẵn sàng trả lời các câu hỏi c�
 | Backtest MA Cross | `python scripts\run_backtest.py --symbol AAPL --strategy ma_crossover` |
 | Walk-forward 5 folds | `python scripts\run_walk_forward.py --symbol AAPL --model lstm --folds 5` |
 | Test Agent headless | `python scripts\run_agent.py --symbol VCB --question "RSI hiện tại bao nhiêu?"` |
+| **Chạy batch EOD (như cron)** | `python scripts\run_scheduled_job.py eod` |
+| **Dự báo phiên tới (xem, không lưu)** | `GET /api/v1/forecast/next-session/{symbol}` |
+| **Dự báo phiên tới (lưu vào DB)** | `POST /api/v1/forecast/next-session/{symbol}/store` |
 | Chạy backend | `uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload` |
 | Chạy frontend | `cd frontend && npm run dev` |
 
@@ -1569,8 +1976,13 @@ Em xin hết bài thuyết trình. Em sẵn sàng trả lời các câu hỏi c�
 | Backend Swagger UI | http://127.0.0.1:8000/docs | - |
 | Backend Health check | http://127.0.0.1:8000/api/v1/health | - |
 | MinIO Console | http://localhost:9001 | minioadmin / minioadmin |
-| Iceberg REST catalog | http://localhost:8181/v1/config | - |
+
+> **Đã gỡ ngày 10/11/2026:** URL của Iceberg REST catalog (`http://localhost:8181/v1/config`) không còn dùng — catalog đã bị gỡ khỏi dự án.
+>
+> **Đã gỡ ngày 12/11/2026:** trang `/news` (tin tức & cảm xúc) — độ phủ tin 0,00% nên toàn bộ luồng bị gỡ (mục 19.1).
 
 ---
 
-> **Ghi chú cuối file:** Mọi con số trong bài em lấy từ `docs/system_health.md` (audit 30/09/2026) và `docs/lakehouse.md` (Universe 06/10/2026). Code Python em trích dẫn đã đọc từ repo `stock-lakehouse-ai`. Khi thuyết trình em sẽ không đọc từng câu mà nói tự nhiên, dùng slide song song để thầy cô theo dõi trực quan.
+> **Ghi chú cuối file:** Mọi con số trong bài em lấy từ `docs/system_health.md` (audit 30/09/2026), `docs/lakehouse.md` (Universe 06/10/2026) và `backend/data/layer_counts.json` (đo ngày 10/11/2026). Code Python em trích dẫn đã đọc từ repo `stock-lakehouse-ai`. Khi thuyết trình em sẽ không đọc từng câu mà nói tự nhiên, dùng slide song song để thầy cô theo dõi trực quan.
+>
+> **Những con số em CHƯA đo được và nói rõ trong bài:** tổng số bài test pass trên bản hiện tại (mục 14.1), số dòng bảng `predictions` (mục 19.2), và hệ số so sánh tốc độ của việc chia thư mục (Câu 19). Em ghi "chưa đo" kèm cách đo lại thay vì đưa ra con số không truy vết được.

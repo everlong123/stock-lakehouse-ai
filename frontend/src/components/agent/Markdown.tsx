@@ -3,7 +3,7 @@ import { Fragment, type ReactNode } from "react";
 /**
  * Tiny safe-by-construction Markdown renderer for the AI agent chat bubble.
  *
- * We intentionally do NOT pull in a full markdown library — the agent
+ * We intentionally do NOT pull in a full markdown library - the agent
  * occasionally emits raw, half-formed markdown (unmatched asterisks, stray
  * backticks, broken tables) and a real parser would either crash the page or
  * leak those literal characters back into the DOM. This renderer:
@@ -33,7 +33,7 @@ function unescapeHtmlEntities(text: string): string {
   return out;
 }
 
-// React text nodes do NOT decode HTML entities — they render whatever string
+// React text nodes do NOT decode HTML entities - they render whatever string
 // we hand them, character for character. So an LLM that emits `&amp;` ends up
 // displayed as the literal text "&amp;" unless we decode it ourselves.
 //
@@ -60,7 +60,7 @@ type Block =
   | { kind: "hr" }
   | { kind: "list"; ordered: boolean; start: number; items: ListItem[] };
 
-// ── List markers ──────────────────────────────────────────────────────────
+// -- List markers ----------------------------------------------------------
 // A bullet needs whitespace after the marker so that emphasis such as
 // "**bold**" at the start of a line is not mistaken for a bullet.
 const BULLET_RE = /^(\s*)[-*+]\s+(.*)$/;
@@ -99,7 +99,7 @@ function matchMarker(line: string): Marker | null {
  * the list. Two things this fixes versus a flat line-by-line parser:
  *
  * 1. **Numbering.** "1. a", "2. b", "3. c" used to become three separate
- *    `<ol>` elements, each restarting at 1 — the user saw "1. 1. 1.".
+ *    `<ol>` elements, each restarting at 1 - the user saw "1. 1. 1.".
  *    Consecutive markers are now one list with a `start` offset.
  * 2. **Continuation lines.** A sub-bullet indented under a numbered item
  *    ("   - detail") used to break the list and be merged into the following
@@ -149,7 +149,7 @@ function parseList(
         i += 1;
         continue;
       }
-      break; // dedented plain line — the list is over
+      break; // dedented plain line - the list is over
     }
 
     items.push(item);
@@ -260,8 +260,8 @@ function parseMarkdown(source: string): Block[] {
  * bold/italic pattern matched *there*. That broke `**bold**` in two ways:
  * the first `*` of the pair was consumed as a literal, so the remaining
  * `*text*` was re-interpreted as italic and then swallowed everything up to
- * the next `*` in the paragraph — which produced the giant accidental
- * italics and the "giảm nhẹ khoảm 0.52%" run-ons.
+ * the next `*` in the paragraph - which produced the giant accidental
+ * italics and the "giảm nhẹ khoảng 0.52%" run-ons.
  */
 function renderInline(text: string): ReactNode[] {
   const nodes: ReactNode[] = [];
@@ -282,7 +282,7 @@ function renderInline(text: string): ReactNode[] {
       nodes.push(
         <code
           key={`c-${key++}`}
-          className="rounded bg-muted px-1 py-0.5 font-mono text-[12.5px] text-foreground"
+          className="rounded bg-surface-2 px-1 py-1 font-mono text-small text-ink"
         >
           {codeMatch[1]}
         </code>,
@@ -291,7 +291,7 @@ function renderInline(text: string): ReactNode[] {
       continue;
     }
 
-    // Bold: **...** — checked BEFORE italic so `**x**` never degrades to `*x*`.
+    // Bold: **...** - checked BEFORE italic so `**x**` never degrades to `*x*`.
     const boldMatch = /^\*\*([^*\n]+)\*\*/.exec(rest);
     if (boldMatch) {
       nodes.push(
@@ -303,7 +303,7 @@ function renderInline(text: string): ReactNode[] {
       continue;
     }
 
-    // Italic: *...* — the content must not start or end with whitespace, so a
+    // Italic: *...* - the content must not start or end with whitespace, so a
     // stray "*" (a multiplication sign, an unpaired asterisk) is not mistaken
     // for emphasis and is shown literally instead.
     const italicMatch = /^\*([^*\s](?:[^*\n]*[^*\s])?)\*/.exec(rest);
@@ -331,10 +331,10 @@ function renderBlock(block: Block, idx: number): ReactNode {
       const safe = escapeHtml(block.text);
       const className =
         block.level === 1
-          ? "text-base font-semibold text-foreground"
+          ? "text-base font-semibold text-ink"
           : block.level === 2
-            ? "text-sm font-semibold text-foreground"
-            : "text-[13px] font-semibold text-foreground";
+            ? "text-sm font-semibold text-ink"
+            : "text-small font-semibold text-ink";
       return (
         <div key={idx} className={className}>
           {renderInline(safe)}
@@ -345,7 +345,7 @@ function renderBlock(block: Block, idx: number): ReactNode {
       return (
         <pre
           key={idx}
-          className="overflow-x-auto rounded-md bg-muted px-3 py-2 font-mono text-[12.5px] leading-relaxed text-foreground"
+          className="overflow-x-auto rounded bg-surface-2 px-3 py-2 font-mono text-small leading-relaxed text-ink"
         >
           <code>{escapeHtml(block.content)}</code>
         </pre>
@@ -354,18 +354,18 @@ function renderBlock(block: Block, idx: number): ReactNode {
       return (
         <blockquote
           key={idx}
-          className="border-l-2 border-muted-foreground/40 pl-3 text-muted-foreground"
+          className="border-l-2 border-muted-foreground/40 pl-3 text-muted"
         >
           {renderInline(escapeHtml(block.text))}
         </blockquote>
       );
     case "hr":
-      return <hr key={idx} className="my-2 border-border" />;
+      return <hr key={idx} className="my-2 border-hairline" />;
     case "list": {
       const Tag = block.ordered ? "ol" : "ul";
       const cls = block.ordered
-        ? "list-decimal space-y-1.5 pl-5"
-        : "list-disc space-y-1.5 pl-5";
+        ? "list-decimal space-y-2 pl-6"
+        : "list-disc space-y-2 pl-6";
       return (
         <Tag
           key={idx}
@@ -398,7 +398,7 @@ function renderBlock(block: Block, idx: number): ReactNode {
 export function Markdown({ source }: { source: string }) {
   // Hard-cap rendering input. The chat pipeline already limits this, but a
   // pathological LLM reply should not be able to block the main thread.
-  const safeSource = source.length > 20_000 ? source.slice(0, 20_000) + "\n…" : source;
+  const safeSource = source.length > 20_000 ? source.slice(0, 20_000) + "\n\u2026" : source;
   const blocks = parseMarkdown(safeSource);
   return (
     <div className="space-y-2 [&_p]:m-0 [&_ul]:m-0 [&_ol]:m-0">

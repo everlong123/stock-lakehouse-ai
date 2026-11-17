@@ -1,0 +1,99 @@
+﻿# Scheduled jobs for the stock-lakehouse stack.
+#
+# WHY CRON AND NOT THE `schedule` LIBRARY
+# ----------------------------------------
+# The `schedule` package runs inside a Python process that dies with the
+# machine and is not supervised. This file is a real crontab, mounted into
+# the `scheduler` container, which runs `cron -f`. The container has
+# `restart: unless-stopped`, so the timetable survives a crash and a
+# reboot of the host.
+#
+# WHY TWO TIMETABLES
+# ------------------
+# The two jobs serve different purposes and have different natural
+# cadences:
+#
+#   * The EOD batch runs ONCE per market day, after that market closes.
+#     Running it more often would re-fetch the whole universe for nothing.
+#   * The two batch entries cover the two market closes. There is no
+#     intraday job: the news poll was removed on 12/11/2026 together with
+#     the whole news pipeline (see the removal notes below).
+#   * The quality gate and the universe forecast run ONCE per day, after
+#     both market closes, because both of them need the settled bars.
+#
+# THE TIMES ARE UTC
+# -----------------
+# The container's timezone is UTC (see the `scheduler` service in
+# docker-compose.yml), so these times are UTC:
+#
+#   * NYSE closes at 20:00 UTC (16:00 America/New_York) in EDT, and at
+#     21:00 UTC in EST. The batch runs at 21:30 UTC, which is after BOTH
+#     closes - running at 20:30 would miss the last hour of every summer
+#     session.
+#   * HOSE closes at 02:30 UTC (09:30 Asia/Ho_Chi_Minh). The batch runs
+#     at 03:30 UTC.
+#
+# The symbols overlap in time, so both sessions are covered by two runs.
+#
+# WHY THE UNIVERSE FORECAST RUNS SEPARATELY, AND LATER
+# ------------------------------------------------------
+# The forecast pass does two things: it predicts the next session for every
+# symbol, and it SCORES the forecasts whose session has already happened.
+# Both need the price layers to be settled, so it cannot start before the
+# EOD batch has finished for that market.
+#
+# It runs in the early morning UTC because that is after the HOSE close
+# (03:30 UTC) and before the NYSE close, and the forecast it publishes
+# covers the NYSE session that is about to open. The scoring part then
+# verifies the previous day's forecasts against the closes that have
+# happened.
+#
+# The gap between the two jobs is deliberate: the forecast pass needs the
+# settled bars, not the mid-session snapshot.
+#
+# The jobs are logged to /app/logs/scheduled_jobs.log, which is the record
+# of what actually ran.
+
+SHELL=/bin/sh
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+APP_HOME=/app
+
+# ── End-of-day batch (price layers + next-session forecast) ────────────────
+# NYSE: 21:30 UTC (after the 20:00/21:00 UTC close)
+30 21 * * 1-5 root cd $APP_HOME && /opt/venv/bin/python scripts/run_scheduled_job.py eod >> $APP_HOME/logs/cron.log 2>&1
+
+# HOSE: 03:30 UTC (after the 02:30 UTC close)
+30 3 * * 1-5 root cd $APP_HOME && /opt/venv/bin/python scripts/run_scheduled_job.py eod >> $APP_HOME/logs/cron.log 2>&1
+
+# ── Universe forecast (predict every symbol + score the old forecasts) ─────
+# 04:30 UTC: after the HOSE batch has settled the bars, before the NYSE
+# session opens. The forecast it publishes covers the coming NYSE session.
+#
+# WHY ALL THREE MODEL FAMILIES
+# ----------------------------
+# The pass publishes one forecast row per (symbol, model, target_session), and
+# the table's unique key is exactly that triple - so the three families
+# coexist without a schema change. A symbol that has no trained model for a
+# family gets NO row for that family; it never receives a substitute forecast.
+#
+# What is published per family therefore depends on what has actually been
+# trained: `linear_regression` covers the whole universe (~1.002 symbols),
+# while `arima` and `lstm` cover the representative liquid sample across 14
+# exchanges (58 symbols). The comparison table on /forecast therefore shows
+# three columns for the sampled symbols and one for the rest - which is the
+# honest picture, not a gap.
+#
+# Measured cost of the whole pass after the LSTM inference fix (17/11/2026,
+# all three families, whole universe): 2.76 minutes of inference.
+30 4 * * 1-5 root cd $APP_HOME && /opt/venv/bin/python scripts/run_scheduled_job.py universe-forecast --model linear_regression,arima,lstm >> $APP_HOME/logs/cron.log 2>&1
+
+# ── Data quality gate ──────────────────────────────────────────────────────
+# 05:30 UTC: after both EOD batches and after the forecast pass, so the
+# gate checks the layers as they are LEFT by the nightly work.
+#
+# The gate is the only job that makes a network call to the provider, so it
+# runs on its own and its own failure cannot stall the price refresh. Its
+# provider comparison rotates over the universe, so each run checks a slice
+# and a full sweep completes over many runs.
+30 5 * * 1-5 root cd $APP_HOME && /opt/venv/bin/python scripts/run_scheduled_job.py quality-gate >> $APP_HOME/logs/cron.log 2>&1
+

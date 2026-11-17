@@ -27,8 +27,8 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
                 position="top-right"
                 toastOptions={{
                   style: {
-                    background: "hsl(var(--card))",
-                    border: "1px solid hsl(var(--border))",
+                    background: "hsl(var(--surface))",
+                    border: "1px solid hsl(var(--hairline))",
                     color: "hsl(var(--foreground))",
                     fontFamily: '"Inter", system-ui, sans-serif',
                   },

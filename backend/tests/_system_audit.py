@@ -186,57 +186,24 @@ for method, path, payload in endpoints:
         check(f"{method} {path}", "FAIL", str(exc)[:120])
 
 # ============================================================
-# 6. STREAMING (Kafka roundtrip)
+# ============================================================
+# 6. MARKET TAPE (the lakehouse read path the UI quotes from)
 # ============================================================
 print()
-print("=" * 70)
-print("STREAMING (Kafka)")
-print("=" * 70)
-from app.streaming.kafka_producer import StockKafkaProducer
-import pandas as pd
-
-producer = StockKafkaProducer(bootstrap_servers="localhost:9094", linger_ms=0)
-df = pd.DataFrame([{
-    "symbol": "VCB",
-    "timestamp": pd.Timestamp("2026-10-01T12:00:00+00:00"),
-    "open": 58400.0,
-    "high": 58500.0,
-    "low": 58000.0,
-    "close": 58450.0,
-    "adj_close": 58450.0,
-    "volume": 1234567,
-    "source": "health_audit",
-}])
+print('=' * 70)
+print('MARKET TAPE (lakehouse)')
+print('=' * 70)
+# WHY THERE IS NO BROKER CHECK HERE: Apache Kafka was removed from the
+# project on 10/11/2026, and the whole real-time streaming path (SSE cache,
+# WebSocket clients) was removed on 11/11/2026. What survives is the batch
+# pipeline plus the read endpoints the UI quotes from.
 try:
-    sent = producer.send_ohlcv("VCB", df, topic="stock-ohlcv-health-audit")
-    producer.close()
-    check("Kafka producer", "PASS", f"sent {sent} message(s)")
+    resp = requests.get(f'{BASE_URL}/api/v1/stocks/tape', timeout=10)
+    check('Market tape', 'PASS' if resp.status_code == 200 else 'FAIL',
+          f'{resp.status_code} {resp.text[:60]}')
 except Exception as exc:
-    check("Kafka producer", "FAIL", str(exc)[:120])
+    check('Market tape', 'FAIL', str(exc)[:120])
 
-# Manual consumer inspect (avoids slow group rebalance)
-from kafka import KafkaConsumer, TopicPartition
-ins = KafkaConsumer(
-    bootstrap_servers="localhost:9094",
-    auto_offset_reset="latest",
-    enable_auto_commit=False,
-    api_version=(2, 5, 0),
-    group_id=None,
-    consumer_timeout_ms=5000,
-)
-tp = TopicPartition("stock-ohlcv-health-audit", 0)
-ins.assign([tp])
-ins.seek_to_beginning(tp)
-count = 0
-start = time.time()
-while time.time() - start < 6:
-    records = ins.poll(timeout_ms=1000)
-    for _, messages in records.items():
-        count += len(messages)
-ins.close()
-check("Kafka consumer (inspect)", "PASS" if count >= 1 else "FAIL", f"received {count} messages")
-
-# ============================================================
 # 7. INFRASTRUCTURE
 # ============================================================
 print()
@@ -260,9 +227,6 @@ def tcp_check(host: str, port: int, name: str) -> None:
 
 tcp_check("localhost", 9000, "MinIO API")
 tcp_check("localhost", 9001, "MinIO Console")
-tcp_check("localhost", 9092, "Kafka internal")
-tcp_check("localhost", 9094, "Kafka external")
-tcp_check("localhost", 8090, "Kafka UI")
 
 try:
     out = subprocess.check_output(

@@ -1,4 +1,15 @@
-"""API endpoints for market indices, order book, and enhanced data."""
+﻿"""API endpoints for market indices, order book, and enhanced data.
+
+NOTE ON ``def`` vs ``async def``
+--------------------------------
+These handlers are plain ``def`` on purpose. Every one of them performs
+BLOCKING I/O - an HTTP call to the provider, a pyarrow read from MinIO, a
+pandas transform. FastAPI runs a plain ``def`` handler in a worker thread,
+so the event loop stays free; an ``async def`` handler would run the same
+blocking call ON the event loop and freeze every other request in the
+process until it finished (measured: a 30s index download froze ``/health``
+for the full 30s).
+"""
 
 from typing import Annotated
 
@@ -12,7 +23,7 @@ router = APIRouter(prefix="/market", tags=["market"])
 
 
 @router.get("/indices")
-async def get_all_indices():
+def get_all_indices():
     """Get all US market indices (S&P 500, Dow Jones, NASDAQ)."""
     from app.data_sources.market_index_provider import MarketIndexProvider
 
@@ -21,7 +32,7 @@ async def get_all_indices():
 
 
 @router.get("/indices/{symbol}")
-async def get_index(
+def get_index(
     symbol: str,
     lookback_days: int = Query(30, ge=1, le=365),
 ):
@@ -33,7 +44,7 @@ async def get_index(
 
 
 @router.get("/indices/{symbol}/summary")
-async def get_index_summary(symbol: str):
+def get_index_summary(symbol: str):
     """Get current summary for an index."""
     from app.data_sources.market_index_provider import MarketIndexProvider
 
@@ -42,7 +53,7 @@ async def get_index_summary(symbol: str):
 
 
 @router.get("/indices/{symbol}/breadth")
-async def get_market_breadth(symbol: str = "^GSPC"):
+def get_market_breadth(symbol: str = "^GSPC"):
     """Get market breadth data for US markets."""
     from app.data_sources.market_index_provider import MarketIndexProvider
 
@@ -51,7 +62,7 @@ async def get_market_breadth(symbol: str = "^GSPC"):
 
 
 @router.get("/indices/sectors")
-async def get_sector_performance():
+def get_sector_performance():
     """Get sector performance data."""
     from app.data_sources.market_index_provider import MarketIndexProvider
 
@@ -64,7 +75,7 @@ async def get_sector_performance():
 
 
 @router.get("/orderbook/{symbol}")
-async def get_orderbook(
+def get_orderbook(
     symbol: str,
     depth: int = Query(10, ge=1, le=50),
 ):
@@ -96,7 +107,7 @@ async def get_orderbook(
 
 
 @router.get("/trades/{symbol}")
-async def get_recent_trades(
+def get_recent_trades(
     symbol: str,
     limit: int = Query(100, ge=1, le=1000),
 ):
@@ -109,7 +120,7 @@ async def get_recent_trades(
 
 
 @router.get("/trades/{symbol}/summary")
-async def get_trade_summary(symbol: str):
+def get_trade_summary(symbol: str):
     """Get trade summary statistics."""
     from app.data_sources.orderbook_provider import OrderBookProvider
 
@@ -121,7 +132,7 @@ async def get_trade_summary(symbol: str):
 
 
 @router.get("/fundamental/{symbol}")
-async def get_fundamental_metrics(symbol: str):
+def get_fundamental_metrics(symbol: str):
     """Get comprehensive fundamental metrics for a symbol."""
     from app.data_sources.enhanced_fundamental_provider import EnhancedFundamentalProvider
 
@@ -131,7 +142,7 @@ async def get_fundamental_metrics(symbol: str):
 
 
 @router.get("/fundamental/{symbol}/income-statement")
-async def get_income_statement(
+def get_income_statement(
     symbol: str,
     years: int = Query(4, ge=1, le=10),
 ):
@@ -144,7 +155,7 @@ async def get_income_statement(
 
 
 @router.get("/fundamental/{symbol}/balance-sheet")
-async def get_balance_sheet(
+def get_balance_sheet(
     symbol: str,
     years: int = Query(4, ge=1, le=10),
 ):
@@ -157,7 +168,7 @@ async def get_balance_sheet(
 
 
 @router.get("/fundamental/{symbol}/cash-flow")
-async def get_cash_flow(
+def get_cash_flow(
     symbol: str,
     years: int = Query(4, ge=1, le=10),
 ):
@@ -168,55 +179,3 @@ async def get_cash_flow(
     df = provider.get_cash_flow(symbol.upper(), years=years)
     return df.to_dict("records") if not df.empty else []
 
-
-# ─── Enhanced News/Sentiment Endpoints ──────────────────────────────────────────
-
-
-@router.get("/news/{symbol}")
-async def get_news_with_sentiment(
-    symbol: str,
-    limit: int = Query(20, ge=1, le=100),
-):
-    """Get news articles with NLP sentiment analysis."""
-    from app.data_sources.enhanced_news_sentiment_provider import EnhancedNewsSentimentProvider
-
-    provider = EnhancedNewsSentimentProvider()
-    df = provider.get_news_for_symbol(symbol.upper(), limit=limit)
-    return df.to_dict("records") if not df.empty else []
-
-
-@router.get("/news/market")
-async def get_market_news(
-    limit: int = Query(30, ge=1, le=100),
-):
-    """Get general market news."""
-    from app.data_sources.enhanced_news_sentiment_provider import EnhancedNewsSentimentProvider
-
-    provider = EnhancedNewsSentimentProvider()
-    df = provider.get_market_news(limit=limit)
-    return df.to_dict("records") if not df.empty else []
-
-
-@router.get("/news/{symbol}/sentiment-summary")
-async def get_sentiment_summary(
-    symbol: str,
-    days: int = Query(7, ge=1, le=90),
-):
-    """Get aggregated sentiment summary for a symbol."""
-    from app.data_sources.enhanced_news_sentiment_provider import EnhancedNewsSentimentProvider
-
-    provider = EnhancedNewsSentimentProvider()
-    return provider.get_sentiment_summary(symbol.upper(), days=days)
-
-
-@router.get("/news/{symbol}/sentiment-timeseries")
-async def get_sentiment_timeseries(
-    symbol: str,
-    days: int = Query(30, ge=1, le=90),
-):
-    """Get sentiment data over time."""
-    from app.data_sources.enhanced_news_sentiment_provider import EnhancedNewsSentimentProvider
-
-    provider = EnhancedNewsSentimentProvider()
-    df = provider.get_sentiment_timeseries(symbol.upper(), days=days)
-    return df.to_dict("records") if not df.empty else []

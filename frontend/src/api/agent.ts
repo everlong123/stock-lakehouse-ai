@@ -1,5 +1,5 @@
 import { api, ApiEnvelope } from "@/api/client";
-import { AgentChatResponse } from "@/types/agent";
+import { AgentChatResponse, ChatSession, StoredTurn } from "@/types/agent";
 
 export async function sendChat(sessionId: string, message: string, symbol?: string) {
   const { data } = await api.post<ApiEnvelope<AgentChatResponse>>("/agent/chat", {
@@ -11,12 +11,42 @@ export async function sendChat(sessionId: string, message: string, symbol?: stri
 }
 
 export async function fetchChatHistory(sessionId: string) {
-  const { data } = await api.get<ApiEnvelope<Record<string, unknown>[]>>(`/agent/history/${sessionId}`);
+  const { data } = await api.get<ApiEnvelope<StoredTurn[]>>(`/agent/history/${sessionId}`);
   return data.data;
 }
 
-export async function fetchDashboard(symbol: string) {
-  const { data } = await api.get<ApiEnvelope<Record<string, unknown>>>(`/dashboard/${symbol}`);
+/**
+ * Every past chat session, newest activity first.
+ *
+ * WHY: the chat page needs a "past chats" list so a conversation survives
+ * closing the tab. The backend already stores every turn in MySQL.
+ */
+export async function fetchChatSessions(): Promise<ChatSession[]> {
+  const { data } = await api.get<ApiEnvelope<ChatSession[]>>("/agent/sessions");
+  return data.data;
+}
+
+/** Delete a whole chat session. Returns the number of turns removed. */
+export async function deleteChatSession(sessionId: string): Promise<number> {
+  const { data } = await api.delete<ApiEnvelope<{ deleted: number }>>(
+    `/agent/sessions/${sessionId}`,
+  );
+  return data.data.deleted;
+}
+
+/** Delete a single turn from a chat session. */
+export async function deleteChatMessage(messageId: number): Promise<number> {
+  const { data } = await api.delete<ApiEnvelope<{ deleted: number }>>(
+    `/agent/messages/${messageId}`,
+  );
+  return data.data.deleted;
+}
+
+export async function fetchDashboard(symbol: string, start?: string) {
+  const { data } = await api.get<ApiEnvelope<Record<string, unknown>>>(
+    `/dashboard/${symbol}`,
+    { params: start ? { start } : {} },
+  );
   return data.data;
 }
 

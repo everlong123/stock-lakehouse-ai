@@ -69,16 +69,6 @@ from app.core.seeding import set_global_seed
 from app.schemas.common import fail
 from app.services.auto_refresh import start_auto_refresh, stop_auto_refresh
 from app.services.crawler_service import start_crawler, stop_crawler
-from app.services.stream_service import start_consumer_background, stop_consumer_background
-
-# Bronze/Silver pipeline consumer (writes Kafka messages into the lakehouse).
-# Only starts when USE_KAFKA=true so local dev without Kafka still works.
-_pipeline_consumer = None
-# US EOD poller (yfinance 1d) — disabled by default; flip the env to enable.
-_eod_poller = None
-# VN REST poller (SSI iBoard, free public REST, no API key) — gives the
-# Live Stream page Vietnamese tickers too. Off by default.
-_vn_rest_poller = None
 
 # Load .env before anything else so all modules see the same settings
 _dotenv = Path(__file__).resolve().parents[1] / ".env"
@@ -138,78 +128,10 @@ async def lifespan(_app: FastAPI):
         restore_layer_counts()
     except Exception as exc:
         logger.warning("layer-count restore failed: %s", exc)
-    # Stream cache consumer: only starts when USE_KAFKA=true. The cache is
-    # always available — publishers can also push via the REST API.
-    start_consumer_background()
-    # Bronze/Silver pipeline consumer — when Kafka is enabled this drains
-    # the same topic into the lakehouse so /api/v1/bronze and /silver reflect
-    # real-time ingestion, not just scheduled crawls.
-    if settings.use_kafka:
-        try:
-            from app.streaming.kafka_consumer import start_consumer
-
-            global _pipeline_consumer
-            _pipeline_consumer = start_consumer(topics=["stock-ohlcv-raw"])
-            logger.info("Bronze/Silver Kafka consumer started")
-        except Exception as exc:
-            logger.warning("Bronze/Silver consumer skipped: %s", exc)
-    # US EOD poller (yfinance, free). Only starts when explicitly enabled
-    # via US_EOD_POLLER_ENABLED=true. Publishes 1d bars to the same Kafka
-    # topic as the real-time path so the consumer stays the single source
-    # of truth. Skipped silently when Kafka is off.
-    if settings.us_eod_poller_enabled and settings.use_kafka:
-        try:
-            from app.streaming.yfinance_eod_poller import YFinanceEodPoller
-
-            global _eod_poller
-            _eod_poller = YFinanceEodPoller(
-                poll_interval_seconds=settings.us_eod_poller_interval_seconds,
-            )
-            _eod_poller.start()
-            logger.info("YFinanceEodPoller started")
-        except Exception as exc:
-            logger.warning("YFinanceEodPoller skipped: %s", exc)
-    # VN REST poller (SSI iBoard) — opt-in via VN_REST_POLLER_ENABLED.
-    # yfinance doesn't carry HOSE/HNX/UPCoM tickers, so the lakehouse
-    # needs a separate path for Vietnamese symbols.
-    if settings.vn_rest_poller_enabled and settings.use_kafka:
-        try:
-            from app.streaming.kafka_producer import (
-                DEFAULT_BOOTSTRAP_SERVERS as _KAFKA_DEFAULT,
-                TOPIC_OHLCV_RAW,
-            )
-            from app.streaming.vn_rest_poller import VNRestPoller
-
-            global _vn_rest_poller
-            _vn_rest_poller = VNRestPoller(
-                symbols=[s.strip() for s in settings.vn_ws_symbols.split(",") if s.strip()],
-                kafka_topic=TOPIC_OHLCV_RAW,
-                bootstrap_servers=settings.kafka_bootstrap_servers or _KAFKA_DEFAULT,
-            )
-            _vn_rest_poller.start()
-            logger.info("VNRestPoller started")
-        except Exception as exc:
-            logger.warning("VNRestPoller skipped: %s", exc)
     yield
     # ── shutdown ──
-    if _pipeline_consumer is not None:
-        try:
-            _pipeline_consumer.stop()
-        except Exception:
-            pass
-    if _eod_poller is not None:
-        try:
-            _eod_poller.stop()
-        except Exception:
-            pass
-    if _vn_rest_poller is not None:
-        try:
-            _vn_rest_poller.stop()
-        except Exception:
-            pass
     stop_auto_refresh()
     stop_crawler()
-    stop_consumer_background()
     # Tear down the CPU-bound job process pool. The children are daemonic
     # workers, so leaving them alive would keep the interpreter from exiting
     # cleanly on shutdown.

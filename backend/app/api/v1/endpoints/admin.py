@@ -81,3 +81,32 @@ def invalidate_cache(symbols: Optional[str] = Query(default=None)) -> dict:
     clear_symbol_cache()
     logger.info("Admin: cleared the whole symbol cache")
     return ok({"invalidated": "all"})
+
+
+@router.post("/storage/reconnect")
+def reconnect_storage() -> dict:
+    """Re-probe the storage backend and switch back to MinIO if it is up.
+
+    WHY THIS EXISTS
+    ---------------
+    ``get_storage_backend()`` caches its choice as a process-wide singleton.
+    If MinIO is unreachable when the API boots, the backend falls back to the
+    local filesystem - and stays there for the whole process lifetime, even
+    after MinIO comes back. The System Status page then reports
+    ``local_storage_mode`` while the data in MinIO has moved on, so the two
+    sources silently disagree.
+
+    This endpoint drops the cached decision and re-resolves it. It is the
+    manual counterpart of the automatic fallback: nothing in the read path
+    changes, only the storage target.
+
+    Note that ``reset_storage_backend_cache()`` existed but was never called
+    from anywhere - the recovery path was unreachable.
+    """
+    from app.lakehouse.storage_factory import get_storage_backend, reset_storage_backend_cache
+
+    before = get_storage_backend().backend_name
+    reset_storage_backend_cache()
+    after = get_storage_backend().backend_name
+    logger.info("Admin: storage backend re-probed: %s -> %s", before, after)
+    return ok({"previous": before, "current": after, "switched": before != after})

@@ -27,8 +27,3 @@ pytest>=8.0.0
 ruff>=0.6.0
 black>=24.0.0
 email-validator>=2.2.0
-# pyiceberg>=0.7.0  # Uncomment if using Iceberg
-kafka-python>=2.0.2
-# confluent-kafka>=2.6.0  # Uncomment if using Confluent Cloud
-# WebSocket client used by app.streaming.finnhub_websocket (Finnhub real-time trades)
-websocket-client>=1.6.0

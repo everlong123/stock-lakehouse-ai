@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 
 import pandas as pd
 
@@ -11,6 +11,7 @@ from app.core.exceptions import DataValidationError, StorageError
 from app.core.logging_config import get_logger
 from app.lakehouse.dedupe import dedupe_same_bars
 from app.lakehouse.parquet_manager import split_by_partition
+from app.lakehouse.session import newest_bar_session_close, slice_window
 from app.lakehouse.plausibility import (
     PRICE_REFERENCE_SAMPLE,
     REFERENCE_PARTITION_SAMPLE,
@@ -200,6 +201,7 @@ class BronzeLayer:
         written_paths: list[str] = []
         records_written = 0
         new_records = 0
+        updated_records = 0
         duplicate_count = 0
         for relative_path, group in partitions.items():
             existing = pd.DataFrame()
@@ -210,6 +212,25 @@ class BronzeLayer:
             # the incoming batch and existing storage, not just within the batch.
             combined = pd.concat([existing, group], ignore_index=True)
             before = len(combined)
+            # Count how many rows this batch RESTATES: the (symbol, timestamp)
+            # already exists in storage but carries a different price payload.
+            #
+            # WHY THIS IS COUNTED SEPARATELY FROM `new_records`
+            # ---------------------------------------------------
+            # `new_records` measures the GROWTH of the partition, so a provider
+            # restatement - the provider revising a bar it had already
+            # published - reports ZERO new rows. The auto-refresh used to
+            # trigger the Silver/Gold rebuild on `new_rows > 0` alone, so a
+            # restated bar was written to Bronze and then never propagated:
+            # Silver and Gold kept the old close forever, and the web served
+            # it forever. That is exactly what the verification pass flagged
+            # as "RESTATED" on 30 European symbols (ADS.DE 2026-11-03 stored
+            # 168.85 while the provider had revised it to 168.10).
+            #
+            # Counting restated rows separately lets the refresh rebuild on
+            # "the stored value for this bar changed", not merely on "a new
+            # bar appeared".
+            updated_records += _count_restated_rows(existing, group)
             combined = combined.drop_duplicates(subset=["symbol", "timestamp"], keep="last")
             # Two providers can describe the SAME session under different
             # timestamps (yfinance_eod stamps 04:00Z, yahoo_http 13:30Z), so
@@ -249,6 +270,7 @@ class BronzeLayer:
             "records_received": int(len(clean)),
             "records_written": records_written,
             "new_records": new_records,
+            "updated_records": updated_records,
             "duplicate_count": duplicate_count,
             "plausibility_rejected": int(plausibility.rejected_rows),
             "plausibility_reasons": dict(plausibility.reasons),
@@ -279,6 +301,82 @@ class BronzeLayer:
         if frame.empty:
             return frame
         return self.validate_schema(frame).sort_values("timestamp").reset_index(drop=True)
+
+    def read_window(
+        self,
+        symbol: str,
+        since: date | None = None,
+        until: date | None = None,
+    ) -> pd.DataFrame:
+        """Read the Bronze partitions that can hold a date window.
+
+        WHY THIS EXISTS
+        ---------------
+        A ten-year daily symbol is stored as ~121 monthly partitions. A
+        request for "the last six months" needs six of them, and the
+        other 115 were downloaded, parsed and discarded - so the request
+        cost was set by the symbol's HISTORY rather than by the window
+        the caller asked for.
+        """
+        if since is None and until is None:
+            return self.read(symbol)
+        frame = self.storage.read_prefix_window(
+            self.layer_name, symbol_prefix(symbol), since=since, until=until
+        )
+        if frame.empty:
+            return frame
+        frame = self.validate_schema(frame)
+        return slice_window(frame, since, until)
+
+    def read_newest(self, symbol: str) -> pd.DataFrame:
+        """The symbol's NEWEST stored Bronze rows, without reading its history.
+
+        WHY THIS EXISTS
+        ---------------
+        A ten-year daily symbol is stored as ~121 monthly partitions. A
+        caller that only wants the newest bar was downloading all 121
+        of them. Measured on 14/11/2026: the ten-symbol tape took 11.7 s
+        cold because each quote pulled the symbol's whole history.
+
+        The result is the SAME stored rows - the newest partition holds
+        the symbol's most recent sessions.
+        """
+        frame = self.storage.read_newest_partition(self.layer_name, symbol_prefix(symbol))
+        if frame.empty:
+            return frame
+        return self.validate_schema(frame).sort_values("timestamp").reset_index(drop=True)
+
+    def newest_session_close(self, symbol: str) -> tuple[object, float | None]:
+        """Return ``(session_date, close)`` of the newest Bronze bar.
+
+        WHY A DEDICATED READER
+        ------------------------
+        ``read()`` pulls every year/month parquet partition of the symbol (a
+        10-year daily ticker is ~120 objects) just so the caller can look at
+        the newest bar. The auto-refresh runs that for every symbol on every
+        pass, which dominates the pass duration.
+
+        This lists the partition keys, sorts them descending (they are
+        ``year=YYYY/month=MM/...`` so lexicographic order is chronological) and
+        fetches only the newest one, falling back to the previous month if the
+        last one is empty.
+        """
+        keys = self.storage.list_objects(self.layer_name, symbol_prefix(symbol))
+        data_keys = [k for k in keys if k.endswith(".parquet")]
+        if not data_keys:
+            return None, None
+        for key in sorted(data_keys, reverse=True)[:2]:
+            try:
+                frame = self.storage.read_parquet(self.layer_name, key)
+            except Exception as exc:  # noqa: BLE001
+                logger.warning("Bronze newest_session_close read failed for %s: %s", symbol, exc)
+                continue
+            if frame is None or frame.empty:
+                continue
+            result = newest_bar_session_close(frame, symbol)
+            if result[0] is not None:
+                return result
+        return None, None
 
     def latest_timestamp(self, symbol: str) -> pd.Timestamp | None:
         """Return the newest stored timestamp for ``symbol`` without a full read.
@@ -379,3 +477,82 @@ class BronzeLayer:
         """
         prefix = symbol_prefix(symbol) if symbol else ""
         return int(self.storage.count_objects(self.layer_name, prefix))
+
+
+# The price fields that identify a bar's content. A restatement is detected
+# on these; `volume` alone moving is a revision of turnover, not of the bar.
+_RESTATEMENT_KEY_COLUMNS = ("symbol", "timestamp")
+_RESTATEMENT_PRICE_COLUMNS = ("open", "high", "low", "close")
+
+
+def _count_restated_rows(existing: pd.DataFrame, incoming: pd.DataFrame) -> int:
+    """Count incoming rows that RESTATE a bar already held in storage.
+
+    A row is a restatement when the same ``(symbol, timestamp)`` already
+    exists in ``existing`` but carries a different price payload. Such a row
+    replaces the stored one during the dedupe (the incoming copy wins), so
+    the partition does not GROW - which is why a plain row-count comparison
+    cannot see it.
+
+    WHY THIS EXISTS
+    ---------------
+    Providers revise history. Yahoo re-published ``ADS.DE`` 2026-11-03 with
+    a close of 168.10 after having served 168.85. Bronze picked up the
+    revision, but the partition row count did not change, so the auto-refresh
+    concluded "nothing new for this symbol" and never rebuilt Silver/Gold.
+    Silver and Gold therefore kept the old 168.85 and the web served it
+    indefinitely - a real divergence between the lakehouse and the browser
+    that no amount of re-fetching would fix.
+
+    Returns 0 when either frame is empty or lacks the key columns.
+    """
+    if existing.empty or incoming.empty:
+        return 0
+    if not all(col in existing.columns for col in _RESTATEMENT_KEY_COLUMNS):
+        return 0
+    if not all(col in incoming.columns for col in _RESTATEMENT_KEY_COLUMNS):
+        return 0
+
+    price_columns = [
+        col for col in _RESTATEMENT_PRICE_COLUMNS
+        if col in existing.columns and col in incoming.columns
+    ]
+    if not price_columns:
+        return 0
+
+    old = existing.loc[:, list(_RESTATEMENT_KEY_COLUMNS) + price_columns].copy()
+    new = incoming.loc[:, list(_RESTATEMENT_KEY_COLUMNS) + price_columns].copy()
+    old["timestamp"] = pd.to_datetime(old["timestamp"], utc=True, errors="coerce")
+    new["timestamp"] = pd.to_datetime(new["timestamp"], utc=True, errors="coerce")
+    old = old.dropna(subset=["timestamp"])
+    new = new.dropna(subset=["timestamp"])
+    if old.empty or new.empty:
+        return 0
+
+    # A merge on the key pairs every combination of matching rows, so
+    # duplicated keys would inflate the count. Storage is deduped already, but
+    # the incoming batch can legitimately carry two copies of the same bar.
+    old = old.drop_duplicates(subset=list(_RESTATEMENT_KEY_COLUMNS), keep="last")
+    new = new.drop_duplicates(subset=list(_RESTATEMENT_KEY_COLUMNS), keep="last")
+
+    merged = new.merge(old, on=list(_RESTATEMENT_KEY_COLUMNS), how="inner",
+                       suffixes=("_new", "_old"))
+    if merged.empty:
+        return 0
+
+    changed = pd.Series(False, index=merged.index)
+    for column in price_columns:
+        a = pd.to_numeric(merged[f"{column}_new"], errors="coerce")
+        b = pd.to_numeric(merged[f"{column}_old"], errors="coerce")
+        # The comparison is RELATIVE, and uses the same 1e-6 tolerance the
+        # verifier applies, so "restated" here means exactly what a
+        # verification mismatch means there. An absolute floor would be wrong:
+        # for a sub-dollar stock (ACH at 0.21) a 1e-9 absolute difference is
+        # already a 5e-9 relative one, but for a VND stock (VCB at 54,200)
+        # the same absolute difference is 2e-14 relative - float noise, not a
+        # revision.
+        diff = (a - b).abs()
+        scale = b.abs().clip(lower=1e-9)
+        changed |= (diff / scale) > 1e-6
+
+    return int(changed.sum())

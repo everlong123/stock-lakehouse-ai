@@ -17,6 +17,36 @@ from app.database.session import check_database_connection
 
 logger = get_logger(__name__)
 
+# How much of the tool payload is written to MySQL. The column is MEDIUMTEXT
+# (16 MB) so a big payload cannot break the INSERT, but storing every window
+# of a 160-window walk-forward forever makes the transcript table grow
+# without bound for no benefit: the UI shows the first 600 characters of a
+# tool result and the chat history is read back, never analysed.
+PERSISTED_TOOL_RESULT_LIMIT = 32_000
+
+
+def _persistable_tool_result(tools: list[dict]) -> str | None:
+    """Serialise the tool trace for storage, capped at a sane size.
+
+    WHY A CAP
+    ---------
+    A ``run_walk_forward`` call returns every window it evaluated. For one
+    symbol that is ~70 KB of JSON; across a busy session the transcript
+    table becomes the largest thing in MySQL. The full payload is still
+    returned to the caller in the HTTP response - only the stored copy is
+    trimmed, and the cut is marked so a reader knows it is a summary.
+    """
+    if not tools:
+        return None
+    payload = json.dumps([item.get("tool_result") for item in tools], default=str)
+    if len(payload) <= PERSISTED_TOOL_RESULT_LIMIT:
+        return payload
+    kept = payload[:PERSISTED_TOOL_RESULT_LIMIT]
+    return (
+        f"{kept}\n…[truncated: {len(payload)} characters total, "
+        f"stored {PERSISTED_TOOL_RESULT_LIMIT}]"
+    )
+
 
 def _dump_agent_threads() -> None:
     """Log the stack of every live thread when an agent request times out.
@@ -76,9 +106,7 @@ class AgentService:
                         "tool_arguments": json.dumps(first_tool.get("tool_arguments"), default=str)
                         if first_tool
                         else None,
-                        "tool_result": json.dumps([item.get("tool_result") for item in tools], default=str)
-                        if tools
-                        else None,
+                        "tool_result": _persistable_tool_result(tools),
                     }
                 )
             except Exception as exc:
@@ -172,3 +200,26 @@ class AgentService:
             }
             for row in rows
         ]
+
+    def sessions(self, db: Session | None = None) -> list[dict]:
+        """Every past chat session, newest activity first.
+
+        WHY THIS EXISTS: the chat page needs a "past chats" list. Without
+        it, closing the tab loses the conversation even though the server
+        kept every turn in MySQL.
+        """
+        if db is None or not check_database_connection():
+            return []
+        return ConversationRepository(db).list_sessions()
+
+    def delete_session(self, session_id: str, db: Session | None = None) -> int:
+        """Delete a whole chat session. Returns the number of turns removed."""
+        if db is None or not check_database_connection():
+            return 0
+        return ConversationRepository(db).delete_session(session_id)
+
+    def delete_message(self, message_id: int, db: Session | None = None) -> int:
+        """Delete a single turn. Returns the number of rows removed."""
+        if db is None or not check_database_connection():
+            return 0
+        return ConversationRepository(db).delete_message(message_id)

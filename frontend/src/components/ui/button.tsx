@@ -2,32 +2,34 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { ButtonHTMLAttributes, forwardRef } from "react";
 import { cn } from "@/lib/utils";
 
+/**
+ * Buttons.
+ *
+ * WHY FOUR VARIANTS AND NOT SIX: the four cover every real case, and the
+ * rule that matters is "one filled accent per view". `primary` is the
+ * action; `secondary` is the alternative; `outline` is a quiet action in
+ * a group; `text` is a tertiary link-ish action. A second `primary` on the
+ * same screen dilutes the first one.
+ *
+ * No gradients, no shadows, one radius (6px).
+ */
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 rounded-md text-[13px] font-medium whitespace-nowrap disabled:pointer-events-none disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+  "btn focus-visible:outline-none",
   {
     variants: {
       variant: {
-        default:
-          "bg-primary text-primary-foreground hover:opacity-90 shadow-sm",
-        outline:
-          "border border-border bg-card text-foreground hover:bg-muted",
-        ghost:
-          "text-foreground hover:bg-muted",
-        soft:
-          "bg-muted text-foreground hover:bg-accent",
-        danger:
-          "bg-down text-white hover:bg-down/90",
-        link:
-          "text-foreground underline-offset-4 hover:underline",
+        primary: "btn-primary",
+        secondary: "btn-secondary",
+        outline: "btn-outline",
+        text: "btn-text",
       },
       size: {
-        default: "h-9 px-3.5",
-        sm: "h-8 px-2.5 text-xs",
-        lg: "h-10 px-5 text-sm",
+        default: "btn-h",
+        sm: "btn-sm",
         icon: "h-9 w-9 p-0",
       },
     },
-    defaultVariants: { variant: "default", size: "default" },
+    defaultVariants: { variant: "outline", size: "default" },
   },
 );
 

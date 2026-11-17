@@ -27,9 +27,9 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
       if (this.props.fallback) return this.props.fallback;
       return (
         <div className="flex min-h-[40vh] items-center justify-center p-6">
-          <div className="max-w-md rounded-md border border-border bg-card p-6">
-            <h3 className="text-base font-semibold text-foreground">Da co loi xay ra</h3>
-            <p className="mt-1 text-sm text-muted-foreground">{this.state.message}</p>
+          <div className="max-w-md rounded border border-hairline bg-surface p-6">
+            <h3 className="text-base font-semibold text-ink">Da co loi xay ra</h3>
+            <p className="mt-1 text-sm text-muted">{this.state.message}</p>
             <div className="mt-4">
               <Button onClick={() => window.location.reload()}>Tai lai trang</Button>
             </div>

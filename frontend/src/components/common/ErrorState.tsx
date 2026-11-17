@@ -1,27 +1,35 @@
 import { AlertCircle, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 interface ErrorStateProps {
   message: string;
   onRetry?: () => void;
+  className?: string;
 }
 
 /**
- * Inline error placeholder. Message is rendered in Vietnamese with English
- * technical terms (API, 500, …) preserved. The optional retry button keeps
- * the user in the flow instead of forcing a hard reload.
+ * Inline error placeholder.
+ *
+ * WHY IT IS A HAIRLINE BAND AND NOT A FILLED BOX: a solid red block in
+ * the middle of a page is louder than the error deserves and breaks the
+ * reading flow. A thin band with a red icon says the same thing without
+ * shouting.
  */
-export function ErrorState({ message, onRetry }: ErrorStateProps) {
+export function ErrorState({ message, onRetry, className }: ErrorStateProps) {
   return (
-    <div className="flex items-start gap-3 rounded-md border border-down/30 bg-down/5 px-3 py-2 text-sm text-down">
-      <AlertCircle size={14} className="mt-0.5 shrink-0" />
-      <div className="flex-1">
-        <span>{message}</span>
-      </div>
+    <div
+      className={cn(
+        "flex items-start gap-3 rounded border border-negative/30 bg-negative/5 px-4 py-3 text-small text-negative",
+        className,
+      )}
+    >
+      <AlertCircle size={15} className="mt-1 shrink-0" />
+      <div className="flex-1">{message}</div>
       {onRetry ? (
-        <Button variant="ghost" size="sm" onClick={onRetry}>
-          <RotateCcw size={12} />
-          Thử lại
+        <Button variant="text" size="sm" onClick={onRetry}>
+          <RotateCcw size={13} />
+          Thó lỗi
         </Button>
       ) : null}
     </div>

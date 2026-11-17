@@ -4,7 +4,7 @@ This script fetches OHLCV bars from the provider configured via
 ``DATA_SOURCE`` (defaults to ``yfinance``) and writes them through the full
 Medallion pipeline:
 
-    raw payload  -> Bronze (Parquet/Iceberg)
+    raw payload  -> Bronze (Parquet)
                   -> Silver (cleaned, quality checked)
                   -> Gold   (technical features + targets)
 

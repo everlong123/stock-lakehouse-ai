@@ -1,10 +1,13 @@
-"""Data ingestion and management endpoints for US stocks, fundamental, news, and macro."""
+"""Data ingestion and management endpoints for US stocks, fundamental, and macro."""
 
-from fastapi import APIRouter
+from fastapi import APIRouter, BackgroundTasks
 
-from app.schemas.common import ok
 from app.core.constants import GLOBAL_SYMBOLS
+from app.core.logging_config import get_logger
+from app.schemas.common import ok
 from app.services.data_ingestion_service import get_ingestion_service
+
+logger = get_logger(__name__)
 
 router = APIRouter(prefix="/data", tags=["data"])
 
@@ -24,14 +27,27 @@ def get_supported_stocks() -> dict:
 
 
 @router.post("/stocks/ingest")
-def ingest_stocks(symbols: list[str] | None = None) -> dict:
-    """Ingest US stock data."""
+def ingest_stocks(
+    background_tasks: BackgroundTasks,
+    symbols: list[str] | None = None,
+) -> dict:
+    """Queue an ingest of US stock data for the given symbols.
+
+    Queued as a background task for the same reason as ``/ingest/all``: the
+    download loop is blocking and can run for a long time, so holding the
+    HTTP connection open for it is not useful to the caller.
+    """
     service = get_ingestion_service()
-    results = service.ingest_us_stocks(symbols)
-    return ok({
-        "results": results,
-        "total": sum(r for r in results.values() if isinstance(r, int) and r > 0),
-    })
+    targets = list(symbols) if symbols else None
+
+    def _job() -> None:
+        try:
+            service.ingest_us_stocks(targets)
+        except Exception as exc:  # noqa: BLE001 - a background job must not kill the server
+            logger.exception("Stock ingestion failed: %s", exc)
+
+    background_tasks.add_task(_job)
+    return ok({"queued": True, "symbols": targets or "all"})
 
 
 @router.get("/stocks/{symbol}/latest")
@@ -78,63 +94,22 @@ def get_fundamental(symbol: str) -> dict:
 
 
 @router.post("/fundamental/ingest")
-def ingest_fundamental(symbols: list[str]) -> dict:
-    """Ingest fundamental data for symbols."""
+def ingest_fundamental(
+    background_tasks: BackgroundTasks,
+    symbols: list[str],
+) -> dict:
+    """Queue an ingest of fundamental data for the given symbols."""
     service = get_ingestion_service()
-    results = service.ingest_fundamental(symbols)
-    return ok({
-        "results": results,
-        "success_count": sum(1 for v in results.values() if v == "success"),
-    })
+    targets = list(symbols)
 
+    def _job() -> None:
+        try:
+            service.ingest_fundamental(targets)
+        except Exception as exc:  # noqa: BLE001 - a background job must not kill the server
+            logger.exception("Fundamental ingestion failed: %s", exc)
 
-# =====================
-# News + Sentiment
-# =====================
-
-@router.get("/news/{symbol}")
-def get_news(symbol: str, limit: int = 20) -> dict:
-    """Get news for a symbol."""
-    service = get_ingestion_service()
-    frame = service.news_provider.get_news_for_symbol(symbol.upper(), limit)
-    return ok({
-        "symbol": symbol.upper(),
-        "count": len(frame),
-        "articles": frame.to_dict("records") if not frame.empty else [],
-    })
-
-
-@router.get("/news/market")
-def get_market_news(limit: int = 30) -> dict:
-    """Get general market news."""
-    service = get_ingestion_service()
-    frame = service.news_provider.get_market_news(limit)
-    return ok({
-        "count": len(frame),
-        "articles": frame.to_dict("records") if not frame.empty else [],
-    })
-
-
-@router.get("/sentiment/{symbol}")
-def get_sentiment(symbol: str, days: int = 7) -> dict:
-    """Get sentiment summary for a symbol."""
-    service = get_ingestion_service()
-    summary = service.news_provider.get_sentiment_summary(symbol.upper(), days)
-    return ok({
-        "symbol": symbol.upper(),
-        "summary": summary,
-    })
-
-
-@router.post("/news/ingest")
-def ingest_news(symbols: list[str] | None = None, limit: int = 20) -> dict:
-    """Ingest news data."""
-    service = get_ingestion_service()
-    frame = service.ingest_news(symbols, limit)
-    return ok({
-        "count": len(frame),
-        "articles": frame.to_dict("records") if not frame.empty else [],
-    })
+    background_tasks.add_task(_job)
+    return ok({"queued": True, "symbols": targets})
 
 
 # =====================
@@ -221,10 +196,31 @@ def ingest_macro() -> dict:
 # =====================
 
 @router.post("/ingest/all")
-def ingest_all() -> dict:
-    """Run full data ingestion for all sources."""
+def ingest_all(background_tasks: BackgroundTasks) -> dict:
+    """Queue a full data ingestion for all sources.
+
+    WHY THIS IS A BACKGROUND TASK
+    -----------------------------
+    ``ingest_all()`` walks every supported symbol (976 at the time of
+    writing) and downloads each one from the provider. Measured on this
+    machine it runs for **hours**, and it is a plain blocking call.
+
+    When it ran inside the request, the HTTP connection stayed open for the
+    whole job and the client eventually timed out while the work was still
+    in progress - so the caller could neither see progress nor stop it.
+    Queuing it means the response returns immediately and the caller can
+    check ``/admin/auto-refresh/status`` for the outcome.
+
+    The same applies to ``/data/stocks/ingest``: it also walks a symbol
+    list, so it is queued the same way.
+    """
     service = get_ingestion_service()
-    summary = service.ingest_all()
-    return ok({
-        "data": summary,
-    })
+
+    def _job() -> None:
+        try:
+            service.ingest_all()
+        except Exception as exc:  # noqa: BLE001 - a background job must not kill the server
+            logger.exception("Full ingestion failed: %s", exc)
+
+    background_tasks.add_task(_job)
+    return ok({"queued": True, "symbols": "all", "check": "/api/v1/admin/auto-refresh/status"})

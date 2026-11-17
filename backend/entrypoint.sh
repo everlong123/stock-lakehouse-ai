@@ -22,7 +22,7 @@ PY
 echo "[entrypoint] Running Alembic upgrade head..."
 alembic upgrade head || echo "[entrypoint] alembic skipped (no migrations yet)"
 
-echo "[entrypoint] Bootstrapping infrastructure (MinIO buckets + Kafka topics)..."
+echo "[entrypoint] Bootstrapping infrastructure (MinIO buckets)..."
 python scripts/bootstrap_infrastructure.py || echo "[entrypoint] bootstrap skipped"
 
 echo "[entrypoint] Starting: $@"

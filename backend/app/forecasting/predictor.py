@@ -4,12 +4,18 @@ from __future__ import annotations
 
 from typing import Any
 
+import numpy as np
 import pandas as pd
 
 from app.core.constants import LINEAR_REGRESSION_FEATURES, LSTM_FEATURE_COLUMNS
 from app.core.exceptions import PredictionError
+from app.core.logging_config import get_logger
+from app.forecasting import light_forecast
 from app.forecasting.model_registry import load_model, load_registry_record, model_directory
+from app.forecasting.multistep import holdout_history
 from app.lakehouse.gold import GoldLayer
+
+logger = get_logger(__name__)
 
 
 FORECAST_DISCLAIMER = """
@@ -65,8 +71,119 @@ Moi noi dung mang tinh THAM KHAO, KHONG phai loi khuyen dau tu.
 """
 
 
+def _arima_history(
+    model: Any,
+    gold: pd.DataFrame,
+    registry: dict[str, Any],
+    limit: int = 120,
+) -> list[dict[str, Any]]:
+    """One-step-ahead predictions over the hold-out sessions, for the chart.
+
+    The model is re-fitted on the training split and then walked forward
+    over the hold-out sessions, so the curve shows the same quantity the
+    MAE was measured on: what the model said BEFORE each session.
+
+    This is expensive - the walk-forward updates the state-space model once
+    per session - so it is capped at the most recent `limit` sessions.
+    """
+    test_start = _arima_test_start(registry)
+    if test_start is None:
+        return []
+    holdout = gold[gold["timestamp"] >= test_start]
+    if holdout.empty:
+        return []
+    # Cap the walk-forward to the most recent sessions.
+    if len(holdout) > limit:
+        holdout = holdout.iloc[-limit:]
+
+    try:
+        predictions = model.walk_forward(holdout)
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("Could not build the ARIMA hold-out history: %s", exc)
+        return []
+
+    actual = pd.to_numeric(holdout["close"], errors="coerce").to_numpy(dtype=float)
+    timestamps = holdout["timestamp"].to_numpy()
+    n = min(len(predictions), len(actual))
+    points: list[dict[str, Any]] = []
+    for i in range(n):
+        if not np.isfinite(predictions[i]):
+            continue
+        points.append(
+            {
+                "timestamp": str(timestamps[i]),
+                "actual": float(actual[i]),
+                "predicted": float(predictions[i]),
+            }
+        )
+    return points
+
+
+def _arima_test_start(registry: dict[str, Any]) -> pd.Timestamp | None:
+    """The first session of the hold-out split the model was scored on."""
+    value = registry.get("test_start")
+    if not value:
+        return None
+    try:
+        ts = pd.to_datetime(value, utc=True)
+    except Exception:  # noqa: BLE001
+        return None
+    return None if pd.isna(ts) else ts
+
+
+def _holdout_window(registry: dict[str, Any]) -> tuple[pd.Timestamp | None, pd.Timestamp | None]:
+    """Read the train/test boundaries the trainer recorded.
+
+    The registry stores them as ISO strings. They are returned as tz-aware
+    timestamps so they can be compared against the Gold timestamps.
+    """
+    def _parse(value: Any) -> pd.Timestamp | None:
+        if not value:
+            return None
+        try:
+            ts = pd.to_datetime(value, utc=True)
+        except Exception:  # noqa: BLE001
+            return None
+        return None if pd.isna(ts) else ts
+
+    return (
+        _parse(registry.get("test_start")),
+        _parse(registry.get("test_end")),
+    )
+
+
 def predict_symbol(symbol: str, model_name: str, horizon: int = 5) -> dict[str, Any]:
-    """Generate a next-close prediction series from the latest trained model."""
+    """Generate a next-close prediction series from the latest trained model.
+
+    WHY THIS IS BUILT THE WAY IT IS
+    --------------------------------
+    The chart has two regions and they are built from different sources:
+
+    * **History** - the model's own estimate of what it WOULD have said for
+      sessions that already happened. This is recomputed from the current
+      Gold data on every call, so it reflects any restatement the provider
+      has published since the model was trained.
+    * **Forecast** - `horizon` sessions in the FUTURE, produced by the
+      recursive forecaster in `app.forecasting.multistep`.
+
+    The previous implementation had three defects that made the chart look
+    frozen:
+
+    1. It plotted `model.predict(frame)` against the actual close of the
+       SAME session, which is a one-session shift - the prediction is for
+       session *t+1*, not *t*.
+    2. It then REPLACED the whole series with the `predictions.parquet`
+       written at training time. That file belongs to whichever symbol was
+       trained last, so switching symbols left the old symbol's curve on
+       screen. It also froze the history at training time, so a provider
+       restatement never reached the chart.
+    3. `horizon` was ignored for the feature-based models, so the chart
+       never showed a future session at all.
+
+    All three are fixed below: the history is recomputed and aligned, the
+    forecast is generated for the future, and the stored parquet is used
+    only as a fallback when the live Gold data cannot serve the request.
+    """
     model = load_model(symbol, model_name)
     registry = load_registry_record(symbol, model_name)
     gold = GoldLayer().read(symbol)
@@ -84,69 +201,118 @@ def predict_symbol(symbol: str, model_name: str, horizon: int = 5) -> dict[str, 
     gold = gold.sort_values("timestamp")
 
     if model_name == "arima":
-        predicted = model.predict(list(range(horizon)))
-        last_ts = pd.to_datetime(gold["timestamp"].iloc[-1])
-        freq = pd.infer_freq(gold["timestamp"]) or "B"
-        future_index = pd.date_range(last_ts, periods=horizon + 1, freq=freq)[1:]
-        points = [
-            {"timestamp": str(ts), "actual": None, "predicted": float(value)}
-            for ts, value in zip(future_index, predicted)
-        ]
-    elif model_name == "lstm":
-        cols = [col for col in LSTM_FEATURE_COLUMNS if col in gold.columns]
-        frame = gold.dropna(subset=cols)
-        predicted_all = model.predict(frame[cols])
-        actual = frame["close"].to_numpy()[model.sequence_length - 1 :]  # type: ignore[attr-defined]
-        timestamps = frame["timestamp"].to_numpy()[model.sequence_length - 1 :]
-        n = min(len(predicted_all), len(actual), len(timestamps))
-        points = [
-            {
-                "timestamp": str(timestamps[i]),
-                "actual": float(actual[i]),
-                "predicted": float(predicted_all[i]),
-            }
-            for i in range(max(0, n - 120), n)
-        ]
-    else:
-        cols = [col for col in LINEAR_REGRESSION_FEATURES if col in gold.columns]
-        frame = gold.dropna(subset=cols)
-        predicted_all = model.predict(frame[cols])
-        actual = frame["close"].to_numpy()
-        timestamps = frame["timestamp"].to_numpy()
-        n = min(len(predicted_all), len(actual))
-        points = [
-            {
-                "timestamp": str(timestamps[i]),
-                "actual": float(actual[i]),
-                "predicted": float(predicted_all[i]),
-            }
-            for i in range(max(0, n - 120), n)
-        ]
+        # ARIMA is natively multi-step, so it forecasts the future directly.
+        #
+        # BUT the model was fitted on the TRAINING split, which ends long
+        # before the latest session. A forecast taken straight from that
+        # state is anchored at the stale training price, so it has to be
+        # extended with every session published since the model was
+        # trained - otherwise the forecast is wrong by the whole gap.
+        gold_sorted = gold.sort_values("timestamp").reset_index(drop=True)
+        gold_sorted["timestamp"] = pd.to_datetime(gold_sorted["timestamp"], utc=True)
 
-    directory = model_directory(symbol, model_name)
-    stored = directory / "predictions.parquet"
-    if stored.exists() and model_name != "arima":
-        stored_frame = pd.read_parquet(stored)
-        points = [
-            {
-                "timestamp": str(row.timestamp),
-                "actual": float(row.actual) if pd.notna(row.actual) else None,
-                "predicted": float(row.predicted),
-            }
-            for row in stored_frame.itertuples(index=False)
-        ]
+        # The hold-out history is computed FIRST, while the model is still
+        # in the state it was trained in - the same state the trainer scored
+        # it in. It has to be walked over the FULL hold-out split (the
+        # state-space update is sequential), and only the most recent
+        # sessions are kept for the chart.
+        history = _arima_history(model, gold_sorted, registry)
+
+        # The forward projection is produced by the SHARED light path, so
+        # the chart and the nightly batch cannot disagree about what the
+        # model predicted. See `app/forecasting/light_forecast.py`.
+        future = light_forecast.future_series(symbol, model_name, gold_sorted, horizon=horizon)
+    else:
+        # The feature-based models are one-step models, so the future needs
+        # the recursive forecaster, and the history needs the one-session
+        # alignment shift.
+        #
+        # The history is restricted to the SAME chronological hold-out split
+        # the metrics were computed on, so the curve on the chart and the
+        # MAE shown above it describe the same rows. The split boundaries
+        # are read back from the registry record the trainer wrote.
+        window = _holdout_window(registry)
+        history = holdout_history(model, gold, model_name, window=window)
+        # The forward projection comes from the SAME shared routine the
+        # nightly batch uses - one implementation, two callers, no chance
+        # of the chart and the batch reporting different numbers.
+        future = light_forecast.future_series(symbol, model_name, gold, horizon=horizon)
+
+    points: list[dict[str, Any]] = [*history, *future]
+
+    # Fallback: if the live path produced nothing (no usable Gold rows),
+    # serve the parquet written at training time so the chart is not empty.
+    if not points:
+        directory = model_directory(symbol, model_name)
+        stored = directory / "predictions.parquet"
+        if stored.exists():
+            stored_frame = pd.read_parquet(stored)
+            points = [
+                {
+                    "timestamp": str(row.timestamp),
+                    "actual": float(row.actual) if pd.notna(row.actual) else None,
+                    "predicted": float(row.predicted),
+                }
+                for row in stored_frame.itertuples(index=False)
+            ]
+
+    # The metrics must describe the curve the user is looking at.
+    #
+    # The registry holds the metrics measured at TRAINING time, on the
+    # hold-out split as it was then. The chart now shows the hold-out
+    # history PLUS every session published since, because those are
+    # honest hold-out rows too - the model was fitted on rows that all
+    # predate them.
+    #
+    # Reporting the training-time metrics next to a longer curve would
+    # understate the error, so the metrics are recomputed over exactly the
+    # history that is plotted. If that cannot be done, the registry values
+    # are returned unchanged and the response says so.
+    metrics: dict[str, Any] = {
+        "mae": registry.get("mae"),
+        "rmse": registry.get("rmse"),
+        "mape": registry.get("mape"),
+        "directional_accuracy": registry.get("directional_accuracy"),
+    }
+    metrics_source = "training_split"
+    if history:
+        recomputed = _score_history(history)
+        if recomputed is not None:
+            metrics = recomputed
+            metrics_source = "chart_holdout"
 
     return {
         "symbol": symbol.upper(),
         "model_name": model_name,
         "horizon": horizon,
-        "metrics": {
-            "mae": registry.get("mae"),
-            "rmse": registry.get("rmse"),
-            "mape": registry.get("mape"),
-            "directional_accuracy": registry.get("directional_accuracy"),
-        },
+        "metrics": metrics,
+        "metrics_source": metrics_source,
         "parameters": registry.get("parameters"),
         "predictions": points,
         "disclaimer": FORECAST_DISCLAIMER,
     }
+
+
+def _score_history(history: list[dict[str, Any]]) -> dict[str, Any] | None:
+    """Recompute the metric set over exactly the points that are plotted."""
+    import numpy as np
+
+    actual = np.array([p["actual"] for p in history if p.get("actual") is not None], dtype=float)
+    predicted = np.array([p["predicted"] for p in history if p.get("actual") is not None], dtype=float)
+    if actual.size < 2:
+        return None
+    try:
+        from app.forecasting.evaluator import evaluate_forecast
+
+        # The previous close is the close before the session being scored.
+        previous = np.concatenate([[actual[0]], actual[:-1]])
+        scored = evaluate_forecast(actual, predicted, previous)
+        return {
+            "mae": scored["mae"],
+            "rmse": scored["rmse"],
+            "mape": scored["mape"],
+            "directional_accuracy": scored["directional_accuracy"],
+        }
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("Could not rescore the hold-out history: %s", exc)
+        return None

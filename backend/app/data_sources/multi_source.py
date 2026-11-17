@@ -215,26 +215,6 @@ class MultiSourceProvider:
                 continue
         return False
 
-    def get_news(self, symbol: str, limit: int = 20) -> pd.DataFrame:
-        """Best-effort news retrieval - aggregates from every provider that supports it."""
-
-        frames: list[pd.DataFrame] = []
-        for name in self._sources:
-            provider = self._providers[name]
-            fetch = getattr(provider, "get_news", None)
-            if not callable(fetch):
-                continue
-            try:
-                frame = fetch(symbol, limit=limit)
-            except Exception:  # noqa: BLE001
-                continue
-            if frame is not None and not frame.empty:
-                frames.append(frame)
-
-        if not frames:
-            return pd.DataFrame()
-        return pd.concat(frames, ignore_index=True).drop_duplicates(subset=["title"])
-
 
 def build_default_adapter(interval: str = "1d") -> MultiSourceProvider:
     """Return a multi-source adapter configured for the given interval."""

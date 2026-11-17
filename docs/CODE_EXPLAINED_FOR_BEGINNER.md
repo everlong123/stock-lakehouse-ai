@@ -2,7 +2,13 @@
 
 > File này là phiên bản **giải thích chi tiết từng dòng code** của hệ thống Lakehouse.
 > Mục tiêu: giúp người mới (newbie) hiểu code chạy như thế nào, tại sao viết như vậy.
-> File gốc [`PROGRESS_LAKEHOUSE.md`](PROGRESS_LAKEHOUSE.md) giữ nguyên để báo cáo thầy.
+>
+> **Nếu bạn chưa biết chứng khoán lẫn công nghệ**, hãy đọc
+> [`HUONG_DAN_NGUOI_MOI.md`](HUONG_DAN_NGUOI_MOI.md) trước. File đó giải thích nghiệp
+> vụ (cổ phiếu, OHLCV, backtest, walk-forward) và cách các thành phần liên hệ
+> với nhau, bằng lời đời thường.
+>
+> File này giả định bạn đã biết Python và đi sâu vào **từng dòng code**.
 
 ---
 
@@ -584,11 +590,11 @@ working["direction_1d"] = (
 **Cách tránh:**
 
 ```python
-# ❌ SAI - leakage
+# SAI: - leakage
 df["tomorrow_close"] = df["close"].shift(-1)   # Đây là tương lai
 df["feature_x"] = df["close"].shift(-1) * 2    # Feature chứa tương lai
 
-# ✅ ĐÚNG - chỉ dùng quá khứ
+# ĐÚNG: - chỉ dùng quá khứ
 df["return_1d"] = df["close"].pct_change()       # Dùng close_t và close_{t-1}
 df["sma_20"] = df["close"].rolling(20).mean()    # Trung bình 20 ngày QUÁ KHỨ
 ```
@@ -596,11 +602,11 @@ df["sma_20"] = df["close"].rolling(20).mean()    # Trung bình 20 ngày QUÁ KH�
 **Chia train/test:**
 
 ```python
-# ✅ ĐÚNG - chia theo thời gian
+# ĐÚNG: - chia theo thời gian
 train = df[df["timestamp"] < "2023-01-01"]
 test  = df[df["timestamp"] >= "2023-01-01"]
 
-# ❌ SAI - shuffle sẽ gây leakage
+# SAI: - shuffle sẽ gây leakage
 from sklearn.model_selection import train_test_split
 train, test = train_test_split(df, test_size=0.2)  # Trộn lung tung, model "thấy" tương lai
 ```
@@ -1241,7 +1247,8 @@ graph TD
 | `backend/app/lakehouse/storage_base.py` | Interface StorageBackend |
 | `backend/app/lakehouse/local_storage.py` | LocalStorageBackend |
 | `backend/app/lakehouse/minio_storage.py` | MinioStorageBackend |
-| `backend/app/lakehouse/iceberg_manager.py` | Iceberg time travel, schema evolution |
+| `backend/app/services/next_session_forecast.py` | Dự báo phiên kế tiếp sau batch EOD |
+| `backend/scripts/run_scheduled_job.py` | Job mà cron gọi: eod |
 | `backend/app/indicators/sma.py` | Hàm SMA |
 | `backend/app/indicators/ema.py` | Hàm EMA |
 | `backend/app/features/advanced_features.py` | Stochastic, ATR, ADX, Ichimoku... |
@@ -1255,4 +1262,17 @@ graph TD
 
 ---
 
-> **Ghi chú:** File này được tạo ngày 02/10/2026 như là tài liệu bổ sung cho [`PROGRESS_LAKEHOUSE.md`](PROGRESS_LAKEHOUSE.md). Nếu có thắc mắc về code cụ thể, hãy hỏi trực tiếp để được giải thích sâu hơn.
+> **Ghi chú:** File này được tạo ngày 02/10/2026. Nếu có thắc mắc về code cụ thể, hãy hỏi trực tiếp để được giải thích sâu hơn.
+
+> **Cập nhật 10/11/2026:** Apache Iceberg và Apache Kafka đã bị **gỡ khỏi dự án**.
+> File `backend/app/lakehouse/iceberg_manager.py` **không còn tồn tại**; dữ liệu nay
+> lưu bằng file Parquet trên MinIO theo quy ước đường dẫn `symbol=.../year=.../month=...`.
+> Hai dòng mới trong bảng trên là các file của hai hệ thống mới: dự báo phiên kế tiếp,
+> và bộ đếm cron. Chi tiết ở
+> [`HE_THONG_TOAN_DIEN_VA_GIAI_TRINH_KHOA_LUAN.md`](HE_THONG_TOAN_DIEN_VA_GIAI_TRINH_KHOA_LUAN.md).
+>
+> **Cập nhật 12/11/2026:** toàn bộ **hệ thống tin tức** cũng đã bị **gỡ khỏi dự án**
+> (2 tầng lưu, provider, 4 endpoint, 4 tool AI, trang `/news`, 2 lịch cron). Lý do:
+> độ phủ đo được chỉ **0,00%** (10 mã / 1.002 mã, 89 bài) và một số bài báo thật bị
+> **gắn sai mã** do trùng mã giữa các sàn. Chi tiết ở mục 5B.1 của
+> [`HE_THONG_TOAN_DIEN_VA_GIAI_TRINH_KHOA_LUAN.md`](HE_THONG_TOAN_DIEN_VA_GIAI_TRINH_KHOA_LUAN.md).

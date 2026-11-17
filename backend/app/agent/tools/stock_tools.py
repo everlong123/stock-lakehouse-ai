@@ -82,6 +82,17 @@ class BacktestOutput(BaseModel):
     sharpe_ratio: float
     maximum_drawdown: float
     number_of_trades: int
+    # WHY THE *_pct FIELDS EXIST
+    # ---------------------------
+    # `total_return` is a FRACTION (3.2005 means +320.05%). The model reads
+    # the raw tool payload and writes the number into prose, so it used to
+    # write "Total Return: 3.20%" for a +320.05% backtest - off by two
+    # orders of magnitude. The fraction stays for the code, and the
+    # already-converted percentage is added next to it so the model has a
+    # number it can quote without doing the arithmetic itself.
+    total_return_pct: float
+    win_rate_pct: float
+    maximum_drawdown_pct: float
     disclaimer: str
 
 
@@ -194,6 +205,9 @@ def run_backtest(symbol: str, strategy: str = "ma_crossover", initial_capital: f
         sharpe_ratio=result["sharpe_ratio"],
         maximum_drawdown=result["maximum_drawdown"],
         number_of_trades=result["number_of_trades"],
+        total_return_pct=round(float(result["total_return"]) * 100, 2),
+        win_rate_pct=round(float(result["win_rate"]) * 100, 2),
+        maximum_drawdown_pct=round(float(result["maximum_drawdown"]) * 100, 2),
         disclaimer=disclaimer,
     )
     return payload.model_dump()

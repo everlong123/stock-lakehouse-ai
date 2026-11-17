@@ -19,7 +19,7 @@ Usage::
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from typing import Literal
 
 import pandas as pd
@@ -131,8 +131,17 @@ def transform_to_silver(
     start: datetime | None = None,
     end: datetime | None = None,
     source_name: str | None = None,
+    changed_since: date | None = None,
 ) -> dict:
     """Read Bronze for *symbol*, clean it, write Silver.
+
+    Args:
+        changed_since: The earliest session whose content may have changed.
+            The Silver transform is row-local, so the earlier partitions
+            would be written with byte-identical content - writing them
+            costs 2.9 s of MinIO round-trips per symbol for nothing.
+            None writes every partition, which is what a full backfill
+            must do.
 
     Returns:
         {"quality": quality_report, "write": write_info}
@@ -144,7 +153,7 @@ def transform_to_silver(
         )
     silver = SilverLayer()
     silver_frame, quality = silver.transform(bronze_frame)
-    write_info = silver.write(silver_frame, quality)
+    write_info = silver.write(silver_frame, quality, changed_since=changed_since)
     logger.info("Silver transform for %s: %s", symbol, quality)
     return {"quality": quality, "write": write_info}
 
@@ -205,8 +214,17 @@ def assert_quality_passed(report: dict) -> None:
 # ─────────────────────────────────────────────────────────────────────────────
 
 
-def build_gold_layer(symbol: str) -> dict:
+def build_gold_layer(symbol: str, changed_since: date | None = None) -> dict:
     """Read Silver for *symbol*, engineer features, write Gold.
+
+    Args:
+        changed_since: The earliest session whose content may have changed.
+            Every Gold feature is causal - it looks BACKWARD only - so a
+            rebuild triggered by a new bar at the end of the history
+            produces exactly the same rows for every earlier session.
+            Writing their partitions again costs 2.7 s of round-trips per
+            symbol for content that did not change. None writes every
+            partition, which is what a full backfill must do.
 
     Returns:
         {"paths": [...], "records": int}
@@ -218,7 +236,7 @@ def build_gold_layer(symbol: str) -> dict:
         )
     gold = GoldLayer()
     gold_frame = gold.transform(silver_frame)
-    write_info = gold.write(gold_frame)
+    write_info = gold.write(gold_frame, changed_since=changed_since)
     logger.info("Gold build for %s: %s rows", symbol, write_info["records"])
     return write_info
 

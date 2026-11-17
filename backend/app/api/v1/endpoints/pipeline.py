@@ -1,4 +1,4 @@
-"""API endpoints for Lakehouse pipeline management."""
+﻿"""API endpoints for Lakehouse pipeline management."""
 
 from __future__ import annotations
 
@@ -6,6 +6,7 @@ from typing import Literal
 
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field, field_validator
+from starlette.concurrency import run_in_threadpool
 
 from app.core.constants import SUPPORTED_INTERVALS, GLOBAL_SYMBOLS
 from app.core.logging_config import get_logger
@@ -99,8 +100,20 @@ class StorageStatusResponse(BaseModel):
 async def run_lakehouse_pipeline(request: PipelineRunRequest) -> PipelineRunResponse:
     """
     Run the complete Lakehouse pipeline (Bronze → Silver → Gold).
-    
+
     This ingests raw data from sources, cleans it, and engineers features.
+
+    WHY THIS IS OFF-LOADED TO A THREAD
+    -----------------------------------
+    The pipeline is a long, BLOCKING job: it downloads from the provider,
+    then rebuilds Silver and Gold in pandas/pyarrow. Running it directly in
+    an ``async def`` handler pins the event loop for the whole job, so every
+    other request in the process - including ``/health`` - queues behind it
+    and times out.
+
+    ``run_in_threadpool`` hands the blocking call to Starlette's worker
+    thread, which keeps the event loop free to serve other requests while
+    the pipeline runs.
     """
     # Build config
     symbols = request.symbols or GLOBAL_SYMBOLS
@@ -112,14 +125,14 @@ async def run_lakehouse_pipeline(request: PipelineRunRequest) -> PipelineRunResp
         skip_silver=request.skip_silver,
         skip_gold=request.skip_gold,
     )
-    
-    # Run pipeline
-    logger.info(f"Starting pipeline for {len(symbols)} symbols")
-    pipeline = LakehousePipeline(config)
-    result = pipeline.run(symbols)
-    
-    # Convert to response
-    return PipelineRunResponse(**result.to_dict())
+
+    def _run() -> PipelineRunResponse:
+        logger.info(f"Starting pipeline for {len(symbols)} symbols")
+        pipeline = LakehousePipeline(config)
+        result = pipeline.run(symbols)
+        return PipelineRunResponse(**result.to_dict())
+
+    return await run_in_threadpool(_run)
 
 
 @router.get("/run/{run_id}", response_model=PipelineRunResponse)
@@ -132,7 +145,7 @@ async def get_pipeline_run(run_id: str) -> PipelineRunResponse:
 
 
 @router.get("/layers/{symbol}", response_model=LayerInfoResponse)
-async def get_layer_info(
+def get_layer_info(
     symbol: str,
     use_minio: bool = Query(default=False, description="Use MinIO storage backend.")
 ) -> LayerInfoResponse:
@@ -148,7 +161,7 @@ async def get_layer_info(
 
 
 @router.get("/data/{symbol}")
-async def get_lakehouse_data(
+def get_lakehouse_data(
     symbol: str,
     layer: Literal["bronze", "silver", "gold"] = Query(default="gold"),
     limit: int = Query(default=100, ge=1, le=10000),
@@ -198,7 +211,7 @@ async def get_lakehouse_data(
 
 
 @router.get("/storage/status", response_model=StorageStatusResponse)
-async def get_storage_status() -> StorageStatusResponse:
+def get_storage_status() -> StorageStatusResponse:
     """Get status of the storage backend."""
     from app.lakehouse import get_storage_backend
     
@@ -219,7 +232,7 @@ async def get_storage_status() -> StorageStatusResponse:
 
 
 @router.get("/symbols/supported")
-async def get_supported_symbols() -> dict:
+def get_supported_symbols() -> dict:
     """Get list of supported symbols."""
     return {
         "symbols": GLOBAL_SYMBOLS,
@@ -229,7 +242,7 @@ async def get_supported_symbols() -> dict:
 
 
 @router.post("/storage/initialize")
-async def initialize_storage(
+def initialize_storage(
     use_minio: bool = Query(default=True),
 ) -> dict:
     """

@@ -23,18 +23,15 @@ export function Loading({
   if (variant === "skeleton") {
     return (
       <div className={cn("flex w-full flex-col gap-2", className)} aria-busy="true">
-        <div className="h-3 w-1/3 animate-pulse rounded bg-muted" />
-        <div className="h-3 w-2/3 animate-pulse rounded bg-muted" />
-        <div className="h-3 w-1/2 animate-pulse rounded bg-muted" />
+        <div className="skeleton h-3 w-1/3 rounded" />
+        <div className="skeleton h-3 w-2/3 rounded" />
+        <div className="skeleton h-3 w-1/2 rounded" />
       </div>
     );
   }
   return (
     <div
-      className={cn(
-        "flex h-40 items-center justify-center gap-2 text-sm text-muted-foreground",
-        className,
-      )}
+      className={cn("flex h-40 items-center justify-center gap-2 text-small text-muted", className)}
       aria-busy="true"
     >
       <Loader2 size={14} className="animate-spin" />

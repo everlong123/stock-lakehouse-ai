@@ -53,13 +53,6 @@ $tests = @(
     @{ n = "macro.summary"; m = "GET"; u = "$base/data/macro/summary"; t = 30 }
     @{ n = "market.indices"; m = "GET"; u = "$base/market/indices" }
     @{ n = "market.indices.sectors"; m = "GET"; u = "$base/market/indices/sectors" }
-    @{ n = "data.news.market"; m = "GET"; u = "$base/data/news/market?limit=3" }
-    @{ n = "data.news.AAPL"; m = "GET"; u = "$base/data/news/AAPL?limit=3" }
-    @{ n = "data.sentiment.AAPL"; m = "GET"; u = "$base/data/sentiment/AAPL" }
-    @{ n = "market.news.market"; m = "GET"; u = "$base/market/news/market?limit=3" }
-    @{ n = "market.news.AAPL"; m = "GET"; u = "$base/market/news/AAPL?limit=3" }
-    @{ n = "market.news.AAPL.sentiment-summary"; m = "GET"; u = "$base/market/news/AAPL/sentiment-summary" }
-    @{ n = "market.news.AAPL.sentiment-timeseries"; m = "GET"; u = "$base/market/news/AAPL/sentiment-timeseries" }
     @{ n = "data.fundamental.AAPL"; m = "GET"; u = "$base/data/fundamental/AAPL" }
     @{ n = "market.fundamental.AAPL"; m = "GET"; u = "$base/market/fundamental/AAPL" }
     @{ n = "market.fundamental.AAPL.balance-sheet"; m = "GET"; u = "$base/market/fundamental/AAPL/balance-sheet" }
@@ -68,15 +61,11 @@ $tests = @(
     @{ n = "market.orderbook.AAPL"; m = "GET"; u = "$base/market/orderbook/AAPL" }
     @{ n = "market.trades.AAPL"; m = "GET"; u = "$base/market/trades/AAPL?limit=3" }
     @{ n = "market.trades.AAPL.summary"; m = "GET"; u = "$base/market/trades/AAPL/summary" }
-    @{ n = "stream.latest"; m = "GET"; u = "$base/stream/latest" }
-    @{ n = "stream.stats"; m = "GET"; u = "$base/stream/stats" }
-    @{ n = "stream.history.AAPL"; m = "GET"; u = "$base/stream/history?symbol=AAPL&limit=3" }
-    @{ n = "stream.events"; m = "GET"; u = "$base/stream/events?limit=3" }
+    @{ n = "stocks.tape"; m = "GET"; u = "$base/stocks/tape?symbols=AAPL,MSFT" }
     @{ n = "backtests.history"; m = "GET"; u = "$base/backtests/history?limit=3" }
     @{ n = "forecast.compare.AAPL"; m = "GET"; u = "$base/forecast/compare/AAPL" }
     @{ n = "agent.history.test"; m = "GET"; u = "$base/agent/history/test-session" }
     @{ n = "admin.auto-refresh.status"; m = "GET"; u = "$base/admin/auto-refresh/status" }
-    @{ n = "data.news.ingest"; m = "GET"; u = "$base/data/news/ingest"; t = 15 }
 )
 
 foreach ($t in $tests) {

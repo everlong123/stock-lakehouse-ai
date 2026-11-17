@@ -26,7 +26,7 @@ Orchestrates the complete data flow:
     └─────────────┘
 
 Storage Backend:
-- MinIO (S3-compatible) when use_spark=true or use_iceberg=true
+- MinIO (S3-compatible) when use_minio=true
 - Local filesystem as fallback
 """
 
@@ -55,7 +55,6 @@ class PipelineConfig:
     
     # Storage
     use_minio: bool = False
-    use_iceberg: bool = False
     use_spark: bool = False
     
     # Processing

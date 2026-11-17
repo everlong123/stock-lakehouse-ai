@@ -1,4 +1,4 @@
-"""Data ingestion service for all data sources (stocks, fundamental, news, macro)."""
+﻿"""Data ingestion service for all data sources (stocks, fundamental, macro)."""
 
 from __future__ import annotations
 
@@ -12,7 +12,6 @@ from app.core.constants import GLOBAL_SYMBOLS
 from app.data_sources import (
     FundamentalDataProvider,
     MacroDataProvider,
-    NewsSentimentProvider,
     get_data_provider,
 )
 from app.lakehouse.bronze import BronzeLayer
@@ -22,14 +21,13 @@ logger = get_logger(__name__)
 
 class DataIngestionService:
     """Centralized service for ingesting data from all sources."""
-    
+
     def __init__(self):
         self.stock_provider = get_data_provider()
         self.fundamental_provider = FundamentalDataProvider()
-        self.news_provider = NewsSentimentProvider()
         self.macro_provider = MacroDataProvider()
         self.bronze = BronzeLayer()
-    
+
     # =====================
     # US Stock Data (OHLCV)
     # =====================
@@ -93,64 +91,6 @@ class DataIngestionService:
                 results[symbol] = "error"
         
         return results
-    
-    # =====================
-    # News + Sentiment
-    # =====================
-    
-    def ingest_news(self, symbols: list[str] | None = None, limit: int = 20) -> pd.DataFrame:
-        """Ingest news and sentiment data."""
-        all_news = []
-        
-        if symbols:
-            for symbol in symbols:
-                try:
-                    news = self.news_provider.get_news_for_symbol(symbol, limit)
-                    if not news.empty:
-                        all_news.append(news)
-                except Exception as e:
-                    logger.error(f"News ingest failed for {symbol}: {e}")
-        else:
-            # Market news
-            try:
-                news = self.news_provider.get_market_news(limit)
-                if not news.empty:
-                    all_news.append(news)
-            except Exception as e:
-                logger.error(f"Market news ingest failed: {e}")
-        
-        if all_news:
-            combined = pd.concat(all_news, ignore_index=True)
-            self.bronze.append(combined, lineage={
-                "source": "news_sentiment",
-                "type": "news_articles"
-            })
-            logger.info(f"Ingested {len(combined)} news articles")
-            return combined
-        
-        return pd.DataFrame()
-    
-    def ingest_sentiment_summary(self, symbols: list[str]) -> pd.DataFrame:
-        """Ingest aggregated sentiment summaries."""
-        summaries = []
-        
-        for symbol in symbols:
-            try:
-                summary = self.news_provider.get_sentiment_summary(symbol)
-                summaries.append(summary)
-            except Exception as e:
-                logger.error(f"Sentiment failed for {symbol}: {e}")
-        
-        if summaries:
-            frame = pd.DataFrame(summaries)
-            self.bronze.append(frame, lineage={
-                "source": "news_sentiment",
-                "type": "sentiment_summary"
-            })
-            logger.info(f"Ingested sentiment for {len(summaries)} symbols")
-            return frame
-        
-        return pd.DataFrame()
     
     # =====================
     # Macro Data
@@ -269,7 +209,6 @@ class DataIngestionService:
         summary = {
             "us_stocks": {},
             "fundamental": {},
-            "news": 0,
             "macro": {},
             "errors": [],
         }
@@ -287,14 +226,7 @@ class DataIngestionService:
         except Exception as e:
             summary["errors"].append(f"Fundamental: {e}")
         
-        # 3. News
-        try:
-            news = self.ingest_news(limit=30)
-            summary["news"] = len(news)
-        except Exception as e:
-            summary["errors"].append(f"News: {e}")
-        
-        # 4. Macro
+        # 3. Macro
         try:
             summary["macro"] = self.ingest_all_macro()
         except Exception as e:

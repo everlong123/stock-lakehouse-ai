@@ -1,0 +1,329 @@
+---
+description: Quy chuẩn viết tài liệu trong docs/ — bắt buộc giải thích bằng đời thường TRƯỚC khi nêu thuật ngữ, dành cho người mới, không để lỗ hổng khi bảo vệ luận văn
+globs: docs/**/*.md
+alwaysApply: false
+---
+
+# Quy chuẩn viết tài liệu (docs/)
+
+Mọi file trong `docs/` được viết theo nguyên tắc: **giải thích bằng đời thường trước, rồi mới đưa thuật ngữ**. Người đọc là **người mới** — chưa hiểu cơ chế, chưa biết thuật ngữ, và cần dùng tài liệu này để **bảo vệ luận văn** trước hội đồng.
+
+---
+
+## 1. Cấu trúc bắt buộc: 3 tầng cho mỗi mục
+
+Mỗi khái niệm kỹ thuật phải được trình bày theo **đúng thứ tự** này:
+
+| Thứ tự | Tên mục | Nội dung | Ràng buộc |
+|---|---|---|---|
+| ① | `## X.1 Hiểu đơn giản` | Giải thích đời thường, ví dụ như kể chuyện | **Không được xuất hiện thuật ngữ chuyên môn.** Không có code. Không có công thức. |
+| ② | `## X.2 Thuật ngữ` | Bảng tra thuật ngữ | Bảng markdown, cột đầu là từ tiếng Việt dễ hiểu |
+| ③ | `## X.3 Chi tiết kỹ thuật` | Code, công thức, số đo | Dẫn file thật trong repo bằng đường dẫn |
+
+> Người đọc **được phép dừng ở ①** và vẫn hiểu trọn vẹn hệ thống. ② và ③ là để dựng lên khi thầy/cô hỏi sâu.
+
+---
+
+## 2. Bắt buộc có bảng tra thuật ngữ ở đầu tài liệu dài
+
+Nếu tài liệu dài hơn ~300 dòng, phải mở đầu bằng một **phần tra cứu thuật ngữ**, chia theo nhóm:
+
+```markdown
+## 0.2. Bảng tra thuật ngữ (đọc khi thấy từ lạ)
+
+### 0.2.1. Thuật ngữ về DỮ LIỆU
+
+| Từ tiếng Việt dễ hiểu | Thuật ngữ | Nghĩa là gì | Dùng ở đâu |
+|---|---|---|---|
+| **Kho dữ liệu 3 tầng** | **Medallion Architecture** | Chia dữ liệu thành 3 mức: gốc → đã rửa → đã phân tích | Toàn bộ tầng dữ liệu |
+| **Nhìn thấy tương lai** | **Look-ahead bias** | Dùng thông tin ngày mai để quyết định hôm nay | `backtesting/engine.py` |
+```
+
+Quy tắc cho bảng:
+- **Cột đầu luôn là cách gọi đời thường**, không phải thuật ngữ gốc.
+- **Cột "Dùng ở đâu"** phải trỏ tới file thật trong repo (`app/forecasting/lstm.py`), không ghi chung chung.
+- Bọc thuật ngữ gốc bằng `**...**` để dễ nhận ra ngay.
+
+---
+
+## 3. Quy tắc viết phần "Hiểu đơn giản"
+
+### 3.1. Dùng ví dụ đời thường, không dùng định nghĩa học thuật
+
+Tuyệt đối tránh mở đầu bằng định nghĩa học thuật. Đi từ **trải nghiệm quen thuộc** trước:
+
+```
+❌ SAI:  "MinMaxScaler là một kỹ thuật chuẩn hóa dữ liệu dùng để đưa các đặc trưng về cùng một miền giá trị."
+✅ ĐÚNG: "Ép mọi con số về khoảng 0–1 để mạng học dễ hơn."
+```
+
+### 3.2. Ví dụ bắt buộc — dùng phép so sánh đời thường
+
+Mỗi khái niệm trừu tượng **phải có** ít nhất một phép so sánh:
+
+| Khái niệm | Phép so sánh nên dùng |
+|---|---|
+| Bronze / Silver / Gold | Tấm bánh: giữ nguyên → cắt bỏ phần cháy rửa sạch → nghiền thành bột |
+| Look-ahead bias | Cho học sinh xem đề thi có sẵn đáp án rồi bảo đó là đề thi |
+| Data leakage | Copy đáp án vào tay khi đang thi |
+| GIL | 20 luồng nền chạy thì luồng của bạn phải xếp hàng chờ |
+| LSTM bão hoà | Dạy trẻ đoán giá trong 1000 ví dụ giá 26–196, rồi hỏi giá 345 |
+| Walk-forward | Đoán đề sau khi đã có đáp án |
+| MinMaxScaler | Đo mọi thứ cùng đơn vị: tính bằng mét thay vì km |
+| TTL cache | Tái sử dụng bản cũ trong 15 phút rồi phải in lại |
+| Equity curve | Đường vẽ số tiền trong ví theo từng ngày |
+| Sharpe ratio | Đổi 1 đơn vị rủi ro thì được bao nhiêu lợi nhuận |
+
+### 3.3. Nêu vấn đề trước khi nêu lời giải
+
+Đoạn "Hiểu đơn giản" nên theo trình tự:
+
+```
+Bối cảnh vấn đề  →  Hậu quả nếu không xử lý  →  Cách hệ thống xử lý
+```
+
+Ví dụ mẫu (mục cache):
+> *Khi bạn mở trang web và chọn "AAPL", backend phải trả về ~2.500 phiên. Mỗi phiên nằm ở 1 file Parquet khác nhau ⇒ phải tải ~121 file từ MinIO. Nếu mỗi lần mở trang đều tải lại, trang sẽ lag. Nên hệ thống giữ kết quả trong bộ nhớ trong 15 phút.*
+
+---
+
+## 4. Quy tắc viết phần "Chi tiết kỹ thuật"
+
+### 4.1. Mọi ví dụ code phải lấy từ repo thật
+
+- Copy nguyên văn từ file trong repo, **không viết lại "giống giống"**.
+- Luôn ghi đường dẫn file ngay trên hoặc dưới block code.
+- Nếu ví dụ là code giả để minh hoạ, **phải ghi rõ** là ví dụ minh hoạ.
+
+### 4.2. Mọi con số phải có nguồn và ngày đo
+
+```markdown
+**Đo ngày 06/11/2026, AAPL / MA Crossover(20,50) / 10 năm, fee 0.1%, slippage 0.05%:**
+
+| Chỉ số | Giá trị |
+|---|---|
+| Total Return | **+308.45%** |
+```
+
+Quy tắc:
+- **Không được** đưa con số không rõ nguồn.
+- Số liệu mô tả hành vi hiện tại của code phải ghi **ngày đo**.
+- Số liệu lịch sử kết quả nghiên cứu phải ghi **mã + cấu hình + điều kiện chạy**.
+
+### 4.3. Chỉ ra "trước / sau" khi sửa bug
+
+Mọi bug đã sửa phải trình bày theo mẫu 4 dòng:
+
+```markdown
+**Triệu chứng:** <biểu hiện quan sát được>
+**Vì sao xảy ra:** <nguyên nhân gốc>
+**Fix:** <thay đổi cụ thể>
+**Bằng chứng:** <số đo trước → sau>
+```
+
+Bắt buộc có **"Bằng chứng"** — không nên mô tả fix mà không kèm số đo.
+
+### 4.4. Kèm câu trả lời mẫu khi thầy hỏi
+
+Sau mỗi kết quả đáng chú ý (nhất là kết quả **không tốt**), phải có:
+
+```markdown
+> **Cách trả lời khi thầy hỏi "...":**
+> *"..."*
+```
+
+Đây là phần **quan trọng nhất** để không hở lỗ hổng khi bảo vệ.
+
+---
+
+## 5. Nguyên tắc trung thực khoa học — KHÔNG ĐƯỢC VIẾT LỰA
+
+| Tình huống | Cách viết ĐÚNG (bắt buộc) | Cách viết SAI (tránh) |
+|---|---|---|
+| Chiến lược không tổng quát tốt | Nêu rõ con số xấu + giải thích **vì sao đó lại là kết quả nghiên cứu có giá trị** | Bỏ qua, hoặc diễn giải thành "kết quả đáng khích lời" |
+| Model có DA ~50% | Nói thẳng "gần như không có kỹ năng vượt ngẫu nhiên" | Làm tròn thành "độ chính xác cao" |
+| Chỉ 1 model tốt nhất | Báo cáo **cả 3 trên cùng một tập hold-out** | Chỉ report model tốt nhất (cherry-picking) |
+| Số +308% | Nói rõ đây là **con số thị trường** của AAPL, không phải công trình của chiến lược | Trình bày như thành tựu của chiến lược |
+| Có giới hạn | Nêu giới hạn **TRƯỚC** khi thầy nêu, kèm hướng mở rộng | Giấu giới hạn |
+
+> **Nguyên tắc:** một đồ án tốt là đồ án **báo cáo cả kết quả xấu**. Giấu kết quả xấu là rủi ro bảo vệ lớn nhất, lớn hơn cả việc kết quả không đẹp.
+
+---
+
+## 6. Cấu trúc chuẩn của một tài liệu trong `docs/`
+
+```markdown
+# <TÊN TÀI LIỆU>
+
+> **Tài liệu này dành cho bạn — người mới.**
+> Mỗi khái niệm kỹ thuật đều được giải thích bằng **đời thường trước**, rồi mới nêu **tên thuật ngữ** sau.
+
+# PHẦN 0 — ĐỌC TÀI LIỆU NÀY THẾ NÀO
+  0.1 Quy tắc của tài liệu (bảng 3 phần)
+  0.2 Bảng tra thuật ngữ
+  0.3 Tóm tắt câu hỏi lớn
+
+# PHẦN 1..N — NỘI DUNG
+  mỗi phần: ① Hiểu đơn giản → ② Thuật ngữ → ③ Chi tiết kỹ thuật
+
+# PHỤ LỤC A — BẢN ĐỒ MÃ NGUỒN
+# PHỤ LỤC B — MA TRẬN TRUY VẾT YÊU CẦU ĐỒ ÁN
+```
+
+Cuối tài liệu nên có:
+
+- **Bản đồ mã nguồn** — cây thư mục `backend/app/`, `frontend/src/`.
+- **Ma trận truy vết yêu cầu đồ án** — bảng: yêu cầu → thực hiện ở đâu → bằng chứng.
+
+---
+
+## 7. Quy tắc ngôn ngữ
+
+- **Tiếng Việt là ngôn ngữ chính.** Thuật ngữ tiếng Anh chỉ giữ nguyên khi là tên chính thức (Parquet, ARIMA, LSTM, Sharpe Ratio).
+- Dùng **"bạn"** khi hướng dẫn người đọc, dùng **"hệ thống"** khi mô tả hành vi code.
+- Giải thích mọi từ viết tắt khi xuất hiện lần đầu: MAE (Mean Absolute Error), RSI (Relative Strength Index), OHLCV (Open/High/Low/Close/Volume).
+- Công thức dùng LaTeX `$$...$$` và luôn kèm **một câu giải thích đời thường** ngay dưới.
+
+---
+
+## 8. Sơ đồ minh hoạ — BẮT BUỘC khi khái niệm có cấu trúc
+
+Tài liệu kỹ thuật **phải có sơ đồ** cho các khái niệm có cấu trúc (luồng dữ liệu, timeline, quy trình, so sánh). Không có sơ đồ = tài liệu khó hình dung.
+
+### 8.1. Định dạng bắt buộc: ASCII art trong code block
+
+Sơ đồ phải vẽ bằng **ký hiệu trong code block**, để **luôn hiển thị** ở mọi trình xem (Cursor Preview, GitHub, VS Code, Word):
+
+````markdown
+```
+┌──────────────┐        ┌──────────────┐
+│  Khối A      │───────▶│  Khối B      │
+└──────────────┘        └──────────────┘
+```
+````
+
+Ký hiệu được phép dùng:
+
+| Ký hiệu | Ý nghĩa |
+|---|---|
+| `┌ ─ ┐ │ └ ┘ ├ ┤ ┬ ┴ ┼` | Khung hộp |
+| `▶ ▸ → ⇒` | Luồng đi |
+| `▲ ▼ ◀ ▲▼` | Luồng xuống / lên |
+| `█ ▓ ▒ ░ ▌ ▐ ■ □ ▪ ▫` | Mức độ / khối / thanh tiến trình |
+| `● ○ ★ ☆` | Chấm / sao trang trí |
+| `→ ←` | Mũi tên hai chiều |
+
+> **Lưu ý:** dùng `▶` (U+25B6) **không kèm** `U+FE0F`. Bản có `U+FE0F` sẽ bị trình soạn thảo render thành **emoji màu** → lệch chiều rộng.
+
+**Quy tắc căn chỉnh:** mọi dòng trong khung phải **cùng độ rộng**. Vẽ từ trên xuống, kiểm tra lại bằng mắt — lệch 1 khoảng trắng là lỗi.
+
+**Công cụ kiểm tra:** `python scripts/docs/check_ascii_diagrams.py docs/<file>.md` (báo cáo từng dòng lệch khung) và `python scripts/docs/align_ascii_diagrams.py docs/<file>.md` (tự chỉnh lại). Chạy cả hai sau khi vẽ xong.
+
+### 8.1b. KHÔNG dùng emoji — bắt buộc
+
+**Tài liệu không được chứa emoji.** Lý do:
+
+1. **Máy in / hội đồng**: máy in ở trường và PDF khi nộp bài thường **không có font emoji** → in ra ô vuông đen hoặc chữ hỏng.
+2. **Một số trình xem markdown** (editor thuần, console, GitHub cũ) hiển thị emoji lệch vị trí, phá vỡ khung ASCII.
+3. **Emoji rộng 2 cột** trong khi font monospace hay xem 1 cột → **lệch khung sơ đồ**, đọc rất khó.
+4. Tài liệu phải **đọc được offline**, không phụ thuộc máy có cài bộ emoji hay không.
+
+**Cách thay thế được phép:**
+
+| Emoji hay dùng | Thay bằng |
+|---|---|
+| `✅` | Chữ `OK` (trong ô bảng) hoặc bỏ hẳn (văn bản) |
+| `❌` | Chữ `NO` (trong ô bảng) hoặc bỏ hẳn (văn bản) |
+| `⚠️` | `!!` hoặc bỏ hẳn — dùng chữ "Lưu ý:", "Nguy hiểm:" |
+| `✔ ✖ ✓ ✗` | `OK` / `NO` / `+` / `x` |
+| `⛔` | `!!` hoặc bỏ hẳn — dùng chữ "Tuyệt đối không được..." |
+| `🔒` | Bỏ hẳn — chữ bên cạnh đã nói "ổ khoá" |
+| `🥉 🥈 🥇` | Bỏ hẳn — dùng chữ "Bronze" / "Silver" / "Gold" |
+| `📦 🧼 🍳` | Bỏ hẳn — chữ bên cạnh đã mô tả |
+| `📊` | Bỏ hẳn — dùng chữ "Biểu đồ cột" |
+| `🇺🇸 🇪🇺 🇯🇵 …` | Bỏ hẳn — chữ "US", "Europe", "Japan" ngay sau đã nói rõ |
+| `🖼️` | Bỏ hẳn — dùng chữ "Sơ đồ:" |
+
+**Nguyên tắc chung:** emoji **trang trí** thì **xoá hẳn** (chữ ngay bên cạnh đã nói lý do rồi). Emoji **mang ý nghĩa "đúng/sai"** thì thay bằng **chữ** `OK` / `ĐÚNG` / `NO` / `SAI` để không mất thông tin.
+
+**Trong code block ASCII:** nếu buộc phải thay, dùng ký tự **cùng chiều rộng hiển thị** (emoji = 2 cột) rồi chạy `scripts/docs/align_ascii_diagrams.py` để chỉnh lại khung.
+
+**Công cụ dọn:** `python scripts/docs/remove_emoji.py docs/` — tự thay/xoá emoji trong toàn bộ `docs/`, giữ nguyên chiều rộng trong code block và tự căn lại khung ASCII.
+
+**Cấm thêm các ký hiệu Unicode có thể bị render thành emoji:**
+
+| Ký hiệu | Vấn đề | Dùng thay bằng |
+|---|---|---|
+| `▶` `▸` kèm `U+FE0F` | Bị render thành emoji màu | `▶` trần, `─▶`, `->` |
+| `⏸ ⏹ ⏯` | Emoji media control | `||` `>` `<` |
+| `☑ ☒` | Emoji | `[x]` `[ ]` |
+| `⚠` | Có thể bị render emoji | `!!` |
+| `✔ ✖ ✓ ✗` | Có thể bị render emoji | `+` `x` / chữ `OK` `SAI` |
+
+> **Nguyên tắc an toàn:** chỉ dùng ký hiệu thuộc nhóm **Box Drawing** (`U+2500–U+257F`) và **Geometric Shapes** (`U+25A0–U+25FF`) — hai nhóm này **luôn** hiển thị dạng chữ, không bao giờ thành emoji.
+
+### 8.2. Mỗi sơ đồ phải có 3 phần
+
+```markdown
+### ① Hình vẽ
+(ASCII art trong code block)
+
+### ② Đọc hình vẽ bằng lời đời thường
+(1–3 đoạn, giải thích hình đang vẽ gì, không dùng thuật ngữ mới)
+
+### ③ Chi tiết kỹ thuật
+(code, đường dẫn file, số đo)
+```
+
+> Phần ② là **bắt buộc** — nếu chỉ có hình mà không có lời giải thích, người mới nhìn hình xong vẫn không hiểu.
+
+### 8.3. Mermaid là bản bổ sung, không thay thế ASCII
+
+Nếu tài liệu dài, có thể thêm **một phụ lục Mermaid** ở cuối để trình xem hỗ trợ render đẹp hơn (mũi tên, màu):
+
+```markdown
+```mermaid
+flowchart TB
+    A["Node A"] --> B["Node B"]
+```
+```
+
+**Quy tắc:** Mermaid **luôn đi kèm** ASCII tương đương. Không bao giờ chỉ có Mermaid — vì khi render không được, người đọc sẽ thấy một khối code vô nghĩa.
+
+### 8.4. Không dùng HTML/ảnh ngoài
+
+- Không nhúng ảnh PNG/SVG từ ngoài vào — tài liệu phải đọc được **offline**, không phụ thuộc link.
+- Không dùng thẻ HTML `<img>`, `<table>` phức tạp — render không đồng nhất giữa các trình xem.
+
+---
+
+## 9. Checklist trước khi kết thúc tài liệu
+
+- [ ] Mỗi mục kỹ thuật có đủ ① ② ③ theo đúng thứ tự
+- [ ] Có bảng tra thuật ngữ ở đầu (nếu > 300 dòng)
+- [ ] Phần "Hiểu đơn giản" **không chứa** từ viết tắt hay thuật ngữ chuyên môn
+- [ ] Mỗi khái niệm trừu tượng có ít nhất 1 phép so sánh đời thường
+- [ ] Mọi code block lấy từ repo thật và có đường dẫn file
+- [ ] Mọi con số có nguồn + ngày đo + điều kiện chạy
+- [ ] Mọi bug đã sửa có "Bằng chứng" trước → sau
+- [ ] Có câu trả lời mẫu cho câu hỏi dễ bị hỏi
+- [ ] Giới hạn được nêu trước khi thầy nêu
+- [ ] Kết quả xấu vẫn được báo cáo nguyên vẹn
+- [ ] Có bản đồ mã nguồn + ma trận truy vết yêu cầu đồ án
+- [ ] Khái niệm có cấu trúc đã có **sơ đồ ASCII** (mục 8)
+- [ ] Mỗi sơ đồ có phần ② "Đọc hình vẽ bằng lời đời thường"
+- [ ] Khung ASCII thẳng hàng, không lệch cột (`python scripts/docs/check_ascii_diagrams.py`)
+- [ ] **Không còn emoji nào trong tài liệu** (`python scripts/docs/remove_emoji.py docs/`)
+
+---
+
+## 10. Phạm vi áp dụng
+
+Rule này áp dụng cho **mọi file `.md` trong `docs/`** khi tạo mới hoặc viết lại.
+
+**Ngoại lệ được chấp nhận** (tài liệu vận hành, không phải tài liệu giải thích):
+- `docs/PROGRESS*.md` — báo cáo tiến độ, ghi nhật ký công việc.
+- `docs/CI.md` — hướng dẫn vận hành CI, viết theo kiểu checklist thao tác.
+- `docs/exports/`, `docs/notebooks/` — artefact sinh ra tự động.
+
+Tuy nhiên, khi viết lại bất kỳ file nào trong `docs/` — **kể cả ngoại lệ** — vẫn phải giữ nguyên các nguyên tắc ở mục 5 (trung thực khoa học) và mục 4.2 (số liệu có nguồn).

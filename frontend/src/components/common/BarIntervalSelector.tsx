@@ -6,11 +6,10 @@ const INTERVALS: BarInterval[] = ["1d", "1w", "1mo"];
 interface BarIntervalSelectorProps {
   value: BarInterval;
   onChange: (next: BarInterval) => void;
-  size?: "sm" | "md";
 }
 
 /**
- * Timeframe (granularity) selector: daily / weekly / monthly bars.
+ * Timeframe picker: one bar per day, per week, or per month.
  *
  * WHY THIS IS SEPARATE FROM `TimeRangeSelector`
  * ----------------------------------------------
@@ -28,16 +27,9 @@ interface BarIntervalSelectorProps {
 export function BarIntervalSelector({
   value,
   onChange,
-  size = "sm",
 }: BarIntervalSelectorProps) {
   return (
-    <div
-      role="tablist"
-      aria-label="Khung thời gian"
-      className={cn(
-        "inline-flex items-center rounded-md border border-border bg-card p-0.5",
-      )}
-    >
+    <div role="tablist" aria-label="Khung thời gian" className="segmented">
       {INTERVALS.map((key) => {
         const active = key === value;
         return (
@@ -47,13 +39,7 @@ export function BarIntervalSelector({
             aria-selected={active}
             onClick={() => onChange(key)}
             type="button"
-            className={cn(
-              "rounded font-mono uppercase tracking-wider transition-colors",
-              size === "sm" ? "px-2 py-0.5 text-[10px]" : "px-3 py-1 text-[11px]",
-              active
-                ? "bg-primary text-primary-foreground"
-                : "text-muted-foreground hover:bg-muted",
-            )}
+            className={cn("segmented-item", active && "bg-primary text-on-primary")}
           >
             {BAR_INTERVAL_LABELS[key]}
           </button>

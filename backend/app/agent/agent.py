@@ -366,8 +366,6 @@ class StockAnalysisAgent:
         elif any(word in text for word in ["backtest", "walk-forward", "walkforward"]):
             strategy = "rsi_strategy" if "rsi" in text else "ma_crossover"
             plan.append(("run_backtest", {"symbol": symbol, "strategy": strategy}))
-        elif any(word in text for word in ["tin tức", "tin tuc", "news", "sentiment"]):
-            plan.append(("get_sentiment_summary", {"symbol": symbol}))
         elif any(
             word in text
             for word in ["rsi", "macd", "sma", "ema", "bollinger", "chỉ báo", "kỹ thuật"]
@@ -433,7 +431,7 @@ def _offline_smalltalk(user_message: str, symbol: str) -> str:
         ),
         (
             f"Xin lỗi, LLM đang tạm không trả lời được. Để có kết quả ngay, hãy dùng lệnh cụ thể "
-            f"như \"so sánh model {symbol}\" hoặc \"tin tức {symbol}\" — mình sẽ chạy tool lấy "
+            f"như \"so sánh model {symbol}\" hoặc \"phân tích kỹ thuật {symbol}\" — mình sẽ chạy tool lấy "
             f"số liệu thật từ lakehouse."
         ),
     ]
@@ -596,7 +594,7 @@ def _has_finance_intent(text: str) -> bool:
         # Vietnamese intent (with and without diacritics — user input may arrive
         # as partially-normalised text, e.g. "phan tich" vs "phân tích")
         "phân tích", "phan tích", "phân tích", "giá", "giá",
-        "tin tức", "tin tuc", "chỉ báo", "chi báo", "kỹ thuật", "ky thuat",
+        "chỉ báo", "chi báo", "kỹ thuật", "ky thuat",
         "cổ phiếu", "co phieu", "cổ tức", "co tuc",
         "dự báo", "du bao", "backtest", "so sánh", "so sanh",
         "mô hình", "mo hinh", "lợi nhuận", "loi nhuan",
@@ -621,20 +619,20 @@ def _has_finance_intent(text: str) -> bool:
 
 
 # "Pure" finance intent means the user is asking about a *specific* stock
-# operation that should hit one of the 16 stock tools, NOT a generic
+# operation that should hit one of the 13 stock tools, NOT a generic
 # project question. We require either a known ticker in the message or one
 # of the more specific finance verbs. Bare "model" / "kiến trúc" / "công
 # nghệ" are not enough — those belong to the project handler.
 _PURE_FINANCE_KEYWORDS = (
     "rsi", "macd", "sma", "ema", "bollinger", "atr", "adx", "obv", "vwap", "stoch",
-    "tin tức", "tin tuc", "chỉ báo", "chi báo", "kỹ thuật", "ky thuat",
+    "chỉ báo", "chi báo", "kỹ thuật", "ky thuat",
     "phân tích kỹ thuật", "phan tich ky thuat",
     "dự báo", "du bao", "backtest", "walk-forward", "walkforward",
     "walk forward", "so sánh", "so sanh", "compare",
     "cổ tức", "co tuc", "tài chính", "doanh thu", "lợi nhuận",
     "forecast", "ma crossover", "crossover", "rsi strategy",
     "income statement", "balance sheet", "cash flow",
-    "sentiment", "orderbook", "sổ lệnh", "so lenh",
+    "orderbook", "sổ lệnh", "so lenh",
     "chỉ số", "chi so", "vn-index", "vnindex", "^gspc", "^dji", "^ixic",
 )
 
@@ -679,7 +677,7 @@ PROJECT_INTENT_KEYWORDS = (
     "minio", "minio có", "minio co", "file parquet", "dung lượng", "dung luong",
     "parquet", "csv",
     "walk-forward", "walk forward", "walkforward",
-    "kafka", "iceberg", "spark", "fastapi", "minio", "mysql",
+    "spark", "fastapi", "minio", "mysql",
     "auto refresh", "auto-refresh", "auto refresh pipeline",
     "cấu hình", "cau hinh", "config", "configuration",
     "database gì", "database gi", "lưu trữ", "luu tru", "storage",
@@ -849,9 +847,9 @@ def _render_project_answer(question: str, tool_name: str, result: dict[str, Any]
         lines.append(f"- Toàn cầu (GLOBAL_SYMBOLS): {regions.get('global', 0)} mã")
         lines.append(f"- Chỉ số thị trường: {regions.get('market_indexes', 0)} mã")
         lines.append(f"- Crypto: {regions.get('crypto', 0)} mã")
-        vn_list = regions.get("vn_top10_streamed", [])
+        vn_list = regions.get("vn_symbols_sample", [])
         if vn_list:
-            lines.append(f"- Việt Nam (stream realtime qua SSI iBoard): {', '.join(vn_list)}")
+            lines.append(f"- Việt Nam: {', '.join(vn_list)}")
         if result.get("us_symbols_total"):
             lines.append("")
             lines.append(f"Một số mã US mẫu: {', '.join(result.get('sample_us_symbols', [])[:15])}")
@@ -936,8 +934,6 @@ def _render_project_answer(question: str, tool_name: str, result: dict[str, Any]
         lines.append(
             f"**Runtime hiện tại**: storage_backend=`{runtime.get('storage_backend', '?')}`, "
             f"data_source=`{runtime.get('data_source', '?')}`, "
-            f"kafka=`{runtime.get('use_kafka')}`, "
-            f"iceberg=`{runtime.get('use_iceberg')}`, "
             f"spark=`{runtime.get('use_spark')}`, "
             f"llm=`{runtime.get('llm_provider')}`"
         )
@@ -1065,15 +1061,6 @@ def _render_local_answer(question: str, collected: dict[str, Any]) -> str:
             lines.append(
                 f"{result.get('symbol')} close={close}, change={change}, volume={result.get('volume')}."
             )
-        elif name == "get_sentiment_summary":
-            pos = result.get("positive_count") or result.get("positive") or 0
-            neg = result.get("negative_count") or result.get("negative") or 0
-            neu = result.get("neutral_count") or result.get("neutral") or 0
-            score = result.get("avg_sentiment") or result.get("sentiment_score")
-            sym = result.get("symbol", symbol)
-            lines.append(f"Sentiment tổng hợp {sym}: tích cực={pos}, tiêu cực={neg}, trung tính={neu}.")
-            if score is not None:
-                lines.append(f"Điểm sentiment trung bình: {score:.3f} (thang -1..1).")
         elif name == "get_fundamental_metrics":
             sym = result.get("symbol", symbol)
             metrics = result.get("metrics") or {}
@@ -1102,7 +1089,7 @@ def _greeting_suggestions(symbol: str) -> list[str]:
         f"Phân tích kỹ thuật {symbol}",
         f"So sánh 3 model cho {symbol}",
         f"Backtest MA Crossover cho {symbol}",
-        f"Tin tức & sentiment {symbol}",
+        f"Báo cáo tài chính {symbol}",
     ]
 
 
@@ -1132,7 +1119,7 @@ def _follow_up_suggestions(symbol: str, plan: list[tuple[str, dict[str, Any]]]) 
     primary = next(
         (name for name in ("compare_models", "forecast_stock", "run_backtest",
                            "calculate_indicators", "query_stock_data",
-                           "get_market_summary", "get_sentiment_summary",
+                           "get_market_summary",
                            "get_fundamental_metrics")
          if name in tool_names),
         plan[0][0],
@@ -1168,15 +1155,10 @@ def _follow_up_suggestions(symbol: str, plan: list[tuple[str, dict[str, Any]]]) 
             f"Phân tích kỹ thuật {symbol}",
             f"So sánh model {symbol}",
         ],
-        "get_sentiment_summary": [
-            f"Phân tích kỹ thuật {symbol}",
-            f"Dự báo {symbol} bằng LSTM",
-            f"Báo cáo tài chính {symbol}",
-        ],
         "get_fundamental_metrics": [
             f"So sánh model {symbol}",
             f"Backtest MA Crossover cho {symbol}",
-            f"Tin tức & sentiment {symbol}",
+            f"Phân tích kỹ thuật {symbol}",
         ],
     }
     return table.get(primary, _greeting_suggestions(symbol))

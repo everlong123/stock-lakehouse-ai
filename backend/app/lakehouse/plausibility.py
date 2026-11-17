@@ -11,15 +11,18 @@ became permanent lake corruption. The concrete failure:
 Both rows claimed to be VCB. The WS row was wrong on two axes at once: a 56.9
 VND price for a stock that trades near 56,000, and a timestamp 56 years before
 the ingestion time. ``ssi_vn_provider`` and ``vn_rest_poller`` multiply by
-1000 correctly; ``vn_websocket.parse_quote`` divides by 1000, and its
+1000 correctly; the SSI WebSocket parser divided by 1000, and its
 ``IDX_LAST_UPDATED`` field appears to index the wrong column. The publisher
-publishes whatever the parser produced, and the consumer writes it straight to
+published whatever the parser produced, and the consumer wrote it straight to
 Bronze.
 
-Rather than guess the correct field offsets - which requires a live capture
-during VN trading hours and guessing in the meantime would risk corrupting
-good data - this module rejects rows that are *provably* impossible. The
-predicate is deliberately narrow:
+The real-time streaming path was removed on 11/11/2026 (see
+``docs/HE_THONG_TOAN_DIEN_VA_GIAI_TRINH_KHOA_LUAN.md``), but the rows it
+left behind are still in Bronze, and this guard is what rejects them on
+every replay. Rather than guess the correct field offsets - which requires a
+live capture during VN trading hours and guessing in the meantime would risk
+corrupting good data - this module rejects rows that are *provably*
+impossible. The predicate is deliberately narrow:
 
   * a timestamp outside [MIN_TIMESTAMP, ingestion_time + tolerance], or
   * a non-positive price, or
@@ -121,7 +124,7 @@ REFERENCE_PARTITION_SAMPLE = 3
 #: bands, so splitting the two costs the guard nothing.
 ReferenceLevel = dict[str, dict[str, float]]
 
-#: A STREAMING row (one of the per-second bars the Kafka publishers emit)
+#: A STREAMING row (one of the per-second bars the WebSocket clients emit)
 #: must sit close to its own symbol's price level. Unlike a historical daily
 #: bar, an intraday tick has no excuse for being far away from the last
 #: traded price: the two describe the SAME session.
@@ -150,13 +153,18 @@ STREAM_PRICE_DEVIATION_FACTOR = 2.5
 #: Sources whose rows are per-second / per-minute intraday prints. These are
 #: held to the tighter deviation factor because they describe the SAME
 #: session as the symbol's last stored close.
+#:
+#: WHY THE LIST STILL NAMES SOURCES THAT NO LONGER EXIST: the real-time
+#: streaming path was removed on 11/11/2026, but rows carrying these source
+#: tags are still sitting in Bronze from earlier ingests. The guard is what
+#: keeps a replay of that archive honest, so the names stay until the archive
+#: is purged.
 INTRADAY_STREAM_SOURCES = frozenset(
     {
         "finnhub_ws",
         "finnhub_rest",
         "vn_ws",
         "vn_rest",
-        "kafka",
         "manual",
     }
 )

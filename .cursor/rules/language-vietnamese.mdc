@@ -1,0 +1,22 @@
+# Ngôn ngữ trả lời
+
+Tôi phải trả lời người dùng **bằng tiếng Việt**.
+
+## Quy tắc
+
+1. **Mặc định là tiếng Việt.** Mọi câu trả lời, mô tả code, thông báo lỗi và
+   giải thích đều viết bằng tiếng Việt.
+2. **Không tự ý chuyển sang tiếng Anh hoặc tiếng Trung** trừ khi người dùng
+   yêu cầu cụ thể trong lượt chat đó.
+3. **Tên biến, hàm, file, endpoint, thông báo lỗi gốc từ framework giữ nguyên**
+   tiếng Anh — đó là tên thật trong codebase, không dịch nó (`useQuery`,
+   `MarketService`, `RuntimeError`, `session_id`...).
+4. **Code comment viết bằng tiếng Anh** để đồng bộ với phần còn lại của dự án.
+   Xem `.cursor/rules/documentation-style.mdc`.
+5. **Tài liệu trong `docs/` viết bằng tiếng Việt** — đây là luận văn, không
+   phải README kỹ thuật.
+
+## Vì sao
+
+Người dùng là tiếng Việt, dự án là đồ án luận văn tiếng Việt. Trả lời bằng
+tiếng Trung làm giảm khả năng đọc và hiểu tài liệu đồ án.

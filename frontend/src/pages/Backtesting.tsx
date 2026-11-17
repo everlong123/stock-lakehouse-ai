@@ -1,306 +1,189 @@
-import { useEffect, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { ArrowDown, ArrowUp, Loader2, Play } from "lucide-react";
-import { fetchSymbols } from "@/api/stocks";
-import { errorMessage } from "@/api/client";
-import { EquityCurve } from "@/components/charts/EquityCurve";
-import { EmptyState } from "@/components/common/EmptyState";
-import { ErrorState } from "@/components/common/ErrorState";
+import { useState } from "react";
+import { Explainer } from "@/components/common/Explainer";
 import { PageTitle } from "@/components/common/PageTitle";
-import { MetricCard } from "@/components/dashboard/MetricCard";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Select } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
-import { useMarket } from "@/hooks/useMarket";
-import { useBacktest } from "@/hooks/useBacktest";
+import { MultiSymbolWalkForward } from "@/components/backtesting/MultiSymbolWalkForward";
+import { SingleSymbolBacktest } from "@/components/backtesting/SingleSymbolBacktest";
 import { STRATEGIES } from "@/utils/constants";
-import { formatNumber, formatPercent, formatPrice, shortDate, currencyForSymbol } from "@/utils/format";
 import { cn } from "@/lib/utils";
-import { toast } from "sonner";
 
-const DEFAULT_SYMBOLS = [
-  "AAPL", "MSFT", "GOOGL", "AMZN", "NVDA", "META", "TSLA", "AMD", "JPM", "V",
-];
+type TabId = "single" | "population";
 
-const tooltipStyle = {
-  background: "hsl(var(--card))",
-  border: "1px solid hsl(var(--border))",
-  borderRadius: 6,
-  fontSize: 12,
-};
-
+/**
+ * Strategy evaluation — one page, two scales.
+ *
+ * WHY TWO TABS INSTEAD OF TWO PAGES
+ * ---------------------------------
+ * A single-stock backtest and a multi-symbol walk-forward report are the
+ * same question asked at two scales: does this trading rule actually make
+ * money, or is the number just the stock going up? The reader almost
+ * always wants both — the single run for intuition, the population run for
+ * evidence — and the baseline comparison lived on only one of them, so the
+ * reader had to know which page carried the honest half.
+ *
+ * Keeping them on one page also lets the page OWN the strategy choice: the
+ * same rule is measured on one stock and on a hundred, so the two numbers
+ * are comparable. Splitting them let each page carry its own selector, and
+ * a reader could compare a MA run against an RSI report without noticing.
+ *
+ * WHY THE TABS SIT UNDER THE TITLE, NOT IN THE NAV BAR: they are two
+ * readings of one section, not two sections of the product. The nav bar
+ * holds the sections; this strip holds the views inside one section.
+ */
 export function BacktestingPage() {
-  const { symbol: ctxSymbol, setSymbol } = useMarket();
-  const [localSymbol, setLocalSymbol] = useState(ctxSymbol);
-  // Sync localSymbol when ctxSymbol changes (e.g., user changes symbol from Header)
-  useEffect(() => { setLocalSymbol(ctxSymbol); setSymbol(ctxSymbol); }, [ctxSymbol]);
-  const symbol = localSymbol || ctxSymbol;
+  const [tab, setTab] = useState<TabId>("single");
+  // The strategy is page-level state so BOTH tabs measure the same rule.
   const [strategy, setStrategy] = useState("ma_crossover");
 
-  const symbolsQuery = useQuery({
-    queryKey: ["symbols"],
-    queryFn: fetchSymbols,
-    staleTime: 5 * 60 * 1000,
-  });
-  const availableSymbols = symbolsQuery.data?.symbols?.length
-    ? symbolsQuery.data.symbols
-    : DEFAULT_SYMBOLS;
-
-  const { run } = useBacktest(symbol);
-  const [capital, setCapital] = useState(10000);
-  const [fee, setFee] = useState(0.001);
-  const [slip, setSlip] = useState(0.0005);
-  const [shortW, setShortW] = useState(20);
-  const [longW, setLongW] = useState(50);
-  const [rsiPeriod, setRsiPeriod] = useState(14);
-  const [lower, setLower] = useState(30);
-  const [upper, setUpper] = useState(70);
-
-  const result = run.data;
-  // The portfolio is denominated in the traded instrument's own currency:
-  // buying VCB shares spends dong, buying AAPL shares spends dollars. The
-  // backtest engine works in raw price units, so the label has to follow
-  // the symbol.
-  const currency = currencyForSymbol(symbol);
-
-  const onRun = async () => {
-    try {
-      await run.mutateAsync({
-        strategy, initial_capital: capital, transaction_fee: fee, slippage: slip,
-        short_window: shortW, long_window: longW,
-        rsi_period: rsiPeriod, lower_threshold: lower, upper_threshold: upper,
-      });
-      toast.success("Backtest hoan tat (lich su).");
-    } catch (error) {
-      toast.error(errorMessage(error, "Backtest thất bại."));
-    }
-  };
-
   return (
-    <div className="space-y-6">
+    <div className="space-y-12">
       <PageTitle
-        title="Backtesting"
-        subtitle="Đánh giá hiệu suất lịch sử giả định. Không chứng minh chiến lược sẽ sinh lời trong tương lai."
+        title="Đánh giá chiến lược"
+        subtitle="Chạy một quy tắc mua/bán trên lịch sử thật, rồi so với đường cơ sở mua và giữ trên cùng các phiên."
         meta="05 · Models"
-        actions={
-          <select
-            value={symbol}
-            onChange={(e) => { setLocalSymbol(e.target.value); setSymbol(e.target.value); }}
-            className="h-9 rounded-md border border-input bg-card px-3 font-mono text-sm outline-none focus:border-foreground"
-          >
-            {availableSymbols.map((s) => (
-              <option key={s} value={s}>{s}</option>
-            ))}
-          </select>
-        }
       />
 
-      <div>
-        <div className="mb-2 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-          Chien luoc
-        </div>
-        <div className="grid gap-2 md:grid-cols-2">
-          {STRATEGIES.map((s) => (
-            <button
-              key={s.id}
-              onClick={() => setStrategy(s.id)}
-              className={cn(
-                "rounded-md border bg-card p-3 text-left",
-                strategy === s.id
-                  ? "border-foreground"
-                  : "border-border hover:border-foreground/40",
-              )}
-            >
-              <div className="text-sm font-semibold text-foreground">{s.label}</div>
-              <div className="mt-0.5 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-                {s.id === "ma_crossover" ? "Short MA cat len Long MA · buy" : "RSI vuot 30/70 · buy/sell"}
-              </div>
-            </button>
-          ))}
-        </div>
+      {/*
+        ── The tab strip ────────────────────────────────────────────
+        Two readings of the same evaluation, so they read as a switch
+        inside one section rather than two links in the sitemap.
+      */}
+      <div
+        role="tablist"
+        aria-label="Phạm vi đánh giá"
+        className="flex items-center gap-1 border-b border-hairline"
+      >
+        {(
+          [
+            { id: "single" as TabId, label: "Một mã cổ phiếu" },
+            { id: "population" as TabId, label: "Walk-forward đa mã" },
+          ]
+        ).map((item) => (
+          <button
+            key={item.id}
+            role="tab"
+            aria-selected={tab === item.id}
+            onClick={() => setTab(item.id)}
+            className={cn(
+              "-mb-px min-h-11 border-b-2 px-4 text-small font-medium transition-colors",
+              tab === item.id
+                ? "border-primary text-ink"
+                : "border-transparent text-muted hover:text-ink",
+            )}
+          >
+            {item.label}
+          </button>
+        ))}
       </div>
 
-      <div className="rounded-md border border-border bg-card p-4">
-        <div className="grid gap-4 md:grid-cols-4">
-          <label className="text-sm">
-            <span className="mb-1 block font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-              Strategy
-            </span>
-            <Select value={strategy} onChange={(e) => setStrategy(e.target.value)} className="w-full">
-              {STRATEGIES.map((item) => (
-                <option key={item.id} value={item.id}>{item.label}</option>
-              ))}
-            </Select>
-          </label>
-          <label className="text-sm">
-            <span className="mb-1 block font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-              Initial capital (VND)
-            </span>
-            <Input type="number" value={capital} onChange={(e) => setCapital(Number(e.target.value))} />
-          </label>
-          <label className="text-sm">
-            <span className="mb-1 block font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-              Transaction fee
-            </span>
-            <Input type="number" step="0.0001" value={fee} onChange={(e) => setFee(Number(e.target.value))} />
-          </label>
-          <label className="text-sm">
-            <span className="mb-1 block font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-              Slippage
-            </span>
-            <Input type="number" step="0.0001" value={slip} onChange={(e) => setSlip(Number(e.target.value))} />
-          </label>
-
-          {strategy === "ma_crossover" ? (
-            <>
-              <label className="text-sm">
-                <span className="mb-1 block font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-                  Short MA
-                </span>
-                <Input type="number" value={shortW} onChange={(e) => setShortW(Number(e.target.value))} />
-              </label>
-              <label className="text-sm">
-                <span className="mb-1 block font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-                  Long MA
-                </span>
-                <Input type="number" value={longW} onChange={(e) => setLongW(Number(e.target.value))} />
-              </label>
-            </>
-          ) : (
-            <>
-              <label className="text-sm">
-                <span className="mb-1 block font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-                  RSI period
-                </span>
-                <Input type="number" value={rsiPeriod} onChange={(e) => setRsiPeriod(Number(e.target.value))} />
-              </label>
-              <label className="text-sm">
-                <span className="mb-1 block font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-                  Lower threshold
-                </span>
-                <Input type="number" value={lower} onChange={(e) => setLower(Number(e.target.value))} />
-              </label>
-              <label className="text-sm">
-                <span className="mb-1 block font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-                  Upper threshold
-                </span>
-                <Input type="number" value={upper} onChange={(e) => setUpper(Number(e.target.value))} />
-              </label>
-            </>
-          )}
-          <div className="flex items-end md:col-span-2">
-            <Button onClick={() => void onRun()} disabled={run.isPending} className="w-full">
-              {run.isPending ? (
-                <>
-                  <Loader2 size={14} className="animate-spin" />
-                  Đang chạy backtest
-                </>
-              ) : (
-                <>
-                  <Play size={14} />
-                  Chay backtest
-                </>
-              )}
-            </Button>
+      {/*
+        ── The shared strategy picker ───────────────────────────────
+        ONE strategy for the whole page. The single-symbol run and the
+        population report must describe the same rule, otherwise the two
+        tabs answer different questions.
+      */}
+      <section>
+        <div className="section-head">
+          <h2 className="section-title">Chiến lược</h2>
+        </div>
+        <div className="pt-4">
+          <div role="radiogroup" aria-label="Chiến lược" className="flex flex-wrap gap-x-8 gap-y-4">
+            {STRATEGIES.map((s) => {
+              const active = strategy === s.id;
+              return (
+                <button
+                  key={s.id}
+                  role="radio"
+                  aria-checked={active}
+                  onClick={() => setStrategy(s.id)}
+                  className="group flex min-h-11 items-center gap-3 text-left"
+                >
+                  <span
+                    className={cn(
+                      "flex h-4 w-4 shrink-0 items-center justify-center rounded-full border transition-colors",
+                      active ? "border-primary" : "border-hairline",
+                    )}
+                  >
+                    {active ? <span className="h-2 w-2 rounded-full bg-primary" /> : null}
+                  </span>
+                  <span>
+                    <span
+                      className={cn(
+                        "block text-small font-semibold",
+                        active ? "text-ink" : "text-muted",
+                      )}
+                    >
+                      {s.label}
+                    </span>
+                    <span className="block font-mono text-label uppercase text-muted">
+                      {s.hint}
+                    </span>
+                  </span>
+                </button>
+              );
+            })}
           </div>
         </div>
-        {run.isError ? <ErrorState message={errorMessage(run.error, "Backtest thất bại.")} /> : null}
-      </div>
+      </section>
 
-      {result ? (
+      {tab === "single" ? (
         <>
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-            <MetricCard
-              label="Total Return"
-              value={formatPercent(result.total_return)}
-              delta={result.total_return}
-            />
-            <MetricCard label="Final Value" value={formatPrice(result.final_capital, currency)} />
-            <MetricCard label="Sharpe Ratio" value={formatNumber(result.sharpe_ratio)} />
-            <MetricCard label="Max Drawdown" value={formatPercent(result.maximum_drawdown)} delta={result.maximum_drawdown} />
-            <MetricCard label="Win Rate" value={formatPercent(result.win_rate)} delta={result.win_rate} />
-            <MetricCard label="Trades" value={String(result.number_of_trades)} />
-            <MetricCard label="Profit Factor" value={formatNumber(result.profit_factor)} />
-            <MetricCard label="Initial Capital" value={formatPrice(result.initial_capital, currency)} />
-          </div>
-
-          <div className="grid gap-4 xl:grid-cols-2">
-            <div className="rounded-md border border-border bg-card">
-              <div className="border-b border-border px-4 py-3">
-                <h3 className="text-sm font-semibold text-foreground">Equity curve</h3>
-              </div>
-              <div className="px-2 py-3">
-                <EquityCurve data={result.equity_curve} />
-              </div>
-            </div>
-            <div className="rounded-md border border-border bg-card">
-              <div className="border-b border-border px-4 py-3">
-                <h3 className="text-sm font-semibold text-foreground">Drawdown</h3>
-              </div>
-              <div className="h-72 px-2 py-3">
-                <ResponsiveContainer>
-                  <AreaChart data={result.drawdown}>
-                    <CartesianGrid stroke="hsl(220 14% 92%)" strokeDasharray="3 3" />
-                    <XAxis dataKey="timestamp" hide />
-                    <YAxis stroke="hsl(220 10% 50%)" fontSize={11} />
-                    <Tooltip contentStyle={tooltipStyle} labelFormatter={(v) => shortDate(String(v))} />
-                    <Area
-                      type="monotone"
-                      dataKey="drawdown"
-                      stroke="hsl(0 64% 48%)"
-                      strokeWidth={1.5}
-                      fill="hsl(0 64% 48%)"
-                      fillOpacity={0.1}
-                    />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-          </div>
-
-          <div className="overflow-hidden rounded-md border border-border bg-card">
-            <div className="border-b border-border px-4 py-3">
-              <h3 className="text-sm font-semibold text-foreground">Trade history · {result.trades.length} lenh</h3>
-            </div>
-            <div className="max-h-[480px] overflow-auto">
-              <table className="min-w-full text-left text-sm">
-                <thead className="sticky top-0 border-b border-border font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-                  <tr>
-                    {["Entry", "Exit", "Entry $", "Exit $", "Qty", "PnL", "Return"].map((col) => (
-                      <th key={col} className="px-3 py-2 font-semibold">{col}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {result.trades.map((trade, index) => (
-                    <tr key={index} className="border-t border-border hover:bg-muted/30">
-                      <td className="px-3 py-2 font-mono text-xs">{shortDate(trade.entry_time)}</td>
-                      <td className="px-3 py-2 font-mono text-xs">{shortDate(trade.exit_time)}</td>
-                      <td className="px-3 py-2 font-mono">{formatNumber(trade.entry_price)}</td>
-                      <td className="px-3 py-2 font-mono">{formatNumber(trade.exit_price)}</td>
-                      <td className="px-3 py-2 font-mono">{formatNumber(trade.quantity, 4)}</td>
-                      <td className="px-3 py-2 font-mono font-semibold">
-                        <span className={trade.pnl >= 0 ? "text-up" : "text-down"}>
-                          {formatNumber(trade.pnl)}
-                        </span>
-                      </td>
-                      <td className="px-3 py-2">
-                        <Badge variant={trade.return_pct >= 0 ? "success" : "danger"}>
-                          {trade.return_pct >= 0 ? <ArrowUp size={10} /> : <ArrowDown size={10} />}
-                          {formatPercent(trade.return_pct)}
-                        </Badge>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
+          <Explainer
+            title="Tab này dùng để làm gì?"
+            intro="Backtest trả lời câu hỏi: nếu bạn áp dụng một quy tắc mua/bán theo lịch sử thật, bạn sẽ có bao nhiêu tiền? Hệ thống chơi lại từng phiên một: tính tín hiệu khi đóng cửa phiên hôm đó, rồi khớp lệnh vào giá mở cửa của phiên kế tiếp — nên không bao giờ dùng thông tin của tương lai."
+            items={[
+              {
+                term: "MA Crossover",
+                meaning: "Mua khi đường trung bình ngắn hạn cắt lên đường trung bình dài hạn; bán khi cắt xuống.",
+              },
+              {
+                term: "RSI Strategy",
+                meaning: "Mua khi RSI rơi xuống dưới ngưỡng (ví dụ 30 = thị trường bị bán quá mức); bán khi RSI vượt ngưỡng trên (70).",
+              },
+              {
+                term: "Equity curve",
+                meaning: "Đường biểu diễn tổng giá trị tài khoản sau mỗi phiên. Đi lên là đang lãi, đi xuống là đang lỗ.",
+              },
+              {
+                term: "Total Return",
+                meaning: "Tổng lãi/lỗ tính theo phần trăm so với vốn ban đầu.",
+              },
+              {
+                term: "Max Drawdown",
+                meaning: "Mức lỗ tệ nhất tính từ đỉnh cao nhất xuống đáy thấp nhất. Càng nhỏ (ít âm) càng ổn định.",
+              },
+              {
+                term: "Sharpe Ratio",
+                meaning: "Lợi nhuận trên mỗi đơn vị rủi ro. Trên 1 là tốt, dưới 0 nghĩa là lãi ít hơn rủi ro.",
+              },
+              {
+                term: "Win Rate",
+                meaning: "Tỉ lệ % lệnh thắng. Cao không đảm bảo lãi — cần xem cả Total Return.",
+              },
+              {
+                term: "Profit Factor",
+                meaning: "Tổng lãi chia cho tổng lỗ. Trên 1 là lãi, dưới 1 là lỗ.",
+              },
+              {
+                term: "Transaction fee / Slippage",
+                meaning: "Chi phí mỗi lệnh và độ trượt giá so với giá mở cửa. Cả hai đều làm lợi nhuận thực tế thấp hơn.",
+              },
+              {
+                term: "Mua & giữ (baseline)",
+                meaning: "Kịch bản đối chứng: mua đầu kỳ và giữ đến cuối, trên cùng các phiên, cùng phí và cùng độ trượt. Nếu chiến lược không vượt được nó, thì việc chọn thời điểm vào lệnh không tạo thêm giá trị nào.",
+              },
+            ]}
+            steps={[
+              "Chọn mã cổ phiếu và chiến lược muốn thử.",
+              "Đặt vốn ban đầu, phí giao dịch và độ trượt giá.",
+              "Bấm Chạy backtest để xem kết quả.",
+              "Đổi tham số (Short MA / Long MA hoặc ngưỡng RSI) rồi chạy lại để so sánh.",
+              "Sang tab 'Walk-forward đa mã' để biết kết quả này có đúng trên nhiều mã không.",
+            ]}
+          />
+          <SingleSymbolBacktest strategy={strategy} />
         </>
       ) : (
-        <EmptyState message="Chạy backtest để xem equity curve, drawdown và danh sách trades." />
+        <MultiSymbolWalkForward strategy={strategy} />
       )}
     </div>
   );

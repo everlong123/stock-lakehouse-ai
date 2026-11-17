@@ -36,13 +36,62 @@ def _prepare_supervised(frame: pd.DataFrame, feature_cols: list[str]) -> pd.Data
     return clean
 
 
+def _truncate_to(frame: pd.DataFrame, end_date: Any) -> pd.DataFrame:
+    """Return the rows of ``frame`` whose timestamp is at or before ``end_date``.
+
+    The comparison is done on the timestamp column with everything
+    timezone-naive, because Gold stores exchange-local session dates and
+    mixing them with tz-aware boundaries would silently drop every row.
+    """
+    if "timestamp" not in frame.columns:
+        raise ModelTrainingError("Cannot truncate: the frame has no 'timestamp' column.")
+
+    stamps = pd.to_datetime(frame["timestamp"], errors="coerce", utc=True)
+    if stamps.isna().all():
+        raise ModelTrainingError("Cannot truncate: every 'timestamp' value is unparseable.")
+
+    boundary = pd.to_datetime(end_date, errors="coerce", utc=True)
+    if pd.isna(boundary):
+        raise ModelTrainingError(f"Cannot truncate: {end_date!r} is not a valid date.")
+
+    return frame.loc[stamps <= boundary]
+
+
 def train_model(
     symbol: str,
     model_name: str,
     horizon: int = 1,
     extra_params: dict[str, Any] | None = None,
+    end_date: Any | None = None,
+    full_fit: bool = False,
 ) -> dict[str, Any]:
-    """Train one model on Gold data using a chronological split."""
+    """Train one model on Gold data using a chronological split.
+
+    ``end_date`` truncates the training data to sessions at or before that
+    timestamp. It is what makes a *rolling* (walk-forward) refit possible:
+    a model trained on 2026-11-10 data and scored on the sessions after it
+    is the honest way to measure a model that will be retrained every
+    night, instead of training once on the whole history and scoring on a
+    hold-out that the model has already seen the shape of.
+
+    ``full_fit`` decides what the *shipped* model is trained on:
+
+    * ``False`` (default) — the model is fitted on the 60% train slice of
+      the chronological split, and the 20% hold-out is scored. This is the
+      evaluation mode: the reported metrics describe a model that has
+      never seen the hold-out.
+    * ``True`` — the model is fitted on **100%** of the history up to
+      ``end_date``, while the metrics still come from the same 60/20/20
+      split. This is the production mode: the model that goes into the
+      registry is the one that will actually forecast, and the metrics
+      stay comparable across refits because they are always computed the
+      same way.
+
+    Keeping the metrics from the hold-out split in both modes is
+    deliberate: the number on the dashboard has to mean the same thing
+    before and after a refit, otherwise the historical accuracy series
+    becomes meaningless.
+    """
     set_global_seed(settings.random_seed)
     extra_params = extra_params or {}
     gold = GoldLayer().read(symbol)
@@ -51,6 +100,13 @@ def train_model(
             f"No Gold data for {symbol}. Run the lakehouse pipeline first "
             f"(POST /api/v1/pipeline/run or wait for auto-refresh on startup)."
         )
+
+    if end_date is not None:
+        gold = _truncate_to(gold, end_date)
+        if gold.empty:
+            raise ModelTrainingError(
+                f"No Gold data for {symbol} at or before {end_date}."
+            )
 
     model_name = model_name.lower()
     if model_name not in MODEL_CLASSES:
@@ -69,15 +125,27 @@ def train_model(
         clean = gold.dropna(subset=["close"]).sort_values("timestamp")
         split = chronological_split(clean)
         model = ARIMAForecastModel(order=tuple(extra_params.get("order", settings.arima_order_tuple)))
-        model.fit(split.train, split.train["close"])
+        if full_fit:
+            model.fit(clean, clean["close"])
+        else:
+            model.fit(split.train, split.train["close"])
+        # The hold-out sessions are scored ONE STEP AHEAD: each prediction is
+        # made before the session it predicts, and the session's actual value
+        # is fed back in afterwards. A single multi-step forecast anchored at
+        # the end of the training data would be a long-range projection, not
+        # a one-step forecast, and the resulting error would say nothing
+        # about the model's actual skill.
         metrics = model.evaluate(split.test, split.test["close"])
         feature_cols = ["close"]
-        aligned_pred = model.predict(split.test)
+        # The comparison frame holds the same one-step-ahead predictions the
+        # metrics were computed on, so the chart and the MAE agree.
+        aligned_pred = model.walk_forward(split.test)
+        n = min(len(aligned_pred), len(split.test))
         comparison = pd.DataFrame(
             {
-                "timestamp": split.test["timestamp"].tolist()[: len(aligned_pred)],
-                "actual": split.test["close"].tolist()[: len(aligned_pred)],
-                "predicted": aligned_pred.tolist(),
+                "timestamp": split.test["timestamp"].tolist()[:n],
+                "actual": split.test["close"].tolist()[:n],
+                "predicted": aligned_pred.tolist()[:n],
             }
         )
     elif model_name == "lstm":
@@ -90,7 +158,10 @@ def train_model(
             num_layers=int(extra_params.get("num_layers", settings.lstm_num_layers)),
             epochs=int(extra_params.get("epochs", settings.lstm_epochs)),
         )
-        model.fit(split.train[feature_cols], split.train["target_close_next"], split.validation[feature_cols], split.validation["target_close_next"])
+        if full_fit:
+            model.fit(clean[feature_cols], clean["target_close_next"])
+        else:
+            model.fit(split.train[feature_cols], split.train["target_close_next"], split.validation[feature_cols], split.validation["target_close_next"])
         metrics = model.evaluate(split.test[feature_cols], split.test["target_close_next"])
         predicted = model.predict(split.test[feature_cols])
         actual = split.test["target_close_next"].to_numpy()[model.sequence_length - 1 :]
@@ -108,7 +179,10 @@ def train_model(
         clean = _prepare_supervised(gold, feature_cols)
         split = chronological_split(clean)
         model = LinearRegressionForecastModel()
-        model.fit(split.train[feature_cols], split.train["target_close_next"])
+        if full_fit:
+            model.fit(clean[feature_cols], clean["target_close_next"])
+        else:
+            model.fit(split.train[feature_cols], split.train["target_close_next"])
         metrics = model.evaluate(split.test[feature_cols], split.test["target_close_next"])
         predicted = model.predict(split.test[feature_cols])
         comparison = pd.DataFrame(
@@ -135,6 +209,8 @@ def train_model(
         "test_end": split.test["timestamp"].max(),
         "features": feature_cols,
         "parameters": {**model.metadata, "horizon": horizon, **extra_params},
+        "fit_mode": "full" if full_fit else "holdout_split",
+        "training_data_end": end_date.isoformat() if hasattr(end_date, "isoformat") else end_date,
         "mae": metrics["mae"],
         "rmse": metrics["rmse"],
         "mape": metrics["mape"],

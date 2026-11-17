@@ -1,0 +1,42 @@
+# Normalise line endings per file type.
+#
+# WHY THIS FILE EXISTS
+# --------------------
+# Some files in this repository are read by programs that only accept one
+# line ending. On Windows, Git's default `core.autocrlf=true` rewrites LF
+# into CRLF on checkout, which silently breaks them:
+#
+#   * `backend/crontab` - cron on Linux treats the CR as part of the
+#     command, so every job line fails with a syntax error.
+#   * `backend/Dockerfile`, `docker-compose.yml` - tolerated, but the
+#     stray CR shows up in build logs and confuses readers.
+#
+# The rule below marks those files as "must stay LF" regardless of the
+# developer's platform.
+
+# --- Files that MUST use LF ---
+backend/crontab        text eol=lf
+backend/Dockerfile    text eol=lf
+docker-compose.yml    text eol=lf
+*.sh                  text eol=lf
+*.yml                 text eol=lf
+*.yaml                text eol=lf
+*.py                  text eol=lf
+
+# --- Files that are safe to normalise ---
+*.md                  text eol=lf
+*.ts                  text eol=lf
+*.tsx                 text eol=lf
+*.json                text eol=lf
+*.css                 text eol=lf
+*.html                text eol=lf
+
+# --- Binary: never touch ---
+*.parquet             binary
+*.pkl                 binary
+*.joblib              binary
+*.pt                  binary
+*.npy                 binary
+*.png                 binary
+*.jpg                 binary
+*.ico                 binary

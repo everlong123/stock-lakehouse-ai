@@ -2,19 +2,31 @@
 
 Agent dùng tool calling. LLM không được bịa dữ liệu - mọi con số đều phải lấy từ backend tools (chính là các API `/api/v1/...`).
 
-## Tools có sẵn
+## Tools có sẵn (17 tool, đo ngày 12/11/2026)
 
 | Tool | Mô tả |
 |------|-------|
-| `get_market_summary` | Tổng quan thị trường (symbol, giá mới nhất, % thay đổi) |
 | `query_stock_data` | Lịch sử OHLCV theo khoảng thời gian |
+| `get_market_summary` | Tổng quan thị trường (symbol, giá mới nhất, % thay đổi) |
 | `calculate_indicators` | SMA / EMA / RSI / MACD / Bollinger Bands |
 | `forecast_stock` | Dự báo N-day bằng Linear Regression / ARIMA / LSTM |
 | `compare_models` | So sánh 3 model trên cùng 1 symbol |
 | `run_backtest` | Chạy MA Crossover hoặc RSI Strategy |
-| `walk_forward` | Walk-forward validation cho model |
-| `get_news` | Tin tức mới nhất (Finnhub / Yahoo RSS) |
-| `get_company_profile` | Thông tin công ty (Finnhub) |
+| `run_walk_forward` | Walk-forward validation cho model |
+| `get_fundamental_metrics` | P/E, P/B, ROE, ROA... |
+| `get_income_statement` | Báo cáo thu nhập |
+| `get_balance_sheet` | Bảng cân đối kế toán |
+| `get_cash_flow` | Báo cáo lưu chuyển tiền tệ |
+| `get_market_index` | Chỉ số US (S&P 500, Dow, Nasdaq) |
+| `get_orderbook` | Sổ lệnh bid/ask |
+| `get_symbols_info` | Thống kê số mã hệ thống hỗ trợ |
+| `get_trained_models` | Liệt kê model ML đã train |
+| `get_system_architecture` | Kiến trúc runtime của hệ thống |
+| `get_storage_stats` | Số object + dung lượng từng bucket MinIO |
+
+> **Ghi chú 12/11/2026:** tool `get_news_for_symbol` và 3 tool sentiment đi kèm đã bị **gỡ
+> khỏi dự án** cùng toàn bộ hệ thống tin tức (trước đó là 21 tool, nay còn **17 tool**).
+> Chi tiết ở mục 5B.1 của `docs/HE_THONG_TOAN_DIEN_VA_GIAI_TRINH_KHOA_LUAN.md`.
 
 Mỗi tool có Pydantic input/output schema riêng.
 

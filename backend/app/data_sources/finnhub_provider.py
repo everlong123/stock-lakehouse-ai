@@ -4,9 +4,7 @@ Finnhub provider for real-time stock data.
 Free tier: 60 requests/minute, all US stocks + Forex + Crypto (limited).
 Sign up at: https://finnhub.io/  (free API key, no credit card).
 
-This provider is used for **historical OHLCV** only - streaming data is
-delivered by :mod:`app.streaming.finnhub_websocket` which uses the same
-API key.
+This provider is used for **historical OHLCV** only.
 """
 
 from __future__ import annotations
@@ -31,8 +29,7 @@ class FinnhubProvider(StockDataProvider):
     """Fetch OHLCV data via Finnhub API.
 
     Free tier supports US stocks, crypto and forex - perfect for a $0 budget
-    academic project.  WebSocket streaming for tick-level data is implemented
-    in :class:`app.streaming.finnhub_websocket.FinnhubWebSocketClient`.
+    academic project.
     """
 
     source_name = "finnhub"
@@ -223,51 +220,6 @@ class FinnhubProvider(StockDataProvider):
         """Return company profile (used by AI Agent fundamentals tool)."""
 
         return self._request("stock/profile2", {"symbol": symbol.upper()})
-
-    def get_news(self, symbol: str, days_back: int = 7, limit: int = 50) -> pd.DataFrame:
-        """Return company news from Finnhub's ``company-news`` endpoint."""
-
-        end = datetime.now(timezone.utc)
-        start = end - timedelta(days=days_back)
-
-        payload = self._request(
-            "company-news",
-            {
-                "symbol": symbol.upper(),
-                "from": start.strftime("%Y-%m-%d"),
-                "to": end.strftime("%Y-%m-%d"),
-            },
-        )
-
-        if not isinstance(payload, list):
-            return pd.DataFrame()
-
-        records: list[dict[str, Any]] = []
-        for item in payload[:limit]:
-            ts = item.get("datetime")
-            try:
-                published = (
-                    datetime.fromtimestamp(ts, tz=timezone.utc).isoformat()
-                    if ts is not None
-                    else None
-                )
-            except (OverflowError, OSError, ValueError):
-                published = None
-
-            records.append(
-                {
-                    "symbol": symbol.upper(),
-                    "title": item.get("headline", ""),
-                    "summary": item.get("summary", ""),
-                    "source": item.get("source", ""),
-                    "link": item.get("url", ""),
-                    "published_at": published,
-                    "fetched_at": datetime.now(timezone.utc).isoformat(),
-                    "provider": self.source_name,
-                }
-            )
-
-        return pd.DataFrame(records)
 
     def search_symbols(self, query: str) -> list[dict[str, Any]]:
         """Return Finnhub search results for ``query``."""

@@ -9,7 +9,6 @@ import { EmptyState } from "@/components/common/EmptyState";
 import { ErrorState } from "@/components/common/ErrorState";
 import { Loading } from "@/components/common/Loading";
 import { PageTitle } from "@/components/common/PageTitle";
-import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -61,7 +60,7 @@ export function TechnicalAnalysisPage() {
 
   if (query.isLoading) return <Loading />;
   if (query.isError)
-    return <ErrorState message={errorMessage(query.error, "Khong ket noi duoc backend API.")} />;
+    return <ErrorState message={errorMessage(query.error, "Không kết nối được backend API.")} />;
   if (!series.length) return <EmptyState message="Không có dữ liệu cho mã này." />;
 
   const summary = (query.data?.summary as Record<string, string>) || {};
@@ -78,16 +77,16 @@ export function TechnicalAnalysisPage() {
   })();
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-12">
       <PageTitle
-        title="Technical analysis"
-        subtitle="Chỉ báo kỹ thuật mô tả quá khứ. Không phải khuyến nghị giao dịch."
+        title="Phân tích kỹ thuật"
+        subtitle="Chỉ báo momentum từ quỹ khởi. Không phải tín hiệu giao dịch."
         meta={`03 · ${localSymbol}`}
         actions={
           <select
             value={localSymbol || ctxSymbol}
             onChange={handleSymbolChange}
-            className="h-9 rounded-md border border-input bg-card px-3 font-mono text-sm outline-none focus:border-foreground"
+            className="h-9 rounded border border-hairline bg-surface px-2 font-mono text-small text-ink outline-none focus:border-primary"
           >
             {availableSymbols.map((s) => (
               <option key={s} value={s}>{s}</option>
@@ -96,30 +95,40 @@ export function TechnicalAnalysisPage() {
         }
       />
 
-      <Card className="p-4">
-        <div className="grid gap-4 md:grid-cols-5">
-          <Checkbox label="SMA" checked={sma} onChange={(e) => setSma(e.target.checked)} />
-          <Checkbox label="EMA" checked={ema} onChange={(e) => setEma(e.target.checked)} />
-          <Checkbox label="RSI" checked={rsiOn} onChange={(e) => setRsiOn(e.target.checked)} />
-          <Checkbox label="MACD" checked={macdOn} onChange={(e) => setMacdOn(e.target.checked)} />
-          <Checkbox label="Bollinger Bands" checked={bb} onChange={(e) => setBb(e.target.checked)} />
-          <label className="text-sm md:col-span-2">
-            <span className="mb-1 block font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-              RSI period
-            </span>
-            <Input type="number" value={rsiPeriod} onChange={(e) => setRsiPeriod(Number(e.target.value))} />
-          </label>
-        </div>
-      </Card>
+      {/*
+        Indicator toggles
+        --------------------
+        These are filters, not content. They sit in one recessed strip on
+        a single row so they read as a control bar rather than as a
+        panel of settings, and so the chart below owns the page.
+      */}
+      <div className="flex flex-wrap items-center gap-x-6 gap-y-4 rounded border border-hairline bg-surface-2 px-4 py-3">
+        <span className="label">Indicators</span>
+        <Checkbox label="SMA" checked={sma} onChange={(e) => setSma(e.target.checked)} />
+        <Checkbox label="EMA" checked={ema} onChange={(e) => setEma(e.target.checked)} />
+        <Checkbox label="RSI" checked={rsiOn} onChange={(e) => setRsiOn(e.target.checked)} />
+        <Checkbox label="MACD" checked={macdOn} onChange={(e) => setMacdOn(e.target.checked)} />
+        <Checkbox label="Bollinger" checked={bb} onChange={(e) => setBb(e.target.checked)} />
+        <label className="flex items-center gap-2 text-small text-ink">
+          <span className="label">RSI period</span>
+          <Input
+            type="number"
+            value={rsiPeriod}
+            onChange={(e) => setRsiPeriod(Number(e.target.value))}
+            className="w-16 font-mono"
+          />
+        </label>
+      </div>
 
-      <div className="rounded-md border border-border bg-card">
-        <div className="flex items-center justify-between border-b border-border px-4 py-3">
-          <h3 className="text-sm font-semibold text-foreground">Price + SMA / EMA / Bollinger</h3>
-          <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+      {/* Price + overlays */}
+      <section>
+        <div className="section-head">
+          <h2 className="section-title">Price + SMA / EMA / Bollinger</h2>
+          <span className="font-mono text-label uppercase text-muted">
             {series.length} bars
           </span>
         </div>
-        <div className="px-2 py-3">
+        <div className="pt-4">
           <PriceChart
             data={series.map((row) => ({
               timestamp: String(row.timestamp),
@@ -132,70 +141,78 @@ export function TechnicalAnalysisPage() {
             }))}
           />
         </div>
-      </div>
+      </section>
 
-      <div className="grid gap-4 xl:grid-cols-2">
+      {/* RSI + MACD side by side: two charts of the same length, so a
+          two-column grid is the honest layout here. */}
+      <div className="grid gap-12 xl:grid-cols-2">
         {rsiOn ? (
-          <div className="rounded-md border border-border bg-card">
-            <div className="flex items-center justify-between border-b border-border px-4 py-3">
-              <h3 className="text-sm font-semibold text-foreground">RSI ({rsiPeriod})</h3>
+          <section>
+            <div className="section-head">
+              <h2 className="section-title">RSI ({rsiPeriod})</h2>
               {latestRSI !== null ? (
-                <Badge variant={latestRSI > 70 ? "warn" : latestRSI < 30 ? "success" : "default"}>
-                  {latestRSI.toFixed(2)} · {latestRSI > 70 ? "Overbought" : latestRSI < 30 ? "Oversold" : "Neutral"}
+                <Badge variant={latestRSI > 70 ? "negative" : "default"}>
+                  {latestRSI.toFixed(2)} · {latestRSI > 70 ? "Quá mua" : latestRSI < 30 ? "Quá bán" : "Trung tính"}
                 </Badge>
               ) : null}
             </div>
-            <div className="px-2 py-3">
+            <div className="pt-4">
               <IndicatorChart
                 data={series}
-                lines={[{ key: "rsi_14", color: "hsl(168 76% 32%)", name: "RSI" }]}
+                lines={[{ key: "rsi_14", color: "hsl(var(--primary))", name: "RSI" }]}
                 referenceLines={[
-                  { y: 70, label: "70", color: "hsl(0 64% 48%)" },
-                  { y: 30, label: "30", color: "hsl(152 60% 32%)" },
-                  { y: 50, label: "50", color: "hsl(220 10% 60%)" },
+                  { y: 70, label: "70", color: "hsl(var(--negative))" },
+                  { y: 30, label: "30", color: "hsl(var(--muted))" },
+                  { y: 50, label: "50", color: "hsl(var(--hairline))" },
                 ]}
                 height={220}
               />
             </div>
-          </div>
+          </section>
         ) : null}
 
         {macdOn ? (
-          <div className="rounded-md border border-border bg-card">
-            <div className="border-b border-border px-4 py-3">
-              <h3 className="text-sm font-semibold text-foreground">MACD (12,26,9)</h3>
+          <section>
+            <div className="section-head">
+              <h2 className="section-title">MACD (12,26,9)</h2>
             </div>
-            <div className="px-2 py-3">
+            <div className="pt-4">
               <IndicatorChart
                 data={series}
                 lines={[
-                  { key: "macd", color: "hsl(168 76% 32%)", name: "MACD" },
-                  { key: "macd_signal", color: "hsl(32 88% 44%)", name: "Signal" },
-                  { key: "macd_hist", color: "hsl(220 30% 50%)", name: "Histogram" },
+                  { key: "macd", color: "hsl(var(--primary))", name: "MACD" },
+                  { key: "macd_signal", color: "hsl(var(--muted))", name: "Signal" },
+                  { key: "macd_hist", color: "hsl(var(--hairline))", name: "Histogram" },
                 ]}
                 height={220}
               />
             </div>
-          </div>
+          </section>
         ) : null}
       </div>
 
-      <div className="grid gap-3 md:grid-cols-3">
-        {[
-          { key: "trend", label: "Trend" },
-          { key: "momentum", label: "Momentum" },
-          { key: "volatility", label: "Volatility" },
-        ].map(({ key, label }) => (
-          <div key={key} className="rounded-md border border-border bg-card p-4">
-            <div className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-              {label}
+      {/* Narrative summary: three short paragraphs, NOT three cards.
+          These are readings, not widgets, so they run as a three-column
+          text block under one rule. */}
+      <section>
+        <div className="section-head">
+          <h2 className="section-title">Tóm tắt chỉ báo</h2>
+        </div>
+        <div className="grid gap-x-8 gap-y-6 pt-6 md:grid-cols-3">
+          {[
+            { key: "trend", label: "Xu hướng" },
+            { key: "momentum", label: "Động lượng" },
+            { key: "volatility", label: "Biến động" },
+          ].map(({ key, label }) => (
+            <div key={key}>
+              <div className="label">{label}</div>
+              <p className="mt-2 text-small text-ink">
+                {summary[key] || "Chưa đủ dữ liệu để mô tả."}
+              </p>
             </div>
-            <p className="mt-2 text-sm leading-relaxed text-foreground">
-              {summary[key] || "Chưa đủ dữ liệu để mô tả."}
-            </p>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      </section>
     </div>
   );
 }

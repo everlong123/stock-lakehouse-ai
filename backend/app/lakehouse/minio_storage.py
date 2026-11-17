@@ -4,7 +4,9 @@ from __future__ import annotations
 
 import json
 import os
+import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from datetime import date
 from io import BytesIO
 
 import pandas as pd
@@ -12,6 +14,7 @@ import pandas as pd
 from app.core.config import settings
 from app.core.exceptions import StorageError
 from app.core.logging_config import get_logger
+from app.lakehouse.parquet_manager import filter_keys_by_window
 from app.lakehouse.storage_base import (
     StorageBackend,
     dataframe_to_parquet_bytes,
@@ -27,9 +30,7 @@ LAYER_BUCKETS = {
     "models": settings.minio_bucket_models,
     "backtests": settings.minio_bucket_backtests,
     "quality": settings.minio_bucket_silver,
-    "silver_news": settings.minio_bucket_silver_news,
     "silver_fundamentals": settings.minio_bucket_silver_fundamentals,
-    "gold_features": settings.minio_bucket_gold_features,
 }
 
 # How many partition files are downloaded in parallel by `read_prefix`.
@@ -176,9 +177,41 @@ class MinioStorageBackend(StorageBackend):
         keys = [key for key in self.list_objects(layer, prefix) if key.endswith(".parquet")]
         if not keys:
             return pd.DataFrame()
-        # Download the partitions CONCURRENTLY.
-        #
-        # WHY: a long-history symbol (e.g. AAPL, 2016-2026) is split into ~120
+        return self._read_partitions(layer, keys)
+
+    def read_prefix_window(
+        self,
+        layer: str,
+        prefix: str,
+        since: date | None = None,
+        until: date | None = None,
+    ) -> pd.DataFrame:
+        """Read only the partitions that can hold the requested window.
+
+        WHY THIS EXISTS
+        ---------------
+        The symbol's history is split into ~121 monthly partitions, and
+        a request for a six-month window needs six of them. Downloading
+        the other 115 made the request cost scale with the symbol's
+        HISTORY rather than with the window the caller asked for.
+
+        The partition keys are listed first - that is one cheap metadata
+        call - and then only the partitions that can overlap the window
+        are downloaded.
+        """
+        keys = [key for key in self.list_objects(layer, prefix) if key.endswith(".parquet")]
+        if not keys:
+            return pd.DataFrame()
+        if since is None and until is None:
+            return self._read_partitions(layer, keys)
+        selected = filter_keys_by_window(keys, since=since, until=until)
+        if not selected:
+            return pd.DataFrame()
+        return self._read_partitions(layer, selected)
+
+    def _read_partitions(self, layer: str, keys: list[str]) -> pd.DataFrame:
+        """Download a set of partitions CONCURRENTLY and concatenate them."""
+        # WHY CONCURRENTLY: a long-history symbol (e.g. AAPL, 2016-2026) is split into ~120
         # monthly parquet partitions. Reading them one after another meant ~120
         # sequential MinIO round-trips, which took 5s when idle and >100s while
         # the auto-refresh pass was hammering the same MinIO instance — long

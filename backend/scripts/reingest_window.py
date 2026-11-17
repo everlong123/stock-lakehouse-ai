@@ -62,6 +62,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from app.core.logging_config import get_logger, setup_logging
 from app.data_sources.factory import get_data_provider
 from app.lakehouse.bronze import BronzeLayer
+from app.lakehouse.gold import GoldLayer
 from app.lakehouse.silver import SilverLayer
 
 logger = get_logger(__name__)
@@ -170,8 +171,38 @@ def reingest_symbol(
         result["error"] = f"bronze read failed: {exc}"
         return result
 
-    result["changed"] = diff_window(symbol, stored, fetched, tolerance)
-    if not result["changed"]:
+    # Diff against EVERY layer, not just Bronze.
+    #
+    # WHY: Bronze is the layer the write path fixes first, so a symbol whose
+    # Bronze is already correct can still have a stale Silver and Gold - the
+    # layers are rebuilt separately, and a killed refresh can leave them
+    # behind. Measured on 2026-11-05: ADS.DE held the revised 168.10 in
+    # Bronze but the pre-revision 168.85 in Silver and Gold, because the
+    # script compared only against Bronze, concluded "no differences", and
+    # skipped the rebuild entirely. The web then served 168.85 forever.
+    #
+    # So the layers are compared independently and the symbol is rebuilt when
+    # ANY of them disagrees with the provider.
+    layer_frames: dict[str, pd.DataFrame] = {"bronze": stored}
+    for layer_name, layer_cls in (("silver", SilverLayer), ("gold", GoldLayer)):
+        try:
+            layer_frames[layer_name] = layer_cls().read(symbol)
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("Could not read %s for %s: %s", layer_name, symbol, exc)
+            layer_frames[layer_name] = pd.DataFrame()
+
+    differing_layers: list[str] = []
+    for layer_name, layer_frame in layer_frames.items():
+        changes = diff_window(symbol, layer_frame, fetched, tolerance)
+        if changes:
+            differing_layers.append(layer_name)
+            result.setdefault("layer_changes", {})[layer_name] = changes
+
+    # Bronze is the source of truth for the rebuild, so its diff drives the
+    # write; the other layers only decide WHETHER a rebuild is needed.
+    result["changed"] = result.get("layer_changes", {}).get("bronze", [])
+    result["differing_layers"] = differing_layers
+    if not differing_layers:
         return result
     if dry_run:
         return result
@@ -179,21 +210,31 @@ def reingest_symbol(
     # Append to Bronze. Its dedupe drops rows with the same
     # (symbol, timestamp) keeping the LAST one, so the freshly fetched
     # value wins over the stale one.
-    try:
-        meta = bronze.append(fetched, lineage={
-            "source": "reingest_window",
-            "provider": getattr(provider, "source_name", "unknown"),
-            "symbol": symbol,
-            "interval": "1d",
-            "start": str(fetched["timestamp"].min()),
-            "end": str(fetched["timestamp"].max()),
-        })
-        result["written"] = True
-        result["records_written"] = meta.get("records_written")
-        result["new_records"] = meta.get("new_records")
-    except Exception as exc:  # noqa: BLE001
-        result["error"] = f"bronze append failed: {exc}"
-        return result
+    #
+    # The append is only needed when BRONZE itself disagrees. When Bronze is
+    # already correct and only Silver/Gold lag behind, writing Bronze again
+    # is a no-op that still costs a full partition read+write, and - because
+    # the rows are identical - it would not even change anything.
+    if "bronze" in differing_layers:
+        try:
+            meta = bronze.append(fetched, lineage={
+                "source": "reingest_window",
+                "provider": getattr(provider, "source_name", "unknown"),
+                "symbol": symbol,
+                "interval": "1d",
+                "start": str(fetched["timestamp"].min()),
+                "end": str(fetched["timestamp"].max()),
+            })
+            result["written"] = True
+            result["records_written"] = meta.get("records_written")
+            result["new_records"] = meta.get("new_records")
+            result["updated_records"] = meta.get("updated_records")
+        except Exception as exc:  # noqa: BLE001
+            result["error"] = f"bronze append failed: {exc}"
+            return result
+    else:
+        result["written"] = False
+        result["bronze_already_current"] = True
 
     # Rebuild Silver and Gold from the corrected Bronze.
     #
@@ -228,10 +269,15 @@ def reingest_symbol(
             import urllib.request as _urllib
 
             url = f"{api_url.rstrip('/')}/admin/auto-refresh/cache/invalidate?symbols={symbol}"
-            with _urllib.urlopen(url, timeout=15) as response:
+            # The endpoint is POST-only. A GET returns "405 Method Not Allowed",
+            # so the cache was NEVER invalidated and the API kept serving the
+            # pre-correction frame - which then showed up as a RESTATED
+            # mismatch in the verification run that followed the re-ingest.
+            request = _urllib.Request(url, method="POST")
+            with _urllib.urlopen(request, timeout=15) as response:
                 _json.loads(response.read().decode("utf-8"))
         except Exception as exc:  # noqa: BLE001
-            logger.debug("Cache invalidation via API failed for %s: %s", symbol, exc)
+            logger.warning("Cache invalidation via API failed for %s: %s", symbol, exc)
 
     return result
 
@@ -307,16 +353,23 @@ def main(argv: list[str] | None = None) -> int:
     for symbol in symbols:
         result = reingest_symbol(symbol, provider, args.days, args.tolerance,
                                  args.dry_run, api_url=api_url)
-        if result["error"] and not result["changed"]:
+        if result["error"] and not result["changed"] and not result.get("differing_layers"):
             print(f"[ERROR] {symbol:<10} {result['error']}")
             failures += 1
             continue
-        if not result["changed"]:
+        differing = result.get("differing_layers") or []
+        if not differing:
             print(f"[ OK  ] {symbol:<10} no differences")
             continue
         changed_count += 1
-        tag = "DRY" if args.dry_run else ("WROTE" if result["written"] else "FAIL")
-        print(f"[{tag:>4}] {symbol:<10} {len(result['changed'])} session(s) differ")
+        # A symbol can differ in Silver/Gold while Bronze is already correct.
+        # In that case nothing is WRITTEN to Bronze, but the rebuild still
+        # happens - that is the whole point of the layer-aware diff.
+        tag = "DRY" if args.dry_run else (
+            "WROTE" if result["written"] else ("REBLD" if result.get("rebuilt") else "FAIL")
+        )
+        layer_tag = ",".join(differing)
+        print(f"[{tag:>5}] {symbol:<10} {layer_tag}: differs")
         for change in result["changed"][:8]:
             if change["price_changed"]:
                 print(
@@ -331,6 +384,10 @@ def main(argv: list[str] | None = None) -> int:
                 )
         if len(result["changed"]) > 8:
             print(f"          ... and {len(result['changed']) - 8} more")
+        for layer_name, changes in (result.get("layer_changes") or {}).items():
+            if layer_name == "bronze":
+                continue
+            print(f"          {layer_name}: {len(changes)} session(s) differ")
         if result["error"]:
             print(f"          note: {result['error']}")
             failures += 1

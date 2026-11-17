@@ -75,7 +75,7 @@ ngrok http 9000 --domain=<your-domain>.ngrok-free.app
 
 ## Giới hạn
 
-- **GitHub Actions free**: 2000 phút/tháng — 1 lần chạy ~5-10 phút × 30 = 300 phút ✅
+- **GitHub Actions free**: 2000 phút/tháng — 1 lần chạy ~5-10 phút × 30 = 300 phút
 - **Ngrok free**: 1GB bandwidth/tháng, đủ cho data ingest hằng ngày
 - **Cron tối thiểu**: 5 phút/lần (GitHub cho phép)
 - **Máy local phải bật** để chạy MinIO + ngrok

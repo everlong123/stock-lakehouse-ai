@@ -46,7 +46,7 @@ Nếu `yfinance` bị block, đổi sang `multi_source` (auto failover).
 - **Free tier:** 60 requests / minute.
 - **Endpoints:**
   - `/stock/candle` - up to years of OHLCV.
-  - `/news`, `/stock/profile2` - news + company profile.
+  - `/stock/profile2` - company profile.
 - **Register:** <https://finnhub.io/>
 - **Config:** set `FINNHUB_API_KEY=...` trong `.env`.
 

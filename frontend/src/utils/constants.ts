@@ -14,8 +14,8 @@ export const MODELS = [
   { id: "lstm", label: "LSTM" },
 ] as const;
 export const STRATEGIES = [
-  { id: "ma_crossover", label: "MA Crossover" },
-  { id: "rsi_strategy", label: "RSI Strategy" },
+  { id: "ma_crossover", label: "MA Crossover", hint: "Short MA cắt lên Long MA · mua" },
+  { id: "rsi_strategy", label: "RSI Strategy", hint: "RSI vượt 30/70 · mua/bán" },
 ] as const;
 
 export const DISCLAIMER =

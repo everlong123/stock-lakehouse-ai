@@ -24,32 +24,41 @@ interface PriceChartProps {
 }
 
 const tooltipStyle = {
-  background: "hsl(var(--card))",
-  border: "1px solid hsl(var(--border))",
+  background: "hsl(var(--surface))",
+  border: "1px solid hsl(var(--hairline))",
   borderRadius: 6,
   fontSize: 12,
 };
 
+/**
+ * Price with moving-average overlays and Bollinger bands.
+ *
+ * WHY FOUR GREY-ISH LINES AND NOT FOUR COLOURS: the chart's subject is the
+ * price. The overlays are context. So the price gets the accent, the
+ * averages get progressively quieter weights of ink and muted, and the
+ * Bollinger band is a hairline. A rainbow of five hues would make the
+ * overlays compete with the price they are supposed to explain.
+ */
 export function PriceChart({ data }: PriceChartProps) {
   return (
     <div className="h-80 w-full">
       <ResponsiveContainer>
-        <LineChart data={data} margin={{ top: 10, right: 16, left: 0, bottom: 0 }}>
-          <CartesianGrid stroke="hsl(220 14% 92%)" strokeDasharray="3 3" />
+        <LineChart data={data} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
+          <CartesianGrid stroke="hsl(var(--hairline))" vertical={false} />
           <XAxis
             dataKey="timestamp"
             tickFormatter={shortDate}
             minTickGap={32}
-            stroke="hsl(220 10% 50%)"
-            fontSize={11}
+            stroke="hsl(var(--muted))"
+            fontSize={12}
           />
-          <YAxis domain={["auto", "auto"]} stroke="hsl(220 10% 50%)" fontSize={11} />
+          <YAxis domain={["auto", "auto"]} stroke="hsl(var(--muted))" fontSize={12} />
           <Tooltip contentStyle={tooltipStyle} labelFormatter={(v) => shortDate(String(v))} />
           <Line
             type="monotone"
             dataKey="close"
-            stroke="hsl(168 76% 32%)"
-            strokeWidth={2}
+            stroke="hsl(var(--primary))"
+            strokeWidth={1.5}
             dot={false}
             name="Close"
             connectNulls
@@ -58,13 +67,13 @@ export function PriceChart({ data }: PriceChartProps) {
               of a series (the lookback window isn't full yet). Without this,
               recharts breaks the line there, so the indicator appears to start
               mid-chart instead of fading in from the left edge. */}
-          <Line type="monotone" dataKey="sma_20" stroke="hsl(168 50% 45%)" strokeWidth={1.4} dot={false} name="SMA20" connectNulls />
-          <Line type="monotone" dataKey="sma_50" stroke="hsl(32 88% 44%)" strokeWidth={1.4} dot={false} name="SMA50" connectNulls />
-          <Line type="monotone" dataKey="ema_12" stroke="hsl(220 50% 45%)" strokeWidth={1.2} strokeDasharray="4 3" dot={false} name="EMA12" connectNulls />
+          <Line type="monotone" dataKey="sma_20" stroke="hsl(var(--ink))" strokeWidth={1.2} dot={false} name="SMA20" connectNulls />
+          <Line type="monotone" dataKey="sma_50" stroke="hsl(var(--muted))" strokeWidth={1.2} dot={false} name="SMA50" connectNulls />
+          <Line type="monotone" dataKey="ema_12" stroke="hsl(var(--muted))" strokeWidth={1} strokeDasharray="4 3" dot={false} name="EMA12" connectNulls />
           <Line
             type="monotone"
             dataKey="bb_upper"
-            stroke="hsl(220 10% 60%)"
+            stroke="hsl(var(--hairline))"
             strokeWidth={1}
             strokeDasharray="2 4"
             dot={false}
@@ -74,7 +83,7 @@ export function PriceChart({ data }: PriceChartProps) {
           <Line
             type="monotone"
             dataKey="bb_lower"
-            stroke="hsl(220 10% 60%)"
+            stroke="hsl(var(--hairline))"
             strokeWidth={1}
             strokeDasharray="2 4"
             dot={false}
