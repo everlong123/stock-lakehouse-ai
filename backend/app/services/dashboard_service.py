@@ -187,6 +187,12 @@ class DashboardService:
                         "horizon": stored_prediction.horizon,
                         "source": stored_prediction.source,
                         "source_layer": stored_prediction.source_layer or "gold",
+                        # How many trading sessions the input data lagged
+                        # behind the target when this forecast was made.
+                        # The Dashboard shows a notice when it is non-zero,
+                        # so a forecast made on stale data cannot be read
+                        # as one made on current data.
+                        "data_staleness_days": stored_prediction.data_staleness_days,
                         "created_at": stored_prediction.created_at.isoformat()
                         if stored_prediction.created_at
                         else None,
@@ -224,6 +230,7 @@ class DashboardService:
                                 "horizon": row.horizon,
                                 "source": row.source,
                                 "source_layer": row.source_layer or "gold",
+                                "data_staleness_days": row.data_staleness_days,
                                 "created_at": row.created_at.isoformat()
                                 if row.created_at
                                 else None,

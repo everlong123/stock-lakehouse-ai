@@ -403,10 +403,23 @@ Bảng `predictions` là **sổ tay dự báo**. Mỗi dòng ghi:
 | `abs_error` | Sai số tuyệt đối |
 | `error_pct` | Sai số phần trăm |
 | `direction_correct` | Đoán đúng hướng tăng/giảm không (1/0) |
+| `data_staleness_days` | Dữ liệu đầu vào bị trễ bao nhiêu phiên giao dịch. `0` = dữ liệu còn mới |
 
 Nguyên tắc: `unique (symbol, model_name, target_session)`. Nghĩa là mỗi cặp (mã, mô hình, phiên) chỉ có một dự báo — chạy lại cũng không tạo bản trùng.
 
 **Ý nghĩa quan trọng:** `actual_close` điền vào **sau khi phiên thật sự diễn ra**. Đó là cách hệ thống tự chấm điểm mình. Không có `actual_close` thì dòng đó chưa được chấm, không đưa vào thống kê.
+
+**Cột `data_staleness_days` — vì sao cần?**
+
+Đôi khi dữ liệu chưa kịp tải về: sàn đã giao dịch xong thứ Tư, mà hệ thống mới có dữ liệu tới thứ Hai. Lúc đó hệ thống dự báo cho thứ Sáu — tức phiên gần nhất chưa xảy ra — chứ không phải cho "ngày mai".
+
+Dự báo đó vẫn hợp lệ, nhưng nó dựa trên lịch sử cũ hơn thị trường. Cột này ghi lại mức độ trễ đó:
+- `0` — dữ liệu đầy đủ, dự báo bình thường
+- `1`, `2`, `3`... — thiếu nhiều phiên, dữ liệu càng cũ
+- Trống (`NULL`) — dòng ghi trước khi hệ thống biết đo cái này. Trống **không phải** "0": "chưa đo được" khác "đo ra 0".
+
+Khi giá trị lớn hơn 0, thẻ "Dự báo phiên kế tiếp" trên Dashboard hiện dòng cảnh báo
+**"Dữ liệu trễ N phiên giao dịch"** — để bạn biết con số đó được tính trên dữ liệu cũ hơn.
 
 #### Heavy Worker — tiến trình con
 
@@ -702,6 +715,11 @@ Vì vậy hệ thống báo cáa **median** (trung vị) thay vì mean cho phầ
 | Median sai số % | 1,15% | Sai số của mã "điển hình" |
 | WAPE | 2,75% | Sai số % có trọng số theo giá |
 | **Độ đúng hướng** | **50,58%** | **Gần như ngẫu nhiên** |
+
+> **Đo lại ngày 18/11/2026:** tổng số dự báo là **46.514** (thêm 9 dự báo mới cho
+> phiên chưa diễn ra, nên số dòng **đã chấm** vẫn giữ nguyên **46.385**, và
+> median sai số vẫn **1,15%**). Hệ thống bắt đầu đo **độ trễ của dữ liệu đầu vào**
+> cho mọi dự báo mới — xem mục 6.2 ở trên.
 
 Và đây là điểm quan trọng nhất của cả đồ án:
 

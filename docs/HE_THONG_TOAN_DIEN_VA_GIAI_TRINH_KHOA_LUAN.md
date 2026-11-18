@@ -418,7 +418,7 @@ Get-ScheduledTask -TaskName "WSL-Distro-Keepalive" | Select TaskName, State
 | Container MySQL | `Up 3 seconds` liên tục | `Up 49 seconds`, `healthy` |
 | Backend log | `Falling back to local storage` | `Using MinIO storage backend` |
 | `GET /api/v1/stocks/AAPL/latest` | 404 | 200, `close: 352,78`, `source_layer: gold` |
-| `GET /api/v1/forecast/accuracy` | 200 nhưng rỗng | 200, **45.631** dòng đã chấm |
+| `GET /api/v1/forecast/accuracy` | 200 nhưng rỗng | 200, **45.733** dòng đã chấm |
 
 **Điểm mấu chốt cho hội đồng:** khi backend fallback sang local storage, nó
 **không báo lỗi** — nó vẫn trả HTTP 200 với dữ liệu *rỗng*. Đó là lý do lỗi này
@@ -637,6 +637,53 @@ nhầm là "provider sai".
 | Test | `backend/tests/test_forming_bar.py` | 17 test, tất cả PASS |
 
 Chi tiết đầy đủ: [`docs/data_verification.md` mục 10d](data_verification.md).
+
+### 3.3.5. Chi tiết: cùng cái lỗi đó, nhưng khi đối chiếu với provider
+
+Đo ngày 18/11/2026, check `provider_agreement` báo `failed` với **14 mã**:
+`CAR, CBOE, CC, CCI, CCJ, CDE, CELH, CHTR, CL, CMCSA, CNP, COF, COIN, COP`.
+
+Mỗi mã lệch **đúng một phiên** — phiên mới nhất (17/11/2026) — và 29/29 phiên
+còn lại khớp chính xác 100%. Dấu hiệu nhận biết: **volume của hệ thống nhỏ
+hơn hẳn** provider.
+
+**Nguyên nhân:** check này chỉ so **giá đóng cửa**, nên không có cách nào phân
+biệt "provider sai" với "hệ thống đang giữ ảnh chụp giữa phiên". Cùng câu hỏi
+đó, check `source_agreement` đã có công cụ để trả lời
+(`find_forming_snapshots()`), nhưng `provider_agreement` thì không.
+
+**Fix:** `check_against_provider()` giữ lại cả bar (close + high + low + volume)
+và dùng **đúng luật bao hình** đó:
+
+```python
+provider_bar = live_bars.get(day)
+if provider_bar is not None and _is_forming_snapshot(stored_bar, provider_bar):
+    tally["STALE"] += 1
+    continue
+```
+
+Kèm theo, luật bao hình trong `forming_bar.py` được sửa: trước đây đòi bar
+đã chốt **chứa trọn** bar giữa phiên, nhưng ảnh chụp lúc 14:30 chưa chắc đã
+chạm đỉnh phiên (CPB 17/11/2026: `forming.high = 24,01`, `settled.high = 24,05`).
+Luật mới cho phép bar đã chốt vượt bar giữa phiên trong giới hạn 2%, nhưng
+chiều ngược lại thì tuyệt đối không — bar giữa phiên có range rộng hơn bar đã
+chốt là bất khả thi.
+
+**Bằng chứng** (đo ngày 18/11/2026):
+
+| Mục | Trước | Sau |
+|---|---|---|
+| `provider_agreement` | **failed**, 14 mã | **warning**, 0 mã failed |
+| Lý do trong response | *(trống)* | "no settled session disagrees with the provider" |
+| Toàn bộ quality gate | **failed** | **warning**, 0 check nào có `failed` |
+
+Đối chiếu độc lập bằng `scripts/verify_against_source.py` trên đúng 14 mã đó:
+**1.624 phiên khớp chính xác, 56 phiên "stale/explained", 0 mismatch** — verdict
+`PASSED`. Test mới: `backend/tests/test_forming_snapshot_classification.py` —
+12 test, gồm cả test bảo vệ việc lỗi ở phiên đã chốt **vẫn phải** báo
+`failed` (để fix này không làm mất khả năng phát hiện lỗi thật).
+
+Chi tiết đầy đủ: [`docs/data_verification.md` mục 10e](data_verification.md).
 
 ## 3.4. Chi tiết: tầng Silver — lớp làm sạch
 
@@ -1247,6 +1294,7 @@ không ai biết.
 | **Tên mô hình dùng chung** | **auto_predict_model** | Mô hình nào được dùng khi bật cờ trên (mặc định `linear_regression`) | `backend/app/core/config.py` |
 | **Nguồn của dự báo** | **source** | `auto_eod_batch` (batch tự động) hoặc `manual_api` (người bấm nút) | `backend/app/database/models/prediction.py` |
 | **Tầng dữ liệu đầu vào** | **source_layer** | Tầng mà dự báo đọc dữ liệu (ở đây là `gold`) | `backend/app/database/models/prediction.py` |
+| **Độ trễ của dữ liệu** | **data_staleness_days** | Số phiên giao dịch mà dữ liệu đầu vào bị thiếu so với phiên đích — `0` là dữ liệu còn mới | `backend/app/database/models/prediction.py` |
 | **Migration tạo bảng** | **Alembic migration** | File mô tả cách tạo bảng mới trong MySQL | `backend/alembic/versions/0002_predictions.py` |
 | **Thẻ dự báo trên Dashboard** | **NextSessionCard** | Thành phần React hiển thị dự báo phiên kế tiếp | `frontend/src/components/dashboard/NextSessionCard.tsx` |
 
@@ -1758,6 +1806,16 @@ bảng `predictions`:
 | `direction_correct` | `1` = đúng chiều, `0` = sai chiều, `NULL` = phiên không có hướng | Bước chấm điểm |
 | `scored_at` | Thời điểm chấm điểm | Bước chấm điểm |
 
+Migration `backend/alembic/versions/0005_prediction_staleness.py` bổ sung **1 cột
+nữa**:
+
+| Cột | Ý nghĩa | Ghi bởi ai |
+|---|---|---|
+| `data_staleness_days` | Số phiên giao dịch mà dữ liệu đầu vào bị thiếu so với phiên đích. `0` = dữ liệu còn mới. `NULL` = dòng ghi trước khi có cột này, tức **chưa đo được** (không phải "0") | Bước dự báo |
+
+Chi tiết về cột này và phép đo đã dùng để chọn quy tắc chọn phiên đích: xem
+mục **6.12.9**.
+
 **Vì sao cột kết quả nằm chung dòng với cột dự báo** (thay vì tách bảng riêng):
 vì câu hỏi cần trả lời là "dự báo này có đúng không", và câu trả lời phải đi
 cùng dự báo đó. Tách bảng sẽ phải join theo khóa (mã, mô hình, phiên) — thêm
@@ -1781,6 +1839,18 @@ vết được**.
                 if key in ("id", *outcome_fields):
                     continue
                 setattr(record, key, value)
+            # `created_at` is when THIS forecast was published, so a
+            # re-run has to move it. Without this, a retried batch that
+            # ran with fresher data would leave the row claiming the
+            # OLD publication time - and the reader would have no way to
+            # tell that the forecast was redone.
+            #
+            # The timestamp is set in Python rather than by an
+            # ``onupdate`` rule because the column's default is
+            # ``server_default`` (the database supplies it on INSERT),
+            # and a column with a server default does not fire
+            # ``onupdate``.
+            record.created_at = datetime.now(timezone.utc).replace(tzinfo=None)
 ```
 
 ### Bước chấm điểm — giá thật đến từ đâu
@@ -1988,12 +2058,12 @@ dựng sổ tay, một lượt dự báo toàn bộ mã, **và sau khi xoá 200 
 
 | Chỉ số | Giá trị |
 |---|---|
-| Tổng số dòng trong bảng `predictions` | **46.505** |
-| Dòng đã được chấm điểm (có `actual_close`) | **46.385** |
-| Số mã khác nhau có dòng đã chấm | **973** |
-| Số mã đã huấn luyện thành công | **973** (29 mã không có dữ liệu đủ để train) |
+| Tổng số dòng trong bảng `predictions` | **46.514** |
+| Dòng đã được chấm điểm (có `actual_close`) | **46.487** |
+| Số mã khác nhau có dòng đã chấm | **966** |
+| Số mã đã huấn luyện thành công | **966** (29 mã không có dữ liệu đủ để train) |
 | Dòng nguồn `auto_eod_batch` | **1.341** (dự báo phiên kế tiếp, chưa tới phiên nên chưa chấm) |
-| Dòng nguồn `backfill_walk_forward` đã chấm | **45.240** |
+| Dòng nguồn `backfill_walk_forward` đã chấm | **45.342** |
 | **Mã không có dữ liệu thật trong Gold** | **0** |
 
 **Số đo của toàn bộ dòng đã chấm** (đo ngày **17/11/2026**, sau khi sửa lỗi
@@ -2001,14 +2071,14 @@ dựng sổ tay, một lượt dự báo toàn bộ mã, **và sau khi xoá 200 
 
 | Chỉ số | Giá trị |
 |---|---|
-| Số dòng đã chấm (trước khi lọc) | 46.385 |
-| Số dòng đã chấm (sau khi lọc) | **45.631** |
+| Số dòng đã chấm (trước khi lọc) | 46.487 |
+| Số dòng đã chấm (sau khi lọc) | **45.733** |
 | **Sai số tương đối TRUNG VỊ** | **1,15%** |
 | **Sai số tương đối trung bình (có dấu)** | **0,43%** |
-| **WAPE** (sai số tuyệt đối có trọng số) | **2,75%** |
-| Tỉ lệ đúng hướng | **50,6%** |
-| MAE (trộn nhiều mã) | 333,16 |
-| Số dòng bị loại (giá dự báo không tồn tại) | 76 |
+| **WAPE** (sai số tuyệt đối có trọng số) | **2,76%** |
+| Tỉ lệ đúng hướng | **50,60%** |
+| MAE (trộn nhiều mã) | 337,61 |
+| Số dòng bị loại (giá dự báo không tồn tại) | 754 |
 
 ### Vì sao trung bình 263,85% là **LỖI MÔ HÌNH**, không phải lỗi thống kê
 
@@ -2123,7 +2193,7 @@ sửa** — mọi giá vẫn truy vết được tới sàn.
 
 > **Cách trả lời khi thầy hỏi "sai số bao nhiêu?":**
 > *"Sai số tương đối trung vị của một dự báo đã kiểm chứng là **1,15%** trên
-> 45.631 dòng, WAPE là **2,75%**. Con số trung bình cũ 263,85% em đã **truy
+> 45.733 dòng, WAPE là **2,76%**. Con số trung bình cũ 263,85% em đã **truy
 > nguyên tới gốc** và **không giấu**: nó không phải do mã giá nhỏ như em đoán
 > ban đầu, mà do **một mã** — `PARA` — có lịch sử giá trải trên ba bậc độ vì
 > bốn lần chia ngược chưa được chuẩn hoá, khiến mô hình hồi quy mức giá
@@ -2180,8 +2250,8 @@ dòng bất khả thi):
 | Tỉ lệ đúng hướng | 39,3% |
 
 > **Cách trả lời khi thầy hỏi "hệ thống dự báo có chính xác không?":**
-> *"Đo được: trên 46.385 dòng đã chấm, sai số tương đối trung vị là 1,15%,
-> nhưng tỉ lệ đúng hướng chỉ 50,6%, tức ngang với đồng xu. Em **không** tuyên
+> *"Đo được: trên 46.487 dòng đã chấm, sai số tương đối trung vị là 1,15%,
+> nhưng tỉ lệ đúng hướng chỉ 50,60%, tức ngang với đồng xu. Em **không** tuyên
 > báo hệ thống dự báo thị trường đúng hướng. Cái hệ thống chứng minh được là:
 > nó dự báo trước, ghi xuống sổ, và tự chấm điểm bằng giá thật — một vòng lặp
 > kiểm chứng mà phần lớn đồ án cũng chỉ dừng ở bước dự báo. Cải thiện tỉ lệ
@@ -2348,12 +2418,20 @@ mà bảng điều khiển hiển thị đã chứa cả 200 dòng đó.
 > có `actual_close`. Số mã vẫn **973** — không mã nào mới bị thêm vào mà
 > thiếu dữ liệu thật trong Gold.
 
+> **Đo lại ngày 18/11/2026** (sau khi bổ sung cột đo độ trễ dữ liệu và sinh
+> dự báo cho 3 mã × 3 mô hình): bảng hiện có **46.514** dòng, trong đó
+> **46.487** dòng đã có `actual_close` (tăng **102** dòng so với lần đo 17/11
+> vì các phiên 17–18/11 đã đóng cửa và được chấm bằng giá thật). Số mã khác
+> nhau trong bảng là **968**. Trong 46.514 dòng, **15** dòng đã đo được độ trễ (tất cả bằng `0` —
+> dữ liệu đầy đủ) và **46.499** dòng còn lại có `NULL` vì được ghi trước khi
+> cột `data_staleness_days` tồn tại. Xem mục **6.12.9**.
+
 Sau khi xoá, báo cáo độ chính xác trả về:
 
 | Nhóm | Số dòng đã chấm | Sai số tương đối trung vị | Đúng hướng |
 |---|---|---|---|
-| Toàn bảng | 46.385 | **1,15%** | 50,6% |
-| **Đã công bố** (không phải tái dựng) | 1.215 | **0,96%** | 45,4% |
+| Toàn bảng | 46.487 | **1,15%** | 50,60% |
+| **Đã công bố** (không phải tái dựng) | 1.317 | **0,97%** | 46,3% |
 
 **Vì sao xoá chứ không sửa:** một dòng dự báo là **kết quả của một mô hình**. Với
 mã không có lịch sử thì mô hình không chạy được, nên **không có giá trị đúng để
@@ -2764,8 +2842,8 @@ thống **đã công bố** thực sự có đúng không?".
 
 Câu trả lời nằm ở Phần 5B.6: hệ thống **ghi dự báo xuống sổ trước khi phiên mở
 cửa**, rồi **chấm điểm bằng giá đóng cửa thật** sau khi phiên đóng cửa. Số đo
-được (đo ngày 17/11/2026, 46.385 dòng đã chấm): sai số tương đối trung vị
-**1,15%**, nhưng tỉ lệ đúng hướng **50,6%** — tức **ngang với ngẫu nhiên**.
+được (đo ngày 18/11/2026, 46.487 dòng đã chấm): sai số tương đối trung vị
+**1,15%**, nhưng tỉ lệ đúng hướng **50,60%** — tức **ngang với ngẫu nhiên**.
 
 > **Cách trả lời khi thầy hỏi "vậy mô hình có ích không?":**
 > *"Về **mức giá**, sai số trung vị 1,15% — thấp hơn nhiều so với biến động
@@ -3326,6 +3404,183 @@ GET /api/v1/forecast/published/0700.HK
 > **Cau hoi tu kiem truoc khi ket thuc:** *"Co so nao trong file nay ma toi tu che ra khong?"*
 > Cau tra loi: khong. Con so 350,43166337 o dong "toan bo 2.517 dong" va dong "61 dong cuoi" **gia bang nhau** — va test `tests/test_light_path_matches_full_path.py` bao dam hai duong tinh toan (light path va full path) khong bao gio cho ra so khac nhau.
 
+### 6.12.9. Chi tiết: do duoc "do tre cua du lieu" — va vi sao phai do chu khong doan
+
+#### 6.12.9.1. Hiểu đơn giản
+
+Hệ thống dự báo cho **phiên giao dịch tiếp theo**. Nhưng đôi khi dữ liệu chưa kịp tải về: ví dụ sàn đã giao dịch xong thứ Tư, mà hệ thống mới chỉ có dữ liệu tới thứ Hai.
+
+Khi đó, hệ thống **không** dự báo cho thứ Tư. Nó dự báo cho **phiên gần nhất chưa xảy ra** — tức là thứ Sáu. Nghe qua rất hợp lý, nhưng có một vấn đề: **con số đó giờ không còn là dự báo cho "ngày mai" nữa**. Nó là dự báo cho ngày mai **từ một thế giới mà hệ thống chưa biết gì về 2 phiên vừa qua**.
+
+Hình dung như thế này: bạn phải đoán giá cổ phiếu ngày mai, nhưng bạn đang đọc báo cáo tài chính **từ hôm kia**. Câu trả lời của bạn vẫn là một câu trả lời hợp lệ — nhưng nó dựa trên thông tin cũ hơn, và người đọc bảng dự báo **không có cách nào biết điều đó** trừ khi hệ thống nói ra.
+
+Vậy nên hệ thống đo: **dữ liệu đầu vào trễ bao nhiêu phiên giao dịch so với phiên đích**. Con số này được ghi thẳng vào dòng dự báo và hiện lên thẻ "Dự báo phiên kế tiếp".
+
+| Con số | Nghĩa là gì |
+|---|---|
+| `0` | Dữ liệu **đầy đủ, còn mới** — dự báo cho ngày mai bình thường |
+| `1` | Thiếu **1 phiên** — dự báo dựa trên dữ liệu cũ hơn thị trường một phiên |
+| `2`, `3`, ... | Thiếu nhiều phiên — dự báo càng xa, dữ liệu càng cũ |
+| Trống (`NULL`) | Dòng được ghi **trước khi** hệ thống biết đo cái này — không phải "0", mà là "chưa đo được" |
+
+**Vì sao đếm theo phiên giao dịch chứ không đếm theo ngày?** Vì sàn đóng cửa cuối tuần và ngày lễ. Từ thứ Sáu tới thứ Hai là **1 phiên giao dịch**, không phải 3 ngày. Đếm theo ngày sẽ báo "trễ 3 ngày" cho một tình huống hoàn toàn bình thường.
+
+**Vì sao để trống thay vì điền 0?** Vì `0` là một **phép đo** — nó nói "dữ liệu lúc đó là mới". Còn trống nói "chưa đo được". Hai cái này khác nhau, và trộn lẫn chúng là một kiểu nói dối mà không ai nhìn ra.
+
+#### 6.12.9.2. Thuật ngữ
+
+| Từ tiếng Việt dễ hiểu | Thuật ngữ | Nghĩa là gì | Dùng ở đâu |
+|---|---|---|---|
+| **Độ trễ của dữ liệu** | **Data staleness** | Số phiên giao dịch mà dữ liệu đầu vào bị thiếu so với phiên đích | `backend/app/forecasting/light_forecast.py` |
+| **Phiên giao dịch** | **Trading session** | Một ngày sàn mở cửa — không tính cuối tuần và ngày lễ | `backend/app/forecasting/sessions.py` |
+| **Lịch giao dịch của sàn** | **Trading calendar** | Bộ ngày sàn thực sự giao dịch, học từ lịch sử của chính mã đó | `backend/app/forecasting/sessions.py` |
+| **Cột độ trễ** | **Staleness column** | Cột `data_staleness_days` trong bảng `predictions` | `backend/app/database/models/prediction.py` |
+
+#### 6.12.9.3. Chi tiết kỹ thuật
+
+##### Quy tắc chọn phiên đích — và lý do nó đúng về mặt khoa học
+
+Quy tắc của hệ thống là: **phiên đích = phiên giao dịch đầu tiên thỏa cả hai điều kiện** — (1) không sớm hơn hôm nay, (2) không sớm hơn phiên ngay sau bar mới nhất trong Gold.
+
+Vì sao lại là quy tắc này, chứ không phải quy tắc "luôn dự báo cho phiên ngay sau bar mới nhất"?
+
+Người dùng đã hỏi đúng câu hỏi này: *"nếu hôm nay là ngày 2, dữ liệu gom được tới ngày 1, nó sẽ dự báo cho cái gì?"*, rồi hỏi *"cái nào chính xác hơn?"*. Để trả lời bằng lý thuyết suông là chưa đủ — nên đã **đo thật**.
+
+**Cách đo.** Trên dữ liệu Gold thật của AAPL, 0700.HK và 005930.KS, lùi từng phiên lịch sử một bước, mô phỏng tình huống "dữ liệu trễ vài phiên", rồi so sánh hai quy tắc trên **cùng một điểm neo** (paired comparison):
+
+| Quy tắc | median err % | mean err % | Số dự báo có phiên đích **đã qua** lúc publish |
+|---|---|---|---|
+| **A. `floor_today`** (quy tắc đang dùng) | 2,244 | 3,821 | **0%** |
+| B. `next_after_bar` (nhắm phiên bị bỏ lỡ) | 1,335 | 2,141 | **100%** |
+
+**Đo ngày 18/11/2026, 230 cặp so sánh trên 3 mã, mô hình Linear Regression.**
+
+Nhìn bảng trên, quy tắc B **có sai số nhỏ hơn** (median 1,335% so với 2,244%). Nhưng đó **không phải** vì B dự đoán giỏi hơn — mà vì B nhắm vào phiên **ngay sau bar cuối**, tức phiên mà thị trường đã giao dịch xong nhưng hệ thống chưa kịp nạp. Dự báo "ngày mai" tự nhiên dễ hơn dự báo "3 ngày sau" khi thị trường đã đi xa rồi.
+
+Cái giá phải trả của B là điều **không thể chấp nhận được trong luận văn**: **100% dự báo của B có phiên đích nằm trong quá khứ tại thời điểm publish**. Đó không phải "dự báo" — đó là *retrofitting* (chèn số vào quá khứ), vi phạm nguyên tắc walk-forward, và làm **toàn bộ số liệu độ chính xác trong luận văn trở nên không trung thực**. Khi thầy hỏi "dự báo này lúc nào được đưa ra?", câu trả lời "ngày 13/11 cho phiên 13/11" sẽ không đứng vững.
+
+**Kết luận:** quy tắc `floor_today` là chính xác nhất, vì nó bảo đảm **mọi dòng trong sổ tay là một dự báo forward thật** — được đưa ra *trước khi* kết quả phiên đích xảy ra, và mỗi dòng đều resolve được thành giá thật từ Gold để chấm điểm về sau. Nhưng nó phải **nói ra** khi nào nó không đạt được điều đó — và đó là lý do cột `data_staleness_days` tồn tại.
+
+##### Cách đo độ trễ
+
+Đoạn code thật trong `backend/app/forecasting/light_forecast.py`:
+
+```python
+    calendar = sessions.build_calendar(gold)
+    # Walk the symbol's own trading calendar from the newest bar towards
+    # the target, counting the sessions that lie BETWEEN them. A
+    # Friday-to-Monday gap is one session, not three days, because the
+    # exchange was closed.
+    #
+    # The count is the number of MISSING sessions: the sessions the
+    # market traded through while the ingestion had not caught up. The
+    # target itself is NOT counted - it is the session being predicted,
+    # not a session that was missed. So a current symbol, whose newest
+    # bar is the session right before the target, has a staleness of 0.
+    sessions_seen = 0
+    cursor = latest_day
+    for _ in range(sessions.MAX_SEARCH_DAYS):
+        nxt = calendar.next_sessions(
+            cursor,
+            1,
+            floor=cursor + pd.Timedelta(days=1),
+        )
+        if not nxt:
+            break
+        cursor = nxt[0]
+        if cursor >= target_day:
+            # Reached the target without passing it: no session was
+            # missed between the newest bar and the target.
+            break
+        sessions_seen += 1
+    return sessions_seen
+```
+
+Lịch giao dịch **không hard-code** — nó được học từ chính lịch sử của mã đó, nên cách đo chạy đúng cho AAPL (HOSE/Mỹ), 0700.HK (Hồng Kông) và 005930.KS (Hàn Quốc) mà không cần biết sàn nào đang xét.
+
+##### Nơi con số này đi
+
+```
+┌──────────────────────┐
+│ Gold: bar mới nhất   │
+│ (ví dụ 17/11/2026)   │
+└──────────┬───────────┘
+           │
+           ▼
+┌──────────────────────────────────────┐
+│ light_forecast.next_point()          │
+│   -> data_staleness_days             │
+└──────────┬───────────────────────────┘
+           │
+           ▼
+┌──────────────────────────────────────┐
+│MySQL: predictions.data_staleness_days│
+│ (NULL cho dòng cũ, chưa từng đo)     │
+└──────────┬───────────────────────────┘
+           │
+           ├──▶ GET /api/v1/forecast/published/{symbol}
+           │
+           ├──▶ GET /api/v1/forecast/accuracy  (thống kê staleness)
+           │
+           └──▶ Dashboard: thẻ "Next session forecast"
+                     hiện "Dữ liệu trễ N phiên giao dịch"
+```
+
+##### Bằng chứng đo thật
+
+**Đo ngày 18/11/2026.** Bar mới nhất trong Gold của AAPL là 17/11/2026; phiên đích được chọn là 18/11/2026; độ trễ đo được = **0** (dữ liệu đầy đủ).
+
+Mô phỏng tình huống ingest trễ bằng cách cắt bỏ 3 phiên cuối của AAPL trong Gold:
+
+| Tình huống | Bar mới nhất | Phiên đích | Độ trễ đo được |
+|---|---|---|---|
+| Gold đầy đủ | 17/11/2026 | 18/11/2026 | **0** |
+| Gold thiếu 3 phiên | 12/11/2026 | 18/11/2026 | **3** |
+
+Dòng dự báo thật được ghi với `data_staleness_days = 3` và hiển thị trên Dashboard đúng như thiết kế:
+
+```
+NEXT SESSION FORECAST
+2026-11-18
+LINEAR_REGRESSION
+354.75 $
+
+DỮ LIỆU TRỄ 3 PHIÊN GIAO DỊCH
+```
+
+*(Dòng thử nghiệm này đã được xoá khỏi sổ tay sau khi kiểm chứng, để không lẫn dữ báo trên lịch sử cũ vào bằng chứng production.)*
+
+**Số liệu sổ tay sau thay đổi (đo ngày 18/11/2026):**
+
+| Chỉ số | Giá trị |
+|---|---|
+| Tổng số dòng trong bảng `predictions` | 46.514 |
+| Dòng **có** đo độ trễ (`data_staleness_days` khác NULL) | 15 |
+| Dòng đo ra `0` (dữ liệu đầy đủ) | 15 |
+| Dòng đo ra `> 0` (dữ liệu trễ) | 0 |
+| Dòng **chưa** đo (NULL — ghi trước khi có cột) | 46.499 |
+
+> **Vì sao 46.499 dòng vẫn là NULL mà không phải 0?** Vì dựng lại độ trễ cho chúng sẽ đòi đọc lại Gold cho hàng chục nghìn dòng và **đoán** xem bar nào là bar mới nhất tại thời điểm dự báo được đưa ra — đó là **tái dựng**, không phải **phép đo**. Giá trị trung thực cho những dòng đó là "chưa ghi nhận". Hệ thống sẽ tự động đo cho mọi dòng mới kể từ thời điểm này.
+
+##### Một lỗi phát hiện thêm trong lúc làm: thời điểm publish không được cập nhật khi ghi lại
+
+*Triệu chứng:* khi batch chạy lại cho cùng một phiên (retry, container chạy song song, hoặc anh bấm nút thủ công), dòng trong bảng `predictions` **giữ nguyên** `created_at` cũ. Điều đó là sai: `created_at` là lúc dự báo **được đưa ra**, mà một lần chạy lại là một dự báo **mới**.
+
+*Vì sao xảy ra:* cột `created_at` được định nghĩa với `server_default=func.now()`. Cột có **server default** thì MySQL chỉ dùng giá trị đó khi **INSERT** — khi **UPDATE**, giá trị mặc định không được kích hoạt, và cột không có `onupdate` nên không đổi.
+
+*Fix:* `PredictionRepository.upsert()` đặt lại `created_at` bằng thời gian hiện tại khi cập nhật một dòng đã tồn tại.
+
+*Bằng chứng:* trước khi sửa, dòng `linear_regression` cho phiên 18/11/2026 giữ `created_at = 2026-11-18 06:33:18` sau khi được ghi lại lúc 06:41; sau khi sửa, nó mang `created_at = 2026-11-18 06:41:37`. Test `tests/test_forecast_scoring.py::test_a_forecast_rerun_moves_the_publication_time` chốt hành vi này.
+
+##### Test chốt hành vi
+
+| Test file | Chốt điều gì |
+|---|---|
+| `tests/test_forecast_staleness.py` | Đếm theo phiên giao dịch; cuối tuần là 1 phiên chứ không phải 3 ngày; phiên đích nằm trong frame thì không đo; mã đầy đủ thật phải ra 0 |
+| `tests/test_forecast_scoring.py` | Ghi lại dự báo phải cập nhật độ trễ mà **không** xoá điểm đã chấm; độ trễ NULL khác 0; thời điểm publish phải tiến lên |
+
+> **Cách trả lời khi thầy hỏi "dự báo của hệ thống có bị rò rỉ dữ liệu không?":**
+> *"Không. Mỗi dòng trong bảng `predictions` là một dự báo được đưa ra TRƯỚC khi phiên đích xảy ra, rồi sau đó mới được chấm với giá đóng cửa thật đọc từ tầng Gold. Quy tắc chọn phiên đích đã được đo trên dữ liệu thật để so sánh hai phương án; phương án được chọn là phương án mà 0% dự báo có phiên đích nằm trong quá khứ, thay vì 100% của phương án còn lại. Và hệ thống còn đo được độ trễ của dữ liệu đầu vào, nên nếu có lần nào dữ liệu không kịp tải về, con số đó được ghi lại và hiện ra trên giao diện chứ không bị giấu."*
 
 ---
 
@@ -4457,6 +4712,7 @@ cd backend
 |---|---|---|
 | `test_no_missing_imports.py` | 285 | Quét AST: không module nào dùng tên stdlib mà chưa import |
 | `test_forming_bar.py` | 17 | Phát hiện bar ngày bị đóng băng giữa phiên (quan hệ bao hình) |
+| `test_forming_snapshot_classification.py` | 12 | Ảnh chụp giữa phiên không phải xung đột provider (đo 18/11/2026) |
 | `test_scale_repair.py` | 14 | Dò nhảy cục bộ + độ rộng toàn cục của điểm gãy thang giá |
 | `test_forecast_plausibility.py` | 13 | Chặn giá dự báo không tồn tại ở đường ghi |
 | `test_backtest_accounting.py` | 10 | Khớp PnL, trừ phí, tolerance rebuy, drawdown không dương |
@@ -4579,24 +4835,24 @@ Hai bộ máy khác nhau đã được chạy thật trên dữ liệu thật:
 
 | Bộ máy | Việc làm | Kết quả |
 |---|---|---|
-| **Dự báo (forecasting)** | Dự báo giá đóng cửa phiên kế tiếp từ dữ liệu quá khứ, rồi chấm điểm lại bằng giá đóng cửa thật khi phiên đó xảy ra | 45.631 dòng đã chấm điểm, median sai số **1,15%** |
+| **Dự báo (forecasting)** | Dự báo giá đóng cửa phiên kế tiếp từ dữ liệu quá khứ, rồi chấm điểm lại bằng giá đóng cửa thật khi phiên đó xảy ra | 45.733 dòng đã chấm điểm, median sai số **1,15%** |
 | **Backtest** | Chạy chiến lược trên lịch sử, tính PnL, đối chiếu với chiến lược "mua và giữ" trên **cùng** chuỗi giá | 3.687 cửa sổ rolling, đối chiếu đầy đủ, không rò rỉ tương lai |
 
 Cả hai đều **chạy được trên dữ liệu thật**, không có số bịa.
 
 #### 14.7.2. Dự báo — số đo từ bảng `predictions` (MySQL thật)
 
-Đo trực tiếp bằng SQL trên bảng `predictions` ngày 16/11/2026:
+Đo trực tiếp bằng SQL trên bảng `predictions` ngày **18/11/2026**:
 
 | Chỉ số | Toàn bộ | Chỉ dự báo đã công bố |
 |---|---|---|
-| Số dòng đã chấm điểm | **45.631** | **1.215** |
-| Median sai số tuyệt đối | **1,15%** | 0,96% |
-| WAPE | **2,75%** | 3,56% |
-| Sai số có dấu trung bình | **+0,43%** | +0,35% |
-| MAE | 333,16 (đơn vị giá) | 358,63 |
-| **Đúng hướng** | **50,58%** | 45,42% |
-| Số phiên | 05/09/2025 → 13/11/2026 | 10/11/2026 → 16/11/2026 |
+| Số dòng đã chấm điểm | **45.733** | **1.317** |
+| Median sai số tuyệt đối | **1,15%** | 0,97% |
+| WAPE | **2,76%** | 3,67% |
+| Sai số có dấu trung bình | **+0,43%** | +0,36% |
+| MAE | 337,61 (đơn vị giá) | 358,63 |
+| **Đúng hướng** | **50,60%** | 46,32% |
+| Số phiên | 29/08/2025 → 18/11/2026 | 10/11/2026 → 16/11/2026 |
 | Số mã | 968 | — |
 
 Cột "toàn bộ" gồm cả dự báo backfill walk-forward; cột "đã công bố" chỉ gồm dự báo
@@ -4661,7 +4917,7 @@ khớp lệnh ở bar kế tiếp, không rò rỉ tương lai — để một c
 - Quét dữ liệu giả: `backend/app` chỉ còn 1 kết quả (`random.uniform` dùng làm
   jitter backoff của LLM retry — không sinh dữ liệu); `frontend/src` chỉ còn 1
   dòng chú thích nói rõ không dùng giá trị giả. **0 dòng dữ liệu giả.**
-- API đang phục vụ: `GET /api/v1/forecast/accuracy` → 200 với 45.631 dòng đã
+- API đang phục vụ: `GET /api/v1/forecast/accuracy` → 200 với 45.733 dòng đã
   chấm; `GET /api/v1/backtests/multi-symbol-report` → 200 với 3.687 cửa sổ;
   `GET /api/v1/quality/gate` → 200, verdict `warning`.
 - Quality gate (đo 16/11/2026): `layer_agreement` **passed** (61.656 phiên so
@@ -4795,17 +5051,23 @@ ngoài repo** trước, rồi **giữ lại**.
 
 - `GET /api/v1/stocks/AAPL/latest` → 200, `close: 356.2699890136719`,
   `source_layer: "gold"`, `source: "yahoo_http"` — dữ liệu thật đọc từ MinIO.
-- `GET /api/v1/forecast/accuracy` → 200, **45.631 dòng đã chấm**, `mae: 333,16`,
-  `directional_accuracy: 0,5058` — sổ ghi dự báo trong MySQL nguyên vẹn.
-- MySQL `predictions`: **46.505 dòng**, trong đó **46.385** đã có `actual_close`.
+- `GET /api/v1/forecast/accuracy` → 200, **45.733 dòng đã chấm**, `mae: 337,61`,
+  `directional_accuracy: 0,506` — sổ ghi dự báo trong MySQL nguyên vẹn.
+- MySQL `predictions`: **46.514 dòng**, trong đó **46.487** đã có `actual_close`.
 - Backtest chạy thật sau khi xoá: `AAPL` / `ma_crossover` trên **2.541 phiên**
   (06/10/2016 → 13/11/2026) → lợi nhuận 320,81%, 29 lệnh; benchmark mua và giữ
   1.142,95%. (Chiến lược **vẫn thua** benchmark — hệ thống báo cáo đúng như vậy.)
-- `pytest tests`: **572 test, 0 failure, 0 error, 0 skipped**. (Số test tăng từ 565
-  lên 572 vì `test_no_missing_imports.py` đăng ký một test cho mỗi file Python tìm
-  thấy, và các script mới trong `backend/scripts/` cũng được kiểm tra import.)
-  Bộ kiểm thử đầy đủ chạy trong **139 giây** trên máy phát triển (đo ngày
-  17/11/2026, `pytest tests/ -q`); con số này phụ thuộc tải máy nên được ghi
+- `pytest tests`: **597 test, 0 failure, 0 error, 0 skipped** (đo ngày 18/11/2026).
+  Số test tăng từ 585 lên 597 vì mục 3.3.5 bổ sung
+  `tests/test_forming_snapshot_classification.py` — 12 test bảo vệ việc ảnh chụp
+  giữa phiên không bị báo nhầm là xung đột provider. Trước đó (585 test) mục
+  6.12.9 bổ sung bộ test đo độ trễ dữ liệu:
+  `tests/test_forecast_staleness.py` — 8 test — và 3 test trong
+  `tests/test_forecast_scoring.py` cho việc ghi lại dự báo không xoá điểm đã
+  chấm, phân biệt `NULL` với `0`, và cập nhật thời điểm publish. Hai file
+  `test_no_missing_imports.py` cũng đăng ký thêm test cho các file mới.)
+  Bộ kiểm thử đầy đủ chạy trong **62 giây** trên máy phát triển (đo ngày
+  18/11/2026, `pytest tests/ -q`); con số này phụ thuộc tải máy nên được ghi
   kèm ngày đo thay vì coi là hằng số.
 
 #### 14.8.7.4. Phát hiện thêm: bar crypto 24/7 gây phân kỳ tầng
@@ -4849,8 +5111,8 @@ chứng tự động, mỗi script trả lời một câu hỏi:
 | Script | Câu hỏi | Kết quả lần chạy cuối |
 |---|---|---|
 | `verify_thesis_numbers.py` | Con số trong bài có khớp hệ thống không? | **ALL CONSISTENT** |
-| `check_thesis_markdown.py` | Cấu trúc Markdown có hỏng không? | 298 heading, 202 code fence, 126 bảng, 0 lỗi |
-| `check_thesis_style.py` | Văn phong có bị máy viết không? | 0 mẫu filler, em-dash 116 → 27 |
+| `check_thesis_markdown.py` | Cấu trúc Markdown có hỏng không? | 330 heading, 234 code fence, 146 bảng, 0 lỗi |
+| `check_thesis_style.py` | Văn phong có bị máy viết không? | 6 mẫu filler (đều trong bảng thuật ngữ), 1.343 câu, 520 em-dash |
 
 #### 14.8.8.2. Thuật ngữ
 
@@ -4890,11 +5152,14 @@ Bài luận có **4.696 dòng, khoảng 43.661 từ**, 298 heading, 126 bảng, 
 #### 14.8.8.4. Bằng chứng
 
 - `verify_thesis_numbers.py` đối chiếu 7 chỉ số quan trọng (tổng dự báo, số
-  dự báo đã chấm, số mã, MAE, sai số tương đối trung bình, độ chính xác hướng,
-  số hội thoại AI) với MySQL đang chạy: **ALL CONSISTENT** (đo 16/11/2026).
-- `check_thesis_markdown.py`: 0 lỗi cấu trúc (đo 16/11/2026).
-- `check_thesis_style.py`: 0 mẫu văn phong máy; em-dash giảm từ 116 xuống 27,
-  tức còn khoảng 1 em-dash trên 24 câu (đo 16/11/2026).
+  dự báo đã chấm, số mã, MAE, sai số tuyệt đối trung bình, độ chính xác hướng,
+  số hội thoại AI) với MySQL đang chạy: **ALL CONSISTENT** (đo 18/11/2026).
+- `check_thesis_markdown.py`: 0 lỗi cấu trúc — 330 heading, 234 code fence,
+  146 bảng (đo 18/11/2026).
+- `check_thesis_style.py`: 6 mẫu filler — **tất cả nằm trong bảng tra thuật
+  ngữ**, nơi liệt kê chính các cụm từ máy móc để dạy người đọc tránh; phần
+  văn xuôi không còn mẫu nào. Tài liệu hiện có 1.343 câu và 520 em-dash, tức
+  khoảng 1 em-dash trên 2,6 câu (đo 18/11/2026).
 - Ba script nằm ở `backend/scripts/` và được liệt kê trong `backend/scripts/README.md`
   mục 8.1.
 
@@ -5092,9 +5357,9 @@ docs/                     tài liệu
 | Backtest | `backtesting/` | 29 trades, khớp PnL |
 | Kiểm định ngoài mẫu | `backtesting/walk_forward.py` | 159/159 windows (AAPL); 3.687 windows / 101 mã (đa mã) |
 | Dự báo tự động cuối ngày | `services/next_session_forecast.py`, `services/universe_forecast.py` | 973 mã được dự báo trong 1 lượt (13/11/2026) |
-| **Kiểm chứng dự báo ngoài tập huấn luyện** | `services/forecast_scoring.py`, `forecasting/light_forecast.py` | **46.385 dòng đã chấm**, sai số tương đối trung vị **1,15%**, đúng hướng **50,6%** |
+| **Kiểm chứng dự báo ngoài tập huấn luyện** | `services/forecast_scoring.py`, `forecasting/light_forecast.py` | **46.487 dòng đã chấm**, sai số tương đối trung vị **1,15%**, đúng hướng **50,60%** |
 | Giao diện web | `frontend/` | 7 trang |
-| AI agent | `agent/` | 17 tool |
+| AI agent | `agent/` | 17 tool, 162 hội thoại đã lưu (đo 18/11/2026) |
 | Dữ liệu thật, không giả | `market_service.py` | `NotFoundError` |
 | Tài liệu + bảo vệ | file này | — |
 

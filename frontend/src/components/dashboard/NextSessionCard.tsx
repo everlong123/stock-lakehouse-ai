@@ -11,6 +11,18 @@ export interface NextSessionForecast {
   horizon: number | null;
   source: string | null;
   source_layer: string | null;
+  /**
+   * How many trading sessions the input data lagged behind the target
+   * session when the forecast was made.
+   *
+   * WHY IT IS CARRIED HERE: the target-session rule targets the first
+   * session that is not earlier than today and not earlier than the
+   * session after the newest bar in Gold. When the ingestion is current
+   * those coincide. When the ingestion falls behind they separate, and
+   * the forecast rests on older history without saying so. 0 means the
+   * data was current; null means the lag was never measured.
+   */
+  data_staleness_days?: number | null;
   created_at: string | null;
 }
 
@@ -87,6 +99,13 @@ export function NextSessionCard({
   const change = forecast.predicted_return;
   const showMae = isUsableNumber(historicalMae);
   const showDa = isUsableNumber(historicalDirectionalAccuracy);
+  // A stale forecast is still shown in full - it was published before
+  // the target session, so it is still evidence. But the reader is told
+  // how much history it actually rested on, because a forecast made on
+  // three-session-old data and one made on current data are not the same
+  // claim.
+  const staleSessions = forecast.data_staleness_days;
+  const isStale = typeof staleSessions === "number" && staleSessions > 0;
 
   return (
     <div>
@@ -105,6 +124,17 @@ export function NextSessionCard({
       <div className="mt-4 font-mono text-display font-semibold tabular-nums text-ink">
         {formatPrice(forecast.predicted_close, currency)}
       </div>
+
+      {/*
+        The data-lag notice. It appears only when the input data was
+        actually behind the market, because a badge on every forecast
+        would train the reader to ignore it.
+      */}
+      {isStale ? (
+        <p className="mt-3 border-l-2 border-negative pl-3 font-mono text-label uppercase text-negative">
+          Dữ liệu trễ {staleSessions} phiên giao dịch
+        </p>
+      ) : null}
 
       <dl className="mt-4 grid grid-cols-2 gap-x-6 gap-y-3 border-t border-hairline pt-4">
         <div className="min-w-0">

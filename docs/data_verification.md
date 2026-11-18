@@ -1493,7 +1493,7 @@ Bằng chứng dữ liệu vẫn nguyên vẹn sau khi dọn (đo 16/11/2026):
 > dự báo đa mô hình):
 > - `GET /api/v1/forecast/accuracy` → 200, **45.631** dòng đã chấm điểm hợp lệ
 >   (46.318 dòng có `actual_close`), median sai số **1,15%** — **không đổi**.
-> - `pytest tests` → **572 test, 0 failure, 0 error, 0 skipped**, **139 giây**.
+> - `pytest tests` → **585 test, 0 failure, 0 error, 0 skipped**, **79 giây**.
 
 ### Điều này KHÔNG chứng minh
 
@@ -1506,6 +1506,114 @@ Bằng chứng dữ liệu vẫn nguyên vẹn sau khi dọn (đo 16/11/2026):
   gì, vì dòng đó là dữ liệu thật của thời điểm đó.
 * **Không chứng minh lịch sử sâu hơn tháng 11/2026 sạch.** Cửa sổ kiểm tra là
   60 phân vị gần nhất.
+
+---
+
+## 10e. Provider đã chốt phiên nhưng lakehouse còn giữ ảnh chụp giữa phiên (đo ngày 18/11/2026)
+
+### Hiểu đơn giản
+
+Giống mục 10d, nhưng lần này đối chiếu **không phải hai dòng trong Bronze**,
+mà là **dòng hệ thống đang giữ với dòng provider vừa tải về lúc này**.
+
+Câu chuyện: hệ thống lưu giá lúc 14:30 (phiên Mỹ chưa đóng cửa). Ba tiếng
+sau, phiên đóng cửa, provider đã có giá chốt. Khi em hỏi "giá này có khớp
+provider không?", hệ thống trả lời **không khớp** — và báo đỏ `failed`.
+
+Nhưng hệ thống **đúng**, provider **đúng**. Cả hai đều nói về cùng một phiên,
+chỉ là đọc ở hai thời điểm khác nhau. Giống hỏi "giá cà phê lúc 9 giờ có
+khác giá lúc 11 giờ không" — tất nhiên là khác, và không ai sai.
+
+### Thuật ngữ
+
+| Từ tiếng Việt dễ hiểu | Thuật ngữ | Nghĩa là gì | Dùng ở đâu |
+|---|---|---|---|
+| **Ảnh chụp giữa phiên** | mid-session snapshot | Dòng giá được ghi lúc phiên còn đang chạy | `app/lakehouse/forming_bar.py` |
+| **Bar đã chốt** | settled bar | Dòng giá ghi sau khi phiên đóng cửa | `app/lakehouse/forming_bar.py` |
+| **Bao hình** | containment | Quan hệ: bar đã chốt chứa bar giữa phiên | `forming_snapshot_reason()` |
+
+### Triệu chứng
+
+Đo ngày 18/11/2026, quality gate báo `failed` với **14 mã**:
+`CAR, CBOE, CC, CCI, CCJ, CDE, CELH, CHTR, CL, CMCSA, CNP, COF, COIN, COP`.
+
+Mỗi mã lệch **đúng một phiên** — phiên mới nhất (17/11/2026) — và **29/29
+phiên còn lại khớp chính xác 100%**. Số đo chi tiết:
+
+| Mã | Hệ thống giữ | Provider chốt | Chênh lệch |
+|---|---|---|---|
+| CAR | close 126,42 · vol 77.163 | close 124,64 · vol 314.700 | 1,43% |
+| CL | close 100,67 · vol 1.412.287 | close 99,61 · vol 5.050.900 | 1,06% |
+| CMCSA | close 25,77 · vol 9.445.184 | close 25,31 · vol 30.967.500 | 1,82% |
+
+Dấu hiệu nhận biết: **volume của hệ thống nhỏ hơn hẳn** provider, và điều đó
+xảy ra ở **đúng phiên mới nhất**.
+
+### Vì sao xảy ra
+
+Check `provider_agreement` chỉ so **giá đóng cửa**:
+
+```python
+diff = abs(stored_close - provider_close)
+if diff / max(abs(provider_close), 1e-9) > PRICE_TOLERANCE:
+    tally["MISMATCH"] += 1
+```
+
+Không có `high`, không có `low`, không có `volume` — nên **không có cách nào**
+phân biệt "provider sai" với "hệ thống giữ ảnh chụp giữa phiên".
+
+Trong khi đó check `source_agreement` (so hai nguồn trong Bronze) **đã** dùng
+đúng công cụ: `find_forming_snapshots()` trong `app/lakehouse/forming_bar.py`.
+Hai check cùng hỏi một câu hỏi giống nhau, nhưng một có công cụ và một không.
+
+### Fix
+
+1. `check_against_provider()` giữ lại **cả bar** (close + high + low + volume)
+   thay vì chỉ close. Thêm helper `_stored_bars()` đọc Silver theo phiên.
+2. Với mỗi phiên lệch, dùng **đúng luật bao hình** đã có:
+   `forming_snapshot_reason()` trong `app/lakehouse/forming_bar.py`.
+   - Nếu hai bar cùng phiên, range chồng lấn và bar đã chốt có volume lớn
+     hơn → đó là ảnh chụp giữa phiên → tính vào `stale`, **không** phải
+     `mismatch`.
+   - Lệch ở phiên **không phải phiên mới nhất** → vẫn là `mismatch`, vẫn
+     `failed`. Đây là lỗi thật mà check này sinh ra để tìm.
+3. Sửa luật bao hình trong `forming_bar.py`: trước đây đòi bar đã chốt
+   **chứa trọn** bar giữa phiên. Nhưng ảnh chụp lúc 14:30 chưa chắc đã chạm
+   đỉnh phiên — phiên có thể đi cao hơn sau đó. Số đo: CPB 17/11/2026 có
+   `forming.high = 24,01` và `settled.high = 24,05`. Luật mới cho phép bar đã
+   chốt vượt bar giữa phiên trong **giới hạn 2%**, nhưng **chiều ngược lại thì
+   tuyệt đối không** — một bar giữa phiên có range rộng hơn bar đã chốt là
+   bất khả thi, vì bar đã chốt ghi lại tất cả những gì bar giữa phiên đã thấy
+   rồi cộng thêm nữa.
+4. Dung sai số thực: hai lần tải cùng một phiên cho ra high lệch 2e-4 trên
+   giá 142 đô (CHTR 17/11/2026: `142,60020446777344` so với
+   `142,60000610351562`). Không có dung sai thì check báo sai.
+
+### Bằng chứng
+
+* Trước: `provider_agreement` → **failed, 14 mã**.
+* Sau: `provider_agreement` → **warning, 0 mã failed**.
+* Lý do mới trong response: `"14 session(s) held a mid-session snapshot; no
+  settled session disagrees with the provider"`.
+* Chạy lại trên 3 batch khác nhau (14 + 8 + 6 mã): **0 mismatch** ở cả ba.
+* Đối chiếu độc lập bằng `scripts/verify_against_source.py` trên đúng 14 mã đó:
+  **1.624 phiên khớp chính xác, 56 phiên "stale/explained", 0 mismatch, 0 lỗi** —
+  verdict `PASSED`.
+* Test mới: `backend/tests/test_forming_snapshot_classification.py` — 12 test,
+  gồm cả test bảo vệ việc lỗi ở phiên đã chốt **vẫn phải** báo `failed`.
+* Toàn bộ bộ test backend: **597/597 PASS** (đo ngày 18/11/2026).
+* Quality gate toàn bộ trên 1.002 mã (đo ngày 18/11/2026): verdict `warning`,
+  **0 check nào có `failed`**.
+
+### Điều này KHÔNG chứng minh
+
+* **Không chứng minh provider không bao giờ sai.** Check này chỉ soi những
+  mã trong **lô xoay vòng 40 mã** mỗi lượt, cửa sổ **30 phiên**.
+* **Không chứng minh bar đã chốt luôn được giữ.** Ngược lại: nếu provider
+  *sửa lại* lịch sử (restatement) thì hệ thống cần rebuild Silver/Gold —
+  việc đó do check `layer_agreement` canh giữ, không phải check này.
+* **Không chứng minh Bronze sạch.** Bronze vẫn giữ các ảnh chụp giữa phiên;
+  đó là quyết định có chủ đích, xem mục 10d.
 
 ---
 
@@ -1528,3 +1636,73 @@ Nói thẳng để không tạo cảm giác an toàn giả:
 * **Quét toàn bộ Bronze là việc tốn thời gian** (~10 phút cho 1.002 symbol vì
   phải tải từng partition). Nên nó là một lần kiểm tra định kỳ, không phải
   thứ chạy mỗi request.
+
+---
+
+## 12. Độ trễ của dữ liệu đầu vào — một kiểm tra khác về sự trung thực
+
+### 12.1. Vấn đề
+
+Các mục trên kiểm tra **giá trị** của dữ liệu có đúng với provider hay không. Có
+một câu hỏi khác mà chúng **không** trả lời: *dự báo trong sổ tay được đưa ra
+lúc nào, và dựa trên dữ liệu nào?*
+
+Quy tắc chọn phiên đích của hệ thống là: phiên đích = phiên giao dịch đầu
+tiên **không sớm hơn hôm nay** và **không sớm hơn phiên ngay sau bar mới nhất
+trong Gold**. Khi dữ liệu đầy đủ, hai điều kiện trùng nhau. Khi dữ liệu trễ,
+chúng tách ra, và hệ thống **nhảy qua các phiên đã mất**.
+
+Kết quả là một dự báo vẫn **hợp lệ về mặt hình thức** (được đưa ra trước khi
+phiên đích xảy ra, nên chấm điểm được), nhưng nó dựa trên lịch sử cũ hơn thị
+trường. Không có gì trên dòng đó nói ra điều đó.
+
+### 12.2. Cách sửa
+
+Cột `data_staleness_days` trong bảng `predictions` — số **phiên giao dịch** mà
+dữ liệu đầu vào bị thiếu so với phiên đích. `0` là dữ liệu còn mới. `NULL` là
+dòng ghi trước khi có cột, tức **chưa đo được** (không phải "0").
+
+- Đo trong `backend/app/forecasting/light_forecast.py` (`staleness_days()`)
+- Ghi trong `backend/app/services/next_session_forecast.py`
+- Migration: `backend/alembic/versions/0005_prediction_staleness.py`
+- Hiện ra trên thẻ "Dự báo phiên kế tiếp" của Dashboard
+- Thống kê trong `GET /api/v1/forecast/accuracy`
+  (`staleness_measured`, `staleness_unrecorded`, `stale_forecasts`,
+  `max_staleness_days`)
+
+Chi tiết đầy đủ (kèm phép đo so sánh hai quy tắc chọn phiên đích): mục **6.12.9**
+của `HE_THONG_TOAN_DIEN_VA_GIAI_TRINH_KHOA_LUAN.md`.
+
+### 12.3. Bằng chứng
+
+**Đo ngày 18/11/2026.** Bar mới nhất trong Gold của AAPL là 17/11/2026, phiên
+đích là 18/11/2026, độ trễ đo được là **0**. Cắt bỏ 3 phiên cuối của AAPL để
+mô phỏng ingest trễ: bar mới nhất 12/11/2026, phiên đích 18/11/2026, độ trễ đo
+được là **3**.
+
+| Chỉ số (đo ngày 18/11/2026) | Giá trị |
+|---|---|
+| Tổng số dòng trong bảng `predictions` | 46.514 |
+| Dòng **có** đo độ trễ | 15 |
+| Dòng đo ra `0` (dữ liệu đầy đủ) | 15 |
+| Dòng đo ra `> 0` (dữ liệu trễ) | 0 |
+| Dòng **chưa** đo (`NULL`) | 46.499 |
+
+> **Vì sao 46.499 dòng vẫn là `NULL` mà không phải 0?** Vì dựng lại độ trễ cho
+> chúng sẽ đòi đọc lại Gold cho hàng chục nghìn dòng và **đoán** xem bar nào là
+> bar mới nhất tại thời điểm dự báo được đưa ra — đó là **tái dựng**, không phải
+> **phép đo**. Giá trị trung thực cho những dòng đó là "chưa ghi nhận". Hệ thống
+> tự động đo cho mọi dòng mới kể từ thời điểm này.
+
+### 12.4. Điều này **không** làm thay đổi quy tắc chọn phiên đích
+
+Cột `data_staleness_days` là **thông tin**, không phải **bộ lọc**. Một dự báo
+làm trên dữ liệu cũ vẫn là bằng chứng hợp lệ, và loại bỏ nó sẽ **âm thầm thu
+hẹp** tập mẫu mà báo cáo độ chính xác được tính trên. Người đọc được đưa con số
+và tự quyết định.
+
+Lý do giữ nguyên quy tắc hiện tại (`floor_today`) thay vì nhắm phiên bị bỏ lỡ:
+phép đo trên dữ liệu thật cho thấy phương án "nhắm phiên bị bỏ lỡ" có sai số
+nhỏ hơn, nhưng **100%** dự báo của nó có phiên đích **đã nằm trong quá khứ** tại
+thời điểm publish — tức là *retrofitting*, không phải dự báo. Chi tiết và bảng
+so sánh: mục **6.12.9.3** của `HE_THONG_TOAN_DIEN_VA_GIAI_TRINH_KHOA_LUAN.md`.

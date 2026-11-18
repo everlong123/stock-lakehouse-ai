@@ -68,11 +68,11 @@ checks: list[tuple[str, str, str]] = []
 
 cur.execute("select count(*) from predictions")
 total = cur.fetchone()[0]
-checks.append((_fmt_thousands(total), "total predictions", "46.505"))
+checks.append((_fmt_thousands(total), "total predictions", "46.514"))
 
 cur.execute("select count(*) from predictions where actual_close is not null")
 scored = cur.fetchone()[0]
-checks.append((_fmt_thousands(scored), "scored predictions", "46.385"))
+checks.append((_fmt_thousands(scored), "scored predictions", "46.487"))
 
 cur.execute("select count(distinct symbol) from predictions")
 nsym = cur.fetchone()[0]
@@ -87,18 +87,18 @@ cur.execute(
     "where actual_close is not null and reference_close is not null and reference_close > 0"
 )
 scored_valid = cur.fetchone()[0]
-checks.append((_fmt_thousands(scored_valid), "scored (valid ref)", "45.631"))
+checks.append((_fmt_thousands(scored_valid), "scored (valid ref)", "45.733"))
 
 cur.execute(
     "select avg(abs_error) from predictions "
     "where actual_close is not null and reference_close is not null and reference_close > 0"
 )
 mae = cur.fetchone()[0]
-checks.append((_fmt_decimal(mae), "MAE (scored rows)", "333,16"))
+checks.append((_fmt_decimal(mae), "MAE (scored rows)", "337,61"))
 
 cur.execute("select avg(abs_error) from predictions where actual_close is not null")
 mae_all = cur.fetchone()[0]
-checks.append((_fmt_decimal(mae_all), "MAE (all scored)", "335,58"))
+checks.append((_fmt_decimal(mae_all), "MAE (all scored)", "339,95"))
 
 cur.execute(
     "select count(*) from predictions where direction_correct = 1 and actual_close is not null"
@@ -107,11 +107,11 @@ dir_ok = cur.fetchone()[0]
 cur.execute("select count(*) from predictions where direction_correct is not null")
 dir_n = cur.fetchone()[0]
 da = dir_ok / dir_n if dir_n else 0.0
-checks.append((f"{_fmt_decimal(da * 100)}%", "directional accuracy", "50,58%"))
+checks.append((f"{_fmt_decimal(da * 100)}%", "directional accuracy", "50,60%"))
 
 cur.execute("select count(*) from agent_conversations")
 nconv = cur.fetchone()[0]
-checks.append((str(nconv), "agent conversations", "160"))
+checks.append((str(nconv), "agent conversations", "162"))
 
 conn.close()
 
@@ -126,15 +126,16 @@ for actual, what, doc_says in checks:
 # Every headline figure the thesis quotes must actually appear in the text.
 # A figure that lives only in this script is a figure no reader can check.
 QUOTED_FIGURES = (
-    "46.505",
-    "46.385",
-    "45.631",
-    "333,16",
-    "50,58%",
+    "46.514",
+    "46.487",
+    "45.733",
+    "337,61",
+    "50,60%",
     "1.002",
     "3.687",
-    "572",
+    "597",
     "101",
+    "162",
 )
 for number in QUOTED_FIGURES:
     present = number in text
@@ -142,10 +143,10 @@ for number in QUOTED_FIGURES:
     print(f"{number:<14} {'present in doc':<24} {'':<16} {'OK' if present else 'MISSING'}")
 
 # The test-run duration quoted in the thesis must match the measured value.
-# Measured: 139.4s on the dev machine on 17/11/2026 (rounded to 139s in the
-# document). Update both places together whenever the suite runtime changes
+# Measured: 62s wall clock on the dev machine on 18/11/2026 (rounded to 62s in
+# the document). Update both places together whenever the suite runtime changes
 # materially.
-MEASURED_RUNTIME = 139
+MEASURED_RUNTIME = 62
 quoted = re.search(r"chạy trong \*\*(\d+) giây\*\*", text)
 if quoted:
     match = int(quoted.group(1)) == MEASURED_RUNTIME

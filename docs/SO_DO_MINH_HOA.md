@@ -1456,11 +1456,11 @@ không tự tính lại. Nhờ vậy con số trên web và con số trong sổ 
 
 - Dịch vụ: `backend/app/services/next_session_forecast.py` — `build_next_session_forecast()`, `store_next_session_forecast()`, `predict_and_store()`
 - Bảng: `backend/app/database/models/prediction.py` + `backend/app/database/repositories/prediction_repository.py`
-- Migration: `backend/alembic/versions/0002_predictions.py`
+- Migration: `backend/alembic/versions/0002_predictions.py` (tạo bảng), `0004_prediction_scoring.py` (cột kết quả), `0005_prediction_staleness.py` (cột `data_staleness_days`)
 - Cấu hình: `auto_predict_enabled` (mặc định `False`), `auto_predict_model` (mặc định `"linear_regression"`) trong `backend/app/core/config.py`
 - Endpoint: `GET /forecast/next-session/{symbol}`, `POST /forecast/next-session/{symbol}/store`
 - UI: `frontend/src/components/dashboard/NextSessionCard.tsx`
-- Chi tiết đầy đủ: Phần 5B.4 của `HE_THONG_TOAN_DIEN_VA_GIAI_TRINH_KHOA_LUAN.md`
+- Chi tiết đầy đủ: Phần 5B.4 của `HE_THONG_TOAN_DIEN_VA_GIAI_TRINH_KHOA_LUAN.md`, mục 6.12.9 (đo độ trễ dữ liệu)
 
 > **Đo ngày 10/11/2026:** số dòng trong bảng `predictions` và số mã được dự báo
 > trong một lần chạy EOD: **chưa đo** (hạ tầng chưa chạy lúc đo).

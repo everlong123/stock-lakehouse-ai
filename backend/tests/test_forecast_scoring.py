@@ -174,3 +174,158 @@ def test_a_forecast_rerun_keeps_the_score() -> None:
         assert matching[0].actual_close == before
     finally:
         session.close()
+
+
+def test_staleness_survives_a_forecast_rerun() -> None:
+    """A re-run records the NEW staleness without erasing the score.
+
+    The staleness belongs to the forecast, not to the outcome, so it is
+    one of the columns the forecast upsert is allowed to overwrite. A
+    retried batch that ran with fresher data must say so.
+    """
+    if not check_database_connection():
+        pytest.skip("The database is unavailable.")
+
+    from app.database.repositories.prediction_repository import PredictionRepository
+
+    session = get_session_factory()()
+    try:
+        repository = PredictionRepository(session)
+        scored = repository.scored_series(limit=1)
+        if not scored:
+            pytest.skip("There is no scored forecast to test.")
+
+        row = scored[0]
+        before_score = row.actual_close
+
+        repository.upsert(
+            {
+                "symbol": row.symbol,
+                "model_name": row.model_name,
+                "target_session": row.target_session,
+                "reference_close": row.reference_close,
+                "predicted_close": row.predicted_close,
+                "predicted_return": row.predicted_return,
+                "horizon": row.horizon,
+                "source": row.source,
+                "source_layer": row.source_layer,
+                "data_staleness_days": 3,
+            }
+        )
+        session.commit()
+
+        matching = [
+            item
+            for item in repository.scored_series(symbol=row.symbol, model_name=row.model_name, limit=500)
+            if item.target_session == row.target_session
+        ]
+        assert matching, "the scored row disappeared"
+        # The staleness was written...
+        assert matching[0].data_staleness_days == 3
+        # ...and the score was not touched.
+        assert matching[0].actual_close == before_score
+    finally:
+        session.close()
+
+
+def test_a_forecast_rerun_moves_the_publication_time() -> None:
+    """A re-run says WHEN it published, not when the row was first created.
+
+    ``created_at`` is when THIS forecast was published. A retried batch
+    that ran with fresher data produced a NEW forecast, so the row has to
+    say so - otherwise the reader sees the old timestamp and has no way
+    to tell that the forecast was redone.
+
+    The column's default is a SERVER default, so it does not fire
+    ``onupdate`` on its own: the repository sets it explicitly.
+    """
+    if not check_database_connection():
+        pytest.skip("The database is unavailable.")
+
+    from app.database.repositories.prediction_repository import PredictionRepository
+
+    session = get_session_factory()()
+    try:
+        repository = PredictionRepository(session)
+        scored = repository.scored_series(limit=1)
+        if not scored:
+            pytest.skip("There is no scored forecast to test.")
+
+        row = scored[0]
+        before = row.created_at
+
+        repository.upsert(
+            {
+                "symbol": row.symbol,
+                "model_name": row.model_name,
+                "target_session": row.target_session,
+                "reference_close": row.reference_close,
+                "predicted_close": row.predicted_close,
+                "predicted_return": row.predicted_return,
+                "horizon": row.horizon,
+                "source": row.source,
+                "source_layer": row.source_layer,
+            }
+        )
+        session.commit()
+
+        matching = [
+            item
+            for item in repository.scored_series(symbol=row.symbol, model_name=row.model_name, limit=500)
+            if item.target_session == row.target_session
+        ]
+        assert matching, "the scored row disappeared"
+        # The publication time moved forward...
+        assert matching[0].created_at >= before
+        # ...and the score survived.
+        assert matching[0].actual_close == row.actual_close
+    finally:
+        session.close()
+
+
+def test_staleness_is_none_when_it_was_not_measured() -> None:
+    """A row written before the column existed carries NULL, not zero.
+
+    Zero is a MEASUREMENT - it says the data was current. NULL says the
+    lag was never recorded. The two must not look the same, because only
+    one of them is a claim about the quality of the forecast.
+    """
+    if not check_database_connection():
+        pytest.skip("The database is unavailable.")
+
+    from app.database.repositories.prediction_repository import PredictionRepository
+
+    session = get_session_factory()()
+    try:
+        repository = PredictionRepository(session)
+        scored = repository.scored_series(limit=1)
+        if not scored:
+            pytest.skip("There is no scored forecast to test.")
+
+        row = scored[0]
+
+        repository.upsert(
+            {
+                "symbol": row.symbol,
+                "model_name": row.model_name,
+                "target_session": row.target_session,
+                "reference_close": row.reference_close,
+                "predicted_close": row.predicted_close,
+                "predicted_return": row.predicted_return,
+                "horizon": row.horizon,
+                "source": row.source,
+                "source_layer": row.source_layer,
+                "data_staleness_days": None,
+            }
+        )
+        session.commit()
+
+        matching = [
+            item
+            for item in repository.scored_series(symbol=row.symbol, model_name=row.model_name, limit=500)
+            if item.target_session == row.target_session
+        ]
+        assert matching, "the scored row disappeared"
+        assert matching[0].data_staleness_days is None
+    finally:
+        session.close()

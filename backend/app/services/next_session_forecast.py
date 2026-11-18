@@ -71,8 +71,17 @@ def build_next_session_forecast(
             "predicted_return": 0.0084,
             "horizon": 1,
             "source_layer": "gold",
+            "data_staleness_days": 0,
             "generated_at": "...",
         }
+
+    ``data_staleness_days`` says how many trading sessions the input
+    data lagged behind the target session when the forecast was made. 0
+    means the data was current; a higher number means the ingestion had
+    fallen behind, and the forecast was made on older history. It is
+    reported rather than used as a gate, because a forecast made on
+    stale data is still a valid forward forecast - the reader is given
+    the number and decides what to do with it.
 
     When the symbol has no trained model, the payload carries
     ``available: False`` and a reason. It does NOT contain a price.
@@ -131,6 +140,7 @@ def build_next_session_forecast(
         reference_close = point.get("reference_close")
         predicted_return = point.get("predicted_return")
         target_session = point.get("target_session")
+        staleness = point.get("data_staleness_days")
         metrics = None
         metrics_source = None
     except NotFoundError as exc:
@@ -164,6 +174,11 @@ def build_next_session_forecast(
         "metrics": metrics,
         "metrics_source": metrics_source,
         "source_layer": "gold",
+        # How many trading sessions the input data lagged behind the
+        # target when this forecast was made. 0 means the data was
+        # current; a higher number means the ingestion had fallen behind
+        # and the forecast was made on older history.
+        "data_staleness_days": staleness,
         "generated_at": datetime.now(timezone.utc).isoformat(),
     }
 
@@ -220,6 +235,7 @@ def store_next_session_forecast(
                 "horizon": forecast.get("horizon", 1),
                 "source": source,
                 "source_layer": forecast.get("source_layer", "gold"),
+                "data_staleness_days": forecast.get("data_staleness_days"),
             }
         )
         if owns_session:

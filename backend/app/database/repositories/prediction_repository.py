@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import UTC, date, datetime
 from typing import Any
 
-from sqlalchemy import func, or_, select
+from sqlalchemy import Integer, func, or_, select
 from sqlalchemy.orm import Session
 
 from app.core.data_integrity import (
@@ -105,6 +105,27 @@ class PredictionRepository:
                 if key in ("id", *outcome_fields):
                     continue
                 setattr(record, key, value)
+            # `created_at` is when THIS forecast was published, so a
+            # re-run has to move it. Without this, a retried batch that
+            # ran with fresher data would leave the row claiming the
+            # OLD publication time - and the reader would have no way to
+            # tell that the forecast was redone.
+            #
+            # The timestamp is set in Python rather than by an
+            # ``onupdate`` rule because the column's default is
+            # ``server_default`` (the database supplies it on INSERT),
+            # and a column with a server default does not fire
+            # ``onupdate``.
+            #
+            # The microseconds are dropped on purpose. The column is a
+            # plain ``DateTime``, so MySQL stores whole seconds - and a
+            # value written with microseconds would come back ROUNDED,
+            # which means the timestamp in memory and the timestamp read
+            # back from the database would disagree. Writing the same
+            # precision the column can hold keeps the two identical.
+            record.created_at = datetime.now(UTC).replace(
+                tzinfo=None, microsecond=0
+            )
         self.session.flush()
         return record
 
@@ -228,6 +249,19 @@ class PredictionRepository:
             func.max(Prediction.target_session),
             func.sum(Prediction.abs_error),
             func.sum(Prediction.reference_close),
+            func.sum(
+                func.cast(
+                    Prediction.data_staleness_days.isnot(None),
+                    Integer,
+                )
+            ),
+            func.sum(
+                func.cast(
+                    Prediction.data_staleness_days > 0,
+                    Integer,
+                )
+            ),
+            func.max(Prediction.data_staleness_days),
         ).where(*clean_filters, *scope)
 
         row = self.session.execute(stmt).first()
@@ -241,6 +275,10 @@ class PredictionRepository:
                 "last_session": None,
                 "wape": None,
                 "excluded_impossible": 0,
+                "staleness_measured": 0,
+                "staleness_unrecorded": 0,
+                "stale_forecasts": 0,
+                "max_staleness_days": None,
             }
 
         verified = int(row[0] or 0)
@@ -249,6 +287,21 @@ class PredictionRepository:
         wape = None
         if total_abs_error is not None and total_reference:
             wape = 100.0 * total_abs_error / total_reference
+
+        # How fresh the input data was when these forecasts were made.
+        #
+        # A row with ``data_staleness_days = 0`` was made on current data;
+        # a higher number means the ingestion had fallen behind and the
+        # forecast rested on older history. Rows written before the
+        # column existed carry NULL and are counted separately - they are
+        # NOT treated as zero, because zero is a measurement and NULL
+        # means the lag was never recorded.
+        #
+        # This is REPORTED, not used as a filter. Excluding the stale
+        # rows would silently shrink the sample the accuracy is computed
+        # over, and the reader is given the number instead.
+        staleness_measured = int(row[8] or 0)
+        stale_forecasts = int(row[9] or 0)
 
         return {
             "verified": verified,
@@ -262,6 +315,10 @@ class PredictionRepository:
                 symbol=symbol,
                 model_name=model_name,
             ),
+            "staleness_measured": staleness_measured,
+            "staleness_unrecorded": verified - staleness_measured,
+            "stale_forecasts": stale_forecasts,
+            "max_staleness_days": int(row[10]) if row[10] is not None else None,
         }
 
     def count_impossible(

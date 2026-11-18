@@ -93,18 +93,19 @@ gate at all.
 from __future__ import annotations
 
 import json
+from collections.abc import Iterable
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field
-from datetime import date, datetime, timedelta, timezone
-from typing import Any, Iterable
+from datetime import UTC, date, datetime, timedelta
+from typing import Any
 
 import pandas as pd
 
 from app.core.data_integrity import is_fabricated_symbol
 from app.core.logging_config import get_logger
-from app.lakehouse.forming_bar import find_forming_snapshots
-from app.lakehouse.session import canonicalize_daily_sessions, session_date
 from app.lakehouse.exchange_timezone import session_day_of, session_days
+from app.lakehouse.forming_bar import find_forming_snapshots, forming_snapshot_reason
+from app.lakehouse.session import canonicalize_daily_sessions, session_date
 
 logger = get_logger(__name__)
 
@@ -204,7 +205,7 @@ class QualityGateReport:
     #: ``passed``, ``warning`` or ``failed``.
     verdict: str = "passed"
     #: When the gate ran (UTC).
-    checked_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    checked_at: datetime = field(default_factory=lambda: datetime.now(UTC))
     #: How long the pass took, in seconds.
     elapsed_seconds: float = 0.0
     #: One entry per check, keyed by the check's name.
@@ -437,6 +438,59 @@ def _session_closes(frame: pd.DataFrame, symbol: str | None = None) -> dict[str,
         str(row[0]): float(row[1])
         for row in pd.DataFrame({"_day": days, "_close": working["_close"]}).itertuples(index=False)
     }
+
+
+def _session_bars(frame: pd.DataFrame, symbol: str | None = None) -> dict[str, dict]:
+    """One OHLCV bar per trading session, keyed by the session's date.
+
+    Same canonicalisation as :func:`_session_closes`, but it keeps the whole
+    bar instead of only the close. The provider comparison needs ``high``,
+    ``low`` and ``volume`` because it has to tell a SETTLED disagreement from
+    a MID-SESSION SNAPSHOT - and that distinction can only be made by the
+    containment relation between the two bars, never by the close alone.
+
+    See ``app.lakehouse.forming_bar`` for the containment relation.
+    """
+    if frame is None or frame.empty or "timestamp" not in frame.columns:
+        return {}
+    working = frame.copy()
+    working["timestamp"] = pd.to_datetime(working["timestamp"], utc=True, errors="coerce")
+    working = working.dropna(subset=["timestamp"])
+    if working.empty:
+        return {}
+    if symbol is not None and "symbol" not in working.columns:
+        working["symbol"] = symbol
+    try:
+        working, _report = canonicalize_daily_sessions(working)
+    except Exception:  # noqa: BLE001 - fall back to the raw rows
+        pass
+    if "close" not in working.columns:
+        return {}
+    working["_close"] = pd.to_numeric(working["close"], errors="coerce")
+    working = working.dropna(subset=["_close"])
+    if working.empty:
+        return {}
+    working = working.sort_values("timestamp")
+    if "symbol" in working.columns:
+        days = session_days(working)
+    else:
+        days = working["timestamp"].map(lambda stamp: session_day_of(stamp, symbol))
+    working["_day"] = days
+
+    bars: dict[str, dict] = {}
+    for day, group in working.groupby("_day", sort=False):
+        # The canonical row is the LAST one for the session: that is the
+        # settled bar whenever both a snapshot and a settled bar are present.
+        row = group.iloc[-1]
+        bar = {"close": float(row["_close"])}
+        for column in ("high", "low", "volume"):
+            if column in row.index:
+                value = pd.to_numeric(pd.Series([row[column]]), errors="coerce").iloc[0]
+                bar[column] = None if pd.isna(value) else float(value)
+            else:
+                bar[column] = None
+        bars[str(day)] = bar
+    return bars
 
 
 def _layer_closes(
@@ -1160,15 +1214,30 @@ def check_against_provider(
         # local session, so keying it by the UTC date would make the two sides
         # disagree about which close belongs to which day.
         live["_day"] = session_days(live).astype(str)
+        # The WHOLE provider bar is kept, not just its close: a mid-session
+        # snapshot can only be recognised by comparing the two bars' ranges
+        # and volumes against each other. See ``app.lakehouse.forming_bar``.
+        live_bars: dict[str, dict] = {}
+        for day, group in live.groupby("_day", sort=False):
+            row = group.iloc[-1]
+            bar = {"close": float(row["_close"])}
+            for column in ("high", "low", "volume"):
+                if column in row.index:
+                    value = pd.to_numeric(pd.Series([row[column]]), errors="coerce").iloc[0]
+                    bar[column] = None if pd.isna(value) else float(value)
+                else:
+                    bar[column] = None
+            live_bars[str(day)] = bar
         live = live.groupby("_day", as_index=False)["_close"].last().set_index("_day")
 
-        stored = _stored_closes(symbol, storage, window, indexes)
+        stored = _stored_bars(symbol, storage, window, indexes)
         if not stored:
             return symbol, tally
 
         sessions = sorted(set(stored) & set(live.index))[-window:]
         for day in sessions:
-            stored_close = stored[day]
+            stored_bar = stored[day]
+            stored_close = stored_bar["close"]
             provider_close = float(live.loc[day, "_close"])
             diff = abs(stored_close - provider_close)
             if diff == 0.0:
@@ -1176,6 +1245,21 @@ def check_against_provider(
                 continue
             if diff / max(abs(provider_close), 1e-9) <= PRICE_TOLERANCE:
                 tally["TOLERANT"] += 1
+                continue
+            # A MID-SESSION SNAPSHOT is not a disagreement. The stored bar was
+            # captured while its own session was still open, so its close is
+            # the last trade price of that moment; the provider's close is
+            # the settled one. The containment relation identifies this
+            # without a market-hours calendar: the settled bar's range
+            # contains the snapshot's range and its volume is larger.
+            #
+            # Reporting it as a mismatch names the WRONG cause and sends the
+            # operator hunting for a provider bug that does not exist - the
+            # same false alarm ``check_source_agreement`` already avoids by
+            # excluding explained sessions.
+            provider_bar = live_bars.get(day)
+            if provider_bar is not None and _is_forming_snapshot(stored_bar, provider_bar):
+                tally["STALE"] += 1
                 continue
             # A difference this large is either a real mismatch or the
             # provider having revised its own history. The two are told
@@ -1227,8 +1311,23 @@ def check_against_provider(
     if errors and not mismatches:
         result.status = "warning"
         result.reason = f"{len(errors)} symbol(s) could not be checked against the provider"
+    elif mismatches:
+        result.status = "failed"
+        result.reason = (
+            f"{len(mismatches)} symbol(s) disagree with the provider on a SETTLED session"
+        )
     else:
-        result.status = "failed" if mismatches else "passed"
+        result.status = "passed"
+        if stale:
+            # The comparison passed, but some sessions were explained by a
+            # mid-session snapshot. That is a fact about the RAW layer worth
+            # reporting, and it is already reported in detail by
+            # ``check_forming_snapshots``.
+            result.status = "warning"
+            result.reason = (
+                f"{stale} session(s) held a mid-session snapshot; "
+                "no settled session disagrees with the provider"
+            )
     return result, symbols
 
 
@@ -1256,6 +1355,89 @@ def _stored_closes(
         return {}
 
 
+def _is_forming_snapshot(stored_bar: dict, provider_bar: dict) -> bool:
+    """Is the stored bar a mid-session snapshot of the provider's bar?
+
+    The two bars describe the SAME session, so the range relation applies:
+    their ranges must overlap and the settled bar trades more volume. The
+    stored bar is the forming one when the provider's bar overlaps it AND
+    trades more volume.
+
+    This is the same test :mod:`app.lakehouse.forming_bar` applies to two
+    rows of the same session inside Bronze - reused here for the one stored
+    row against the one live provider row.
+
+    Args:
+        stored_bar: the stored bar, with ``close``/``high``/``low``/``volume``.
+        provider_bar: the provider's bar, same keys.
+
+    Returns:
+        True when the stored bar looks like a frozen mid-session snapshot.
+    """
+    try:
+        forming = pd.Series(
+            {
+                "close": stored_bar.get("close"),
+                "high": stored_bar.get("high"),
+                "low": stored_bar.get("low"),
+                "volume": stored_bar.get("volume"),
+            }
+        )
+        settled = pd.Series(
+            {
+                "close": provider_bar.get("close"),
+                "high": provider_bar.get("high"),
+                "low": provider_bar.get("low"),
+                "volume": provider_bar.get("volume"),
+            }
+        )
+    except Exception:  # noqa: BLE001 - a malformed bar is not a snapshot
+        return False
+    try:
+        return forming_snapshot_reason(forming, settled)
+    except Exception:  # noqa: BLE001
+        return False
+
+
+def _stored_bars(
+    symbol: str,
+    storage=None,
+    days: int = PROVIDER_CHECK_WINDOW,
+    indexes: dict | None = None,
+) -> dict[str, dict]:
+    """The stored Silver bars of one symbol, keyed by session date.
+
+    The counterpart of :func:`_stored_closes` for the provider comparison:
+    it keeps ``high``, ``low`` and ``volume`` so that a mid-session snapshot
+    can be told apart from a real disagreement.
+    """
+    if storage is None:
+        from app.lakehouse.storage_factory import get_storage_backend
+
+        storage = get_storage_backend()
+    silver_index = (indexes or {}).get("silver")
+    if silver_index is None:
+        silver_index = partition_index(storage, "silver")
+    try:
+        keys = _window_keys(silver_index.get(symbol, []), days)
+    except Exception:  # noqa: BLE001
+        return {}
+    if not keys:
+        return {}
+    frames: list[pd.DataFrame] = []
+    for key in sorted(keys, reverse=True)[:3]:
+        try:
+            frame = storage.read_parquet("silver", key)
+        except Exception:  # noqa: BLE001 - a missing partition is not fatal
+            continue
+        if frame is not None and not frame.empty:
+            frames.append(frame)
+    if not frames:
+        return {}
+    combined = frames[0] if len(frames) == 1 else pd.concat(frames, ignore_index=True)
+    return _session_bars(combined, symbol)
+
+
 # ---------------------------------------------------------------------------
 # The gate
 # ---------------------------------------------------------------------------
@@ -1275,7 +1457,7 @@ def run_gate(
     passed in and mutated in place, so the caller can persist it between
     passes and the full sweep completes over several passes.
     """
-    started = datetime.now(timezone.utc)
+    started = datetime.now(UTC)
     if storage is None:
         from app.lakehouse.storage_factory import get_storage_backend
 
@@ -1345,7 +1527,7 @@ def run_gate(
         )
 
     report.verdict = _worst(check.status for check in report.checks.values())
-    report.elapsed_seconds = (datetime.now(timezone.utc) - started).total_seconds()
+    report.elapsed_seconds = (datetime.now(UTC) - started).total_seconds()
     logger.info(
         "Data quality gate: verdict=%s checked=%s symbol(s) in %.1fs",
         report.verdict,

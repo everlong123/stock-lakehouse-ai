@@ -222,9 +222,9 @@ stock-lakehouse-ai/
 
 | Đường dẫn | Tác dụng |
 |---|---|
-| `tests/` | **572 test.** Chạy: `pytest tests -q`. Xem bảng ở `docs/HE_THONG_TOAN_DIEN_VA_GIAI_TRINH_KHOA_LUAN.md` §14.3. |
+| `tests/` | **585 test.** Chạy: `pytest tests -q`. Xem bảng ở `docs/HE_THONG_TOAN_DIEN_VA_GIAI_TRINH_KHOA_LUAN.md` §14.3. |
 | `scripts/` | **81 script vận hành/kiểm chứng.** Xem `backend/scripts/README.md`. |
-| `alembic/` | Migration cấu trúc DB (`versions/0002..0004`). |
+| `alembic/` | Migration cấu trúc DB (`versions/0002..0005`). |
 | `alembic.ini` | Cấu hình Alembic. |
 | `crontab` | Lịch cron cho container backend. |
 | `entrypoint.sh` | Script khởi động khi container chạy. |

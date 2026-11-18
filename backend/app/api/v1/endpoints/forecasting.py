@@ -152,6 +152,7 @@ def published_forecasts(symbol: str) -> dict:
                     "horizon": row.horizon,
                     "source": row.source,
                     "source_layer": row.source_layer or "gold",
+                    "data_staleness_days": row.data_staleness_days,
                     "created_at": row.created_at.isoformat() if row.created_at else None,
                     "actual_close": row.actual_close,
                     "abs_error": row.abs_error,
@@ -249,6 +250,7 @@ def forecast_accuracy(
                 "error_pct": row.error_pct,
                 "direction_correct": row.direction_correct,
                 "source": row.source,
+                "data_staleness_days": row.data_staleness_days,
                 "scored_at": row.scored_at.isoformat() if row.scored_at else None,
             }
             for row in rows
@@ -297,6 +299,10 @@ def _empty_summary() -> dict:
         "first_session": None,
         "last_session": None,
         "excluded_impossible": 0,
+        "staleness_measured": 0,
+        "staleness_unrecorded": 0,
+        "stale_forecasts": 0,
+        "max_staleness_days": None,
     }
 
 
@@ -363,6 +369,25 @@ def _summarise(rows: list) -> dict:
     if total_reference:
         wape = 100.0 * total_abs_error / total_reference
 
+    # How fresh the input data was when these forecasts were published.
+    # A row with ``data_staleness_days = 0`` was made on current data; a
+    # higher number means the ingestion had fallen behind and the
+    # forecast rested on older history. Rows written before the column
+    # existed carry NULL and are counted separately - they are not
+    # treated as zero.
+    #
+    # This is REPORTED, not used as a filter: excluding the stale rows
+    # would silently shrink the sample the accuracy is computed over.
+    recorded_staleness = [
+        row.data_staleness_days
+        for row in clean
+        if getattr(row, "data_staleness_days", None) is not None
+    ]
+    stale_rows = sum(1 for value in recorded_staleness if value > 0)
+    unrecorded = sum(
+        1 for row in clean if getattr(row, "data_staleness_days", None) is None
+    )
+
     return {
         "verified": len(clean),
         "mae": sum(errors) / len(errors) if errors else None,
@@ -377,6 +402,10 @@ def _summarise(rows: list) -> dict:
         "first_session": sessions[0].isoformat() if sessions else None,
         "last_session": sessions[-1].isoformat() if sessions else None,
         "excluded_impossible": excluded,
+        "staleness_measured": len(recorded_staleness),
+        "staleness_unrecorded": unrecorded,
+        "stale_forecasts": stale_rows,
+        "max_staleness_days": max(recorded_staleness) if recorded_staleness else None,
     }
 
 

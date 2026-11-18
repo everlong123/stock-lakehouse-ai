@@ -34,18 +34,27 @@ written while its own session was still open.
 
 THE STRUCTURAL SIGNAL
 ----------------------
-A session's high and low can only **expand** as the session runs, and its
-volume can only **grow**. So the settled bar always CONTAINS the forming
-one:
+A session's volume can only **grow** as the session runs, and its high and
+low can only **expand**, so the settled bar's range CONTAINS the forming
+bar's range:
 
-    forming.high <= settled.high
-    forming.low  >= settled.low
     forming.volume <  settled.volume
+    forming.high  <= settled.high
+    forming.low   >= settled.low
 
 and the two closes differ, because the price moved after the snapshot was
 taken.
 
-This containment test is what makes the rule safe to apply in both
+The two range inequalities carry a small ONE-SIDED tolerance. Containment
+holds strictly only when the snapshot already touched the session's
+extreme; a snapshot taken at 14:30 records the high and the low AS OF
+14:30, and the session may reach a new high or a new low afterwards. The
+measured case: CPB 2026-11-17 had forming.high = 24.01 and settled.high =
+24.05, so the settled range pokes out on the high side - which the
+tolerance allows. The opposite direction is rejected outright: a forming
+bar whose range is WIDER than the settled one is impossible.
+
+This test is what makes the rule safe to apply in both
 directions - it identifies which of the two rows is the stale one without
 consulting a calendar of market hours, and it cannot fire on two rows that
 describe the same instant.
@@ -53,7 +62,7 @@ describe the same instant.
 WHAT THIS IS NOT
 ----------------
 It is not a calendar. There is no table of exchange open/close times here,
-because the containment test does not need one: it compares two rows of
+because the range test does not need one: it compares two rows of
 the SAME session against each other, so it works for every market in the
 universe - the NYSE, the HOSE, the ASX, the TWSE - without knowing when
 any of them trade.
@@ -73,10 +82,33 @@ import pandas as pd
 #: the float noise two providers produce for the same price.
 SAME_PRICE_REL_TOL = 1e-6
 
+#: How far the two bars' RANGES may sit apart before the pair stops looking
+#: like two moments of the same session.
+#:
+#: THE TOLERANCE IS ONE-SIDED
+#: ---------------------------
+#: A session's high and low can only EXPAND, so the settled bar's range
+#: normally CONTAINS the forming bar's range. The exception is a snapshot
+#: taken before the session reached its extreme: the settled bar pokes out
+#: on that side. The measured case: CPB 2026-11-17 had ``forming.high =
+#: 24.01`` and ``settled.high = 24.05`` - the session went four cents
+#: higher after the snapshot.
+#:
+#: The excess may therefore be up to this tolerance, but only on the
+#: SETTLED side. A forming bar whose range is WIDER than the settled one is
+#: impossible - the settled bar records everything the forming one saw and
+#: more - so that direction is rejected outright.
+#:
+#: The tolerance also absorbs the float noise two different fetches of the
+#: same session produce: CHTR 2026-11-17 had ``forming.high =
+#: 142.60020446777344`` and ``settled.high = 142.60000610351562``, a
+#: difference of 2e-4 on a $142 price.
+RANGE_OVERLAP_REL_TOL = 0.02
+
 #: A ratio this large between two rows of the SAME session means the two
 #: rows live on different price scales - a reverse split, not a mid-session
 #: snapshot. CMG split 50:1 in October 2026: the pre-split rows carry a
-#: close of ~19,700 and the post-split rows ~27.52. The containment test
+#: close of ~19,700 and the post-split rows ~27.52. The range test
 #: cannot separate those (the "range" of a split series is meaningless),
 #: and the scale break is handled by ``app.lakehouse.scale_repair`` - which
 #: restates the history properly. This rule must stay out of that.
@@ -89,9 +121,11 @@ def forming_snapshot_reason(
 ) -> bool:
     """True when ``forming`` looks like a mid-session snapshot of ``settled``.
 
-    The test is the containment relation described in the module docstring:
-    the settled bar's range must contain the forming bar's range, the
-    settled volume must be larger, and the two closes must differ.
+    The test is the range relation described in the module docstring: the two
+    bars' ranges must OVERLAP, the settled volume must be larger, and the
+    two closes must differ. Containment is not required - a snapshot taken
+    before the session reached its extreme has a range the settled one does
+    not contain.
 
     Args:
         forming: the candidate stale row.
@@ -120,8 +154,32 @@ def forming_snapshot_reason(
     if pd.isna(f_volume) or pd.isna(s_volume):
         return False
 
-    # The settled range must contain the forming range.
-    if not (f_high <= s_high and f_low >= s_low):
+    # THE RANGE RELATION
+    # ------------------
+    # A session's high and low can only EXPAND as it runs, so the settled
+    # bar's range must CONTAIN the forming bar's range - with ONE exception:
+    # the snapshot may have been taken before the session reached its
+    # extreme, in which case the settled bar pokes out on that side.
+    #
+    # The measured case: CPB 2026-11-17 had `forming.high = 24.01` and
+    # `settled.high = 24.05` - the session went four cents higher after
+    # the snapshot, so containment failed on the high alone.
+    #
+    # So containment is required up to a small tolerance, and the tolerance
+    # is one-sided: the SETTLED bar may exceed the forming one (the session
+    # reached a new extreme after the snapshot), but the forming bar may
+    # NOT exceed the settled one by more than the tolerance. A forming bar
+    # whose range is WIDER than the settled one is impossible - the settled
+    # bar records everything the forming one saw and more.
+    #
+    # The tolerance also absorbs the float noise two different fetches of the
+    # same session produce: CHTR 2026-11-17 had `forming.high =
+    # 142.60020446777344` and `settled.high = 142.60000610351562`.
+    high_scale = max(abs(s_high), abs(f_high), 1e-9)
+    low_scale = max(abs(s_low), abs(f_low), 1e-9)
+    if f_high > s_high and (f_high - s_high) / high_scale > RANGE_OVERLAP_REL_TOL:
+        return False
+    if f_low < s_low and (s_low - f_low) / low_scale > RANGE_OVERLAP_REL_TOL:
         return False
 
     # The settled volume must be strictly larger: a session's traded volume
@@ -136,7 +194,7 @@ def forming_snapshot_reason(
 
     # A split inside the session puts the two rows on different price
     # scales. That is a corporate action, not a frozen snapshot, and the
-    # containment test cannot tell them apart - the "range" of a split
+    # range test cannot tell them apart - the "range" of a split
     # series means nothing. Leave it to the scale repair.
     if abs(f_close - s_close) / scale >= SCALE_BREAK_RATIO:
         return False

@@ -70,6 +70,22 @@ class Prediction(Base):
     source: Mapped[str] = mapped_column(String(32), nullable=False, default="auto_eod_batch")
     #: The layer the forecast's input data was read from.
     source_layer: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    #: How many trading sessions the newest Gold bar lags behind the
+    #: target session. 0 means the forecast was made on data that was
+    #: current up to the session right before the target; 1 means the
+    #: ingestion had missed one session; and so on.
+    #:
+    #: WHY THIS IS STORED
+    #: ------------------
+    #: A forecast made on stale data is still a valid forward forecast -
+    #: it was published before the target session happened - but the
+    #: reader has to be able to SEE how much history it actually rested
+    #: on. A silent skip is worse than a wrong number: the forecast
+    #: targets a session further away, and nothing on the row says so.
+    #:
+    #: A NULL means the row predates this column, so the lag was not
+    #: recorded. It is not "0" and not "unknown quality".
+    data_staleness_days: Mapped[int | None] = mapped_column(Integer, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), nullable=False)
 
     # ── The outcome of the forecast ─────────────────────────────────────

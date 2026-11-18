@@ -69,6 +69,89 @@ def session_date(timestamp: Any) -> Any:
         return None
 
 
+def staleness_days(gold: pd.DataFrame, target_session: Any) -> int | None:
+    """How many trading sessions the newest Gold bar lags behind the target.
+
+    WHY THIS IS MEASURED IN SESSIONS AND NOT IN CALENDAR DAYS
+    ----------------------------------------------------------
+    A calendar count says "three days late" on a Friday-to-Monday gap
+    where the ingestion was not late at all - the exchange was closed.
+    What the reader actually needs to know is how many TRADING sessions
+    of history are missing, because that is how much the market moved
+    without the model seeing it.
+
+    So the count walks the symbol's OWN trading calendar from the newest
+    bar to the target session, and counts the sessions in between.
+
+    THE RESULT
+    ----------
+    0
+        The newest bar is the session immediately before the target: the
+        forecast is a plain next-session forecast on current data.
+
+    1
+        One session is missing - the ingestion fell behind by a day.
+
+    None
+        The lag cannot be established - the frame has no timestamps, or
+        the target is not on the symbol's calendar. It means "not
+        measured", not "zero".
+    """
+    if gold is None or gold.empty or "timestamp" not in gold.columns:
+        return None
+    if target_session is None:
+        return None
+
+    try:
+        stamps = pd.to_datetime(gold["timestamp"], errors="coerce", utc=True)
+        stamps = stamps.dropna()
+        if stamps.empty:
+            return None
+        latest = stamps.max()
+        target = pd.Timestamp(target_session)
+        if target.tzinfo is None:
+            target = target.tz_localize("UTC")
+        target_day = target.date()
+        latest_day = latest.date()
+    except Exception:  # noqa: BLE001
+        return None
+
+    if target_day <= latest_day:
+        # The target is not ahead of the data - the caller is asking
+        # about a session that is already in the frame, so there is no
+        # lag to report.
+        return None
+
+    calendar = sessions.build_calendar(gold)
+    # Walk the symbol's own trading calendar from the newest bar towards
+    # the target, counting the sessions that lie BETWEEN them. A
+    # Friday-to-Monday gap is one session, not three days, because the
+    # exchange was closed.
+    #
+    # The count is the number of MISSING sessions: the sessions the
+    # market traded through while the ingestion had not caught up. The
+    # target itself is NOT counted - it is the session being predicted,
+    # not a session that was missed. So a current symbol, whose newest
+    # bar is the session right before the target, has a staleness of 0.
+    sessions_seen = 0
+    cursor = latest_day
+    for _ in range(sessions.MAX_SEARCH_DAYS):
+        nxt = calendar.next_sessions(
+            cursor,
+            1,
+            floor=cursor + pd.Timedelta(days=1),
+        )
+        if not nxt:
+            break
+        cursor = nxt[0]
+        if cursor >= target_day:
+            # Reached the target without passing it: no session was
+            # missed between the newest bar and the target.
+            break
+        sessions_seen += 1
+    return sessions_seen
+
+
 def future_series(
     symbol: str,
     model_name: str,
@@ -124,18 +207,23 @@ def next_point(
     point = series[0]
     reference = _reference_close(gold)
     predicted = float(point["predicted"])
+    target = session_date(point.get("timestamp"))
     return {
         "available": True,
         "symbol": symbol.upper(),
         "model_name": model_name,
         "timestamp": point.get("timestamp"),
-        "target_session": session_date(point.get("timestamp")),
+        "target_session": target,
         "reference_close": reference,
         "predicted_close": predicted,
         "predicted_return": (
             (predicted - reference) / reference if reference else None
         ),
         "horizon": horizon,
+        # How many trading sessions of history were missing when this
+        # forecast was made. 0 means the data was current. See
+        # `staleness_days` for why this is counted in sessions.
+        "data_staleness_days": staleness_days(gold, target),
     }
 
 
