@@ -18,8 +18,29 @@ export const STRATEGIES = [
   { id: "rsi_strategy", label: "RSI Strategy", hint: "RSI vượt 30/70 · mua/bán" },
 ] as const;
 
+/**
+ * The tickers carried by the market tape and by the dashboard watchlist.
+ *
+ * WHY A FIXED LIST AND NOT "THE FIRST N SYMBOLS": the tape is a watchlist,
+ * and a watchlist is a decision. Auto-picking from the lakehouse would make
+ * the strip jump around whenever the ingest set changes, and the user would
+ * lose the ability to recognise their ticker in the row. This list mixes
+ * the US heavyweights with a few Vietnamese names, because the lakehouse
+ * holds both markets and a strip that only shows one of them would make
+ * the app look like it cannot read anything else.
+ *
+ * WHY IT LIVES HERE AND NOT IN THE COMPONENT: the tape in the top bar and
+ * the watchlist panel on the dashboard are two views of one decision - "which
+ * names am I actually looking at". If they carried different lists, the two
+ * panels would disagree about what the user is tracking.
+ */
+export const WATCHLIST_SYMBOLS = [
+  "AAPL", "MSFT", "NVDA", "TSLA", "AMZN", "GOOGL", "META",
+  "FPT", "VCB", "VHM", "HPG", "MWG",
+] as const;
+
 export const DISCLAIMER =
-  "Kết quả chỉ phục vụ nghiên cứu học thuật, không phải khuyến nghị đầu tư.";
+  "Phân tích và dự báo mang tính tham khảo, không phải khuyến nghị đầu tư.";
 
 export const QUICK_PROMPTS = [
   { icon: "TA", label: "Phân tích kỹ thuật AAPL", prompt: "Phân tích kỹ thuật AAPL 3 tháng gần nhất" },

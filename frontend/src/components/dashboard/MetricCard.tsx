@@ -56,7 +56,7 @@ export function MetricCard({ label, value, delta, hint }: MetricCardProps) {
   }, [value]);
 
   return (
-    <div className="min-w-0 border-l border-hairline pl-4 first:border-l-0 first:pl-0">
+    <div className="group min-w-0 border-l border-hairline pl-4 transition-colors first:border-l-0 first:pl-0">
       <div className="label">{label}</div>
       <div
         className={cn(
@@ -85,7 +85,7 @@ export function MetricCard({ label, value, delta, hint }: MetricCardProps) {
             <span
               className={cn(
                 "inline-flex items-center gap-1 font-mono text-label font-medium tabular-nums",
-                trend === "up" && "text-primary",
+                trend === "up" && "text-up",
                 trend === "down" && "text-negative",
                 trend === "neutral" && "text-muted",
               )}

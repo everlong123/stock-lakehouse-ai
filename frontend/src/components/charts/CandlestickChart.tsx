@@ -1,10 +1,13 @@
-import { useMemo, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { OHLCVPoint } from "@/types/stock";
-import { isUsableNumber, formatPrice, formatVolume, shortDate, tradingDay } from "@/utils/format";
+import { isUsableNumber, formatPrice, formatVolume, tradingDay } from "@/utils/format";
+import { barPeriodLabel, type BarInterval } from "@/utils/resample";
+import { useI18n } from "@/lib/i18n";
 
 interface CandleProps {
   points: OHLCVPoint[];
   height?: number;
+  barInterval?: BarInterval;
   /**
    * ISO currency of the quoted prices.
    *
@@ -31,8 +34,15 @@ interface HoverInfo {
 /** A bar whose four prices are all finite numbers - safe to draw. */
 type ValidBar = OHLCVPoint & { open: number; high: number; low: number; close: number };
 
-export function CandlestickChart({ points, height = 320, currency }: CandleProps) {
+export function CandlestickChart({ points, height = 320, currency, barInterval = "1d" }: CandleProps) {
+  const { locale } = useI18n();
   const [hover, setHover] = useState<HoverInfo | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [containerWidth, setContainerWidth] = useState(640);
+
+  // A position from the old series must never label a new candle after a
+  // range or aggregation change.
+  useEffect(() => setHover(null), [points]);
 
   // Drop bars whose prices aren't finite, and de-duplicate by symbol+timestamp,
   // before they reach the scale math.
@@ -75,9 +85,22 @@ export function CandlestickChart({ points, height = 320, currency }: CandleProps
     return valid;
   }, [points]);
 
+  const hasBars = bars.length > 0;
+  useLayoutEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    const measure = () => setContainerWidth(Math.floor(container.getBoundingClientRect().width));
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, [hasBars]);
+
   const layout = useMemo(() => {
     if (!bars.length) return null;
-    const width = Math.max(640, bars.length * 8);
+    // Match the visible container for short series and scroll long series.
+    // CSS min-width alone enlarges the SVG canvas without moving its shapes.
+    const width = Math.max(320, containerWidth, bars.length * 8 + 50);
     const highs = bars.map((p) => p.high);
     const lows = bars.map((p) => p.low);
     const max = Math.max(...highs);
@@ -86,7 +109,7 @@ export function CandlestickChart({ points, height = 320, currency }: CandleProps
     // so a flat series still yields a usable span instead of NaN.
     const span = max > min ? max - min : 1;
     const pad = 24;
-    const chartH = height - pad * 2;
+    const chartH = height - pad - 42;
     const candleW = Math.max(4, Math.min(12, width / bars.length - 2));
 
     const y = (price: number) => pad + ((max - price) / span) * chartH;
@@ -98,21 +121,22 @@ export function CandlestickChart({ points, height = 320, currency }: CandleProps
     const gridPrices = gridYs.map((yPos) => max - ((yPos - pad) / chartH) * span);
     const slot = (width - 50) / bars.length;
     return { width, chartH, candleW, y, gridYs, gridPrices, slot };
-  }, [bars, height]);
+  }, [bars, height, containerWidth]);
 
   const dropped = points.length - bars.length;
 
   if (!layout) {
     return (
-      <div className="h-40 text-sm text-muted">
+      <div className="h-40 text-small text-muted">
         {points.length
-          ? `Không có nền nềo hợp lệ (${points.length} dòng dữ liệu lới).`
-          : "No chart data."}
+          ? (locale === "vi" ? `Không có nến hợp lệ (${points.length} dòng dữ liệu lỗi).` : `No valid candles (${points.length} invalid rows).`)
+          : (locale === "vi" ? "Không có dữ liệu biểu đồ." : "No chart data.")}
       </div>
     );
   }
 
   const { width, candleW, y, gridYs, gridPrices, slot } = layout;
+  const tickStep = Math.max(1, Math.ceil(110 / slot));
 
   // Snap hover index to nearest bar.
   const handleMove = (event: React.MouseEvent<SVGSVGElement>) => {
@@ -147,15 +171,15 @@ export function CandlestickChart({ points, height = 320, currency }: CandleProps
     hover && hover.x > width * 0.6 ? "left" : "right";
 
   return (
-    <div className="relative w-full overflow-x-auto">
+    <div ref={containerRef} className="relative w-full overflow-x-auto">
       <svg
         width={width}
         height={height}
-        className="min-w-full select-none"
+        className="select-none"
         onMouseMove={handleMove}
         onMouseLeave={handleLeave}
         role="img"
-        aria-label="Candlestick chart"
+        aria-label={locale === "vi" ? "Biểu đồ nến" : "Candlestick chart"}
       >
         {/* Grid */}
         {gridYs.map((yPos, i) => (
@@ -173,7 +197,7 @@ export function CandlestickChart({ points, height = 320, currency }: CandleProps
               y={yPos + 4}
               fontSize={12}
               fill="hsl(var(--muted))"
-              fontFamily="JetBrains Mono"
+              fontFamily='"IBM Plex Mono", monospace'
             >
               {gridPrices[i].toFixed(0)}
             </text>
@@ -184,7 +208,12 @@ export function CandlestickChart({ points, height = 320, currency }: CandleProps
         {bars.map((point, index) => {
           const x = 40 + (index + 0.5) * slot;
           const up = point.close >= point.open;
-          const color = up ? "hsl(var(--primary))" : "hsl(var(--negative))";
+          // WHY THE UP-CANDLE IS GREEN AND NOT THE ACCENT NAVY: the accent
+          // is the app's own voice (logo, active tab, primary button).
+          // Painting half the candles with it made "up" and "this is the
+          // app" the same colour. The direction pair is green/red, the
+          // convention every finance reader already has in their fingers.
+          const color = up ? "hsl(var(--up))" : "hsl(var(--negative))";
           const bodyTop = y(Math.max(point.open, point.close));
           const bodyBottom = y(Math.min(point.open, point.close));
           const bodyH = Math.max(1.5, bodyBottom - bodyTop);
@@ -207,10 +236,26 @@ export function CandlestickChart({ points, height = 320, currency }: CandleProps
                 fill={color}
                 rx={1}
                 opacity={hover && !isHover ? 0.55 : 1}
+                className="transition-opacity duration-150"
               />
             </g>
           );
         })}
+
+        {/* Date labels describe sessions; timestamps never imply hourly bars. */}
+        {bars.filter((_, index) => index % tickStep === 0).map((point, index) => (
+          <text
+            key={point.timestamp}
+            x={40 + (index * tickStep + 0.5) * slot}
+            y={height - 12}
+            textAnchor="middle"
+            fontSize={12}
+            fill="hsl(var(--muted))"
+            fontFamily='"IBM Plex Mono", monospace'
+          >
+            {tradingDay(point.timestamp)}
+          </text>
+        ))}
 
         {/* Crosshair (only when hovering) */}
         {hover ? (
@@ -219,7 +264,7 @@ export function CandlestickChart({ points, height = 320, currency }: CandleProps
               x1={hover.x}
               y1={24}
               x2={hover.x}
-              y2={height - 24}
+              y2={height - 42}
               stroke="hsl(var(--primary))"
               strokeWidth={1}
               strokeDasharray="2 3"
@@ -227,9 +272,9 @@ export function CandlestickChart({ points, height = 320, currency }: CandleProps
             />
             <line
               x1={40}
-              y1={hover.y}
-              x2={width}
               y2={hover.y}
+              x2={width}
+              y1={hover.y}
               stroke="hsl(var(--primary))"
               strokeWidth={1}
               strokeDasharray="2 3"
@@ -242,14 +287,14 @@ export function CandlestickChart({ points, height = 320, currency }: CandleProps
       {/* OHLCV tooltip */}
       {active && hover ? (
         <div
-          className="pointer-events-none absolute top-2 z-10 rounded border border-hairline bg-surface px-3 py-2 text-label"
+          className="pointer-events-none absolute top-2 z-10 rounded border border-hairline bg-surface px-3 py-2 text-label shadow-lg"
           style={{
             left: tooltipSide === "right" ? hover.x + 12 : hover.x - 200,
             minWidth: 180,
           }}
         >
           <div className="mb-1 font-mono text-label uppercase tracking-wider text-muted">
-            {shortDate(active.timestamp)}
+            {barPeriodLabel(active.timestamp, barInterval, locale)}
           </div>
           <OHLCVRow label="O" value={active.open} currency={currency} />
           <OHLCVRow label="H" value={active.high} tone="up" currency={currency} />
@@ -267,9 +312,9 @@ export function CandlestickChart({ points, height = 320, currency }: CandleProps
       {dropped > 0 ? (
         <p
           className="mt-1 text-right text-label text-muted"
-          title="Các dững không có OHLC hợp lệ được bỏ qua khi vị biểu dổ."
+          title={locale === "vi" ? "Các dòng trùng phiên hoặc không có OHLC hợp lệ được bỏ qua khi vẽ biểu đồ." : "Duplicate sessions and invalid OHLC rows are omitted."}
         >
-          ? {dropped} dòng lệi dữ đãn
+          {locale === "vi" ? `Đã bỏ qua ${dropped} dòng trùng hoặc lỗi dữ liệu` : `Omitted ${dropped} duplicate or invalid rows`}
         </p>
       ) : null}
     </div>
@@ -295,12 +340,12 @@ function OHLCVRow({
       <span
         className={
           tone === "up"
-            ? "text-primary"
+            ? "text-up"
             : tone === "down"
-            ? "text-negative"
-            : strong
-            ? "font-semibold text-ink"
-            : "text-ink"
+              ? "text-negative"
+              : strong
+                ? "font-semibold text-ink"
+                : "text-ink"
         }
       >
         {formatPrice(value, currency)}

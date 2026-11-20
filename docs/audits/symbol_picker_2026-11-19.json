@@ -1,0 +1,106 @@
+{
+  "checked_at": "2026-11-19T10:40:57.357496+00:00",
+  "catalog_count": 1005,
+  "unique_count": 1005,
+  "earlier_audit_count": 1002,
+  "added_since_audit": [
+    "^DJI",
+    "^GSPC",
+    "^IXIC"
+  ],
+  "removed_since_audit": [],
+  "cases": [
+    {
+      "symbol": "ZTS",
+      "catalog_position": 596,
+      "selected": "ZTS",
+      "meta": "ZTS",
+      "export": "/api/v1/stocks/ZTS/csv?interval=1d",
+      "archiveLabel": "ZTS · 1d",
+      "archiveRows": 253,
+      "candles": 253,
+      "duplicatePicker": false,
+      "duplicateFilter": false,
+      "headerSelects": 1,
+      "bounds": {
+        "left": 195.296875,
+        "right": 387.296875,
+        "width": 192,
+        "height": 36
+      },
+      "viewport": 1440,
+      "pageWidth": 1432,
+      "passed": true
+    },
+    {
+      "symbol": "VNM",
+      "catalog_position": 997,
+      "selected": "VNM",
+      "meta": "VNM",
+      "export": "/api/v1/stocks/VNM/csv?interval=1d",
+      "archiveLabel": "VNM · 1d",
+      "archiveRows": 259,
+      "candles": 259,
+      "duplicatePicker": false,
+      "duplicateFilter": false,
+      "headerSelects": 1,
+      "bounds": {
+        "left": 195.296875,
+        "right": 387.296875,
+        "width": 192,
+        "height": 36
+      },
+      "viewport": 1440,
+      "pageWidth": 1432,
+      "passed": true
+    },
+    {
+      "symbol": "^IXIC",
+      "catalog_position": 1005,
+      "selected": "^IXIC",
+      "meta": "^IXIC",
+      "export": "/api/v1/stocks/^IXIC/csv?interval=1d",
+      "archiveLabel": "^IXIC · 1d",
+      "archiveRows": 253,
+      "candles": 253,
+      "duplicatePicker": false,
+      "duplicateFilter": false,
+      "headerSelects": 1,
+      "bounds": {
+        "left": 195.296875,
+        "right": 387.296875,
+        "width": 192,
+        "height": 36
+      },
+      "viewport": 1440,
+      "pageWidth": 1432,
+      "passed": true
+    },
+    {
+      "symbol": "ZTS",
+      "catalog_position": 596,
+      "selected": "ZTS",
+      "meta": "ZTS",
+      "export": "/api/v1/stocks/ZTS/csv?interval=1d",
+      "archiveLabel": "ZTS · 1d",
+      "archiveRows": 253,
+      "candles": 253,
+      "duplicatePicker": false,
+      "duplicateFilter": false,
+      "headerSelects": 1,
+      "bounds": {
+        "left": 56,
+        "right": 256,
+        "width": 200,
+        "height": 36
+      },
+      "viewport": 390,
+      "pageWidth": 390,
+      "passed": true
+    }
+  ],
+  "desktop_screenshot": "docs\\audits\\symbol_picker_market_2026-11-19.png",
+  "mobile_screenshot": "docs\\audits\\symbol_picker_market_mobile_2026-11-19.png",
+  "runtime_exceptions": [],
+  "passed": true
+}

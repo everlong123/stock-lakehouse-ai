@@ -40,11 +40,11 @@ export function Explainer({
   const [open, setOpen] = useState(false);
 
   return (
-    <div className={cn("rounded border border-hairline bg-surface-2", className)}>
+    <div className={cn("rounded border border-hairline bg-surface-2/70", className)}>
       <button
         type="button"
         onClick={() => setOpen((value) => !value)}
-        className="flex w-full min-h-11 items-center justify-between gap-3 px-4 py-3 text-left"
+        className="flex w-full min-h-11 items-center justify-between gap-3 px-4 py-3 text-left transition-colors hover:bg-surface-2"
         aria-expanded={open}
       >
         <span className="flex items-center gap-2 text-small font-semibold text-ink">
@@ -53,12 +53,12 @@ export function Explainer({
         </span>
         <ChevronDown
           size={15}
-          className={cn("shrink-0 text-muted transition-transform", open && "rotate-180")}
+          className={cn("shrink-0 text-muted transition-transform duration-200", open && "rotate-180")}
         />
       </button>
 
       {open ? (
-        <div className="space-y-6 border-t border-hairline px-4 py-4 text-small">
+        <div className="animate-fade-in space-y-6 border-t border-hairline px-4 py-4 text-small">
           <p className="max-w-3xl text-muted">{intro}</p>
 
           <dl className="grid gap-x-8 gap-y-3 sm:grid-cols-2">

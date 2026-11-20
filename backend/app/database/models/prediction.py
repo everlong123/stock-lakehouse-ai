@@ -40,7 +40,7 @@ from __future__ import annotations
 
 from datetime import date, datetime
 
-from sqlalchemy import Date, DateTime, Float, Integer, String, func
+from sqlalchemy import Date, DateTime, Double, Integer, String, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.database.base import Base
@@ -56,14 +56,17 @@ class Prediction(Base):
     model_name: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
     #: The trading session this forecast is about.
     target_session: Mapped[date] = mapped_column(Date, nullable=False, index=True)
+    target_open_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    input_data_end: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    model_version: Mapped[str | None] = mapped_column(String(64), nullable=True)
     #: The last close the forecast was anchored on (the close of the session
     #: BEFORE the target session).
-    reference_close: Mapped[float | None] = mapped_column(Float, nullable=True)
-    predicted_close: Mapped[float] = mapped_column(Float, nullable=False)
+    reference_close: Mapped[float | None] = mapped_column(Double, nullable=True)
+    predicted_close: Mapped[float] = mapped_column(Double, nullable=False)
     #: ``(predicted_close - reference_close) / reference_close`` as a fraction
     #: (0.01 = +1%). Stored as a fraction, not a percentage, so it can be
     #: compared with the price series without a unit conversion.
-    predicted_return: Mapped[float | None] = mapped_column(Float, nullable=True)
+    predicted_return: Mapped[float | None] = mapped_column(Double, nullable=True)
     #: The horizon the model was asked for, in sessions.
     horizon: Mapped[int] = mapped_column(Integer, nullable=True, default=1)
     #: Where the forecast came from: ``auto_eod_batch`` or ``manual_api``.
@@ -92,13 +95,13 @@ class Prediction(Base):
     # All five are NULL until the target session has actually happened and
     # been ingested into Gold. The scoring pass fills them in.
     #: The real closing price of the target session, read from Gold.
-    actual_close: Mapped[float | None] = mapped_column(Float, nullable=True)
+    actual_close: Mapped[float | None] = mapped_column(Double, nullable=True)
     #: ``|predicted_close - actual_close|``, in the symbol's own price unit.
-    abs_error: Mapped[float | None] = mapped_column(Float, nullable=True)
+    abs_error: Mapped[float | None] = mapped_column(Double, nullable=True)
     #: The error as a FRACTION of the reference close (0.01 = 1%). Stored as
     #: a fraction so it can be compared across symbols with very different
     #: price scales without a unit conversion.
-    error_pct: Mapped[float | None] = mapped_column(Float, nullable=True)
+    error_pct: Mapped[float | None] = mapped_column(Double, nullable=True)
     #: 1 when the forecast and the actual move agree in direction, 0 when
     #: they disagree, NULL when the reference close is unavailable (the
     #: direction of a move is undefined without a starting point).

@@ -68,7 +68,7 @@ checks: list[tuple[str, str, str]] = []
 
 cur.execute("select count(*) from predictions")
 total = cur.fetchone()[0]
-checks.append((_fmt_thousands(total), "total predictions", "46.514"))
+checks.append((_fmt_thousands(total), "total predictions", "46.531"))
 
 cur.execute("select count(*) from predictions where actual_close is not null")
 scored = cur.fetchone()[0]
@@ -76,7 +76,7 @@ checks.append((_fmt_thousands(scored), "scored predictions", "46.487"))
 
 cur.execute("select count(distinct symbol) from predictions")
 nsym = cur.fetchone()[0]
-checks.append((str(nsym), "symbols predicted", "968"))
+checks.append((str(nsym), "symbols predicted", "974"))
 
 # The MAE the thesis quotes is the one computed over the rows that carry a
 # usable reference price. Rows without one cannot form a percentage error, so
@@ -111,7 +111,7 @@ checks.append((f"{_fmt_decimal(da * 100)}%", "directional accuracy", "50,60%"))
 
 cur.execute("select count(*) from agent_conversations")
 nconv = cur.fetchone()[0]
-checks.append((str(nconv), "agent conversations", "162"))
+checks.append((str(nconv), "agent conversations", "163"))
 
 conn.close()
 
@@ -126,16 +126,16 @@ for actual, what, doc_says in checks:
 # Every headline figure the thesis quotes must actually appear in the text.
 # A figure that lives only in this script is a figure no reader can check.
 QUOTED_FIGURES = (
-    "46.514",
+    "46.531",
     "46.487",
     "45.733",
     "337,61",
     "50,60%",
     "1.002",
     "3.687",
-    "597",
+    "603",
     "101",
-    "162",
+    "163",
 )
 for number in QUOTED_FIGURES:
     present = number in text
@@ -143,10 +143,10 @@ for number in QUOTED_FIGURES:
     print(f"{number:<14} {'present in doc':<24} {'':<16} {'OK' if present else 'MISSING'}")
 
 # The test-run duration quoted in the thesis must match the measured value.
-# Measured: 62s wall clock on the dev machine on 18/11/2026 (rounded to 62s in
+# Measured: 75s wall clock on the dev machine on 18/11/2026 (rounded to 75s in
 # the document). Update both places together whenever the suite runtime changes
 # materially.
-MEASURED_RUNTIME = 62
+MEASURED_RUNTIME = 75
 quoted = re.search(r"chạy trong \*\*(\d+) giây\*\*", text)
 if quoted:
     match = int(quoted.group(1)) == MEASURED_RUNTIME

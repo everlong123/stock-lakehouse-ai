@@ -3,7 +3,7 @@
 @tailwind utilities;
 
 /*
- * The design system.
+ * THE DESIGN SYSTEM
  * =====================================================================
  * Everything below obeys .cursor/rules/web-design-system.mdc:
  *
@@ -17,19 +17,61 @@
  * Both canvas and ink are shifted off pure white/black. A warm canvas with
  * cool ink is the classic accidental mismatch, so this picks one direction
  * and stays in it: cool.
+ *
+ * ─────────────────────────────────────────────────────────────────────────
+ * 2026-11-20 REDESIGN
+ *
+ * The single most important change is that the palette is now a SET OF
+ * THEMED ROLES rather than one fixed set of values. Every colour in the
+ * app resolves through a CSS custom property, and the properties are
+ * redefined under `[data-theme="dark"]`. That means:
+ *
+ *   - switching themes repaints the whole app in one style recalculation,
+ *     with no JavaScript touching a single component;
+ *   - every component keeps working unchanged across both themes, because
+ *     none of them hard-codes a colour;
+ *   - the charts (recharts) read `hsl(var(--primary))` and friends, so they
+ *     follow the theme for free;
+ *
+ * The accent moved from emerald to NAVY. The reason is not decoration: the
+ * previous emerald doubled as the brand colour AND the "brand green" a
+ * reader associates with a rising price, which made the two meanings
+ * indistinguishable on a candle chart. Navy has no such collision, so the
+ * direction pair could be freed up — green for up, red for down, the
+ * convention every finance reader already has in their fingers.
+ *
+ * Elevation is now a deliberate scale rather than "flat, except popovers".
+ * A dense data table is unreadable when every region is the same flat
+ * rectangle; the surfaces now step (canvas -> surface -> raised) so the
+ * eye can tell a panel from a table from a popover.
  */
 @layer base {
   :root {
-    /* ── Colour roles ────────────────────────────────────────────── */
-    --canvas:      220 20% 97%;   /* #F4F5F7 — page background        */
-    --surface:     220 33% 99%;   /* #FCFCFD — cards, panels          */
-    --surface-2:   220 16% 94%;   /* #EDEFF2 — recessed, table heads  */
-    --ink:         220 19% 9%;    /* #14161A — headings, body         */
-    --muted:       220 9% 42%;    /* #5F6672 — secondary text         */
-    --hairline:    220 20% 90%;   /* #E2E5EA — 1px borders           */
-    --primary:     158 60% 26%;   /* #1B6B4A — the one accent         */
-    --on-primary:  0 0% 100%;     /* #FFFFFF — text on primary        */
-    --negative:    4 62% 49%;     /* #C0392B — falling prices only    */
+    /* ── Colour roles · LIGHT ──────────────────────────────────────── */
+    --canvas:      222 24% 96%;   /* #F1F3F8 — page background         */
+    --surface:     222 33% 99.4%; /* #FCFDFF — cards, panels            */
+    --surface-2:   222 22% 94.5%; /* #EFF1F6 — recessed, table heads    */
+    --surface-3:   222 20% 91%;   /* #E4E8F0 — hover, active tint      */
+    --ink:         223 42% 11%;   /* #121828 — headings, body           */
+    --muted:       221 12% 42%;   /* #5C6578 — secondary text          */
+    --hairline:    222 20% 88%;   /* #DFE3EC — 1px borders             */
+    --primary:     226 68% 42%;   /* #2B4BC4 — the one accent          */
+    --primary-2:   228 66% 34%;   /* #1E37A6 — gradient end, hover      */
+    --on-primary:  0 0% 100%;     /* #FFFFFF — text on primary         */
+    --negative:    0 72% 48%;     /* #D92D20 — falling prices only     */
+    --up:          152 58% 34%;   /* #1F9D57 — rising prices only       */
+
+    /* ── Elevation scale ─────────────────────────────────────────────
+       Shadows are the one thing a flat design system cannot fake, and a
+       screen full of identical hairlines reads as a spreadsheet rather
+       than an application. Four steps, each one a small step up from the
+       surface it sits on. They are defined as variables so the DARK
+       theme can use deeper, softer shadows without touching a component. */
+    --shadow-xs:  0 1px 2px 0 rgb(18 24 40 / 0.04);
+    --shadow-sm:  0 1px 3px 0 rgb(18 24 40 / 0.07), 0 1px 2px -1px rgb(18 24 40 / 0.05);
+    --shadow-md:  0 4px 12px -2px rgb(18 24 40 / 0.09), 0 2px 5px -3px rgb(18 24 40 / 0.06);
+    --shadow-lg:  0 14px 32px -8px rgb(18 24 40 / 0.14), 0 4px 10px -4px rgb(18 24 40 / 0.07);
+    --shadow-popover: 0 16px 40px -10px rgb(18 24 40 / 0.22), 0 4px 10px -4px rgb(18 24 40 / 0.10);
 
     /* ── Type scale — five sizes, no more ───────────────────────── */
     --fs-display: 40px;
@@ -49,11 +91,60 @@
     --sp-16: 64px;
 
     /* ── Radii — one working radius, one pill ───────────────────── */
-    --radius:    6px;
+    --radius:    8px;
     --radius-pill: 9999px;
 
-    /* ── The single allowed shadow (true overlays only) ──────────── */
-    --shadow-popover: 0 8px 24px -6px rgb(20 22 26 / 0.18);
+    /* ── Motion ───────────────────────────────────────────────────
+       Three durations and two easings, and no more. A short UI
+       transition is 140ms; a state change that deserves attention is
+       220ms; a reveal is 320ms. Anything longer makes a data app feel
+       sluggish, because the reader is waiting for NUMBERS, not for
+       decoration. */
+    --dur-fast: 140ms;
+    --dur-mid: 220ms;
+    --dur-slow: 320ms;
+    --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+    --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+
+    color-scheme: light;
+  }
+
+  /*
+   * THE DARK THEME
+   * -------------
+   * Not an inversion: a re-palette. The accent gets LIGHTER in dark
+   * mode (a deep navy on a dark canvas is unreadable), the canvas gets
+   * a cool blue-black rather than pure black, and the direction colours
+   * get brighter so a red candle still reads against the background.
+   *
+   * The `up` colour is worth a note: on a dark canvas, a mid green
+   * disappears. It is lifted in lightness and saturation so "up" stays
+   * as loud as it is in light mode.
+   */
+  [data-theme="dark"] {
+    --canvas:      223 26% 7.5%;  /* #0B0E16 — page background        */
+    --surface:     223 22% 11%;   /* #141824 — cards, panels          */
+    --surface-2:   223 19% 14.5%; /* #1C2130 — recessed, table heads  */
+    --surface-3:   223 17% 19%;   /* #262C3D — hover, active tint     */
+    --ink:         220 30% 95%;   /* #F0F3FA — headings, body          */
+    --muted:       220 14% 66%;   /* #A2AABD — secondary text         */
+    --hairline:    223 16% 21%;   /* #2B3142 — 1px borders            */
+    --primary:     222 92% 68%;   /* #7FA8FF — the accent, lightened  */
+    --primary-2:   226 88% 60%;   /* #5C8BF5 — gradient end           */
+    --on-primary:  225 50% 9%;    /* #0C1224 — dark text on the accent*/
+    --negative:    0 84% 63%;     /* #FF6B5E — falling prices         */
+    --up:          150 62% 52%;   /* #3DD68C — rising prices          */
+
+    /* Dark surfaces need SHALLOWER, softer shadows: on a near-black
+       canvas a big dark shadow is invisible, so the depth comes from
+       the lighter border instead and the shadow only softens the edge. */
+    --shadow-xs:  0 1px 2px 0 rgb(0 0 0 / 0.30);
+    --shadow-sm:  0 1px 3px 0 rgb(0 0 0 / 0.36), 0 1px 2px -1px rgb(0 0 0 / 0.28);
+    --shadow-md:  0 4px 14px -2px rgb(0 0 0 / 0.44), 0 2px 6px -3px rgb(0 0 0 / 0.30);
+    --shadow-lg:  0 16px 36px -10px rgb(0 0 0 / 0.60), 0 4px 12px -4px rgb(0 0 0 / 0.40);
+    --shadow-popover: 0 20px 48px -12px rgb(0 0 0 / 0.70), 0 6px 14px -6px rgb(0 0 0 / 0.50);
+
+    color-scheme: dark;
   }
 
   *, *::before, *::after { box-sizing: border-box; }
@@ -70,6 +161,10 @@
     line-height: 1.5;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    /* A theme switch repaints every surface. Without this the switch
+       feels like a jump cut; with it the two palettes blend. */
+    transition: background-color var(--dur-mid) var(--ease-out),
+                color var(--dur-mid) var(--ease-out);
   }
 
   /* Headings get their own family and tighter tracking. This is what makes
@@ -88,7 +183,7 @@
   .font-mono, .tabular-nums { font-variant-numeric: tabular-nums; }
 
   ::selection {
-    background: hsl(var(--primary) / 0.16);
+    background: hsl(var(--primary) / 0.18);
     color: hsl(var(--ink));
   }
 
@@ -98,12 +193,22 @@
     background: hsl(var(--hairline));
     border-radius: 9999px;
   }
-  ::-webkit-scrollbar-thumb:hover { background: hsl(var(--muted) / 0.4); }
+  ::-webkit-scrollbar-thumb:hover { background: hsl(var(--muted) / 0.45); }
 
   :focus-visible {
     outline: 2px solid hsl(var(--primary));
     outline-offset: 2px;
     border-radius: 3px;
+  }
+
+  /*
+    Native form controls follow the theme. Without this a `<select>` in
+    dark mode renders a white dropdown with dark text - the single most
+    visible tell that a dark theme was bolted on afterwards.
+  */
+  select option {
+    background: hsl(var(--surface));
+    color: hsl(var(--ink));
   }
 }
 
@@ -119,6 +224,7 @@
      instead of a panel. */
   .panel {
     @apply rounded border border-hairline bg-surface;
+    box-shadow: var(--shadow-sm);
   }
 
   /* A recessed region: table heads, inactive strips, code blocks. */
@@ -131,7 +237,7 @@
     @apply flex flex-wrap items-end justify-between gap-4 border-b border-hairline pb-4;
   }
   .section-title {
-    @apply font-display text-heading text-ink;
+    @apply font-display text-body font-semibold text-ink;
   }
   .section-sub {
     @apply mt-1 text-small text-muted;
@@ -150,7 +256,23 @@
            focus-visible:ring-offset-2 focus-visible:ring-offset-canvas;
   }
   .btn-primary {
-    @apply bg-primary text-on-primary;
+    /* WHY A GRADIENT AND NOT A FLAT FILL: one flat navy rectangle reads
+       as a disabled button on a light canvas. A two-stop gradient of the
+       SAME hue (the accent and one step of it) gives the button a lit
+       surface without introducing a second colour. */
+    background-image: linear-gradient(
+      180deg,
+      hsl(var(--primary)) 0%,
+      hsl(var(--primary-2)) 100%
+    );
+    @apply text-on-primary;
+    box-shadow: var(--shadow-xs);
+    transition: filter var(--dur-fast) var(--ease-out),
+                box-shadow var(--dur-fast) var(--ease-out);
+  }
+  .btn-primary:hover:not(:disabled) {
+    filter: brightness(1.08);
+    box-shadow: var(--shadow-sm);
   }
   .btn-secondary {
     @apply bg-ink text-canvas;
@@ -191,26 +313,42 @@
     @apply bg-primary text-on-primary;
   }
 
-  /* ── Nav tab: a bordered button, not a bare link ────────────────────
-     WHY A BUTTON SHAPE: eight underlined links in a row read as a
+  /* ── Nav tab: a button shape, not a bare link ─────────────────────────
+     WHY A BUTTON SHAPE: seven underlined links in a row read as a
      sitemap. A reader has to hunt for the active one, and the hit area
-     is only as tall as the text. Wrapping each item in a 6px-radius
-     border with a 44px minimum height gives every destination a real
-     target, makes the active page obvious at a glance, and lets the
-     whole row stretch into one solid full-width band of navigation
-     instead of a small cluster floating in the middle of the page.
+     is only as tall as the text. Giving every destination a real
+     44px target makes the active page obvious at a glance.
+
+     WHY NO BORDER ON THE INACTIVE STATE: the bar carries three clusters
+     side by side, and drawing a box around every item would turn the row
+     into a wall of grey rectangles. The inactive state is a flat label
+     that lifts onto a recessed surface on hover.
+
+     WHY THE ACTIVE STATE IS A SOFT TINT, NOT A SOLID FILL: the symbol
+     picker and the active language chip in the header are already solid
+     `primary`. A third solid accent on the same screen would dilute the
+     first one, so the active tab takes the accent as a 10% tint with
+     primary text - still unmistakable, but a different weight.
+
+     WHY NO PRIMARY BORDER ON THE ACTIVE STATE: `primary` is allowed for
+     exactly one thing per surface. Spending it on the text AND the
+     background AND the border would be three claims on one accent, and
+     the border adds nothing the tint does not already say.
      ─────────────────────────────────────────────────────────────────── */
   .navtab {
     @apply inline-flex min-h-11 min-w-max items-center justify-center gap-2
-           whitespace-nowrap rounded border border-hairline bg-surface px-4
-           text-small font-medium text-muted transition-colors;
+           whitespace-nowrap rounded border border-transparent bg-transparent
+           px-3 text-small font-medium text-muted transition-colors;
   }
-  .navtab:hover { @apply border-ink/30 bg-surface-2 text-ink; }
-  .navtab:focus-visible { @apply outline-none border-primary text-ink; }
+  .navtab:hover { @apply bg-surface-2 text-ink; }
+  /* The global `:focus-visible` outline is inherited on purpose: a ring
+     would be a box-shadow, and the design system allows a shadow only on
+     true overlays. */
+  .navtab:focus-visible { @apply text-ink; }
   .navtab[aria-current="page"] {
-    @apply border-primary bg-primary text-on-primary;
+    @apply bg-primary/10 font-semibold text-primary;
   }
-  .navtab[aria-current="page"]:hover { @apply bg-primary text-on-primary; }
+  .navtab[aria-current="page"]:hover { @apply bg-primary/15 text-primary; }
 
   /* ── Status dot: green when live, muted when idle ─────────────────── */
   .dot {
@@ -269,6 +407,129 @@
     background-size: 200% 100%;
     animation: skeleton-shimmer 1.5s ease-in-out infinite;
   }
+
+  /* ── Denser rows ──────────────────────────────────────────────────
+     The session table can hold 2 500 rows. At 40px a row the reader
+     scrolls through a column of white space to find one number, so the
+     row drops to ~28px: less padding, the SAME 14px type. Nothing gets
+     smaller, only the air around it. */
+  .table tbody td {
+    @apply border-b border-hairline px-3 py-1 align-middle;
+  }
+  .table thead th {
+    @apply px-3 py-2;
+  }
+  .table tbody tr {
+    transition: background-color 120ms linear;
+  }
+
+  /* ── The nav underline ─────────────────────────────────────────────
+     The active tab carries a 2px accent rule that grows out from the
+     centre. It is a state change, not decoration, and it moves in the
+     same 160ms as the rest of the interface. */
+  .navtab {
+    position: relative;
+  }
+  .navtab::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    bottom: 0;
+    height: 2px;
+    width: 0;
+    background: hsl(var(--primary));
+    transform: translateX(-50%);
+    transition: width 160ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .navtab[aria-current="page"]::after {
+    width: calc(100% - 16px);
+  }
+
+  /* ── A long table paints only what is on screen ───────────────────
+     The browser can skip the layout and paint of the off-screen rows
+     with `content-visibility`. `contain-intrinsic-size` keeps the
+     scrollbar the right length while those rows are skipped. */
+  .cv-auto {
+    content-visibility: auto;
+    contain-intrinsic-size: auto 520px;
+  }
+
+  /* ── The live price flash ──────────────────────────────────────────
+     A price that just changed is the one thing on this screen that
+     moved since the reader last looked, so it says so: a brief tint in
+     the direction of the move. Two shades of the SAME direction colour
+     - never a new colour. */
+  .flash-up {
+    animation: flash-up 640ms ease-out;
+  }
+  .flash-down {
+    animation: flash-down 640ms ease-out;
+  }
+
+  /* ── The sparkline draws itself in ────────────────────────────────
+     A price line that appears fully drawn gives the reader no sense of
+     motion; one that draws from left to right in 700ms tells them the
+     series was just loaded. `pathLength="1"` normalises the dash maths
+     so the stroke length does not have to be measured in JS.
+
+     WHY `forwards`: without it the animation's final state is dropped
+     and the path falls back to its own `stroke-dashoffset: 1`, which
+     would leave the line INVISIBLE after the draw finished. */
+  .spark-draw {
+    animation: spark-draw 700ms cubic-bezier(0.33, 1, 0.68, 1) forwards;
+  }
+
+  /* ── The route fade ───────────────────────────────────────────────
+     One 180ms fade as the page settles in. Without it a route change
+     is an instant hard cut, which reads as a flash on a light canvas. */
+  .page-enter {
+    animation: page-enter 260ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  /* ── The glass bar ─────────────────────────────────────────────────
+     The header and the nav bar sit on top of scrolling content, so they
+     need to separate from it. A translucent surface plus a blur does
+     that without drawing a heavy border, and it is the one place in the
+     app where a backdrop filter is worth its cost: it is a fixed,
+     small area, and the browser caches the blurred result between
+     scrolls. */
+  .glass-bar {
+    background-color: hsl(var(--surface) / 0.82);
+    backdrop-filter: saturate(180%) blur(12px);
+    -webkit-backdrop-filter: saturate(180%) blur(12px);
+  }
+
+  /* ── The app background ───────────────────────────────────────────
+     A single, very faint radial wash of the accent behind the whole
+     page. It is what stops a large data screen from looking like a
+     spreadsheet: the canvas is no longer one flat colour, but it is
+     still one colour to the eye, and nothing casts a shadow over the
+     data. */
+  .app-canvas {
+    background:
+      radial-gradient(
+        1200px 600px at 12% -8%,
+        hsl(var(--primary) / 0.07) 0%,
+        transparent 60%
+      ),
+      radial-gradient(
+        1000px 500px at 92% 0%,
+        hsl(var(--primary) / 0.045) 0%,
+        transparent 55%
+      ),
+      hsl(var(--canvas));
+    background-attachment: fixed;
+  }
+
+  /* ── The hover lift ───────────────────────────────────────────────
+     The one "lift" in the system, and it is reserved for elements the
+     reader can actually press. A card that rises on hover is noise; a
+     ROW that a reader clicks, that darkens, is feedback. */
+  .pressable {
+    transition: background-color var(--dur-fast) var(--ease-out),
+                color var(--dur-fast) var(--ease-out),
+                border-color var(--dur-fast) var(--ease-out);
+  }
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -293,8 +554,50 @@
   to   { transform: translate3d(-50%, 0, 0); }
 }
 
+/* The price flash. The tint is a short wash over the number's own
+   colour, so the number stays the same hue it always was - only its
+   background changes, and only for a moment. */
+@keyframes flash-up {
+  0%   { background-color: hsl(var(--up) / 0.22); }
+  100% { background-color: transparent; }
+}
+@keyframes flash-down {
+  0%   { background-color: hsl(var(--negative) / 0.22); }
+  100% { background-color: transparent; }
+}
+
+@keyframes page-enter {
+  from { opacity: 0; transform: translate3d(0, 6px, 0); }
+  to   { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+
+/* The sparkline draws itself from left to right. `pathLength="1"` means
+   the dash maths is unitless, so the same keyframe works for a 56px
+   watchlist line and a 140px header line without measuring either. */
+@keyframes spark-draw {
+  from { stroke-dashoffset: 1; }
+  to   { stroke-dashoffset: 0; }
+}
+
+/* The theme crossfade. When the palette swaps, the two themes briefly
+   sit on top of each other and fade, so the switch reads as a dimmer
+   turning rather than a cut. */
+@keyframes theme-fade {
+  from { opacity: 0.55; }
+  to   { opacity: 1; }
+}
+
+.theme-fade {
+  animation: theme-fade var(--dur-slow) var(--ease-out);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .tape-track { animation: none; }
   .dot-live,
   .dot-warn  { animation: none; }
+  .flash-up,
+  .flash-down,
+  .page-enter { animation: none; }
+  .navtab::after { transition: none; }
+  .theme-fade { animation: none; }
 }

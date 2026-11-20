@@ -7,11 +7,11 @@ import { cn } from "@/lib/utils";
  *
  * WHY FOUR VARIANTS AND NOT SIX: the four cover every real case, and the
  * rule that matters is "one filled accent per view". `primary` is the
- * action; `secondary` is the alternative; `outline` is a quiet action in
- * a group; `text` is a tertiary link-ish action. A second `primary` on the
+ * action; `secondary` is the alternative; `outline` is a quiet action in a
+ * group; `text` is a tertiary link-ish action. A second `primary` on the
  * same screen dilutes the first one.
  *
- * No gradients, no shadows, one radius (6px).
+ * No gradients on the flat variants, one radius (8px).
  */
 const buttonVariants = cva(
   "btn focus-visible:outline-none",

@@ -1,0 +1,11 @@
+{
+  "trained": 0,
+  "training_skipped": 0,
+  "training_failed": 0,
+  "forecast": 1100,
+  "forecast_failed": 49,
+  "stored": 1100,
+  "scored": 20,
+  "elapsed_seconds": 545.77,
+  "errors": []
+}

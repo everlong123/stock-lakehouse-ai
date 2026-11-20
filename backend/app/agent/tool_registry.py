@@ -34,6 +34,7 @@ from app.agent.tools.stock_tools import (
     forecast_stock,
     ForecastInput,
     IndicatorInput,
+    MarketSummaryInput,
     run_backtest,
     StockQueryInput,
     get_market_summary,
@@ -80,7 +81,7 @@ TOOL_FUNCTIONS: dict[str, Callable[..., dict[str, Any]]] = {
 
 TOOL_MODELS = {
     "query_stock_data": StockQueryInput,
-    "get_market_summary": None,
+    "get_market_summary": MarketSummaryInput,
     "calculate_indicators": IndicatorInput,
     "forecast_stock": ForecastInput,
     "compare_models": CompareInput,
@@ -115,7 +116,7 @@ TOOL_DESCRIPTIONS = {
     "get_orderbook": "Lấy sổ lệnh (bid/ask) hiện tại cho một mã.",
     # System / project metadata tools (NEW)
     "get_symbols_info": "Trả về thống kê số mã hệ thống hỗ trợ (US, global, VN, crypto, indexes) kèm danh sách data providers. Dùng khi user hỏi 'có bao nhiêu mã?', 'track những mã nào?', 'có mã Việt Nam không?'.",
-    "get_trained_models": "Liệt kê các mô hình ML đã train trong hệ thống (linear_regression, arima, lstm, xgboost) kèm MAE/RMSE/MAPE/DA. Lọc theo symbol nếu cần. Dùng khi user hỏi 'đã train model nào?', 'model nào đã train cho VCB?'.",
+    "get_trained_models": "Liệt kê các mô hình ML đã train trong hệ thống (linear_regression, arima, lstm) kèm MAE/RMSE/MAPE/DA. Lọc theo symbol nếu cần. Dùng khi user hỏi 'đã train model nào?', 'model nào đã train cho VCB?'.",
     "get_system_architecture": "Mô tả kiến trúc runtime của hệ thống: Bronze/Silver/Gold, providers, tech stack (FastAPI/MinIO/MySQL), auto-refresh, danh sách 17 tool. Dùng khi user hỏi 'kiến trúc?', 'stack gì?', 'hệ thống gồm gì?'.",
     "get_storage_stats": "Thống kê số object + dung lượng từng bucket MinIO (bronze/silver/gold/models/backtests/fundamentals) + số symbol có dữ liệu thật ở mỗi layer. Dùng khi user hỏi 'MinIO có bao nhiêu file?', 'Bronze có dữ liệu chưa?'.",
 }

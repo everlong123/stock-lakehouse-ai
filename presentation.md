@@ -3,6 +3,9 @@
 
 ---
 
+> Các con số lịch sử trong bản nháp cần đối chiếu với báo cáo sửa lỗi 19/11/2026 trước khi đưa vào slide cuối. Không dùng kết quả full-fit cũ làm bằng chứng ngoài mẫu.
+
+
 > **Ghi chú cho em khi thuyết trình:** File này em viết theo tinh thần **"dạy một người chưa biết gì về công nghệ"**. Mọi thuật ngữ IT đều được giải thích bằng ví dụ đời thường. Em xưng "em", giọng văn trôi chảy nhưng chậm rãi, để thầy cô theo dõi được. Chương 2 là **"Từ điển cho người mới"** — em khuyến khích thầy cô đọc chương này trước khi vào phần kỹ thuật. Các chương sau sẽ tự nhiên hơn sau khi đã có nền.
 >
 > **Disclaimer:** Đây là prototype nghiên cứu học thuật. Em không giao dịch chứng khoán thật, không đặt lệnh mua bán, không cam kết lợi nhuận, không khẳng định LSTM là mô hình tốt nhất. Backtest chỉ đánh giá hiệu suất lịch sử giả định, không phải dự đoán tương lai.
@@ -50,10 +53,10 @@ Trước khi thầy cô cảm thấy "trời ơi toàn từ lạ", em xin phép 
 Để thầy cô hình dung rõ hơn, em xin nói 3 con số em tự hào nhất trong đồ án này:
 
 1. **Hệ thống chạy được 28/28 bài kiểm tra tự động** (tính đến ngày 30/09/2026).
-2. **Tổng cộng đã ingest được 917 mã chứng khoán** (từ Mỹ, Việt Nam, Nhật, Hàn, Đài Loan, Châu Âu...) với **~1,1 triệu dòng dữ liệu thật** mỗi ngày.
+2. **Tổng cộng đã ingest được 917 mã chứng khoán** (từ Mỹ, Việt Nam, Nhật, Hàn, Đài Loan, Châu Âu...) với **~1,1 triệu dòng lịch sử** trong snapshot được báo cáo; đây không phải lượng tăng thêm mỗi ngày.
 3. **Toàn bộ chạy miễn phí** trên một chiếc laptop thường — không cần server đắt tiền, không cần đăng ký dịch vụ trả phí.
 
-Tuy nhiên, vì thầy cô có thể là người **chưa quen với công nghệ thông tin**, em xin phép dành riêng chương tiếp theo để giải thích tất cả các thuật ngữ em sẽ dùng xuyên suốt bài. Thầy cô đọc chương 2 trước rồi quay lại đọc các chương sau sẽ dễ hiểu hơn rất nhiều ạ.
+Em sẽ giải thích ngắn gọn các thuật ngữ cần thiết khi trình bày; bảng thuật ngữ chi tiết đặt ở phần tra cứu để tham khảo khi cần.
 
 Em xin mời thầy cô sang chương 2.
 
@@ -263,7 +266,7 @@ stock-bronze/symbol=VCB/year=2024/month=03/part-001.parquet
 
 Muốn xem lại tháng 3/2024 thì mở đúng thư mục `month=03` là ra — không cần một "đồng hồ ngược" nào cả. Chi tiết ở mục 7.2.
 
-> **Ghi chú thành thật:** bản đầu đồ án dùng **Apache Iceberg** để làm tính năng "du hành thời gian" này. Ngày **10/11/2026** em đã gỡ Iceberg khỏi dự án; tính năng xem dữ liệu cũ giờ do **cách chia thư mục** đảm nhiệm, không cần catalog riêng.
+> **Ghi chú thành thật:** bản đầu đồ án dùng **Apache Iceberg** để làm tính năng "du hành thời gian" này. Ngày **10/11/2026** em đã gỡ Iceberg khỏi dự án; cách chia thư mục chỉ tổ chức dữ liệu theo mã/tháng, **chưa thay thế time-travel hay snapshot bảng**.
 
 ## U – URL
 

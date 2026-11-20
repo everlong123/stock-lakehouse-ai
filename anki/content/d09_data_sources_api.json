@@ -1,0 +1,107 @@
+{
+  "deck": "09-data-sources-api",
+  "notes": [
+    {
+      "term": "Những nhà cung cấp dữ liệu nào có trong hệ thống và phục vụ mục đích gì?",
+      "answer": "Năm provider, phân theo loại:\n\n**Không cần key**\n\n- **Yahoo Finance (HTTP v8)** - chủ lực: **958 ticker toàn cầu** (US + EU + JP + HK + KR + TW + CN + IN + BR + CA + AU + VN), 5 năm daily. Endpoint `v8/chart` trực tiếp.\n- **yfinance** (package Python) - US stocks + crypto + indexes, luôn có sẵn.\n- **SSI iBoard** - cổ phiếu VN (HOSE/HNX/UPCoM), public API.\n\n**Cần key miễn phí**\n\n- **Finnhub** - US stocks, bar ngày. Key lấy tại finnhub.io.\n- **Alpha Vantage** - fallback daily OHLCV. Key lấy tại alphavantage.co.\n\n**Khác**\n\n- **Stooq** - được loại khỏi chuỗi daily vì endpoint CSV công khai của họ **đã yêu cầu JS challenge** mà server-side script không giải được.\n\n> Chọn Yahoo HTTP làm chủ lựa là một quyết định dựa trên **độ phủ** (958 mã) chứ không phải trên việc nó nhanh nhất.",
+      "code": "backend/app/data_sources/factory.py",
+      "tags": "data sources yahoo finnhub alpha vantage ssi stooq providers"
+    },
+    {
+      "term": "Chuỗi failover của `multi_source` hoạt động thế nào?",
+      "answer": "`MultiSourceProvider` nhận một danh sách provider **có thứ tự**, thử lần lượt cho tới khi provider nào trả về dữ liệu **không rỗng**.\n\nChuỗi mặc định cho `1d`:\n\n```\nyahoo_http -> yfinance -> finnhub -> alpha_vantage -> web_scraper -> ssi_vn\n```\n\nVị trí đặc biệt của `ssi_vn`: nó là **phần tử cuối** và chỉ cứu các mà Yahoo **không mang** - ví dụ `VCS` (HOSE) 404 trên Yahoo kể cả với hậu tố `.VN`, nhưng SSI iBoard có. Provider được gọi bằng **mã trần** (không hậu tố) và ném `DataSourceError` cho mã nó không biết, nên chuỗi chỉ cần đi tiếp.\n\nChuỗi **khác nhau theo interval**, vì Finnhub Free giới hạn intraday lookback còn yfinance và HTTP provider trả được nhiều lịch sử hơn.\n\n> Failover chỉ hữu ích khi mỗi provider **thực sự bổ sung** cho provider trước. `ssi_vn` ở cuối là ví dụ đúng.",
+      "code": "backend/app/data_sources/multi_source.py:DEFAULT_CHAINS",
+      "tags": "failover chain multi source provider order interval"
+    },
+    {
+      "term": "Circuit breaker của multi_source chặn provider thế nào?",
+      "answer": "Cơ chế: một provider liên tục thất bại (key hết hạn, hết quota, endpoint bị gỡ) nếu không bị chặn sẽ trả **toàn bộ timeout** ở mỗi symbol. Với 958 symbol, điều đó chi phối cả lượt chạy.\n\nCơ chế:\n\n- `FAILURE_THRESHOLD = 3` lần thất bại liên tiếp -> provider bị bỏ qua.\n- `COOLDOWN_SECONDS = 900.0` (15 phút) -> sau đó được phép **thử một lần** (probe) để xem đã hồi phục chưa.\n\nĐiểm tinh tế quan trọng: **chỉ lỗi cấu hình/quota** mới được tính vào breaker. Một lỗi 404 cho một mã (ticker đã bị hủy niêm yết, sai hậu tố) là **vấn đề dữ liệu**, không phải vấn đề provider - symbol kế tiếp thường thành công. Nếu tính nhầm, breaker sẽ vô hiệu hoá một provider hoàn toàn khoẻ và làm fail cả những mã **có** dữ liệu.\n\nCác mẫu lỗi chí tử được nhận diện: `rate limit`, `requests per day`, `authentication failed`, `api key`, `premium plan`, `subscription`.\n\n> Circuit breaker mà không phân biệt loại lỗi là một circuit breaker **nguy hiểm** - nó tự tạo ra sự cạn kiệt mà nó sinh ra.",
+      "code": "backend/app/data_sources/multi_source.py:_is_fatal_provider_error",
+      "tags": "circuit breaker cooldown failure threshold provider health"
+    },
+    {
+      "term": "Vì sao mỗi provider có một interface chung `base.py`?",
+      "answer": "Để tầng trên không cần biết provider cụ thể nào đang được dùng.\n\nInterface (`app/data_sources/base.py`) định nghĩa các phương thức chung:\n\n- `get_historical_data(symbol, interval, start, end)` - lịch sử OHLCV.\n- Các provider khác: `get_quote`, `get_fundamentals`, `get_orderbook`, `get_market_index`...\n\nLợi ích trực tiếp:\n\n- `MultiSourceProvider` gọi được mọi provider qua **cùng một interface**.\n- Thêm provider mới = thêm một class, không sửa code của `multi_source` hay của pipeline.\n- `factory.py` chọn provider theo cấu hình `DATA_SOURCE`.\n\nĐây là mẫu **Strategy** - và ở đây nó có giá trị thực: nó biến \"provider nào đang chạy\" từ một quyết định kiến trúc thành một **cấu hình runtime**.\n\n> Khi một lớp trở thành điểm nối giữa nhiều phương án thay thế, nó cần một hợp đồng. Interface ở đây chính là hợp đồng đó.",
+      "code": "backend/app/data_sources/base.py",
+      "tags": "provider interface base strategy factory pluggable"
+    },
+    {
+      "term": "Các endpoint API chính của hệ thống gồm những gì?",
+      "answer": "Nhóm theo miền nghiệp vụ:\n\n**Hệ thống**\n\n- `GET /api/v1/health` - health check tổng.\n- `GET /api/v1/system/status` - trạng thái bronze/silver/gold + providers.\n\n**Dữ liệu thị trường**\n\n- `GET /api/v1/stocks/symbols` - danh sách symbol đã ingest.\n- `GET /api/v1/stocks/{symbol}?interval=1d&limit=500` - lịch sử OHLCV.\n- `GET /api/v1/stocks/{symbol}/latest` - bar mới nhất.\n- `GET /api/v1/stocks/{symbol}/indicators` - SMA/EMA/RSI/MACD/Bollinger.\n- `GET /api/v1/dashboard/{symbol}` - bundle data cho dashboard.\n\n**Dự báo**\n\n- `POST /api/v1/forecast/train` - train model (LR/ARIMA/LSTM).\n- `POST /api/v1/forecast/predict` - predict N-day.\n- `GET /api/v1/forecast/compare/{symbol}` - so sánh 3 model.\n- `GET /api/v1/forecast/next-session/{symbol}` - dự báo phiên mở tiếp theo.\n- `GET /api/v1/forecast/published/{symbol}` - dự báo hệ thống đã publish.\n\n**Backtest**\n\n- `POST /api/v1/backtests/run` - chạy 1 backtest.\n- `GET /api/v1/backtests/history` - lịch sử backtest.\n\n**Pipeline & Agent**\n\n- `POST /api/v1/pipeline/run` - chạy Bronze -> Silver -> Gold.\n- `POST /api/v1/agent/chat` - chat với AI Agent.\n\nĐầy đủ: http://127.0.0.1:8000/docs\n\n> Tất cả endpoint đều tuân theo tiền tố `/api/v1`, và mọi response dùng envelope `ok(...)` từ `app/schemas/common.py`.",
+      "code": "backend/app/api/v1/router.py",
+      "tags": "api endpoints rest list route version"
+    },
+    {
+      "term": "Envelope `ok()` của API trả về cấu trúc gì?",
+      "answer": "Mọi endpoint bọc kết quả trong `ok(result, message=...)` từ `app/schemas/common.py`.\n\nCấu trúc:\n\n- `success` (bool) - thành công hay không.\n- `data` - payload thật.\n- `message` - thông điệp cho người dùng.\n\nVí dụ thông điệp của `POST /forecast/train`:\n\n> \"Model trained on a chronological split. Metrics are not a profit guarantee.\"\n\nĐiểm thiết kế: **thông điệp luôn đi kèm dữ liệu**, chứ không nằm riêng. Người đọc response thấy giới hạn ngay tại chỗ con số xuất hiện.\n\nĐối lập với việc đặt disclaimer ở trang cuối tài liệu - nơi không ai đọc.\n\n> Một envelope thống nhất giúp frontend xử lý lỗi ở **một** chỗ, thay vì mỗi endpoint một kiểu.",
+      "code": "backend/app/schemas/common.py:ok",
+      "tags": "api envelope success data message schema"
+    },
+    {
+      "term": "Response của endpoint `stocks/{symbol}/latest` chứa những trường truy vết nào?",
+      "answer": "Ngoài dữ liệu bar (symbol, timestamp, open, high, low, close, volume), response phải có:\n\n- **`source_layer`** - tầng phục vụ dữ liệu: `gold`, `silver`, hoặc `bronze`.\n- **`source`** - nhà cung cấp thật đã sinh ra bar: `yahoo_http`, `finnhub_rest`, `ssi_vn`...\n\nĐây là **bằng chứng** dữ liệu thật, theo rule `no-fake-data`:\n\n> Nếu một response không có `source_layer`/`source` mà vẫn có số, hãy nghi ngờ ngay lập tức và truy ra nguồn.\n\nNgoài ra còn phải kiểm tra `source_layer` **khớp với tầng đang được bật** - đó là cách bắt dạng bịa \"số đúng nhưng sai nguồn\".\n\n> Hai trường văn bản nhỏ này biến một response từ \"tin không kiểm chứng\" thành \"dữ liệu có thể truy vết\".",
+      "code": "backend/app/api/v1/endpoints/stocks.py",
+      "tags": "api latest source_layer source provenance evidence"
+    },
+    {
+      "term": "Phân tầng API (service layer) trong dự án gồm những lớp nào?",
+      "answer": "Kiến trúc 3 tầng rõ ràng:\n\n**1. Endpoints** (`app/api/v1/endpoints/`) - xử lý HTTP: parse request qua Pydantic, gọi service, bọc `ok(...)`. Không chứa logic nghiệp vụ.\n\n**2. Services** (`app/services/`) - nghiệp vụ: `market_service`, `forecasting_service`, `backtest_service`, `dashboard_service`, `auto_refresh`, `forecast_scoring`, `next_session_forecast`, `universe_forecast`, `agent_service`, `quality_gate_service`.\n\n**3. Domain/Lakehouse** (`app/lakehouse/`, `app/forecasting/`, `app/backtesting/`, `app/indicators/`, `app/features/`) - logic lõi, không phụ thuộc HTTP.\n\nLợi ích đo được: `walk_forward.py` gọi trực tiếp `_load_symbol_frame()` từ `market_service` - tức backtest dùng **cùng** dữ liệu mà API phục vụ, nên backtest và dashboard không thể lệch nhau do đọc hai nguồn khác nhau.\n\n> Phân tầng không phải để đẹp. Nó là thứ cho phép một logic nghiệp vụ được **dùng lại** bởi HTTP, cron, và agent mà không bị nhân bản.",
+      "code": "backend/app/services/market_service.py",
+      "tags": "api layering endpoints services domain reuse consistency"
+    },
+    {
+      "term": "Dependency injection trong FastAPI của dự án hoạt động thế nào?",
+      "answer": "Dùng `Depends()` trong `app/api/dependencies.py`:\n\n- `get_db` - cấp SQLAlchemy `Session`.\n- `get_forecasting_service` - cấp `ForecastingService`.\n\nCách dùng trong endpoint:\n\n```python\n@router.post(\"/train\")\ndef train_forecast(\n    payload: TrainRequest,\n    db: Session | None = Depends(get_db),\n    service: ForecastingService = Depends(get_forecasting_service),\n) -> dict:\n    result = service.train(payload.model_dump(), db=db)\n    return ok(result, message=\"...\")\n```\n\nĐiểm đáng chú ý: `db: Session | None` - cấp **tùy chọn**. Vì hệ thống phải sống sót khi MySQL không chạy (đường lùi local storage), nên nhiều endpoint hoạt động **không cần** database và chỉ ghi metadata khi có.\n\nĐiều đó là nguyên tắc xuyên suốt: **sự phụ thuộc bên ngoài là tùy chọn ở đường đọc, bắt buộc ở đường ghi** - và khi không có, hệ thống nói rõ thay vì giả vờ.\n\n> Dependency injection ở đây không chỉ để test dễ. Nó làm cho câu hỏi \"điều gì xảy ra khi MySQL chết?\" trở thành một tham số có thể trả lời bằng code.",
+      "code": "backend/app/api/dependencies.py",
+      "tags": "fastapi dependency injection depends session optional db"
+    },
+    {
+      "term": "Vì sao `forecasting_service` chấp nhận `db: Session | None`?",
+      "answer": "Vì **đường đọc và đường ghi có yêu cầu khác nhau** về tính sẵn có của database.\n\n- **Đường đọc** (dự báo, so sánh model) phải hoạt động khi MySQL không chạy - nó đọc từ tầng Gold trên MinIO hoặc local.\n- **Đường ghi** (lưu dự báo vào sổ `predictions`) cần database, và nếu không có thì phải **báo lỗi rõ ràng** chứ không âm thầm bỏ qua.\n\nĐó là lý do `check_database_connection()` tồn tại và được dùng ở các endpoint như `GET /forecast/published/{symbol}`, trả về `reason: \"The database is unavailable.\"` thay vì lỗi 500 hoặc kết quả rỗng gây hiểu nhầm.\n\n> Phân biệt \"không có kết quả\" và \"không thể lấy kết quả\" là một phần của việc trả lời trung thực.",
+      "code": "backend/app/database/session.py:check_database_connection",
+      "tags": "database optional unavailable reason honest read write"
+    },
+    {
+      "term": "`market_service` có những trách nhiệm gì?",
+      "answer": "Lớp service chính cho dữ liệu thị trường:\n\n- **`_load_symbol_frame(symbol)`** - hàm **dùng chung** đọc frame của một symbol theo thứ tự ưu tiên **Gold -> Silver -> Bronze**, trả về `(frame, source_layer)`. Đây là hàm mà walk-forward và nhiều endpoint khác gọi, nên tất cả đều thấy cùng một dữ liệu.\n- Cung cấp bar mới nhất (`latest`).\n- Cung cấp lịch sử theo khoảng ngày và interval.\n- Cung cấp chỉ báo.\n- Hỗ trợ resample để phục vụ các interval khác daily.\n\nNguyên tắc thiết kế: **thứ tự ưu tiên Gold -> Silver -> Bronze** phản ánh chất lượng dữ liệu tăng dần. Nếu Gold có symbol thì dùng Gold; không có thì lùi xuống Silver, rồi Bronze - và **báo rõ** tầng nào đang phục vụ.\n\n> Một hàm đọc dùng chung, được mọi consumer gọi, là cách bảo đảm \"số trên dashboard\" và \"số trong backtest\" không thể lệch nhau.",
+      "code": "backend/app/services/market_service.py:_load_symbol_frame",
+      "tags": "market service load frame gold silver bronze priority"
+    },
+    {
+      "term": "Provider dữ liệu cơ bản (fundamental) lấy dữ liệu từ đâu?",
+      "answer": "`enhanced_fundamental_provider.py` lấy dữ liệu tài chính từ provider nâng cao và đưa vào tầng **Silver riêng** cho fundamentals (`fundamentals_silver.py`), bucket `stock-fundamentals`.\n\nCác nhóm chỉ số được phục vụ:\n\n- **Định giá** - P/E, P/B, P/S, EV/EBITDA.\n- **Hiệu quả** - ROE, ROA, biên lợi nhuận ròng, biên lợi nhuận hoạt động.\n- **Tăng trưởng** - doanh thu, lợi nhuận theo quý/năm.\n- **Báo cáo** - bảng thu nhập, bảng cân đối, báo cáo lưu chuyển tiền tệ.\n\nTool agent tương ứng: `get_fundamental_metrics`, `get_income_statement`, `get_balance_sheet`, `get_cash_flow`.\n\nĐiểm cần nhớ về dữ liệu cơ bản: nó có **độ trễ** và **định kỳ sửa lại** (nhà cung cấp thường đính chính báo cáo cũ). Nên nó không được dùng để dự báo giá theo ngày, mà để **bổ sung ngữ cảnh** cho dữ liệu giá.\n\n> Dữ liệu cơ bản và dữ liệu giá có nhịp thời gian khác nhau. Nhét chúng vào cùng một mô hình dự báo mà không xử lý là sai về mặt phương pháp.",
+      "code": "backend/app/data_sources/enhanced_fundamental_provider.py",
+      "tags": "fundamental provider valuation roe financial statements lag"
+    },
+    {
+      "term": "Macro features được đưa vào Gold như thế nào?",
+      "answer": "`features/macro_features.py` lấy dữ liệu vĩ mô từ `macro_provider.py` và **đóng vào cùng frame** với dữ liệu giá.\n\nCơ chế: chỉ số vĩ mô (lãi suất, CPI, GDP, chính sách tiền tệ) được **forward-fill** theo lịch giao dịch của mã, để mỗi phiên giá có một hàng chỉ số vĩ mô tương ứng.\n\nVì sao quan trọng: giá cổ phiếu phản ứng với bối cảnh vĩ mô. Nhưng có một cạm bẫy kinh điển: **mốc thời gian phát hành**. CPI tháng 3 được công bố giữa tháng 4 - nếu gán CPI tháng 3 vào các phiên của tháng 3, đó là **look-ahead leakage**.\n\nĐây là lý do `macro_provider.py` (16 KB) tồn tại như một module riêng: nó phải xử lý **publication lag**, không chỉ lấy số.\n\n> Vĩ mô là chỉ báo có giá trị nhất và cũng dễ rò rỉ nhất. Chỉ số phát hành muộn là một trong những nguồn rò rỉ phổ biến nhất trong mô hình tài chính.",
+      "code": "backend/app/features/macro_features.py",
+      "tags": "macro features forward fill publication lag leakage"
+    },
+    {
+      "term": "Order book provider cung cấp gì và dùng cho mục đích nào?",
+      "answer": "`orderbook_provider.py` lấy **sổ lệnh** (bid/ask) hiện tại: các mức giá mua và bán đang chờ, cùng khối lượng.\n\nMức sử dụng trong hệ thống:\n\n- Tool agent `get_orderbook`.\n- Bổ sung ngữ cảnh cho dữ liệu giá: **độ sâu thị trường** cho biết thanh khoản thực sự tồn tại ở mức giá hiện tại.\n\nGiới hạn kiến trúc quan trọng: đường realtime đã bị gỡ ngày 11/11/2026, nên dữ liệu sổ lệnh được lấy theo **yêu cầu** (REST), không phải theo dòng. Vì vậy nó là ảnh chụp **một thời điểm**, không phải chuỗi lịch sử.\n\n> Vì vậy sổ lệnh **không** được dùng làm đặc trưng cho mô hình dự báo theo ngày - nó không có lịch sử để train trên. Nó là công cụ **truy vấn**, không phải công cụ **huấn luyện**.",
+      "code": "backend/app/data_sources/orderbook_provider.py",
+      "tags": "orderbook bid ask snapshot liquidity rest realtime removed"
+    },
+    {
+      "term": "Vì sao `web_scraper_provider` tồn tại khi đã có 5 provider khác?",
+      "answer": "Vì nó là **lưới an toàn cuối cùng** trong chuỗi failover.\n\nChuỗi: `yahoo_http -> yfinance -> finnhub -> alpha_vantage -> web_scraper -> ssi_vn`.\n\nNếu tất cả provider có key đều hết quota (chuyện xảy ra thường xuyên với free tier), `web_scraper` vẫn có thể lấy được dữ liệu bằng cách quét trực tiếp trang web của sàn.\n\nĐánh đổi: nó **chậm hơn** và **kém ổn định hơn** các API chính thức. Đó là lý do nó đứng thứ 5 chứ không phải đầu tiên.\n\nSau nó là `ssi_vn` - không phải vì SSI tệ, mà vì nó phục vụ **một tập mã khác** (cổ phiếu VN mà Yahoo không mang), và nó là chuyên gia cho tập đó.\n\n> Chuỗi failover tốt không phải chuỗi \"tốt nhất đến kém nhất\" - đó là chuỗi **phủ mọi lỗ hổng** mà chuỗi trước đó để lại.",
+      "code": "backend/app/data_sources/web_scraper_provider.py",
+      "tags": "web scraper fallback last resort quota exhausted robustness"
+    },
+    {
+      "term": "`time_utils.py` trong data_sources giải quyết vấn đề gì?",
+      "answer": "Nó chuẩn hoá việc xử lý **múi giờ** khi làm việc với nhiều sàn và nhiều provider.\n\nVấn đề: mỗi provider dùng quy ước timestamp riêng - Yahoo dùng múi giờ sàn, Finnhub dùng UTC, SSI dùng giờ địa phương VN. Và ngày giao dịch của một sàn ở UTC có thể thuộc về ngày khác.\n\nModule này tập trung hoá các phép chuyển đổi để mọi provider trả về timestamp theo **cùng một quy ước**, và việc trích xuất ngày giao dịch được xử lý ở một chỗ (`exchange_timezone.py`, `session_day_of`).\n\n> Múi giờ là loại lỗi rẻ nhất để bỏ sót và đắt nhất để trả giá. Mỗi module tập trung hoá một mốc thời gian là một lớp phòng vệ.",
+      "code": "backend/app/data_sources/time_utils.py",
+      "tags": "time utils timezone normalization provider consistency"
+    },
+    {
+      "term": "Vì sao Stooq bị loại khỏi chuỗi daily?",
+      "answer": "Vì endpoint CSV công khai của Stooq **nay yêu cầu JS challenge** mà một script server-side không thể giải.\n\nĐây là một ví dụ về việc một provider **trở nên không dùng được** mà không có bất kỳ thay đổi nào trong API của bạn.\n\nQuyết định được ghi rõ trong source code của `multi_source.py`, không phải chỉ là bỏ khỏi danh sách. Vì vậy người đọc code hiểu **vì sao** Stooq không có trong chuỗi - và không ai thử thêm lại nó một cách mù quáng.\n\n> Ghi lại lý do loại trừ là một dạng tài liệu. Danh sách provider không giải thích lý do là một danh sách bí mật.",
+      "code": "backend/app/data_sources/multi_source.py:DEFAULT_CHAINS",
+      "tags": "stooq excluded js challenge provider rationale documented"
+    }
+  ]
+}

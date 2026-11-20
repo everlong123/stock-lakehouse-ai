@@ -11,7 +11,7 @@ from app.core.constants import LINEAR_REGRESSION_FEATURES, LSTM_FEATURE_COLUMNS
 from app.core.exceptions import PredictionError
 from app.core.logging_config import get_logger
 from app.forecasting import light_forecast
-from app.forecasting.model_registry import load_model, load_registry_record, model_directory
+from app.forecasting.model_registry import load_model, load_evaluation_model, load_registry_record, model_directory
 from app.forecasting.multistep import holdout_history
 from app.lakehouse.gold import GoldLayer
 
@@ -62,10 +62,10 @@ Day la cong cu phan tich, khong phai tu van tai chinh chuyen nghiep.
 GENERAL_DISCLAIMER = """
 MUC DICH SU DUNG
 
-He thong Stock Lakehouse AI duoc phat trien cho muc dich:
-- Nghien cuu hoc thuat ve tai chinh dinh luong
-- Hoc tap ve xay dung he thong du lieu (Lakehouse architecture)
-- Demo cac ky thuat ML/AI trong linh vuc chung khoan
+StockVision AI ho tro:
+- Tra cuu du lieu va phan tich thi truong chung khoan
+- Du bao gia bang cac mo hinh thong ke va hoc may
+- Danh gia chien luoc tren du lieu lich su
 
 Moi noi dung mang tinh THAM KHAO, KHONG phai loi khuyen dau tu.
 """
@@ -89,11 +89,18 @@ def _arima_history(
     test_start = _arima_test_start(registry)
     if test_start is None:
         return []
+    fitted = registry.get("evaluation_fitted_through") or registry.get("train_end")
+    if fitted:
+        context = gold[(gold["timestamp"] > pd.to_datetime(fitted, utc=True)) & (gold["timestamp"] < test_start)]
+        if not context.empty:
+            model.extend(context["close"].to_numpy(dtype=float))
     holdout = gold[gold["timestamp"] >= test_start]
     if holdout.empty:
         return []
     # Cap the walk-forward to the most recent sessions.
     if len(holdout) > limit:
+        context = holdout.iloc[:-limit]
+        model.extend(context["close"].to_numpy(dtype=float))
         holdout = holdout.iloc[-limit:]
 
     try:
@@ -103,6 +110,7 @@ def _arima_history(
         return []
 
     actual = pd.to_numeric(holdout["close"], errors="coerce").to_numpy(dtype=float)
+    previous = pd.to_numeric(gold["close"], errors="coerce").shift(1).loc[holdout.index].to_numpy(dtype=float)
     timestamps = holdout["timestamp"].to_numpy()
     n = min(len(predictions), len(actual))
     points: list[dict[str, Any]] = []
@@ -114,6 +122,7 @@ def _arima_history(
                 "timestamp": str(timestamps[i]),
                 "actual": float(actual[i]),
                 "predicted": float(predictions[i]),
+                "reference_close": float(previous[i]),
             }
         )
     return points
@@ -121,7 +130,7 @@ def _arima_history(
 
 def _arima_test_start(registry: dict[str, Any]) -> pd.Timestamp | None:
     """The first session of the hold-out split the model was scored on."""
-    value = registry.get("test_start")
+    value = registry.get("test_target_start") or registry.get("test_start")
     if not value:
         return None
     try:
@@ -147,8 +156,8 @@ def _holdout_window(registry: dict[str, Any]) -> tuple[pd.Timestamp | None, pd.T
         return None if pd.isna(ts) else ts
 
     return (
-        _parse(registry.get("test_start")),
-        _parse(registry.get("test_end")),
+        _parse(registry.get("test_target_start") or registry.get("test_start")),
+        _parse(registry.get("test_target_end") or registry.get("test_end")),
     )
 
 
@@ -184,8 +193,12 @@ def predict_symbol(symbol: str, model_name: str, horizon: int = 5) -> dict[str, 
     forecast is generated for the future, and the stored parquet is used
     only as a fallback when the live Gold data cannot serve the request.
     """
-    model = load_model(symbol, model_name)
     registry = load_registry_record(symbol, model_name)
+    try:
+        model = load_evaluation_model(symbol, model_name)
+    except Exception as exc:
+        logger.warning("No independent historical model for %s/%s: %s", symbol, model_name, exc)
+        model = None
     gold = GoldLayer().read(symbol)
     if gold.empty:
         # Fallback: build Gold from MarketService when Bronze is empty
@@ -216,7 +229,7 @@ def predict_symbol(symbol: str, model_name: str, horizon: int = 5) -> dict[str, 
         # it in. It has to be walked over the FULL hold-out split (the
         # state-space update is sequential), and only the most recent
         # sessions are kept for the chart.
-        history = _arima_history(model, gold_sorted, registry)
+        history = _arima_history(model, gold_sorted, registry) if model is not None else []
 
         # The forward projection is produced by the SHARED light path, so
         # the chart and the nightly batch cannot disagree about what the
@@ -232,17 +245,23 @@ def predict_symbol(symbol: str, model_name: str, horizon: int = 5) -> dict[str, 
         # MAE shown above it describe the same rows. The split boundaries
         # are read back from the registry record the trainer wrote.
         window = _holdout_window(registry)
-        history = holdout_history(model, gold, model_name, window=window)
+        history = holdout_history(model, gold, model_name, window=window) if model is not None else []
         # The forward projection comes from the SAME shared routine the
         # nightly batch uses - one implementation, two callers, no chance
         # of the chart and the batch reporting different numbers.
         future = light_forecast.future_series(symbol, model_name, gold, horizon=horizon)
 
+    forecast_reason = None
+    if future:
+        lag = light_forecast.staleness_days(gold, light_forecast.session_date(future[0]["timestamp"], symbol))
+        if lag is not None and lag > 0:
+            forecast_reason = f"Input data is {lag} trading session(s) behind. Refresh before forecasting."
+            future = []
     points: list[dict[str, Any]] = [*history, *future]
 
     # Fallback: if the live path produced nothing (no usable Gold rows),
     # serve the parquet written at training time so the chart is not empty.
-    if not points:
+    if not points and model is not None:
         directory = model_directory(symbol, model_name)
         stored = directory / "predictions.parquet"
         if stored.exists():
@@ -275,6 +294,9 @@ def predict_symbol(symbol: str, model_name: str, horizon: int = 5) -> dict[str, 
         "directional_accuracy": registry.get("directional_accuracy"),
     }
     metrics_source = "training_split"
+    if model is None:
+        metrics = {key: None for key in metrics}
+        metrics_source = "unavailable_independent_evaluation"
     if history:
         recomputed = _score_history(history)
         if recomputed is not None:
@@ -288,6 +310,8 @@ def predict_symbol(symbol: str, model_name: str, horizon: int = 5) -> dict[str, 
         "metrics": metrics,
         "metrics_source": metrics_source,
         "parameters": registry.get("parameters"),
+        "forecast_available": bool(future),
+        "forecast_reason": forecast_reason,
         "predictions": points,
         "disclaimer": FORECAST_DISCLAIMER,
     }
@@ -305,7 +329,11 @@ def _score_history(history: list[dict[str, Any]]) -> dict[str, Any] | None:
         from app.forecasting.evaluator import evaluate_forecast
 
         # The previous close is the close before the session being scored.
-        previous = np.concatenate([[actual[0]], actual[:-1]])
+        observed = [p for p in history if p.get("actual") is not None]
+        previous = np.array([
+            p.get("reference_close", actual[i - 1] if i else np.nan)
+            for i, p in enumerate(observed)
+        ], dtype=float)
         scored = evaluate_forecast(actual, predicted, previous)
         return {
             "mae": scored["mae"],

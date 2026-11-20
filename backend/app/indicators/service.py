@@ -73,11 +73,38 @@ def add_indicators(frame: pd.DataFrame, config: IndicatorConfig | None = None) -
     return result
 
 
-def describe_indicators(latest: pd.Series) -> dict[str, str]:
-    """Return a descriptive (non-advisory) summary of the latest indicator snapshot."""
-    trend = "insufficient data"
-    momentum = "insufficient data"
-    volatility = "insufficient data"
+# ── Indicator summary ─────────────────────────────────────────────────────
+#
+# WHY THE SUMMARY IS A SET OF FACTS AND NOT A PARAGRAPH
+# ----------------------------------------------------
+# The frontend renders this summary in the reader's language (Vietnamese or
+# English), and the same sentence has to be translated into both. If the
+# backend wrote the prose, the English text would be baked in and the
+# Vietnamese UI would show an English paragraph — which is what happened
+# before this change.
+#
+# So the backend reports the FACTS it observed, as stable machine-readable
+# keys plus the numbers they refer to, and the frontend turns them into a
+# sentence in the active locale. The numbers are still computed here, from
+# the same real snapshot, so nothing about the measurement moves to the
+# client.
+#
+# The keys are part of the API contract: `describe_indicators` returns
+# `{"trend": {"code": ..., "width": ...}, ...}`.
+
+
+def describe_indicators(latest: pd.Series) -> dict[str, dict]:
+    """Return the descriptive (non-advisory) facts about the latest snapshot.
+
+    Each of the three groups ("trend", "momentum", "volatility") carries a
+    ``code`` naming the observation and the numbers it rests on. The code
+    set is closed:
+
+    trend:     ``uptrend`` | ``downtrend`` | ``mixed`` | ``insufficient``
+    momentum:  ``rsi_elevated`` | ``rsi_depressed`` | ``rsi_mid`` | ``insufficient``
+    volatility:``bb_above`` | ``bb_below`` | ``bb_inside`` | ``insufficient``
+    """
+    insufficient = {"code": "insufficient"}
     close = _scalar(latest.get("close"))
     sma20 = _scalar(latest.get("sma_20"))
     sma50 = _scalar(latest.get("sma_50"))
@@ -85,29 +112,32 @@ def describe_indicators(latest: pd.Series) -> dict[str, str]:
     bb_upper = _scalar(latest.get("bb_upper"))
     bb_lower = _scalar(latest.get("bb_lower"))
 
+    trend: dict[str, object] = dict(insufficient)
     if close is not None and sma20 is not None and sma50 is not None:
         if close > sma20 > sma50:
-            trend = "Price is above SMA20 and SMA20 is above SMA50 (uptrend structure)."
+            trend = {"code": "uptrend"}
         elif close < sma20 < sma50:
-            trend = "Price is below SMA20 and SMA20 is below SMA50 (downtrend structure)."
+            trend = {"code": "downtrend"}
         else:
-            trend = "Moving averages are mixed; no dominant trend structure."
+            trend = {"code": "mixed"}
 
+    momentum: dict[str, object] = dict(insufficient)
     if rsi_value is not None:
         if rsi_value >= 70:
-            momentum = f"RSI is {rsi_value:.2f}, in the historically elevated zone."
+            momentum = {"code": "rsi_elevated", "rsi": round(rsi_value, 2)}
         elif rsi_value <= 30:
-            momentum = f"RSI is {rsi_value:.2f}, in the historically depressed zone."
+            momentum = {"code": "rsi_depressed", "rsi": round(rsi_value, 2)}
         else:
-            momentum = f"RSI is {rsi_value:.2f}, in a mid-range zone."
+            momentum = {"code": "rsi_mid", "rsi": round(rsi_value, 2)}
 
+    volatility: dict[str, object] = dict(insufficient)
     if close is not None and bb_upper is not None and bb_lower is not None:
         width = bb_upper - bb_lower
         if close > bb_upper:
-            volatility = "Close is above the upper Bollinger Band (expanded deviation)."
+            volatility = {"code": "bb_above", "width": round(width, 2)}
         elif close < bb_lower:
-            volatility = "Close is below the lower Bollinger Band (expanded deviation)."
+            volatility = {"code": "bb_below", "width": round(width, 2)}
         else:
-            volatility = f"Close is inside the Bollinger Band. Band width is {width:.2f}."
+            volatility = {"code": "bb_inside", "width": round(width, 2)}
 
     return {"trend": trend, "momentum": momentum, "volatility": volatility}

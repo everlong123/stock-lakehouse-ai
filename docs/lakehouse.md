@@ -18,9 +18,9 @@ STORAGE_BACKEND=minio   # hoặc "local"
 
 | Lý do | Giải thích đời thường |
 |---|---|
-| **Ít một bản sao dữ liệu** | Iceberg catalog lưu thêm metadata và file manifest cho **cùng một dữ liệu** mà Parquet đã lưu. Ở khối lượng dữ liệu hiện tại (~10^5 partition), phần metadata thừa đó không mang lại lợi ích gì thêm. |
+| **Giảm thành phần vận hành** | Bản prototype hiện dùng Parquet trực tiếp, chấp nhận thiếu giao dịch bảng và snapshot. Metadata/manifest của Iceberg không phải bản sao toàn bộ dữ liệu; đó là phần cung cấp các bảo đảm mà triển khai hiện tại chưa có. |
 | **Ít một JVM phải vận hành** | `iceberg-rest` là một container Java. Mỗi JVM là một thứ phải giám sát, phải cấp RAM, phải khởi động lại khi chết. Bỏ nó đi là bỏ một nguồn lỗi. |
-| **Chỉ cần ghi, không cần sửa/xoá** | Iceberg mạnh ở cập nhật và xoá từng dòng trên object storage. Lakehouse này **append-only**: Bronze không bao giờ bị sửa, Silver/Gold được **dựng lại** từ Bronze. Không có nhu cầu time-travel ở mức từng snapshot. |
+| **Phạm vi prototype** | Bronze có merge/dedupe và cập nhật khi provider sửa dữ liệu; Silver/Gold được dựng lại. Các file partition có thể bị ghi đè, nên triển khai hiện tại không phải kho raw bất biến có đầy đủ phiên bản. |
 | **Quy ước đường dẫn là đủ** | `symbol=.../year=.../month=...` + `_lineage.json` + `_quality.json` đã trả lời được câu hỏi "dữ liệu này ở đâu, đến từ đâu, đã loại rác bao nhiêu". |
 
 **Cái bị mất:** đọc lại một phiên bản dữ liệu cũ theo mốc thời gian (time travel) và
@@ -28,9 +28,7 @@ thêm cột mà không phải viết lại dữ liệu (schema evolution).
 **Cái được lại:** hệ thống chạy với 2 container hạ tầng thay vì 4, không cần client
 PyIceberg, không cần catalog đồng bộ.
 
-> **Cách kiểm chứng lịch sử thay vì time travel:** mọi partition đều có
-> `_lineage.json` ghi lại nguồn và thời điểm tải; để xem "dữ liệu hôm đó trông thế
-> nào", chạy lại Silver/Gold từ Bronze — Bronze bất biến nên kết quả lặp lại được.
+> `_lineage.json` giúp truy vết nguồn và thời điểm nạp, nhưng không khôi phục được giá trị cũ đã bị ghi đè. Chạy lại Silver/Gold từ Bronze hiện tại chỉ tái tạo được kết quả từ đầu vào hiện tại. Muốn tái lập đúng một thí nghiệm cũ phải giữ snapshot đầu vào, phiên bản mã và cấu hình tương ứng.
 
 **Container đã bị gỡ khỏi `docker-compose.yml`:**
 
@@ -68,7 +66,7 @@ df_old = manager.read_bronze(symbol="AAPL", as_of_timestamp="3d")
 | Tạo bảng | `manager.create_all_tables()` | `backend/app/lakehouse/pipeline.py` tự tạo partition khi ghi |
 | Ghi dữ liệu | `manager.write_bronze(df, symbol="AAPL")` | `backend/app/lakehouse/bronze.py` → `BronzeLayer.append()` |
 | Đọc dữ liệu | `manager.read_bronze(symbol="AAPL")` | Đọc Parquet theo đường dẫn `symbol=AAPL/year=.../month=...` |
-| Xem dữ liệu cũ | `as_of_timestamp="3d"` (time travel) | Xem `_lineage.json` của partition — ghi rõ nguồn và thời điểm tải |
+| Xem phiên bản dữ liệu cũ | `as_of_timestamp="3d"` (time travel) | Chưa có; lineage chỉ ghi provenance, không thay thế snapshot |
 
 ### Apache Parquet (Fallback)
 

@@ -1,0 +1,119 @@
+{
+  "deck": "06-ai-agent",
+  "notes": [
+    {
+      "term": "Kiến trúc AI Agent của hệ thống gồm những thành phần nào?",
+      "answer": "Agent nghiên cứu chứng khoán, **không bao giờ bịa** giá, chỉ báo, dự báo hay metric backtest.\n\nCác thành phần:\n\n- **`app/agent/agent.py`** - `StockAnalysisAgent`, điều phối vòng lặp tool-calling và fallback.\n- **`app/agent/llm_client.py`** - `LLMClient`, bọc provider (Gemini) + ngân sách thời gian.\n- **`app/agent/tool_registry.py`** - đăng ký 17 tool, schema dùng **OpenAI function-calling JSON** (lingua franca).\n- **`app/agent/tools/`** - hiện thực các tool: `stock_tools`, `system_tools`, `fundamental_tools`, `walkforward_tools`.\n- **`app/agent/prompts.py`** - `SYSTEM_PROMPT` + `PROJECT_CONTEXT`.\n- **`app/agent/markdown_normalizer.py`** - chuẩn hoá markdown đầu ra.\n\nCấu hình: `LLM_PROVIDER=gemini`, `GEMINI_MODEL=gemini-2.0-flash-exp`, key lấy miễn phí tại aistudio.google.com.\n\n> **Không có key, agent vẫn chạy** bằng local tool router - vẫn gọi đúng backend tools, **không bịa số**.",
+      "code": "backend/app/agent/agent.py",
+      "tags": "ai agent architecture gemini tool calling registry"
+    },
+    {
+      "term": "Vì sao schema tool dùng định dạng OpenAI function-calling?",
+      "answer": "Vì đó là **lingua franca** của tool-calling.\n\n`openai_tools()` sinh schema theo shape:\n\n```json\n{\n  \"type\": \"function\",\n  \"function\": {\n    \"name\": \"query_stock_data\",\n    \"description\": \"...\",\n    \"parameters\": { \"type\": \"object\", \"properties\": {...}, \"required\": [...] }\n  }\n}\n```\n\nLý do chọn shape này:\n\n1. Bộ chuyển đổi trong `llm_client.py` dịch nó thành payload `function_declarations` tương đương của Gemini.\n2. Nhờ vậy **một** định nghĩa schema làm việc cho **cả** client Gemini thật **và** router fallback từ khoá.\n3. Schema được sinh tự động từ **Pydantic model** (`model.model_json_schema()`), nên định nghĩa tham số chỉ nằm ở **một** chỗ - không có chuyện mô tả tool lệch với code thật.\n\n> Khi định nghĩa hợp đồng công cụ nằm ở hai nơi, chúng sẽ lệch. Schema sinh từ type là cách làm cho chúng không bao giờ lệch.",
+      "code": "backend/app/agent/tool_registry.py:openai_tools",
+      "tags": "tool schema openai function calling pydantic gemini"
+    },
+    {
+      "term": "17 tool của AI Agent phân nhóm theo lĩnh vực nào?",
+      "answer": "Theo bốn nhóm nghiệp vụ:\n\n**Dữ liệu thị trường (2)**\n- `query_stock_data` - OHLCV thật từ lakehouse, không được bịa giá.\n- `get_market_summary` - tóm tắt giá, biến động, RSI hiện tại.\n\n**Chỉ báo & dự báo (3)**\n- `calculate_indicators` - SMA, EMA, RSI, MACD, Bollinger từ dữ liệu thật.\n- `forecast_stock` - chạy dự báo bằng model **đã train**; báo lỗi nếu chưa train.\n- `compare_models` - so sánh MAE/RMSE/MAPE/DA của các model đã train.\n\n**Backtest (2)**\n- `run_backtest` - MA Crossover hoặc RSI; không phải giao dịch thật.\n- `run_walk_forward` - walk-forward validation, phương pháp nghiêm ngặt chống overfitting.\n\n**Fundamental & market (4)**\n- `get_fundamental_metrics` - P/E, P/B, ROE, ROA...\n- `get_income_statement`, `get_balance_sheet`, `get_cash_flow` - báo cáo tài chính.\n- `get_market_index` - chỉ số US (^GSPC, ^DJI, ^IXIC).\n- `get_orderbook` - sổ lệnh bid/ask hiện tại.\n\n**System (4)**\n- `get_symbols_info` - số mã hệ thống hỗ trợ + danh sách provider.\n- `get_trained_models` - model nào đã train, kèm metric.\n- `get_system_architecture` - mô tả runtime: Bronze/Silver/Gold, providers, tech stack.\n- `get_storage_stats` - số object + dung lượng từng bucket MinIO.\n\n> Bốn tool system được thêm vào để agent trả lời được câu hỏi về **chính hệ thống** mà không phải bịa.",
+      "code": "backend/app/agent/tool_registry.py:TOOL_FUNCTIONS",
+      "tags": "agent tools 17 registry backtest forecast fundamental"
+    },
+    {
+      "term": "Mô tả tool `forecast_stock` được viết như thế nào và vì sao?",
+      "answer": "Mô tả đầy đủ:\n\n> \"Chạy dự báo bằng mô hình đã train. Báo lỗi nếu chưa train.\"\n\nCách viết này **ép** mô hình hành vi đúng:\n\n1. **\"mô hình đã train\"** - agent phải dùng model có sẵn, không được tự train (train là việc tốn tài nguyên và không ai hỏi).\n2. **\"Báo lỗi nếu chưa train\"** - đây là phần quan trọng nhất. Nó cho phép agent trả lời thẳng \"symbol X chưa có model được train\", thay vì bịa một con số dự báo trông hợp lý.\n\nSo sánh với một mô tả kiểu \"Dự báo giá cổ phiếu\" - mô tả đó **không cấm** bịa, và với một LLM, sự không cấm thường trở thành sự cho phép ngầm.\n\n> Mô tả tool là **hợp đồng**, không phải gợi ý. Viết nó như một hợp đồng thì LLM tuân theo tốt hơn nhiều.",
+      "code": "backend/app/agent/tool_registry.py:TOOL_DESCRIPTIONS",
+      "tags": "agent tool description contract error handling"
+    },
+    {
+      "term": "Vì sao Agent phải có LOCAL TOOL ROUTER fallback?",
+      "answer": "Vì hệ thống phải hoạt động **ngay cả khi không có LLM key** - và quan trọng hơn, phải hoạt động mà **không bao giờ bịa số**.\n\nLuồng trong `reply()`:\n\n```python\nif self.llm.is_configured():\n    try:\n        return self._llm_reply(...)\n    except Exception as exc:\n        logger.warning(\"LLM path failed (%s). Falling back to local tool router.\", exc)\nreturn self._local_reply(...)\n```\n\nRouter cục bộ **phân tích từ khoá** trong câu hỏi để chọn tool, gọi tool thật, rồi trả kết quả.\n\nĐiểm mấu chốt: router cục bộ gọi **cùng một tập tool backend** - nó không có đường nào để bịa số. Đó là lý do fallback này **an toàn** chứ không phải một chế độ suy giảm chất lượng.\n\n> Một tính năng phụ thuộc LLM là một tính năng có thể hỏng. Nhưng \"không có LLM vẫn trả lời được bằng số thật\" là một tính năng **có thể kiểm chứng**.",
+      "code": "backend/app/agent/agent.py:StockAnalysisAgent.reply",
+      "tags": "agent fallback local router offline no llm key"
+    },
+    {
+      "term": "Vòng lặp tool-calling nhiều lượt của Agent giải quyết vấn đề gì?",
+      "answer": "Bản cũ làm **đúng hai** lần gọi LLM: một lần chọn tool, một lần tóm tắt kết quả.\n\nVấn đề: Gemini thường muốn **lần gọi tool thứ hai**. Ví dụ một câu hỏi cần cả `get_market_summary` + `calculate_indicators` + `run_backtest`. Lượt thứ hai trả về **yêu cầu tool khác và không có text nào** - agent rơi vào fallback.\n\nFix: vòng lặp tool **tối đa 4 lượt**:\n\n1. Gửi messages + danh sách tool cho LLM.\n2. Nếu LLM yêu cầu tool -> thực thi, ghi kết quả vào `tool_trace`, nối vào messages, lặp lại.\n3. Nếu LLM trả về text -> trả về kèm `tool_trace`.\n4. Hết lượt -> dừng và trả phần đã có.\n\n`tool_trace` được trả về cho UI để hiển thị **từng lần gọi tool**, nên người dùng thấy được con số đến từ đâu.",
+      "code": "backend/app/agent/agent.py:_llm_reply",
+      "tags": "agent multi-round tool loop gemini trace"
+    },
+    {
+      "term": "Ngân sách thời gian 45 giây của Agent được thiết kế thế nào?",
+      "answer": "Agent làm tối đa **4 lượt**, mỗi lượt có thể mất **35s** (ngân sách mỗi lần gọi trong `llm_client.py`).\n\nNếu không có ngân sách chung, một sự cố nhà cung cấp có thể tiêu **140s** - vượt xa hạn 75s của server, mà trình duyệt biến thành thông báo \"Yêu cầu mất quá lâu (>90s)\".\n\n`LLM_TOTAL_BUDGET_SECONDS = float(os.getenv('AGENT_LLM_BUDGET_SECONDS', '45'))` là hạn dùng chung cho **tất cả** lần gọi LLM của một lượt trả lời.\n\n45s để lại khoảng trống cho thời gian thực thi tool (một walk-forward trong tiến trình con mất ~2s) **bên trong** hạn 75s, và vẫn đủ để mô hình trả lời sau một lượt đầu chậm.\n\n> Hạn thời gian là một khái niệm **hệ thống**, không phải khái niệm **hàm**. Hạn trên từng lần gọi không bảo vệ được tổng thời gian của một lượt.",
+      "code": "backend/app/agent/agent.py:LLM_TOTAL_BUDGET_SECONDS",
+      "tags": "agent timeout budget latency deadline 45s"
+    },
+    {
+      "term": "Vì sao tool `run_walk_forward` phải được cắt bớt khi gửi cho LLM?",
+      "answer": "Vì kết quả walk-forward có **một dòng cho mỗi cửa sổ** - 175 dòng cho lịch sử 10 năm, tức một khối JSON **53 KB**.\n\nGửi hết cho Gemini tốn prompt token và, quan trọng hơn, đẩy yêu cầu tiếp theo sát ngưỡng bị throttle của provider. Mô hình chỉ cần các con số **tổng hợp** để viết câu trả lời tốt.\n\n`_trim_tool_result()` giữ **đầu và đuôi**: `WALK_FORWARD_WINDOWS_SENT = 12` cửa sổ đầu (dữ liệu cũ nhất) và 12 cửa sổ cuối (dữ liệu mới nhất) - đúng hai cửa sổ mà người đọc quan tâm nhất.\n\nChi tiết quan trọng: **chỉ bản sao hướng tới LLM bị cắt**. Kết quả lưu trong `tool_trace` và trả về UI **không bị đụng** - không mất dữ liệu nào, mô hình chỉ nhận bản tóm tắt cộng mẫu đại diện.\n\n> Cắt bớt đúng chỗ, và nói rõ đã cắt gì, là khác biệt giữa tối ưu và giấu dữ liệu.",
+      "code": "backend/app/agent/agent.py:_trim_tool_result",
+      "tags": "agent tool result trimming token budget windows"
+    },
+    {
+      "term": "SYSTEM_PROMPT của Agent ràng buộc điều gì?",
+      "answer": "Agent được dặn rõ: **không bao giờ bịa** giá, chỉ báo, dự báo hay metric backtest.\n\nCác ràng buộc cốt lõi:\n\n- Mọi số phải đến từ **tool thật** gọi vào backend.\n- Khi tool trả lỗi hoặc dữ liệu rỗng -> **báo lỗi thật**, không lấp bằng con số.\n- Khi symbol không có model -> nói rõ \"chưa train\", không dự báo bừa.\n\nNgoài ra còn có `PROJECT_CONTEXT` mô tả kiến trúc hệ thống, để agent hiểu mình đang nói về cái gì.\n\nCó một system prompt thứ hai được thêm **động** cho mỗi lượt:\n\n```\nResolved instrument for this request: {requested_symbol}.\nFor financial facts, use the tools to verify availability;\ndo not infer that a ticker is unavailable from your own knowledge.\n```\n\nCâu cuối là một chống chỉ dẫn quan trọng: LLM không nên kết luận \"mã đó không có\" chỉ vì nó không nhớ mã đó. Nó phải **kiểm tra bằng tool**.\n\n> Với một LLM có kiến thức sẵn về chứng khoán, rủi ro lớn nhất không phải là bịa số - mà là **khẳng định sai** một điều mà nó tưởng mình biết.",
+      "code": "backend/app/agent/prompts.py",
+      "tags": "agent system prompt no fabrication grounding tool verify"
+    },
+    {
+      "term": "Vì sao `execute_tool()` xử lý lỗi thay vì để exception nổi lên?",
+      "answer": "Vì một tool lỗi là một **sự kiện bình thường** trong vòng lặp tool-calling, không phải một sự cố hệ thống.\n\n```python\ndef execute_tool(name, arguments):\n    if name not in TOOL_FUNCTIONS:\n        return {\"error\": f\"Unknown tool: {name}\"}\n    try:\n        model = TOOL_MODELS.get(name)\n        payload = model.model_validate(arguments)\n        kwargs = payload.model_dump()\n        return TOOL_FUNCTIONS[name](**kwargs)\n    except Exception as exc:\n        return {\"error\": str(exc)}\n```\n\nCơ chế này cho agent **tiếp tục** và **báo cáo trung thực** thay vì crash sạch.\n\nHai điều đáng chú ý:\n\n1. **Validation bằng Pydantic** trước khi gọi: `model_validate(arguments)` đảm bảo tham số đúng kiểu, và `model_dump()` biến chúng thành kwargs sạch.\n2. Thông báo lỗi là **thông điệp thật** (`str(exc)`), không phải thông báo chung chung. Đây là điểm quan trọng: agent cần biết lỗi gì để nói lại cho người dùng.\n\n> Điều kiện tiên quyết để LLM không bịa: mọi lỗi phải **đủ cụ thể** để LLM diễn giải thành câu trả lời trung thực.",
+      "code": "backend/app/agent/tool_registry.py:execute_tool",
+      "tags": "agent tool execution error handling pydantic validate"
+    },
+    {
+      "term": "Tool `get_symbols_info` giải quyết nhu cầu gì và vì sao nó quan trọng?",
+      "answer": "Nó trả về **thống kê số mã hệ thống hỗ trợ** (US, global, VN, crypto, indexes) kèm danh sách data providers.\n\nMô tả tool nêu rõ tình huống dùng: \"Dùng khi user hỏi 'có bao nhiêu mã?', 'track những mã nào?', 'có mã Việt Nam không?'\".\n\nVì sao quan trọng: đây là câu hỏi mà LLM **rất dễ trả lời sai** từ kiến thức của mình. Mô hình có thể nói \"tôi hỗ trợ khoảng 50 mã phổ biến\" trong khi thực tế hệ thống có **958 ticker toàn cầu**. Đó là một dạng bịa dữ liệu - chỉ khác là bịa về **phạm vi hệ thống** thay vì về giá.\n\nCùng lý do đó áp dụng cho `get_trained_models` (\"đã train model nào?\"), `get_system_architecture` (\"kiến trúc gì?\") và `get_storage_stats` (\"MinIO có bao nhiêu file?\").\n\n> Bốn tool system này tồn tại để agent **không phải** trả lời bằng trí nhớ về chính hệ thống đang chạy.",
+      "code": "backend/app/agent/tools/system_tools.py:get_symbols_info",
+      "tags": "agent system tools symbols info scope avoid hallucination"
+    },
+    {
+      "term": "Tool `get_storage_stats` báo cáo những gì và vì sao con số phải truy vết được?",
+      "answer": "Nó trả về **số object + dung lượng** từng bucket MinIO (bronze/silver/gold/models/backtests/fundamentals) + số symbol có dữ liệu thật ở mỗi layer.\n\nĐiểm mấu chốt: những con số này phải đến từ `list_objects` / `count_objects` - **đếm được** - chứ không phải con số nhớ từ trí nhớ hay ghi cứng trong response.\n\nĐó là cùng nguyên tắc với toàn hệ thống: số liệu hệ thống/metadata phải đếm được bằng công cụ thật.\n\nMô tả tool nêu tình huống: \"Dùng khi user hỏi 'MinIO có bao nhiêu file?', 'Bronze có dữ liệu chưa?'\".\n\n> Một con số trả lời được phải có **đường truy vết**. Nếu agent đọc được số mà không chứng minh được số đó từ đâu, thì nó vẫn là một con số bịa - chỉ là bịa ở tầng khác.",
+      "code": "backend/app/agent/tools/system_tools.py:get_storage_stats",
+      "tags": "agent storage stats minio count objects traceable"
+    },
+    {
+      "term": "`markdown_normalizer.py` làm gì và vì sao cần?",
+      "answer": "Nó **chuẩn hoá** markdown do LLM trả về, để frontend hiển thị nhất quán.\n\nVấn đề thực tế: các provider LLM (và đặc biệt fallback router) trả về markdown với nhiều biến thể - code fence không đóng, bảng không chuẩn, list lồng nhau sai cấu trúc, link hỏng. React renderer (`components/agent/Markdown.tsx`) cần input **chuẩn**.\n\nNgoài ra còn có `components/agent/ChatMessage.tsx` và `ToolCallDisplay.tsx` - phần hiển thị **từng lần gọi tool** để người dùng thấy con số đến từ đâu.\n\n> Phần lớn \"AI chat trông tệ\" không phải lỗi của mô hình, mà là lỗi ở tầng trình bày. Đầu tư vào normalizer rẻ hơn nhiều so với đổi model.",
+      "code": "backend/app/agent/markdown_normalizer.py",
+      "tags": "agent markdown normalizer frontend rendering consistency"
+    },
+    {
+      "term": "Vì sao `predict_stock` phải báo lỗi thay vì tự train khi chưa có model?",
+      "answer": "Vì train là việc **tốn tài nguyên và thời gian** (LSTM trên CPU có thể mất hàng chút giờ), và người dùng chỉ hỏi \"dự báo giá bao nhiêu?\".\n\nNếu tool tự train, mỗi câu hỏi sẽ tạo một lần train, và người dùng sẽ nhận response sau thời gian chờ không xác định.\n\nHệ thống giải quyết bằng cách tách rõ hai hoạt động:\n\n- **Train** là việc của batch/CLI (`POST /api/v1/forecast/train`, `scripts/train_models.py`).\n- **Predict** dùng model **đã có**.\n\nKhi không có model, endpoint `/next-session/{symbol}` trả lý do cụ thể thay vì một con số bịa, và tool agent cũng vậy.\n\n> Đây là cùng nguyên tắc với việc không tự động đặt lệnh: hệ thống làm việc mà **không** ngầm tạo ra kết quả tốn kém để giả vờ là có sẵn.",
+      "code": "backend/app/agent/tools/stock_tools.py:forecast_stock",
+      "tags": "agent forecast no model error train separation"
+    },
+    {
+      "term": "Cơ chế `symbol_catalog` phục vụ agent như thế nào?",
+      "answer": "`services/symbol_catalog.py` cung cấp `stored_symbols()` - danh sách symbol **thực sự có trong lakehouse**.\n\nVai trò: agent cần biết mã nào có dữ liệu thật để trả lời cho đúng. Thay vì đoán từ kiến thức của LLM, nó hỏi hệ thống.\n\nĐiều này giải quyết một dạng lỗi tinh vi: LLM có thể trả lời về một mã **có thật** nhưng **không có trong hệ thống** - và mọi thứ vẫn trông hợp lệ. Kiểm tra danh sách mã đã lưu là cách chặn điều đó.\n\n> Danh sách mã trong hệ thống là một loại \"grounding\" - nó biến một câu trả lời mơ hồ thành một câu trả lời có thể kiểm chứng.",
+      "code": "backend/app/services/symbol_catalog.py:stored_symbols",
+      "tags": "agent symbol catalog grounding available symbols"
+    },
+    {
+      "term": "Làm sao để bảo đảm AI Agent không bịa số liệu tài chính?",
+      "answer": "Bốn lớp phòng vệ, từ trong ra ngoài:\n\n**1. Nguồn** - mọi tool gọi vào **backend thật**, đọc từ tầng Gold/Bronze đã lưu. Không có đường nào để agent lấy số từ trí nhớ.\n\n**2. Ràng buộc ngữ ngữ** - `SYSTEM_PROMPT` cấm bịa; mô tả từng tool nêu rõ điều kiện phải báo lỗi (\"Báo lỗi nếu chưa train\", \"không được bịa giá\").\n\n**3. Ràng buộc lúc thực thi** - `execute_tool()` bắt exception và trả `{\"error\": ...}` với thông điệp thật; Pydantic validate tham số trước khi gọi.\n\n**4. Thiếu dữ liệu = không có số** - khi không có model / symbol / dữ liệu, hệ thống trả **lý do cụ thể**, và UI hiển thị `—` kèm lý do chứ không phải `0.00`.\n\n> Lớp phòng vệ cuối cùng là quan trọng nhất: nếu mọi lớp trên đều lọt, hệ thống vẫn **không có số để bịa**.",
+      "code": "backend/app/agent/prompts.py",
+      "tags": "agent no fabrication four layers defense ground truth"
+    },
+    {
+      "term": "Tool `get_orderbook` và `get_market_index` cung cấp loại dữ liệu nào?",
+      "answer": "`get_orderbook` - lấy **sổ lệnh (bid/ask) hiện tại** cho một mã: các mức giá mua và bán đang chờ.\n\n`get_market_index` - lấy dữ liệu **chỉ số thị trường US**: `^GSPC` (S&P 500), `^DJI` (Dow Jones), `^IXIC` (NASDAQ).\n\nCả hai đều là dữ liệu **bối cảnh**: một cổ phiếu giảm 3% là tin xấu hay bình thường phụ thuộc chỉ số chung đang đi thế nào. Đây là loại ngữ cảnh mà một LLM không có và không thể suy ra.\n\nLưu ý kiến trúc: những provider này dùng endpoint **REST**, không phải WebSocket - vì đường realtime đã bị gỡ khỏi dự án ngày 11/11/2026. Dữ liệu sổ lệnh hiện tại được lấy theo yêu cầu, không phải theo dòng.\n\n> Bối cảnh thị trường là thứ biến một con số tuyệt đối thành một con số **có nghĩa**.",
+      "code": "backend/app/agent/tools/fundamental_tools.py",
+      "tags": "agent orderbook market index context benchmark rest"
+    },
+    {
+      "term": "Tại sao tool `run_walk_forward` được tách file riêng?",
+      "answer": "Vì nó có **hành vi khác biệt rõ rệt** so với các tool khác, và điều đó cần được cô lập.\n\n- Nó tạo ra kết quả **rất lớn** (một dòng mỗi cửa sổ), nên cần cơ chế cắt bớt riêng (`_trim_tool_result`).\n- Nó có thể mất ~2s và cần chạy trong **tiến trình con** (`backtesting/worker.py`) để không chặn event loop.\n- Nó là công cụ **nghiêm ngặt nhất** - \"phương pháp backtest nghiêm ngặt, đánh giá trên nhiều windows để tránh overfitting\".\n\nTách file ra giúp `walkforward_tools.py` có thể thay đổi cơ chế thực thi mà không đụng tới `stock_tools.py`.\n\n> Công cụ nặng nên có ranh giới rõ ràng. Ranh giới rõ ràng là điều kiện để tối ưu hoá một phần mà không phá phần khác.",
+      "code": "backend/app/agent/tools/walkforward_tools.py",
+      "tags": "agent walkforward tool isolation heavy worker"
+    },
+    {
+      "term": "Chuỗi tool trace trong UI giúp người dùng kiểm chứng điều gì?",
+      "answer": "Giúp họ thấy **mọi con số trong câu trả lời đến từ đâu**.\n\n`tool_trace` là danh sách các lần gọi tool: tên tool, tham số, và kết quả. Component `ToolCallDisplay.tsx` render nó.\n\nĐiều này biến AI Agent từ một **hộp đen** thành một công cụ có thể kiểm toán. Người dùng thấy: \"agent gọi `query_stock_data` với AAPL, 1d, limit 500, nhận về 500 bar từ tầng gold; rồi gọi `calculate_indicators`; rồi gọi `run_backtest`\".\n\nNếu một con số trong câu trả lời không có dòng trace tương ứng, người đọc **biết ngay** nó không có nguồn.\n\n> Đây là câu trả lời thiết kế cho nguyên tắc \"Real Data Only\" ở tầng giao diện: cho người dùng **khả năng kiểm chứng**, đừng chỉ yêu cầu họ tin.",
+      "code": "frontend/src/components/agent/ToolCallDisplay.tsx",
+      "tags": "agent tool trace audit transparency ui"
+    }
+  ]
+}

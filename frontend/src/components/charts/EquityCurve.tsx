@@ -16,8 +16,9 @@ import { shortDate } from "@/utils/format";
 const tooltipStyle = {
   background: "hsl(var(--surface))",
   border: "1px solid hsl(var(--hairline))",
-  borderRadius: 6,
+  borderRadius: 8,
   fontSize: 12,
+  boxShadow: "var(--shadow-lg)",
 };
 
 interface MergedPoint extends EquityPoint {
@@ -64,9 +65,15 @@ export function EquityCurve({
             nested <Line>, so the baseline would silently never be drawn
             and the legend would list a series that does not exist. */}
         <ComposedChart data={merged}>
+          <defs>
+            <linearGradient id="equityAreaFill" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={0.24} />
+              <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity={0.01} />
+            </linearGradient>
+          </defs>
           <CartesianGrid stroke="hsl(var(--hairline))" strokeDasharray="3 3" />
-          <XAxis dataKey="timestamp" tickFormatter={shortDate} minTickGap={32} stroke="hsl(var(--muted))" fontSize={12} />
-          <YAxis stroke="hsl(var(--muted))" fontSize={12} />
+          <XAxis dataKey="timestamp" tickFormatter={shortDate} minTickGap={32} stroke="hsl(var(--muted))" fontSize={12} tickLine={false} />
+          <YAxis stroke="hsl(var(--muted))" fontSize={12} tickLine={false} />
           <Tooltip contentStyle={tooltipStyle} labelFormatter={(v) => shortDate(String(v))} />
           {hasBenchmark ? (
             <Legend
@@ -94,9 +101,11 @@ export function EquityCurve({
             dataKey="equity"
             name="equity"
             stroke="hsl(var(--primary))"
-            strokeWidth={2}
-            fill="hsl(var(--primary))"
-            fillOpacity={0.08}
+            strokeWidth={2.25}
+            fill="url(#equityAreaFill)"
+            isAnimationActive={merged.length <= 200}
+            animationDuration={700}
+            animationEasing="ease-out"
           />
         </ComposedChart>
       </ResponsiveContainer>

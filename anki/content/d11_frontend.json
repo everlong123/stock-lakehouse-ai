@@ -1,0 +1,167 @@
+{
+  "deck": "11-frontend",
+  "notes": [
+    {
+      "term": "Frontend dùng stack công nghệ nào?",
+      "answer": "Stack hiện tại trong `frontend/package.json`:\n\n- **React 18.3** + **React DOM 18.3** - thư viện giao diện.\n- **Vite 5.4** - dev server và bundler (thay cho CRA/Webpack).\n- **TypeScript 5.6** - kiểu dữ liệu tĩnh, `strict` bật.\n- **React Router 6.26** - định tuyến phía client.\n- **TanStack Query 5.56** - quản lý trạng thái server (cache, refetch, stale time).\n- **Recharts 2.12** - vẽ biểu đồ (line, candlestick, area).\n- **Axios 1.7** - HTTP client.\n- **TailwindCSS 3.4** + `tailwind-merge` + `class-variance-authority` + `clsx` - styling.\n- **lucide-react** - icon.\n- **sonner 1.5** - toast notification.\n- **date-fns 3.6** - thao tác ngày tháng.\n\n> Lựa chọn cốt lõi: TanStack Query thay cho Redux. Dữ liệu trong dự án nằm trên **server** (API), không phải trên client - nên library quản lý cache server-state là đúng công cụ, và nó loại sẵn hàng chục dòng boilerplate.",
+      "code": "frontend/package.json",
+      "tags": "frontend stack react vite typescript tanstack tailwind"
+    },
+    {
+      "term": "Vì sao các trang được tải bằng `React.lazy`?",
+      "answer": "Vì bản build trước đó gộp **mọi trang vào một bundle duy nhất** khoảng **871 kB (253 kB gzip)**. Trình duyệt phải tải và phân tích toàn bộ khối đó **trước khi trang đầu tiên hiện ra** - kể cả với người chỉ vào Dashboard và không bao giờ mở trang khác.\n\nCách sửa trong `App.tsx`:\n\n- Tất cả trang trừ Dashboard được `lazy(() => import(...))`.\n- Bọc trong `<Suspense fallback={<Loading />}>`.\n- Shell (navbar, layout) **giữ trong bundle chính** vì nó hiện ra ngay lập tức.\n\nKết quả: lần truy cập đầu chỉ tải code của Dashboard và các route người dùng thực sự mở. Payload của mỗi route được cache lại bởi trình duyệt nên lần truy cập sau không tốn gì.\n\n> Nguyên tắc: **tách theo ranh giới điều hướng**, không tách theo file. Tách quá nhỏ thì tốn nhiều request hơn là tốn băng thông.",
+      "code": "frontend/src/App.tsx",
+      "tags": "frontend lazy loading code splitting performance bundle"
+    },
+    {
+      "term": "Cấu hình chia chunk thủ công của Vite giải quyết vấn đề gì?",
+      "answer": "Sau khi tách trang, các **thư viện dùng chung** vẫn nằm trong chunk chính: thư viện biểu đồ, trình render Markdown, query client.\n\n`manualChunks` trong `vite.config.ts` tách theo **thư viện**:\n\n- `react` -> `react`, `react-dom`, `react-router-dom`\n- `charts` -> `recharts`\n- `query` -> `@tanstack/react-query`\n\nLợi ích: trình duyệt tải và cache **mỗi thư viện một lần**, và một thay đổi trong code ứng dụng **không vô hiệu hoá** cache của thư viện.\n\nKèm theo, `chunkSizeWarningLimit` được nâng lên 700. Cảnh báo trước đó chỉ là nhiễu; sau khi tách, nó chỉ đang chỉ một chunk riêng thật sự.\n\n> Nguyên tắc cache HTTP: tài nguyên được cache theo URL. Bundle thư viện có tên ổn định nên cache được lâu; bundle gộp tất cả thì đổi bất kỳ dòng nào cũng làm mất cache toàn bộ.",
+      "code": "frontend/vite.config.ts",
+      "tags": "frontend vite manual chunks code splitting cache"
+    },
+    {
+      "term": "Proxy `/api/v1` trong Vite hoạt động thế nào?",
+      "answer": "Trong `server.proxy`:\n\n- `/api/v1` -> `http://127.0.0.1:8000`\n- `changeOrigin: true`, `secure: false`\n- Server chạy ở `127.0.0.1:5173`\n\nNhờ đó, frontend gọi `/api/v1/stocks/AAPL/latest` (đường dẫn tương đối) và Vite chuyển tiếp sang backend. Không có CORS, không có URL hard-code, không cấu hình khác nhau giữa dev và prod.\n\nVới axios, `baseURL` là `import.meta.env.VITE_API_BASE_URL || \"/api/v1\"` - mặc định dùng đường dẫn tương đối để đi qua proxy.\n\n> Vì sao đi qua proxy thay vì gọi thẳng `http://127.0.0.1:8000`: trình duyệt coi hai origin khác nhau là hai origin khác nhau, nên sẽ gửi preflight CORS cho mọi request. Proxy giữ trình duyệt ở một origin duy nhất và đẩy trách nhiệm CORS xuống backend.",
+      "code": "frontend/vite.config.ts",
+      "tags": "frontend vite proxy cors backend dev server"
+    },
+    {
+      "term": "Vì sao `isUsableNumber()` tồn tại thay vì dùng `Number.isNaN`?",
+      "answer": "`Number.isNaN` chỉ chặn `NaN` - nó **cho qua** `Infinity` và `-Infinity`.\n\nHậu quả nếu thiếu kiểm tra:\n\n- `Infinity.toFixed(2)` cho ra chuỗi `\"Infinity\"`.\n- `(Infinity * 100).toFixed(2)` cho ra `\"Infinity%\"`.\n\nNhững giá trị này chui vào UI khi một truy vấn backend sinh ra tỉ lệ không chặn trên trên (phần trăm thay đổi so với giá đóng cửa bằng 0 hoặc thiếu) hoặc khi JSON mang giá trị không hữu hạn.\n\n`isUsableNumber()` yêu cầu đúng hai điều: là `number` **và** `Number.isFinite()`.\n\nMọi formatter trong `utils/format.ts` đều dùng nó, và khi giá trị không dùng được, chúng trả về `\"—\"` (dấu gạch dài) chứ không phải `0.00%`.\n\n> Quy tắc của dự án: số liệu không có thì hiển thị `—` kèm lý do, **không bao giờ** hiển thị `0.00%`.",
+      "code": "frontend/src/utils/format.ts:isUsableNumber",
+      "tags": "frontend number validation infinity finite empty state"
+    },
+    {
+      "term": "Vì sao `toFinite()` không dùng `Number(value)`?",
+      "answer": "`Number()` có hai bẫy **im lặng**:\n\n- `Number(\"\")` trả về `0`.\n- `Number(\"N/A\")` trả về `NaN`.\n\nCác endpoint chỉ báo trả về các dòng có kiểu lỏng lẻó (`any`), nên cả hai giá trị đều xảy ra thật.\n\nHậu quả nếu đưa thẳng vào biểu đồ:\n\n- Giá trị `0` giả (dải Bollinger hoặc giá) kéo **toàn bộ thang đo về 0**.\n- `NaN` làm cho chuỗi **biến mất** khỏi biểu đồ.\n\n`toFinite()` trả về `undefined` cho mọi giá trị không hữu hạn, và recharts hiển thị một **khoảng trống** cho điểm đó thay vì vẽ một điểm sai.\n\n> Nguyên tắc: khi dữ liệu không hợp lệ, hãy để trống chỗ đó. Vẽ một giá trị bịa là nói dối trực tiếp trên màn hình.",
+      "code": "frontend/src/utils/format.ts:toFinite",
+      "tags": "frontend tofinite number coercion chart data"
+    },
+    {
+      "term": "Vì sao `formatPrice()` nhận currency làm tham số chứ không hard-code một đơn vị?",
+      "answer": "Vì giá trong lakehouse này **không có đơn vị mặc định**. VCB giao dịch quanh 53.500 (VND), AAPL quanh 330 (USD) - cả hai đều là một \"close\".\n\nMột formatter hard-code một ký hiệu sẽ gắn **sai đơn vị** cho toàn bộ vũ trụ cổ phiếu, tệ hơn nhiều so với việc không ghi đơn vị.\n\nQuy tắc hiển thị:\n- Nếu đơn vị lạ (VND) -> `\"53,500.00 ₫\"` (ký hiệu sau số).\n- Nếu đơn vị quen thuộc ở đầu (USD, EUR, GBP, JPY, HKD, KRW, CNY, TWD) -> `\"$330.00\"` (ký hiệu trước số).\n- Nếu không xác định -> chỉ số trần, không ký hiệu.\n\n> Một đơn vị sai là một **sự thật sai**; một đơn vị thiếu chỉ là thông tin chưa đầy đủ. Nên thiếu còn hơn sai.",
+      "code": "frontend/src/utils/format.ts:formatPrice",
+      "tags": "frontend currency formatting vnd usd units"
+    },
+    {
+      "term": "Quy tắc suy ra đơn vị tiền của một mã cổ phiếu là gì?",
+      "answer": "`currencyForSymbol()` giải theo thứ tự:\n\n1. **Cặp crypto** mang đơn vị trong ticker: `BTC-USD` -> `USD` (phần sau dấu gạch ngang, đúng 3 chữ cái).\n2. **Hậu tố sàn Yahoo** quy định đơn vị: `.DE` -> `EUR`, `.T` -> `JPY`, `.HK` -> `HKD`, `.KS` -> `KRW`...\n3. **Mã Việt Nam** -> `VND`. Cần một danh sách tường minh vì Yahoo không có mã `.VN`; `FPT` và `TNH` đều là mã Việt Nam như `AAPL` cũng vậy - không có mẫu nào để suy ra.\n4. **Còn lại** -> `USD`.\n\nNgoại lệ ghi rõ: `FRT`, `NET`, `DBC` là mã trùng tên giữa thị trường Mỹ và Việt Nam; bản chứa series Mỹ nên gán `USD`.\n\n> Frontend giữ bản sao riêng vì **không import được** từ package backend. Hai bên cùng đọc cùng quy ước hậu tố nên kết quả khớp.",
+      "code": "frontend/src/utils/format.ts:currencyForSymbol",
+      "tags": "frontend currency inference symbol suffix vietnam ticker"
+    },
+    {
+      "term": "Vì sao giá tăng được tô **xanh dương** chứ không phải xanh lá?",
+      "answer": "Vì trước đây màu xanh lá (accent) đồng thời mang **hai nghĩa khác nhau**: màu thương hiệu (logo, tab đang chọn, nút chính, chấm live) **và** màu giá tăng.\n\nTrên biểu đồ nến, người đọc không phân biệt được 'nến này tăng' với 'đây là màu thương hiệu'.\n\nNên giờ:\n\n- **Xanh dương** = tăng, **đỏ** = giảm (cặp màu riêng cho hướng).\n- **Xanh lá accent** chỉ còn nói về giao diện.\n\nVì sao không dùng hai sắc xanh lá liền nhau (`#1B6B4A` và `#16A34A`)? Vì trên biểu đồ - đúng nơi cần đọc - chúng **không phân biệt được** bằng mắt.\n\n> Nguyên tắc thiết kế: một màu phải có một nghĩa. Nếu hai nghĩa dùng chung một màu, người đọc phải dừng lại để suy ra.",
+      "code": "frontend/src/utils/format.ts:changeClass",
+      "tags": "frontend design system color semantics up down"
+    },
+    {
+      "term": "Vì sao có cả `changeClass()` và `changeColor()`?",
+      "answer": "Vì chúng phục vụ hai hệ thống khác nhau:\n\n- `changeClass()` trả về **class CSS** (`text-up`, `text-negative`) - dùng cho văn bản trong component React.\n- `changeColor()` trả về **giá trị màu thô** (`hsl(var(--up))`) - dùng cho thuộc tính `fill` và `stroke` của recharts.\n\nLý do phải tách: đưa một class name vào `fill` của recharts sẽ **vẽ ra không có gì cả** mà không báo lỗi. Im lặng và sai.\n\nNgoài ra `changeColor()` trả về màu `muted` cho giá trị 0 hoặc không hợp lệ, thay vì màu trắng/xanh mặc định.\n\n> Quy tắc: một tên hàm cho mỗi loại giá trị trả về. Class cho DOM, màu thô cho canvas/SVG.",
+      "code": "frontend/src/utils/format.ts:changeColor",
+      "tags": "frontend css class vs raw color recharts svg"
+    },
+    {
+      "term": "Hệ thống design token của Tailwind trong dự án gồm những gì?",
+      "answer": "Tailwind config mở rộng `theme.extend` với:\n\n**Màu** - tất cả dùng biến HSL: `canvas`, `surface`, `surface-2`, `ink`, `muted`, `hairline`, `primary`, `on-primary`, `negative`, `up`.\n\n**Bo góc** - chỉ **một** bán kính làm việc: mọi thứ bo 6px. `rounded-full` là ngoại lệ duy nhất (pill, chấm, avatar). `none` được gán `0` để chặn mặc định của Tailwind.\n\n**Font** - ba giọng khác nhau có chủ đích:\n- `display`: Plus Jakarta Sans (tiêu đề)\n- `sans`: DM Sans (nội dung)\n- `mono`: IBM Plex Mono (số)\n\n**Cỡ chữ** - năm cỡ: `display` 40px, `heading` 24px, `body` 16px, `small` 14px, `label` 12px.\n\n**Đổ bóng** - chỉ một chiến lược: dùng **viền mảnh**, không đổ bóng. Ngoại lệ duy nhất là overlay thật (popover/dropdown).\n\n> Ràng buộc chặt chẽ nhất là bo góc: đặt mọi `rounded-*` về cùng một giá trị là cách nhanh nhất để một UI trông có hệ thống.",
+      "code": "frontend/tailwind.config.js",
+      "tags": "frontend design tokens tailwind theme radius typography"
+    },
+    {
+      "term": "Cơ chế i18n của frontend hoạt động thế nào?",
+      "answer": "`lib/i18n.tsx` triển khai i18n đơn giản, **tiếng Việt là mặc định**:\n\n- `DICT: Record<Locale, Record<string, string>>` chứa hai bản: `vi` và `en`.\n- `useI18n()` trả về `{ locale, setLocale, t }`.\n- `t(\"dashboard.title\")` tra cứu khoá phẳng dạng `phạm_vi.tên`.\n\nNút chuyển EN/Vi nằm trong Header.\n\nVì sao tự viết thay vì dùng `react-i18next`:\n\n- Quy mô 2 locale, phẳng, không có số nhiều/phức số phức tạp.\n- Không thêm dependency cho một thư viện sẽ tăng bundle thêm vài chục kB.\n- Toàn bộ khoá nằm trong **một file**, nên tra cứu khoá thiếu là tìm trong một chỗ.\n\n> Đánh đổi: không có lazy-loading theo namespace, không có plural rules. Với một bảng 2 locale, điều đó không đáng kể.",
+      "code": "frontend/src/lib/i18n.tsx",
+      "tags": "frontend i18n localization react context dictionary"
+    },
+    {
+      "term": "Vì sao frontend gom nến ngày thành nến tuần và nến tháng?",
+      "answer": "Vì lakehouse chỉ lưu **nến ngày** (`SUPPORTED_INTERVALS = [\"1d\"]` ở backend, `INTERVALS = [\"1d\"]` ở frontend). Bộ chọn khoảng thời gian của dashboard vì thế chỉ có **một** độ phân giải: chọn cửa sổ, nhận về N nến ngày.\n\nChọn \"Tất cả\" nghĩa là **2.500 nến ngày** trên khoảng 10 năm - không đọc được và tốn công vẽ.\n\nNgười dùng dashboard của công ty chứng khoán mong đợi **khung thời gian** và **cửa sổ** là hai điều khiển độc lập: 1 tuần nến ngày, hoặc 10 năm nến tháng.\n\n`utils/resample.ts` tạo trục thứ hai bằng cách **gấp** chính các nến ngày đã có - không gọi API thêm, không lưu thêm, không cần pipeline mới.\n\nQuy tắc gộp theo định nghĩa chuẩn:\n- `open` = open của bar đầu\n- `high` = max các high\n- `low` = min các low\n- `close` = close của bar cuối\n- `volume` = tổng các volume\n- timestamp = timestamp của bar đầu (giữ chuỗi tăng dần)\n\nBucket không có bar dùng được thì **bị bỏ qua**, không phát ra giá null.",
+      "code": "frontend/src/utils/resample.ts",
+      "tags": "frontend resample weekly monthly bars timeframe"
+    },
+    {
+      "term": "Vì sao `tradingDay()` đọc ngày trực tiếp từ chuỗi ISO thay vì dùng đối tượng `Date`?",
+      "answer": "Vì lakehouse lưu **một phiên giao dịch dưới hai timestamp khác nhau**: giờ mở cửa (13:30 UTC theo EDT, 14:30 UTC theo EST) và giờ đóng cửa đã chốt (20:00 UTC) - và một nguồn intraday có thể thêm hàng trăm dòng cho cùng một phiên.\n\nTất cả chúng thuộc **một ngày giao dịch**, và biểu đồ khoá theo giá trị này để vẽ một nến cho mỗi phiên.\n\nNgày được đọc thẳng từ chuỗi ISO bằng regex `^(\\d{4}-\\d{2}-\\d{2})` để lấy **đúng ngày mà backend đã ghi**.\n\nNếu dùng `new Date(string)`, trình duyệt sẽ diễn giải chuỗi theo **múi giờ cục bộ** và dịch ngày cho bất kỳ bar nào đóng cửa muộn trong ngày UTC.\n\n> Cùng lý do, `resample.ts` cũng dùng UTC cho việc gom nhóm theo tuần/tháng.",
+      "code": "frontend/src/utils/format.ts:tradingDay",
+      "tags": "frontend trading day utc timezone session canonical"
+    },
+    {
+      "term": "Cửa sổ thời gian được áp dụng ở server hay ở client, và vì sao?",
+      "answer": "Ở **server**, và đó là điểm quan trọng.\n\nLịch sử 10 năm của một mã daily là khoảng **121 partition tháng** trong MinIO. Nếu client tải tất cả rồi lọc, mọi lần đổi bộ chọn đều tải 121 partition.\n\nNếu server lọc, nó tải **3 partition** cho khoảng 3 tháng, và response cũng nhỏ lại theo.\n\n`rangeStartDate(range, anchorMs)` biến khoảng thành **ngày bắt đầu** để gửi lên server.\n\nChi tiết về anchor: khoảng cửa sổ cần một điểm neo, và điểm neo là bar **mới nhất đã lưu** - điều mà client chưa biết trước khi nhận response đầu tiên. Nên:\n\n- Request đầu đo cửa sổ từ thời điểm hiện tại.\n- Request thứ hai (khi anchor đã về) hỏi đúng cửa sổ đó.\n\nCả hai request đều trả về **dữ liệu thật đã lưu**.\n\n> `applyTimeRange()` vẫn còn để lọc phía client, nhưng nó là lưới an toàn cho các response đã có sẵn toàn bộ lịch sử.",
+      "code": "frontend/src/utils/format.ts:rangeStartDate",
+      "tags": "frontend time range server side filtering partition efficiency"
+    },
+    {
+      "term": "Vì sao có `formatVolume()` với hậu tố B/M/K?",
+      "answer": "Vì khối lượng giao dịch thường là con số rất lớn và cột bảng sẽ vỡ nếu hiển thị đầy đủ.\n\nNgưỡng:\n- `>= 1e9` -> `B` (tỉ)\n- `>= 1e6` -> `M` (triệu)\n- `>= 1e3` -> `K` (nghìn)\n- Dưới đó -> số nguyên có dấu phân cách nghìn.\n\n> Quy tắc chung của dự án: **số lớn phải có đơn vị rút gọn**, và đơn vị luôn là một hậu tố hiện rõ chứ không phải ký hiệu ngầm.",
+      "code": "frontend/src/utils/format.ts:formatVolume",
+      "tags": "frontend volume formatting abbreviations"
+    },
+    {
+      "term": "Vì sao `api` của axios dùng timeout 90 giây?",
+      "answer": "Vì backend có **deadline riêng** (`AGENT_REQUEST_TIMEOUT_SECONDS`, hiện là 75s) và trả về **504 kèm thông báo có thể hành động** khi vượt hạn.\n\nTrần phía client cố tình **cao hơn một chút** (90s > 75s) để thông báo rõ ràng của server kịp thắng cuộc đua. Nếu server trả lời ở giây 76, ta muốn màn hình hiện **giải thích của server**, không phải thông báo hủy chung chung.\n\n`isTimeout()` phân biệt timeout với backend offline: timeout nghĩa là request **đã tới server** nhưng mất quá lâu. Báo cho người dùng rằng 'không kết nối được' sẽ khiến họ đi săn một lỗi mạng không tồn tại.\n\n`errorMessage()` ưu tiên `payload.message` từ server cho lỗi axios có response.\n\n> Nguyên tắc: **đừng cắt ngang lời giải thích tốt hơn của tầng dưới**.",
+      "code": "frontend/src/api/client.ts",
+      "tags": "frontend axios timeout error handling 504"
+    },
+    {
+      "term": "Cấu trúc response chuẩn của API là gì?",
+      "answer": "Backend bọc mọi response trong một envelope:\n\n- `success: boolean` - request có thành công không.\n- `data: T` - payload thật.\n- `message: string | null` - thông báo lỗi hoặc giải thích.\n\nFront-end khai báo interface `ApiEnvelope<T>` và giải mã qua một interceptor của axios.\n\nLợi ích: client luôn biết **dữ liệu nằm ở đâu** và **lỗi nói gì**, thay vì phải đoán xem body là mảng, object, hay chuỗi lỗi tùy từng endpoint.\n\n> Đây cũng là nơi `errorMessage()` lấy thông báo cụ thể từ server: `payload?.message`.\n\nRanh giới rõ ràng: envelope là **hợp đồng của API**, còn `source_layer` và `source` là **bằng chứng nguồn dữ liệu** - hai loại thông tin khác nhau, không trộn vào nhau.",
+      "code": "frontend/src/api/client.ts",
+      "tags": "frontend api envelope response contract success data message"
+    },
+    {
+      "term": "Vì sao các lời gọi tool của AI Agent được hiển thị dạng thẻ có thể mở rộng?",
+      "answer": "Vì người dùng cần **kiểm chứng**, chứ không chỉ tin.\n\n`ToolCallDisplay.tsx` render mỗi lần gọi tool thành một thẻ gập lại được, mặc định **đóng**:\n\n- Tên tool (font mono) - họ gọi được function nào.\n- Badge `ok` / `failed` - thành công hay lỗi.\n- Icon khác nhau cho hai trường hợp.\n- Khi mở: **Arguments** (JSON đẹp) và **Result**.\n\nLý do gập lại mặc định: một câu hỏi có thể kích hoạt nhiều tool call, và trải hết ra sẽ làm nội dung trả lời bị chìm. Nhưng phải **bấm được** - đó là ranh giới giữa giao diện gọn và khả năng kiểm toán.\n\n> Đây là cách dự án thể hiện nguyên tắc 'real data only' ở tầng UI: con số đến từ đâu phải truy được, và thất bại phải hiện ra chứ không bị giấu.",
+      "code": "frontend/src/components/agent/ToolCallDisplay.tsx",
+      "tags": "frontend agent tool call display audit transparency"
+    },
+    {
+      "term": "Trạng thái lỗi và trạng thái rỗng được render khác nhau thế nào?",
+      "answer": "Dự án tách rõ **hai khái niệm** khác nhau:\n\n**ErrorState** - có lỗi thật: hiện thông báo lỗi **kèm hành động**. Ví dụ timeout cho biết backend vẫn đang xử lý và gợi ý thử lại hoặc rút gọn câu hỏi.\n\n**EmptyState** - không có lỗi, chỉ không có dữ liệu: nói rõ **tại sao trống** và **làm gì tiếp theo**.\n\nKhông bao giờ lấp chỗ trống bằng số giả. Một ô trống phải nói rõ nguyên nhân, ví dụ \"symbol này chưa có dữ liệu trong lakehouse\" chứ không phải `0.00%`.\n\n**ErrorBoundary** bắt lỗi render của React để một component hỏng không làm sập cả trang.\n\n> Nguyên tắc: chỗ trống phải nói rõ **vì sao trống** và **làm gì tiếp theo** - không chèn số giả để lấp.",
+      "code": "frontend/src/components/common/EmptyState.tsx",
+      "tags": "frontend empty state error state error boundary ux"
+    },
+    {
+      "term": "`MarketProvider` giữ state gì và vì sao dùng Context thay vì React Query cho phần này?",
+      "answer": "`useMarket.tsx` giữ hai state: `symbol` (mặc định `\"AAPL\"`) và `interval` (mặc định `\"1d\"`).\n\nContext cung cấp `{ symbol, interval, setSymbol, setInterval }` cho toàn bộ cây component, kèm `useMemo` để không tạo object mới mỗi lần render.\n\nVì sao không đưa vào TanStack Query: `symbol` và `interval` là **ý định của người dùng**, không phải dữ liệu từ server. TanStack Query quản lý cache của dữ liệu server; trạng thái điều hướng thuộc về client. Trộn hai loại là nguồn gốc của những cache không bao giờ được invalidate đúng.\n\n`useMarket()` ném lỗi nếu được dùng ngoài `MarketProvider` - bắt lỗi cấu hình sớm thay vì trả `undefined` âm thầm.\n\n> Ranh giới: **server state** (TanStack Query) và **client state** (Context/useState) là hai thứ khác nhau.",
+      "code": "frontend/src/hooks/useMarket.tsx",
+      "tags": "frontend context provider client state symbol selection"
+    },
+    {
+      "term": "Các trang chính của ứng dụng và đường dẫn tương ứng là gì?",
+      "answer": "Bảy trang, bảy route:\n\n- `/` - **Tổng quan** (Dashboard): 5 cột chỉ số, biểu đồ giá, nến, khối lượng, dự báo phiên tới, hoạt động gần đây.\n- `/market` - **Thị trường**: bảng phiên, so sánh mã, thống kê.\n- `/analysis` - **Phân tích kỹ thuật**: các chỉ báo trên biểu đồ.\n- `/forecast` - **Dự báo**: chạy model, xem kết quả, đối chiếu với thực tế.\n- `/backtesting` - **Chiến lược**: backtest một mã và walk-forward đa mã.\n- `/agent` - **Trợ lý AI**: hội thoại, tool call, truy vết.\n- `/system` - **Hệ thống**: trạng thái pipeline, MinIO, MySQL, chất lượng dữ liệu.\n\nRoute `*` chuyển hướng về `/` bằng `<Navigate to=\"/\" replace />`.\n\nTất cả nằm trong layout `MainLayout` (navbar + vùng nội dung).\n\n> `replace` quan trọng: không `replace` thì nút Back của trình duyệt sẽ quay lại URL sai đã bị thay thế.",
+      "code": "frontend/src/App.tsx",
+      "tags": "frontend routing pages navigation layout"
+    },
+    {
+      "term": "Vì sao Dashboard hiển thị `—` thay vì `0.00%` khi thiếu dữ liệu?",
+      "answer": "Vì `0.00%` là một **khẳng định sai**. Nó nói 'biến động bằng không', trong khi sự thật có thể là 'chưa có dữ liệu phiên trước để so sánh'.\n\nHai trạng thái này khác nhau về bản chất:\n- `0.00%` = đã biết, và bằng không.\n- `—` = chưa biết.\n\nCùng nguyên tắc với NULL trong database: NULL = chưa biết, 0 = biết và bằng không.\n\nTrong thực tế, đây là trường hợp rất dễ xảy ra: giá đóng cửa phiên trước bị thiếu (mã mới niêm yết, khoảng trống dữ liệu, symbol chưa được ingest), nên phần trăm thay đổi không tính được.\n\n> Quy tắc của dự án: **số liệu không có thì hiển thị `—` kèm lý do, tuyệt đối không trả một con số 'cho có'**.",
+      "code": "frontend/src/pages/Dashboard.tsx",
+      "tags": "frontend dashboard empty state placeholder no fake data"
+    },
+    {
+      "term": "Vì sao `MarketTape` nằm trong layout và không phải là một trang?",
+      "answer": "Vì nó là **dải thị trường chạy liên tục** ở đầu trang - một dải giá chạy ngang, luôn hiện, chỉ cần nhìn lướt qua.\n\nĐưa nó vào layout (thay vì làm một route riêng) nghĩa là nó xuất hiện trên **mọi trang** mà không tốn thêm một lần điều hướng.\n\nCùng lý do, `Header` chứa nút đổi ngôn ngữ EN/Vi cũng nằm ở layout: đó là điều khiển toàn cục, không phải của một trang cụ thể nào.\n\n> Nguyên tắc phân tầng UI: phần nào **luôn hiện** và độc lập với nội dung trang thì thuộc layout; phần nào phụ thuộc nội dung trang thì thuộc page.",
+      "code": "frontend/src/components/layout/MarketTape.tsx",
+      "tags": "frontend layout market tape header global chrome"
+    },
+    {
+      "term": "Các component UI dùng chung trong `components/ui/` có nguyên tắc gì?",
+      "answer": "Bộ này gồm: `badge`, `button`, `card`, `checkbox`, `input`, `select`, `skeleton`.\n\nNguyên tắc thiết kế dùng `class-variance-authority` + `clsx` + `tailwind-merge`:\n\n- **CVA** định nghĩa các biến thể (variant/size) dưới dạng dữ liệu, không phải class name viết tay.\n- **`cn()`** trong `lib/utils.ts` hợp nhất các class, và `tailwind-merge` bảo đảm class **sau cùng thắng** - nên `cn(\"p-2\", \"p-4\")` ra `p-4`, không phải `p-2 p-4` với CSS mâu thuẫn.\n\n`skeleton` dùng cho trạng thái đang tải: hiện một khung xám có nhịp sáng thay vì spinner trần, để bố cục không nhảy khi dữ liệu về.\n\n> Vì sao có `tailwind-merge`: Tailwind là utility-first, nên hai class mâu thuẫn cùng tồn tại trong DOM và trình duyệt phải chọn theo thứ tự trong stylesheet - thứ tự đó không phải lúc nào cũng là ý muốn của lập trình viên.",
+      "code": "frontend/src/components/ui/button.tsx",
+      "tags": "frontend ui components cva tailwind merge variants design system"
+    },
+    {
+      "term": "Vì sao có `ChartViewToggle`, `ChartTimeControls` và `BarIntervalSelector` riêng biệt?",
+      "answer": "Vì chúng điều khiển **hai trục độc lập**, và gộp lại sẽ gây nhầm lẫn:\n\n- **ChartTimeControls** - cửa sổ nhìn lại (1M / 3M / 6M / 1Y / ALL).\n- **BarIntervalSelector** - độ phân giải của nến (ngày / tuần / tháng).\n\n`ChartViewToggle` chuyển giữa các kiểu hiển thị (giá / chỉ báo / dự báo).\n\nTách riêng vì chúng **áp dụng ở nhiều trang**: MarketData, TechnicalAnalysis, Forecasting, Dashboard đều dùng lại cùng bộ điều khiển. Đặt chúng ở `components/common/` và dùng chung giữa các trang tránh mỗi trang tự chế một bản riêng.\n\n> Đây là lý do `MarketProvider` tồn tại: `symbol` và `interval` phải **đồng bộ** giữa các trang, không phải mỗi trang giữ một bản riêng.",
+      "code": "frontend/src/components/common/BarIntervalSelector.tsx",
+      "tags": "frontend chart controls shared components reuse"
+    },
+    {
+      "term": "Vì sao dự án không có test frontend?",
+      "answer": "Đây là điểm **cần nói thẳng**: kiểm thử trong dự án tập trung hoàn toàn ở backend (`backend/tests/`), nơi có các test như `test_chart_history.py`, `test_agent_universe.py`, `test_publication_integrity.py`, `test_pipeline_run_status.py`.\n\nFrontend không có test tự động, và `package.json` không có script `test` - chỉ có `dev`, `build`, `preview`.\n\nĐiều kiện kiểm tra frontend hiện có là **type check + build**: `tsc --noEmit && vite build` chạy trong `npm run build`.\n\nVì sao đây là khoảng trống đáng nói:\n\n- Các quy tắc quan trọng nhất của frontend (`isUsableNumber`, `tradingDay`, `toFinite`) là **hàm thuần túy** - chúng rất dễ test và test được rẻ.\n- Quy tắc thiết kế (một bo góc, năm cỡ chữ, một chiến lược đổ bóng) hiện chỉ được bảo vệ bằng quy ước, không có gì cảnh báo khi ai đó thêm một `rounded-lg` mới.\n\n> Theo nguyên tắc 'không tự ý làm đẹp số liệu' của dự án, khoảng trống này nên được nêu thẳng thay vì im lặng.",
+      "code": "frontend/package.json",
+      "tags": "frontend testing gap typecheck build coverage"
+    }
+  ]
+}

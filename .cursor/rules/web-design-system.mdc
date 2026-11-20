@@ -41,31 +41,89 @@ Hệ thống chỉ có **5 cỡ**. Mọi thứ phải ép về một trong 5 c�
 
 ---
 
-## 2. Bảy màu, mỗi màu một vai trò
+## 2. Mười màu, mỗi màu một vai trò
 
-CSS **chỉ được chứa** 7 role này (thêm `surface-2` cho vùng lõm, và `negative`
-cho dữ liệu tài chính):
+Mọi màu trong dự án là **biến CSS** chứ không phải mã hex cứng. Biến được
+định nghĩa **hai lần**: một lần cho nền sáng (`:root`), một lần cho nền tối
+(`[data-theme="dark"]`). Một component không bao giờ biết theme tồn tại.
 
 ```
-canvas       #F4F5F7   nền trang
-surface      #FCFCFD   card / panel nằm trên canvas
-surface-2    #EDEFF2   vùng lõm, header bảng
-ink          #14161A   tiêu đề + nội dung
-muted        #5F6672   text phụ, caption
-hairline     #E2E5EA   viền 1px, đường kẻ
-primary      #1B6B4A   accent duy nhất
-on-primary   #FFFFFF   chữ đặt trên primary
-negative     #C0392B   chỉ dùng cho "giảm" trong dữ liệu tài chính
+canvas       nền trang
+surface      card / panel nằm trên canvas
+surface-2    vùng lõm, header bảng
+surface-3    hover, active tint
+ink          tiêu đề + nội dung
+muted        text phụ, caption
+hairline     viền 1px, đường kẻ
+primary      accent thương hiệu duy nhất
+primary-2    gradient end của primary
+on-primary   chữ đặt trên primary
+up           số liệu TĂNG (nến xanh, delta dương)
+negative     số liệu GIẢM
 ```
 
 **Bắt buộc:**
 - **Không có màu nào khác.** Thêm màu mới = thêm một quyết định không cần thiết.
-- `primary` có phạm vi đã định: chỉ dùng cho **hành động chính**, **trạng thái
-  active**, và **số liệu tăng**. KHÔNG dùng `primary` làm viền, làm badge nền,
-  làm icon, và làm hover state cùng lúc trên một màn hình.
+- Giá trị phải là **bộ ba HSL** (`H S% L%`) để Tailwind ghép được:
+  `hsl(var(--ink))`. Viết trực tiếp `#14161A` trong Tailwind class là sai.
+- **`primary` có phạm vi đã định:** chỉ dùng cho **hành động chính**, **trạng thái
+  active**, và **điểm nhấn thương hiệu**. KHÔNG dùng `primary` làm viền, làm
+  badge nền, làm icon, và làm hover state cùng lúc trên một màn hình.
+- **`up` và `primary` là hai vai trò khác nhau, đừng trộn.** Accent là **navy /
+  indigo** (`hsl(226 68% 42%)` ở nền sáng, `hsl(222 92% 68%)` ở nền tối);
+  `up` là **xanh lá** (`hsl(152 58% 34%)` sáng / `hsl(150 62% 52%)` tối);
+  `negative` là **đỏ** (`hsl(0 72% 48%)` sáng / `hsl(0 84% 63%)` tối).
+  Lý do đổi accent từ emerald sang navy: emerald vừa là màu thương hiệu vừa là
+  màu "tăng" mà người đọc tài chính đã quen, nên hai ý nghĩa bị lẫn. Navy không
+  có xung đột, nên cặp màu hướng được giải phóng đúng chuẩn: xanh tăng, đỏ giảm.
 - Không dùng `ok/warn/info` ba màu trạng thái. Trạng thái = `ink` / `muted` /
   `negative` / `primary`. Nếu cần cảnh báo thì dùng `negative`.
-- Đừng dùng gradient làm nền hoặc làm nút. Một màu nền phẳng + một accent.
+- Gradient **được phép** nhưng chỉ hai chỗ: nền của nút `primary` (gradient
+  hai stop **cùng một hue** — `primary` → `primary-2`) và tô gradient dưới
+  đường giá trong biểu đồ (cùng màu đường, alpha giảm dần).
+
+### 2a. Theme sáng + tối, chuyển bằng CSS không bằng React
+
+- Palette nằm trong `frontend/src/index.css` dưới `:root` và `[data-theme="dark"]`.
+- `frontend/index.html` có **script đồng bộ trong `<head>`** đọc
+  `localStorage.getItem("stock-lakehouse-theme")` (hoặc `prefers-color-scheme`)
+  và set `data-theme` **trước frame đầu tiên**. Thiếu đoạn này là hiện tượng
+  "flash sáng rồi mới tối" — FOUC.
+- Không được nhân bản CSS theo theme, không được dùng class của Tailwind
+  `dark:`. Một lần đổi biến đổi lại toàn bộ app trong một style recalculation.
+- `frontend/src/hooks/useTheme.tsx` giữ trạng thái `light | dark | system` và
+  chỉ ghi `data-theme` + `localStorage`; nó **không** re-render cây component.
+
+### 2b. `tailwind-merge` phải biết thang cỡ chữ của dự án
+
+`text-display`, `text-heading`, `text-body`, `text-small`, `text-label` trông
+**giống hệt** các class màu của Tailwind (`text-red-500`, `text-blue-600`).
+`tailwind-merge` mặc định xếp **mọi** `text-*` vào nhóm *màu chữ*, nên khi
+viết `cn("text-display text-up")` nó sẽ **xoá mất** `text-display` và chỉ giữ
+lại màu.
+
+Hậu quả: giá hiển thị chạy 40px bị rớt xuống 14px, mà class list vẫn còn
+`text-display` nên không ai thấy lỗi.
+
+Vì vậy `frontend/src/lib/utils.ts` **phải** dùng `extendTailwindMerge` để khai
+báo 5 cỡ chữ của dự án thuộc nhóm `font-size`:
+
+```ts
+const twMerge = extendTailwindMerge({
+  extend: {
+    classGroups: {
+      "font-size": [{ text: ["display", "heading", "body", "small", "label"] }],
+    },
+  },
+});
+```
+
+Kiểm tra nhanh sau mỗi lần đổi thang cỡ chữ:
+
+```powershell
+node -e "const {twMerge}=require('tailwind-merge'); console.log(twMerge('text-display text-up'))"
+# Phải in ra "text-display text-up", KHÔNG được in ra "text-up"
+```
 
 ---
 
@@ -92,20 +150,36 @@ Quy tắc: nếu nhìn trang mà **mọi thứ** đều nằm trong ô vuông �
 
 ---
 
-## 5. Một chiến lược nổi duy nhất: HAIRLINE
+## 5. Thang chiều sâu (shadow) — đã cho phép, dùng có chọn lọc
 
-Dự án nằm trên nền sáng → dùng **đường viền 1px + đổi màu bề mặt**.
+Bản rule cũ cấm tuyệt đối `box-shadow`. Ngày 20/11/2026 rule này được nới:
+một màn hình dữ liệu mà **mọi vùng đều là ô phẳng** đọc rất khó, và bóng đổ
+nhẹ là cách rẻ nhất để phân cấp bề mặt.
 
-- **Không dùng `box-shadow` ở bất kỳ đâu** (trừ dropdown/popover cần tách khỏi
-  nền). Shadow đen trên nền sáng là "AI tell" phổ biến nhất.
-- Không dùng gradient overlay lên chart, không dùng gradient strip trên card.
-- Không có "hover:shadow-md", "hover:-translate-y-0.5", "hover:shadow-lg".
+- Shadow **không** phải màu riêng — nó là **biến** `--shadow-xs/sm/md/lg/popover`,
+  định nghĩa riêng cho nền sáng và nền tối (nền tối cần bóng **nông và mềm** hơn,
+  vì trên nền gần đen một bóng lớn là vô hình).
+- Cấp bóng phải đi theo vai trò, không theo ý thích:
+  | Cấp | Dùng cho |
+  |---|---|
+  | `xs` | nút `primary` (một chút sáng) |
+  | `sm` | panel, hàng bảng, thẻ có thể bấm |
+  | `md` | vùng nổi lên một bậc |
+  | `lg` | tooltip, dropdown |
+  | `popover` | lớp phủ cao nhất |
+- **Cấm** `hover:shadow-md`, `hover:-translate-y-0.5`, `scale-[0.98]`, gradient
+  sweep. Bóng là để phân cấp bề mặt, không phải để "nhảy" khi rê chuột.
+- Vẫn cấm gradient overlay lên chart, gradient strip trên card.
+- `.glass-bar` (header, nav bar) được phép dùng `backdrop-filter: blur()` —
+  đó là **một** chỗ duy nhất trong app, vì nó là vùng cố định nhỏ và trình duyệt
+  cache kết quả blur giữa các lần cuộn.
 
 ---
 
 ## 6. Một bo góc + một pill
 
-- Bo góc làm việc: **6px** (`rounded`). Dùng cho card, input, button, badge.
+- Bo góc làm việc: **8px** (`rounded`). Dùng cho card, input, button, badge.
+  (Đổi từ 6px lên 8px ngày 20/11/2026 cho khớp với bảng hiện dại.)
 - Pill: **9999px** (`rounded-full`) — chỉ cho thứ thực sự tròn: avatar, dot,
   toggle, chip bo tròn.
 - Cấm: `rounded-sm`, `rounded-md`, `rounded-lg`, `rounded-xl`, `rounded-2xl`,
@@ -141,7 +215,8 @@ Gốc = **4px**. Chỉ dùng bội số của 4:
 - **Một `primary` mỗi màn hình.** Ba nút filled accent trên một trang = không
   nút nào là hành động chính.
 - Chiều cao nút: 36px (mặc định) / 32px (`sm`) / 44px (mobile hit target).
-- Không gradient, không shadow, không bo góc lạ.
+- Nút `primary` được phép gradient hai stop cùng hue + `shadow-xs`; các nút
+  khác không gradient, không shadow, không bo góc lạ.
 
 ---
 
@@ -206,11 +281,25 @@ Bắt buộc:
 
 ---
 
-## 14. Không animation rác
+## 14. Animation: có mục đích, chạy trên compositor, tôn trọng reduced-motion
 
-- Chỉ giữ animation có mục đích: chuyển trạng thái, skeleton, pulse cho live dot.
+- Chỉ giữ animation có mục đích: chuyển trạng thái, skeleton, pulse cho live dot,
+  flash giá khi đổi, dải giá tự vẽ, route fade.
 - Cấm `hover:-translate-y-0.5`, `hover:shadow-md`, `scale-[0.98]`, gradient sweep.
-- Transition chỉ trên `background-color`, `border-color`, `color`, `opacity`.
+- Transition chỉ trên `background-color`, `border-color`, `color`, `opacity`,
+  `transform` — những thuộc tính **không** ép trình duyệt tính lại layout.
+- **Ba thời lượng, không thêm**: `140ms` (hover), `220ms` (đổi trạng thái),
+  `320ms` (reveal). Một app dữ liệu mà chờ lâu hơn 320ms cho hiệu ứng trang trí
+  thì người đọc đang chờ **con số**, không phải chờ trang trí.
+- Animation chạy bằng `transform`/`opacity` (compositor-only), **không** dùng
+  JS loop để tính layout mỗi frame. Dải giá cuộn (market tape) là CSS keyframe
+  với track nhân đôi và `translate3d(-50%)` — không có JS ticker.
+- **Bắt buộc** có khối `@media (prefers-reduced-motion: reduce)` trong
+  `index.css` tắt hết animation. Không tắt thì web không nhanh mượt với người
+  đọc nhạy cảm thị giác.
+- Sparkline tự vẽ dùng `pathLength="1"` + `stroke-dashoffset` và
+  `animation-fill-mode: forwards` (thiếu `forwards` là đường sẽ **biến mất**
+  sau khi vẽ xong).
 
 ---
 
@@ -233,13 +322,48 @@ Tóm tắt cho phần UI:
 
 ---
 
-## Checklist trước khi commit UI
+## 16. Thành phần dùng chung — dùng lại, không viết lại
+
+Các mẫu dưới đây đã có sẵn trong `frontend/src/components/common/`. Khi cần một
+trong các mẫu dưới đây, **dùng lại** — đừng viết lần thứ hai:
+
+| Thành phần | Dùng để làm gì |
+|---|---|
+| `QuoteHeader.tsx` | Dải tóm tắt mã: tên, giá hiển thị 40px, delta, 5 số phiên, thanh khoảng trong phiên |
+| `KeyStatistics.tsx` | Bảng thống kê dạng key/value, số phải căn phải |
+| `DataTable.tsx` | Bảng dữ liệu có cột sắp xếp được, header dính, số căn phải |
+| `Sparkline.tsx` | Đường giá nhỏ (SVG thuần, **không** dùng Recharts) |
+| `ChartTimeControls.tsx` | Chọn khoảng thời gian + khoảng nến (tab gạch chân, không ô vuông) |
+| `ChartViewToggle.tsx` | Chuyển giữa biểu đồ đường và nến |
+| `PageHeader.tsx` | Đầu trang thống nhất: badge nhóm, tiêu đề, phụ đề, slot trạng thái |
+| `ThemeToggle.tsx` | Chuyển theme sáng / tối / theo hệ thống (trên header) |
+| `Panel.tsx` | Khối nội dung có nền + viền + shadow nhẹ |
+| `SubTabs.tsx` | Nhóm tab phụ trong một trang |
+| `SymbolSearch.tsx` | Ô tìm mã chứng khoán |
+| `Explainer.tsx` | Khối giải thích "đọc số này thế nào" |
+
+**Vì sao `Sparkline` viết tay bằng SVG thay vì dùng Recharts:** một đường giá
+nhỏ 72×24px trong bảng watchlist không cần trục, không cần tooltip, không cần
+animation. Dùng Recharts cho nó sẽ kéo thêm ~400KB runtime vào bundle chính cho
+một hình vẽ 30 dòng SVG có thể tự vẽ.
+
+**Vì sao `QuoteHeader` không có viền bao:** nó là **danh tính của trang**, không
+phải một widget nằm trong trang. Một khung sẽ cắt nó ra khỏi nội dung bên
+dưới. Một đường hairline dưới cả dải là đủ.
+
+---
+
+## 17. Checklist trước khi commit UI
 
 - [ ] Mở trang, đếm số cỡ chữ. Đúng 5.
-- [ ] Đếm bo góc. Đúng 2 (6px + pill).
-- [ ] Tìm `box-shadow` trong CSS/JSX. Không có (trừ dropdown).
-- [ ] Tìm màu ngoài 7 role + negative. Không có.
+- [ ] Đếm bo góc. Đúng 2 (8px + pill).
+- [ ] Tìm màu ngoài 13 role. Không có. Mọi màu đi qua `hsl(var(--...))`.
 - [ ] Tìm giá trị spacing không chia hết cho 4. Không có.
 - [ ] Đếm nút `primary` filled trên mỗi màn hình. Tối đa 1.
 - [ ] Đếm emoji trong JSX. Không có.
+- [ ] `node -e "const {twMerge}=require('tailwind-merge'); console.log(twMerge('text-display text-up'))"` in ra `text-display text-up` (mục 2b).
+- [ ] Bật theme tối: không có vùng nào trắng đột ngột, không có chữ biến mất.
+      Chuyển theme không nháy (FOUC) khi tải lại trang.
+- [ ] Bật `prefers-reduced-motion` (DevTools → Rendering) → không còn animation.
+- [ ] `npm run build` trong `frontend/` không có lỗi TypeScript.
 - [ ] Bỏ hết chữ: layout còn nhận ra là app tài chính chứ không phải template?

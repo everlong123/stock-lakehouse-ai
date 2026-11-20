@@ -17,8 +17,9 @@ import { formatPrice, shortDate } from "@/utils/format";
 const tooltipStyle = {
   background: "hsl(var(--surface))",
   border: "1px solid hsl(var(--hairline))",
-  borderRadius: 6,
+  borderRadius: 8,
   fontSize: 12,
+  boxShadow: "var(--shadow-lg)",
 };
 
 /**
@@ -129,50 +130,50 @@ export function VerifiedForecastChart({
       */}
       <div>
         <p className="mb-2 font-mono text-label uppercase text-muted">
-          Sai số mỗi phiên · xanh = đúng hướng, đỏ = sai hướng
+          Sai số mỗi phiên · xanh lá = đúng hướng, đỏ = sai hướng
         </p>
-        <div className="h-40 w-full">
-          <ResponsiveContainer>
-            <BarChart data={chartData} margin={{ top: 4, right: 12, bottom: 4, left: 4 }}>
-              <CartesianGrid stroke="hsl(var(--hairline))" strokeDasharray="3 3" vertical={false} />
-              <XAxis
-                dataKey="timestamp"
-                tickFormatter={(v) => shortDate(String(v))}
-                minTickGap={32}
-                stroke="hsl(var(--muted))"
-                fontSize={12}
-              />
-              <YAxis
-                stroke="hsl(var(--muted))"
-                fontSize={12}
-                width={64}
-                tickFormatter={(v: number) => v.toFixed(0)}
-              />
-              <Tooltip
-                contentStyle={tooltipStyle}
-                labelFormatter={(v) => shortDate(String(v))}
-                formatter={(value) => [
-                  typeof value === "number" ? formatPrice(value, currency) : String(value ?? ""),
-                  "Sai số",
-                ]}
-              />
-              <Bar dataKey="error" maxBarSize={24} isAnimationActive={false}>
-                {chartData.map((row, index) => (
-                  <Cell
-                    key={`err-${row.timestamp}-${index}`}
-                    fill={
-                      row.directionCorrect === 1
-                        ? "hsl(var(--primary))"
-                        : row.directionCorrect === 0
-                          ? "hsl(var(--negative))"
-                          : "hsl(var(--muted))"
-                    }
-                  />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
+          <div className="h-40 w-full">
+            <ResponsiveContainer>
+              <BarChart data={chartData} margin={{ top: 4, right: 12, bottom: 4, left: 4 }}>
+                <CartesianGrid stroke="hsl(var(--hairline))" strokeDasharray="3 3" vertical={false} />
+                <XAxis
+                  dataKey="timestamp"
+                  tickFormatter={(v) => shortDate(String(v))}
+                  minTickGap={32}
+                  stroke="hsl(var(--muted))"
+                  fontSize={12}
+                />
+                <YAxis
+                  stroke="hsl(var(--muted))"
+                  fontSize={12}
+                  width={64}
+                  tickFormatter={(v: number) => v.toFixed(0)}
+                />
+                <Tooltip
+                  contentStyle={tooltipStyle}
+                  labelFormatter={(v) => shortDate(String(v))}
+                  formatter={(value) => [
+                    typeof value === "number" ? formatPrice(value, currency) : String(value ?? ""),
+                    "Sai số",
+                  ]}
+                />
+                <Bar dataKey="error" maxBarSize={24} isAnimationActive={false}>
+                  {chartData.map((row, index) => (
+                    <Cell
+                      key={`err-${row.timestamp}-${index}`}
+                      fill={
+                        row.directionCorrect === 1
+                          ? "hsl(var(--up))"
+                          : row.directionCorrect === 0
+                            ? "hsl(var(--negative))"
+                            : "hsl(var(--muted))"
+                      }
+                    />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
       </div>
     </div>
   );

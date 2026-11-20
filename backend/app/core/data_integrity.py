@@ -47,6 +47,7 @@ obvious failure, not a substitute for real data.
 
 from __future__ import annotations
 
+import math
 import re
 
 #: Prefixes that mark a symbol as a test fixture rather than a ticker.
@@ -161,12 +162,12 @@ def is_impossible_price(
         reference = float(reference_close)
     except (TypeError, ValueError):
         return True
-    if reference <= 0:
+    if not math.isfinite(reference) or reference <= 0:
         return True
 
-    ratio = reference / predicted
-    if ratio < 1.0:
-        ratio = 1.0 / ratio
+    # Divide the larger value by the smaller. Taking the reciprocal of
+    # an underflowed ratio could raise ZeroDivisionError on finite inputs.
+    ratio = max(reference, predicted) / min(reference, predicted)
     return ratio > MAX_PREDICTION_REFERENCE_FACTOR
 
 

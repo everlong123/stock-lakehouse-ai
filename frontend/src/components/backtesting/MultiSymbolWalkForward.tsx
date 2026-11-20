@@ -7,7 +7,8 @@ import { ErrorState } from "@/components/common/ErrorState";
 import { Explainer } from "@/components/common/Explainer";
 import { MetricCard } from "@/components/dashboard/MetricCard";
 import { Badge } from "@/components/ui/badge";
-import { formatNumber, formatPercent } from "@/utils/format";
+import { useI18n, t } from "@/lib/i18n";
+import { formatNumber, formatPercent, shortDate } from "@/utils/format";
 
 const tooltipStyle = {
   background: "hsl(var(--surface))",
@@ -35,6 +36,7 @@ const tooltipStyle = {
  * never shows a placeholder number.
  */
 export function MultiSymbolWalkForward({ strategy }: { strategy: string }) {
+  const { locale } = useI18n();
   const query = useQuery({
     queryKey: ["multi-symbol-report", strategy],
     queryFn: () => fetchMultiSymbolReport(strategy),
@@ -48,47 +50,47 @@ export function MultiSymbolWalkForward({ strategy }: { strategy: string }) {
   return (
     <div className="space-y-12">
       <Explainer
-        title="Tab này dùng để làm gì?"
-        intro="Một backtest trên một mã cổ phiếu không phải là bằng chứng. Tab này chạy cùng một cơ chế walk-forward trên hàng chục mã thuộc nhiều sàn khác nhau, rồi báo cáo PHÂN PHỐI kết quả: giá trị trung vị, tỉ lệ mã có lãi, và phân tách theo sàn. Mỗi cửa sổ kiểm tra được đo cả chiến lược lẫn đường cơ sở mua và giữ trên đúng những phiên đó, nên phần chênh lệch là so sánh cặp (paired) chứ không phải hiệu của hai trung bình độc lập."
+        title={t("walkforward.explainer_title", locale)}
+        intro={t("walkforward.explainer_intro", locale)}
         items={[
           {
-            term: "Walk-forward",
-            meaning: "Chia lịch sử thành các cửa sổ trượt: huấn luyện trên một đoạn, kiểm tra trên đoạn kế tiếp chưa từng thấy. Lặp lại nhiều lần rồi lấy trung bình, nên giảm hiệu ứng quá khớp tham số.",
+            term: t("walkforward.term_walkforward", locale),
+            meaning: t("walkforward.term_walkforward_meaning", locale),
           },
           {
-            term: "Ngoài mẫu (out-of-sample)",
-            meaning: "Phần dữ liệu chiến lược chưa từng được nhìn thấy khi chọn tham số. Đây mới là kỳ vọng hợp lý về hiệu quả thật.",
+            term: t("walkforward.term_oos", locale),
+            meaning: t("walkforward.term_oos_meaning", locale),
           },
           {
-            term: "Mua & giữ (baseline)",
-            meaning: "Giải pháp rỗng: mua đầu kỳ, giữ đến cuối, trên cùng các phiên và cùng bộ chi phí. Chiến lược phải thắng đường này mới được coi là tạo thêm giá trị.",
+            term: t("walkforward.term_bh", locale),
+            meaning: t("walkforward.term_bh_meaning", locale),
           },
           {
-            term: "Median",
-            meaning: "Giá trị trung vị. Dùng thay cho trung bình vì một mã tăng rất mạnh có thể kéo trung bình lệch, còn trung vị thì không.",
+            term: t("walkforward.term_median", locale),
+            meaning: t("walkforward.term_median_meaning", locale),
           },
           {
-            term: "Excess return",
-            meaning: "Chênh lệch giữa chiến lược và mua & giữ trên cùng một cửa sổ. Âm nghĩa là chiến lược làm tệ hơn việc cứ nắm giữ.",
+            term: t("walkforward.term_excess", locale),
+            meaning: t("walkforward.term_excess_meaning", locale),
           },
         ]}
         steps={[
-          "Chọn chiến lược ở đầu trang — cùng lựa chọn với tab một mã.",
-          "Đọc hàng so sánh giữa chiến lược và mua & giữ ở phần đầu.",
-          "Xem bảng theo sàn để biết kết quả có phổ biến hay chỉ đúng ở một vài thị trường.",
-          "Cuộn xuống bảng từng mã để xem mã nào thắng và mã nào thua.",
+          t("walkforward.step_1", locale),
+          t("walkforward.step_2", locale),
+          t("walkforward.step_3", locale),
+          t("walkforward.step_4", locale),
         ]}
       />
 
       {query.isLoading ? (
-        <EmptyState message="Đang tải báo cáo..." />
+        <EmptyState message={t("walkforward.loading", locale)} />
       ) : query.isError ? (
-        <ErrorState message={errorMessage(query.error, "Không tải được báo cáo.")} />
+        <ErrorState message={errorMessage(query.error, t("walkforward.load_error", locale))} />
       ) : missing ? (
         <section className="space-y-4">
-          <ErrorState message={report.reason ?? "Chưa có báo cáo."} />
+          <ErrorState message={report.reason ?? t("walkforward.missing", locale)} />
           <div className="rounded border border-hairline bg-surface p-4">
-            <div className="label mb-2">Cách tạo báo cáo</div>
+            <div className="label mb-2">{t("walkforward.how_to_title", locale)}</div>
             <code className="block font-mono text-small text-ink">
               cd backend
               <br />
@@ -96,8 +98,7 @@ export function MultiSymbolWalkForward({ strategy }: { strategy: string }) {
               --strategy {strategy}
             </code>
             <p className="mt-3 text-small text-muted">
-              Lệnh này mất khoảng 2 phút và ghi kết quả vào{" "}
-              <span className="font-mono">backend/data/</span>.
+              {t("walkforward.how_to_note", locale)}
             </p>
           </div>
         </section>
@@ -107,8 +108,8 @@ export function MultiSymbolWalkForward({ strategy }: { strategy: string }) {
     </div>
   );
 }
-
 function ReportBody({ report }: { report: Awaited<ReturnType<typeof fetchMultiSymbolReport>> }) {
+  const { locale } = useI18n();
   const strat = report.strategy_distribution;
   const bh = report.buy_and_hold_distribution;
   const head = report.head_to_head;
@@ -127,25 +128,34 @@ function ReportBody({ report }: { report: Awaited<ReturnType<typeof fetchMultiSy
       <section>
         <div className="section-head">
           <h2 className="section-title">
-            Chiến lược vs mua &amp; giữ · {report.config?.symbols_tested ?? 0} mã trên{" "}
-            {report.config?.universe_size ?? 0}
+            {`${t("walkforward.headline", locale)} ${report.config?.symbols_tested ?? 0} ${t("walkforward.symbols_on", locale)} ${report.config?.universe_size ?? 0}`}
           </h2>
+          {/* WHEN THE REPORT WAS PRODUCED.
+              This is the report's freshness, and it is load-bearing: the
+              report is produced by the nightly `walk-forward` cron job, so
+              without this stamp a reader cannot tell whether the numbers
+              in front of them are from last night or from a month ago. */}
+          {report.generated_at ? (
+            <span className="font-mono text-label uppercase text-muted">
+              {t("walkforward.generated_at", locale)} {shortDate(report.generated_at)}
+            </span>
+          ) : null}
         </div>
         <div className="grid grid-cols-2 gap-x-6 gap-y-6 border-y border-hairline py-6 md:grid-cols-4">
           <MetricCard
-            label="Median lợi nhuận · chiến lược"
+            label={t("walkforward.median_strategy", locale)}
             value={formatPercent(strat?.median_avg_test_return ?? 0)}
           />
           <MetricCard
-            label="Median lợi nhuận · mua & giữ"
+            label={t("walkforward.median_bh", locale)}
             value={formatPercent(bh?.median_avg_return ?? 0)}
           />
           <MetricCard
-            label="Median Sharpe · chiến lược"
+            label={t("walkforward.median_sharpe_strategy", locale)}
             value={formatNumber(strat?.median_avg_test_sharpe ?? 0)}
           />
           <MetricCard
-            label="Median Sharpe · mua & giữ"
+            label={t("walkforward.median_sharpe_bh", locale)}
             value={formatNumber(bh?.median_sharpe ?? 0)}
           />
         </div>
@@ -154,44 +164,41 @@ function ReportBody({ report }: { report: Awaited<ReturnType<typeof fetchMultiSy
       <section>
         <div className="grid grid-cols-2 gap-x-6 gap-y-6 border-y border-hairline py-6 md:grid-cols-4">
           <MetricCard
-            label="% mã có lãi · chiến lược"
+            label={t("walkforward.pct_profitable_strategy", locale)}
             value={`${(strat?.pct_symbols_profitable ?? 0).toFixed(1)}%`}
           />
           <MetricCard
-            label="% mã có lãi · mua & giữ"
+            label={t("walkforward.pct_profitable_bh", locale)}
             value={`${(bh?.pct_symbols_profitable ?? 0).toFixed(1)}%`}
           />
           <MetricCard
-            label="% cửa sổ thắng baseline"
+            label={t("walkforward.pct_windows_beating", locale)}
             value={`${(head?.pct_windows_beating_buy_hold ?? 0).toFixed(1)}%`}
           />
           <MetricCard
-            label="Median excess return"
+            label={t("walkforward.median_excess", locale)}
             value={formatPercent(head?.median_paired_excess_return ?? 0)}
           />
         </div>
         <p className="mt-3 text-small text-muted">
-          So sánh cặp trên {head?.paired_windows ?? 0} cửa sổ kiểm tra. Mỗi cửa sổ đóng góp
-          một chênh lệch giữa chiến lược và mua &amp; giữ, nên hai bên luôn được đo trên cùng
-          những phiên giống nhau.
+          {t("walkforward.paired_note", locale).replace(
+            "{windows}",
+            String(head?.paired_windows ?? 0),
+          )}
         </p>
       </section>
 
       {/* The finding, stated plainly. */}
       <section className="rounded border border-hairline bg-surface p-4">
-        <div className="label mb-2">Kết luận của phép đo</div>
+        <div className="label mb-2">{t("walkforward.verdict_label", locale)}</div>
         <p className="max-w-3xl text-small text-ink">
           {(head?.median_paired_excess_return ?? 0) < 0
-            ? "Trên phép đo này, chiến lược KHÔNG vượt được đường cơ sở mua và giữ: chênh lệch trung vị theo cửa sổ là "
-              + formatPercent(head?.median_paired_excess_return ?? 0)
-              + ", và chỉ "
-              + (head?.pct_symbols_beating_buy_hold ?? 0).toFixed(1)
-              + "% số mã thắng được baseline. Đây là phát hiện thật, không phải lỗi kỹ thuật: chiến lược có lợi thế là giảm biến động (median drawdown nhỏ hơn), nhưng cái giá phải trả là bỏ lỡ phần lợi nhuận của xu hướng."
-            : "Trên phép đo này, chiến lược vượt được đường cơ sở mua và giữ với chênh lệch trung vị "
-              + formatPercent(head?.median_paired_excess_return ?? 0)
-              + " theo cửa sổ, và "
-              + (head?.pct_symbols_beating_buy_hold ?? 0).toFixed(1)
-              + "% số mã thắng được baseline."}
+            ? t("walkforward.verdict_negative", locale)
+                .replace("{excess}", formatPercent(head?.median_paired_excess_return ?? 0))
+                .replace("{pct}", (head?.pct_symbols_beating_buy_hold ?? 0).toFixed(1))
+            : t("walkforward.verdict_positive", locale)
+                .replace("{excess}", formatPercent(head?.median_paired_excess_return ?? 0))
+                .replace("{pct}", (head?.pct_symbols_beating_buy_hold ?? 0).toFixed(1))}
         </p>
         {report.note ? (
           <p className="mt-3 max-w-3xl text-small text-muted">{report.note}</p>
@@ -202,29 +209,69 @@ function ReportBody({ report }: { report: Awaited<ReturnType<typeof fetchMultiSy
       {chartData.length ? (
         <section>
           <div className="section-head">
-            <h2 className="section-title">Phân phối theo sàn</h2>
+            <h2 className="section-title">{t("walkforward.by_exchange", locale)}</h2>
           </div>
           <div className="pt-4">
             <ResponsiveContainer width="100%" height={320}>
               <BarChart data={chartData}>
                 <CartesianGrid stroke="hsl(var(--hairline))" vertical={false} />
-                <XAxis dataKey="exchange" tick={{ fontSize: 11, fill: "hsl(var(--muted))" }} angle={-30} textAnchor="end" height={70} />
-                <YAxis tick={{ fontSize: 11, fill: "hsl(var(--muted))" }} tickFormatter={(v) => `${(v * 100).toFixed(0)}%`} />
+                {/* WHY THE TICKS ARE 12px: the design system's smallest
+                    readable size is 12px (the `label` step). An 11px axis
+                    label is below the floor the system sets everywhere
+                    else, so the same number would look different here
+                    than in every other chart. */}
+                <XAxis
+                  dataKey="exchange"
+                  tick={{ fontSize: 12, fill: "hsl(var(--muted))", fontFamily: '"IBM Plex Mono", monospace' }}
+                  angle={-30}
+                  textAnchor="end"
+                  height={70}
+                  tickLine={false}
+                />
+                <YAxis
+                  tick={{ fontSize: 12, fill: "hsl(var(--muted))", fontFamily: '"IBM Plex Mono", monospace' }}
+                  tickFormatter={(v) => `${(v * 100).toFixed(0)}%`}
+                  tickLine={false}
+                />
                 <Tooltip
                   contentStyle={tooltipStyle}
                   formatter={(value: number) => formatPercent(value)}
                 />
-                <Bar dataKey="strategy" name="Chiến lược" fill="hsl(var(--primary))" radius={[2, 2, 0, 0]} />
-                <Bar dataKey="benchmark" name="Mua & giữ" fill="hsl(var(--muted))" radius={[2, 2, 0, 0]} />
+                {/* WHY THE STRATEGY BAR IS THE BRAND ACCENT AND THE
+                    BASELINE IS MUTED: this chart compares a MODEL against
+                    a REFERENCE, not two directions of a price, so the
+                    direction pair (blue/red) does not apply. The accent
+                    marks the thing under test; the muted bar is the
+                    reference it has to beat. */}
+                <Bar
+                  dataKey="strategy"
+                  name={t("walkforward.series_strategy", locale)}
+                  fill="hsl(var(--primary))"
+                  radius={[6, 6, 0, 0]}
+                />
+                <Bar
+                  dataKey="benchmark"
+                  name={t("walkforward.series_bh", locale)}
+                  fill="hsl(var(--muted))"
+                  radius={[6, 6, 0, 0]}
+                />
               </BarChart>
             </ResponsiveContainer>
           </div>
 
-          <div className="mt-8 overflow-auto rounded border border-hairline bg-surface">
+          <div className="mt-8 overflow-auto rounded border border-hairline bg-surface shadow-sm">
             <table className="table">
               <thead>
                 <tr>
-                  {["Sàn", "Số mã", "Median RR chiến lược", "Median RR mua&giữ", "Sharpe CL", "Sharpe B&H", "% mã thắng B&H"].map((col) => (
+                  {[
+                    t("walkforward.col_exchange", locale),
+                    t("walkforward.col_symbols", locale),
+                    t("walkforward.col_median_strategy", locale),
+                    t("walkforward.col_median_bh", locale),
+                    t("walkforward.col_sharpe_strategy", locale),
+                    t("walkforward.col_sharpe_bh", locale),
+                    t("walkforward.col_pct_beating", locale),
+                  ].map((col) => (
                     <th key={col}>{col}</th>
                   ))}
                 </tr>
@@ -254,13 +301,26 @@ function ReportBody({ report }: { report: Awaited<ReturnType<typeof fetchMultiSy
       {/* Per symbol. */}
       <section>
         <div className="section-head">
-          <h2 className="section-title">Chi tiết từng mã · {rows.length} mã</h2>
+          <h2 className="section-title">
+            {`${t("walkforward.per_symbol", locale)} ${rows.length} ${t("walkforward.symbols_suffix", locale)}`}
+          </h2>
         </div>
-        <div className="mt-4 max-h-[560px] overflow-auto rounded border border-hairline bg-surface">
+        <div className="mt-4 max-h-[560px] overflow-auto rounded border border-hairline bg-surface shadow-sm">
           <table className="table">
             <thead className="sticky top-0">
               <tr>
-                {["Mã", "Sàn", "Cửa sổ", "RR chiến lược", "RR mua&giữ", "Sharpe CL", "Sharpe B&H", "MaxDD CL", "MaxDD B&H", "Thắng B&H"].map((col) => (
+                {[
+                  t("walkforward.col_symbol", locale),
+                  t("walkforward.col_exchange", locale),
+                  t("walkforward.col_windows", locale),
+                  t("walkforward.col_rr_strategy", locale),
+                  t("walkforward.col_rr_bh", locale),
+                  t("walkforward.col_sharpe_strategy", locale),
+                  t("walkforward.col_sharpe_bh", locale),
+                  t("walkforward.col_maxdd_strategy", locale),
+                  t("walkforward.col_maxdd_bh", locale),
+                  t("walkforward.col_beat", locale),
+                ].map((col) => (
                   <th key={col}>{col}</th>
                 ))}
               </tr>
@@ -282,7 +342,7 @@ function ReportBody({ report }: { report: Awaited<ReturnType<typeof fetchMultiSy
                       <span className="text-muted">—</span>
                     ) : (
                       <Badge variant={row.beat_buy_hold ? "primary" : "negative"}>
-                        {row.beat_buy_hold ? "Có" : "Không"}
+                        {row.beat_buy_hold ? t("walkforward.yes", locale) : t("walkforward.no", locale)}
                       </Badge>
                     )}
                   </td>
@@ -296,14 +356,16 @@ function ReportBody({ report }: { report: Awaited<ReturnType<typeof fetchMultiSy
       {report.errors && report.errors.length ? (
         <section>
           <div className="section-head">
-            <h2 className="section-title">Mã không đo được · {report.errors.length}</h2>
+            <h2 className="section-title">
+              {`${t("walkforward.unmeasurable", locale)} ${report.errors.length}`}
+            </h2>
           </div>
-          <div className="mt-4 overflow-auto rounded border border-hairline bg-surface">
+          <div className="mt-4 overflow-auto rounded border border-hairline bg-surface shadow-sm">
             <table className="table">
               <thead>
                 <tr>
-                  <th>Mã</th>
-                  <th>Lý do</th>
+                  <th>{t("walkforward.col_symbol", locale)}</th>
+                  <th>{t("walkforward.reason", locale)}</th>
                 </tr>
               </thead>
               <tbody>

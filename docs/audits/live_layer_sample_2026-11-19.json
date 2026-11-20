@@ -1,0 +1,35 @@
+{
+  "symbol": "MSFT",
+  "results": [
+    {
+      "layer": "bronze",
+      "latest": {
+        "symbol": "MSFT",
+        "timestamp": "2026-11-18T14:30:00+00:00",
+        "close": 502.8299865722656,
+        "source": "yahoo_http",
+        "ingestion_time": "2026-11-18T20:55:39.366628+00:00"
+      }
+    },
+    {
+      "layer": "silver",
+      "latest": {
+        "symbol": "MSFT",
+        "timestamp": "2026-11-18T14:30:00+00:00",
+        "close": 502.8299865722656,
+        "source": "yahoo_http",
+        "ingestion_time": "2026-11-18T20:55:39.366628+00:00"
+      }
+    },
+    {
+      "layer": "gold",
+      "latest": {
+        "symbol": "MSFT",
+        "timestamp": "2026-11-18T14:30:00+00:00",
+        "close": 502.8299865722656,
+        "source": "yahoo_http",
+        "ingestion_time": "2026-11-18T20:55:39.366628+00:00"
+      }
+    }
+  ]
+}

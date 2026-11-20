@@ -79,11 +79,22 @@ export interface MultiSymbolRow {
 }
 
 export interface MultiSymbolReport {
-  /** False when the report file has not been generated yet. */
+  /** False when the report has not been produced yet. */
   available?: boolean;
   /** Why the report is missing, when it is. */
   reason?: string;
+  /**
+   * When the report was produced.
+   *
+   * WHY IT MATTERS: the report is produced by the nightly `walk-forward`
+   * cron job, so its age tells the reader whether the numbers in front
+   * of them are from last night or from weeks ago. The page shows it.
+   */
   generated_at?: string;
+  /** Where the report was read from: "lakehouse" or "local_file". */
+  source?: string;
+  /** The strategies the endpoint can serve. */
+  available_strategies?: string[];
   config?: {
     strategy: string;
     train_period_days: number;

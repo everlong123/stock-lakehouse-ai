@@ -28,10 +28,10 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
       return (
         <div className="flex min-h-[40vh] items-center justify-center p-6">
           <div className="max-w-md rounded border border-hairline bg-surface p-6">
-            <h3 className="text-base font-semibold text-ink">Da co loi xay ra</h3>
-            <p className="mt-1 text-sm text-muted">{this.state.message}</p>
+            <h3 className="font-display text-body font-semibold text-ink">Đã có lỗi xảy ra</h3>
+            <p className="mt-1 text-small text-muted">{this.state.message}</p>
             <div className="mt-4">
-              <Button onClick={() => window.location.reload()}>Tai lai trang</Button>
+              <Button onClick={() => window.location.reload()}>Tải lại trang</Button>
             </div>
           </div>
         </div>

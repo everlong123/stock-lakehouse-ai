@@ -1,5 +1,7 @@
 ﻿# Architecture – Stock Lakehouse AI
 
+> **Đính chính 19/11/2026:** xem [báo cáo sửa lỗi](audits/KET_QUA_SUA_LOI_2026-11-19.md) về mô hình đánh giá độc lập, cutoff nhãn, dự báo không hợp lệ, cập nhật dữ liệu và phạm vi lakehouse. Số đo ghi trước thời điểm này là snapshot lịch sử, không thay cho kết quả kiểm tra lại.
+
 > **Ngày cập nhật:** 10/11/2026
 > **File này:** Mô tả tổ chức code, vai trò từng thư mục/file, và luồng dữ liệu end-to-end.
 >

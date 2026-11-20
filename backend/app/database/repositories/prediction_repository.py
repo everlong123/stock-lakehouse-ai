@@ -16,6 +16,7 @@ from app.core.data_integrity import (
     is_impossible_price,
 )
 from app.database.models.prediction import Prediction
+from app.database.models.prediction_revision import PredictionRevision
 
 
 class PredictionRepository:
@@ -69,7 +70,16 @@ class PredictionRepository:
         is not a large error, it is a value no exchange can print, and it
         poisons every mean that is computed over the table.
         """
-        symbol = str(payload["symbol"]).upper()
+        # Forecast publication cannot supply an outcome or forge its issue
+        # time. Normalize timestamps before comparing or persisting them.
+        payload = {key: value for key, value in payload.items() if key in _FORECAST_FIELDS}
+        symbol = str(payload["symbol"]).strip().upper()
+        payload["symbol"] = symbol
+        if isinstance(payload["target_session"], str):
+            payload["target_session"] = date.fromisoformat(payload["target_session"])
+        for key in ("target_open_at", "input_data_end"):
+            if payload.get(key) is not None:
+                payload[key] = _utc_naive(payload[key])
         if is_fabricated_symbol(symbol):
             raise ValueError(describe_fabricated_symbol(symbol))
 
@@ -86,27 +96,56 @@ class PredictionRepository:
 
         model_name = payload["model_name"]
         target_session = payload["target_session"]
-
         stmt = select(Prediction).where(
             Prediction.symbol == symbol,
             Prediction.model_name == model_name,
             Prediction.target_session == target_session,
-        )
+        ).with_for_update()
         record = self.session.scalars(stmt).first()
+        if record is not None:
+            # A retrospective replay must not replace a real publication.
+            if payload.get("source") == "backfill_walk_forward" and record.source != "backfill_walk_forward":
+                return record
+            changed = any(
+                value != getattr(record, key)
+                for key, value in payload.items()
+            )
+            if not changed:
+                # An identical retry is not a new publication, including
+                # retries after the target opened or the outcome was scored.
+                return record
+            if record.actual_close is not None:
+                raise ValueError("A scored forecast is immutable; create a forecast for a new target session.")
+
+        issued_at = datetime.now(UTC).replace(tzinfo=None, microsecond=0)
+        target_open = payload.get("target_open_at") or (record.target_open_at if record is not None else None)
+        if target_open is not None and payload.get("source") != "backfill_walk_forward":
+            if target_open <= datetime.now(UTC).replace(tzinfo=None):
+                raise ValueError("The target session timestamp has passed; publish for a future session.")
+
         if record is None:
-            record = Prediction(**payload)
+            record = Prediction(**payload, created_at=issued_at)
             self.session.add(record)
         else:
+            if changed:
+                snapshot = {
+                    col.name: (value.isoformat() if isinstance(value, (date, datetime)) else value)
+                    for col in Prediction.__table__.columns
+                    if (value := getattr(record, col.name)) is not None
+                }
+                self.session.add(PredictionRevision(
+                    prediction_id=record.id, symbol=record.symbol, model_name=record.model_name,
+                    target_session=record.target_session,
+                    issued_at=record.created_at or datetime.now(UTC).replace(tzinfo=None),
+                    payload=snapshot,
+                ))
             # The outcome columns are deliberately excluded: a forecast
             # re-run must not erase a score that was already computed for
             # a session that has since happened.
-            outcome_fields = _OUTCOME_FIELDS
             for key, value in payload.items():
-                if key in ("id", *outcome_fields):
-                    continue
                 setattr(record, key, value)
-            # `created_at` is when THIS forecast was published, so a
-            # re-run has to move it. Without this, a retried batch that
+            # `created_at` is when THIS revision was published, so a
+            # changed forecast has to move it. Without this, a batch that
             # ran with fresher data would leave the row claiming the
             # OLD publication time - and the reader would have no way to
             # tell that the forecast was redone.
@@ -123,9 +162,7 @@ class PredictionRepository:
             # which means the timestamp in memory and the timestamp read
             # back from the database would disagree. Writing the same
             # precision the column can hold keeps the two identical.
-            record.created_at = datetime.now(UTC).replace(
-                tzinfo=None, microsecond=0
-            )
+            record.created_at = issued_at
         self.session.flush()
         return record
 
@@ -138,18 +175,23 @@ class PredictionRepository:
         forecast is meaningless, and inventing the forecast at scoring time
         would make the score look like it had a prediction behind it.
         """
-        symbol = str(payload["symbol"]).upper()
+        symbol = str(payload["symbol"]).strip().upper()
         stmt = select(Prediction).where(
             Prediction.symbol == symbol,
             Prediction.model_name == payload["model_name"],
             Prediction.target_session == payload["target_session"],
-        )
+        ).with_for_update()
         record = self.session.scalars(stmt).first()
         if record is None:
             return None
-        for key, value in payload.items():
-            if key in ("id", "symbol", "model_name", "target_session"):
-                continue
+        # Derive the score from the forecast actually stored, never from a
+        # caller's potentially stale prediction (e.g. a colliding backfill).
+        if payload.get("actual_close") is None:
+            return record
+        from app.services.forecast_scoring import score_forecast
+
+        outcome = score_forecast(record, float(payload["actual_close"]), payload.get("scored_at"))
+        for key, value in outcome.items():
             setattr(record, key, value)
         self.session.flush()
         return record
@@ -173,14 +215,14 @@ class PredictionRepository:
         model_name: str | None = None,
         limit: int = 500,
     ) -> list[Prediction]:
-        """The scored forecasts, oldest first - the verification series."""
+        """The latest scored forecasts, returned in chronological order."""
         stmt = select(Prediction).where(Prediction.actual_close.isnot(None))
         if symbol:
             stmt = stmt.where(Prediction.symbol == symbol.upper())
         if model_name:
             stmt = stmt.where(Prediction.model_name == model_name)
-        stmt = stmt.order_by(Prediction.target_session.asc()).limit(limit)
-        return list(self.session.scalars(stmt).all())
+        stmt = stmt.order_by(Prediction.target_session.desc(), Prediction.id.desc()).limit(limit)
+        return list(reversed(self.session.scalars(stmt).all()))
 
     def accuracy_summary(
         self,
@@ -305,12 +347,13 @@ class PredictionRepository:
 
         return {
             "verified": verified,
-            "mae": float(row[1]) if row[1] is not None else None,
+            "mae": float(row[1]) if symbol and row[1] is not None else None,
             "mean_error_pct": float(row[2]) if row[2] is not None else None,
             "directional_accuracy": float(row[3]) if row[3] is not None else None,
             "first_session": row[4].isoformat() if row[4] else None,
             "last_session": row[5].isoformat() if row[5] else None,
-            "wape": wape,
+            "wape": wape if symbol else None,
+            "aggregation_note": None if symbol else "Global metrics use relative errors; MAE/WAPE are omitted because price units differ across symbols.",
             "excluded_impossible": self.count_impossible(
                 symbol=symbol,
                 model_name=model_name,
@@ -370,13 +413,28 @@ class PredictionRepository:
         stmt = select(Prediction).where(
             Prediction.actual_close.isnot(None),
             Prediction.source != "backfill_walk_forward",
+            Prediction.target_open_at.isnot(None),
+            Prediction.created_at < Prediction.target_open_at,
         )
         if symbol:
             stmt = stmt.where(Prediction.symbol == symbol.upper())
         if model_name:
             stmt = stmt.where(Prediction.model_name == model_name)
-        stmt = stmt.order_by(Prediction.target_session.asc()).limit(limit)
-        return list(self.session.scalars(stmt).all())
+        stmt = stmt.order_by(Prediction.target_session.desc(), Prediction.id.desc()).limit(limit)
+        return list(reversed(self.session.scalars(stmt).all()))
+
+    def publication_timing_counts(self, symbol: str | None = None, model_name: str | None = None) -> dict:
+        stmt = select(
+            func.count(Prediction.id),
+            func.sum(func.cast(Prediction.target_open_at.is_(None), Integer)),
+            func.sum(func.cast(Prediction.created_at >= Prediction.target_open_at, Integer)),
+        ).where(Prediction.actual_close.isnot(None), Prediction.source != "backfill_walk_forward")
+        if symbol:
+            stmt = stmt.where(Prediction.symbol == symbol.upper())
+        if model_name:
+            stmt = stmt.where(Prediction.model_name == model_name)
+        total, unknown, late = self.session.execute(stmt).one()
+        return {"published_scored": int(total or 0), "timing_unknown": int(unknown or 0), "published_late": int(late or 0), "verified_before_target": int(total or 0) - int(unknown or 0) - int(late or 0)}
 
     def median_error_pct(
         self,
@@ -405,7 +463,7 @@ class PredictionRepository:
         The result is returned as a FRACTION (0.01 = 1%), the same unit as
         ``error_pct``, so it can be formatted without a unit conversion.
 
-        The rows are read back in error order and the middle one is taken,
+        The rows are read back in error order and the central values are taken,
         so the computation happens in SQL instead of pulling 44.000 rows
         into Python.
         """
@@ -428,16 +486,14 @@ class PredictionRepository:
         if not total:
             return None
 
-        value = self.session.execute(
+        middle = self.session.execute(
             select(Prediction.error_pct)
             .where(*filters)
             .order_by(func.abs(Prediction.error_pct).asc())
-            .offset(total // 2)
-            .limit(1)
-        ).scalar()
-        if value is None:
-            return None
-        return abs(float(value))
+            .offset((total - 1) // 2)
+            .limit(1 if total % 2 else 2)
+        ).scalars().all()
+        return sum(abs(float(value)) for value in middle) / len(middle) if middle else None
 
     def latest_for_symbol(self, symbol: str) -> Prediction | None:
         """The most recent forecast for a symbol, across all models."""
@@ -500,15 +556,19 @@ class PredictionRepository:
         return list(self.session.scalars(stmt).all())
 
 
-#: The columns that hold the OUTCOME of a forecast. They are written by the
-#: scoring pass, never by the forecast pass.
-_OUTCOME_FIELDS = (
-    "actual_close",
-    "abs_error",
-    "error_pct",
-    "direction_correct",
-    "scored_at",
+_FORECAST_FIELDS = (
+    "symbol", "model_name", "target_session", "target_open_at", "input_data_end",
+    "model_version", "reference_close", "predicted_close", "predicted_return",
+    "horizon", "source", "source_layer", "data_staleness_days",
 )
+
+
+def _utc_naive(value: datetime | str) -> datetime:
+    if isinstance(value, str):
+        value = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    if value.tzinfo is not None:
+        value = value.astimezone(UTC)
+    return value.replace(tzinfo=None)
 
 
 def _reference_ratio():

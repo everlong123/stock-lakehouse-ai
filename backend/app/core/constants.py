@@ -834,6 +834,10 @@ def currency_for_symbol(symbol: str) -> str:
         if currency:
             return currency
 
+    # Bare FRT/NET/DBC are bound to their US instruments by the Yahoo
+    # provider and existing lakehouse history. HDB is bound to Vietnam.
+    if sym in {"FRT", "NET", "DBC"}:
+        return "USD"
     if sym in VN_SYMBOLS:
         return "VND"
     if sym in CRYPTO_SYMBOLS:
@@ -956,7 +960,7 @@ LSTM_FEATURE_COLUMNS: list[str] = [
 ]
 
 ACADEMIC_DISCLAIMER = (
-    "Kết quả phân tích và dự báo chỉ phục vụ nghiên cứu học thuật, "
+    "Kết quả phân tích và dự báo mang tính tham khảo, "
     "không phải khuyến nghị đầu tư và không cam kết lợi nhuận tương lai."
 )
 

@@ -44,6 +44,7 @@ would destroy the very evidence this module exists to collect.
 from __future__ import annotations
 
 from datetime import date, datetime, timezone
+import math
 from typing import Any
 
 import pandas as pd
@@ -53,6 +54,7 @@ from app.core.logging_config import get_logger
 from app.database.repositories.prediction_repository import PredictionRepository
 from app.database.session import check_database_connection, get_session_factory
 from app.lakehouse.gold import GoldLayer
+from app.lakehouse.exchange_timezone import session_day_of
 
 logger = get_logger(__name__)
 
@@ -83,21 +85,23 @@ def _closes_by_session(frame: pd.DataFrame) -> dict[date, float]:
     """Map each trading day in ``frame`` to its closing price."""
     if frame.empty or "close" not in frame.columns:
         return {}
-    working = frame.loc[:, ["timestamp", "close"]].copy()
+    working = frame.loc[:, [c for c in ("timestamp", "close", "symbol") if c in frame.columns]].copy()
     working["timestamp"] = pd.to_datetime(working["timestamp"], utc=True, errors="coerce")
     working["close"] = pd.to_numeric(working["close"], errors="coerce")
     working = working.dropna(subset=["timestamp", "close"])
+    working = working[working["close"].map(math.isfinite) & (working["close"] > 0)]
+    working = working.sort_values("timestamp", kind="stable")
     if working.empty:
         return {}
 
     closes: dict[date, float] = {}
-    for stamp, close in zip(working["timestamp"], working["close"]):
-        day = _session_date(stamp)
+    for row in working.itertuples(index=False):
+        day = session_day_of(row.timestamp, getattr(row, "symbol", None))
         if day is None:
             continue
         # The last bar of a trading day wins: a provider may publish an
         # open-stamped bar first and settle it at the close.
-        closes[day] = float(close)
+        closes[day] = float(row.close)
     return closes
 
 
@@ -112,6 +116,9 @@ def score_forecast(
     derived from two stored numbers - the forecast and the real close - so
     the result is reproducible by hand from the table itself.
     """
+    actual_close = float(actual_close)
+    if not math.isfinite(actual_close) or actual_close <= 0:
+        raise ValueError("The actual closing price must be finite and positive.")
     predicted_close = float(forecast.predicted_close)
     reference_close = forecast.reference_close
 
@@ -130,7 +137,7 @@ def score_forecast(
         )
         # A flat session has no direction to agree or disagree with, so it
         # is excluded rather than counted as a miss.
-        if predicted_direction != 0 and actual_direction != 0:
+        if actual_direction != 0:
             direction_correct = 1 if predicted_direction == actual_direction else 0
 
     return {
@@ -205,6 +212,9 @@ def score_symbol(symbol: str, db: Session | None = None) -> dict[str, Any]:
         scored = 0
         skipped: list[str] = []
         for forecast in pending:
+            if symbol.endswith((".AX", ".NZ")) and forecast.target_open_at is None:
+                skipped.append(f"{forecast.target_session.isoformat()}: legacy exchange session date unverified")
+                continue
             actual = closes.get(forecast.target_session)
             if actual is None:
                 # The target session has not been ingested yet. It stays
@@ -294,6 +304,8 @@ def score_all(
         # Group by symbol so each symbol's Gold data is read exactly once.
         by_symbol: dict[str, list] = {}
         for forecast in pending:
+            if forecast.target_session > datetime.now(timezone.utc).date():
+                continue
             by_symbol.setdefault(forecast.symbol, []).append(forecast)
 
         # The pending rows are loaded into memory, so the read transaction
@@ -361,6 +373,8 @@ def score_all(
             if not closes:
                 continue
             for forecast in forecasts:
+                if symbol.endswith((".AX", ".NZ")) and forecast.target_open_at is None:
+                    continue
                 actual = closes.get(forecast.target_session)
                 if actual is None:
                     continue

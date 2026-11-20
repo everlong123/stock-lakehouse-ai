@@ -1,0 +1,357 @@
+{
+  "/health": {
+    "success": true,
+    "data": {
+      "status": "ok",
+      "app": "Stock Lakehouse AI"
+    },
+    "message": null
+  },
+  "/forecast/published/AAPL": {
+    "success": true,
+    "data": {
+      "symbol": "AAPL",
+      "target_session": "2026-11-19",
+      "forecasts": [
+        {
+          "model_name": "arima",
+          "target_session": "2026-11-19",
+          "reference_close": 352.2049865722656,
+          "predicted_close": 352.3001784973188,
+          "predicted_return": 0.00027027421155966094,
+          "horizon": 1,
+          "source": "auto_eod_batch",
+          "source_layer": "gold",
+          "data_staleness_days": 0,
+          "created_at": "2026-11-18T22:18:49",
+          "actual_close": null,
+          "abs_error": null,
+          "error_pct": null,
+          "direction_correct": null
+        },
+        {
+          "model_name": "linear_regression",
+          "target_session": "2026-11-19",
+          "reference_close": 352.2049865722656,
+          "predicted_close": 352.2422798210821,
+          "predicted_return": 0.0001058850676119432,
+          "horizon": 1,
+          "source": "auto_eod_batch",
+          "source_layer": "gold",
+          "data_staleness_days": 0,
+          "created_at": "2026-11-18T22:18:49",
+          "actual_close": null,
+          "abs_error": null,
+          "error_pct": null,
+          "direction_correct": null
+        },
+        {
+          "model_name": "lstm",
+          "target_session": "2026-11-19",
+          "reference_close": 352.2049865722656,
+          "predicted_close": 353.5341288278332,
+          "predicted_return": 0.003773774666006418,
+          "horizon": 1,
+          "source": "auto_eod_batch",
+          "source_layer": "gold",
+          "data_staleness_days": 0,
+          "created_at": "2026-11-18T22:18:49",
+          "actual_close": null,
+          "abs_error": null,
+          "error_pct": null,
+          "direction_correct": null
+        }
+      ],
+      "trained_models": [
+        {
+          "model_name": "arima",
+          "mae": 2.994274695260353,
+          "rmse": 4.264540204189466,
+          "mape": 1.090941810528923,
+          "directional_accuracy": 0.5117493472584856,
+          "trained_at": "2026-11-18T21:33:06.537935+00:00"
+        },
+        {
+          "model_name": "linear_regression",
+          "mae": 3.02028498383562,
+          "rmse": 4.284483191838664,
+          "mape": 1.0954384501386694,
+          "directional_accuracy": 0.5253333333333333,
+          "trained_at": "2026-11-18T21:32:03.264825+00:00"
+        },
+        {
+          "model_name": "lstm",
+          "mae": 3.276358528711185,
+          "rmse": 4.606261796872886,
+          "mape": 1.1386192002096036,
+          "directional_accuracy": 0.446875,
+          "trained_at": "2026-11-18T21:41:30.569972+00:00"
+        }
+      ]
+    },
+    "message": null
+  },
+  "/forecast/accuracy?limit=1": {
+    "success": true,
+    "data": {
+      "series": [
+        {
+          "symbol": "PVE",
+          "model_name": "linear_regression",
+          "target_session": "2025-08-29",
+          "reference_close": null,
+          "predicted_close": 2597.7138671875,
+          "actual_close": 2700.0,
+          "abs_error": 102.29000091552734,
+          "error_pct": null,
+          "direction_correct": null,
+          "source": "backfill_walk_forward",
+          "data_staleness_days": null,
+          "scored_at": "2026-11-13T04:08:40"
+        }
+      ],
+      "summary": {
+        "verified": 45753,
+        "mae": null,
+        "mean_error_pct": 0.004306214634254055,
+        "directional_accuracy": 0.5057,
+        "first_session": "2025-09-05",
+        "last_session": "2026-11-18",
+        "wape": null,
+        "aggregation_note": "Global metrics use relative errors; MAE/WAPE are omitted because price units differ across symbols.",
+        "excluded_impossible": 0,
+        "staleness_measured": 15,
+        "staleness_unrecorded": 45738,
+        "stale_forecasts": 0,
+        "max_staleness_days": 0,
+        "median_error_pct": 0.011484176851809025
+      },
+      "published_summary": {
+        "verified": 0,
+        "mae": null,
+        "mean_error_pct": null,
+        "median_error_pct": null,
+        "wape": null,
+        "directional_accuracy": null,
+        "first_session": null,
+        "last_session": null,
+        "excluded_impossible": 0,
+        "staleness_measured": 0,
+        "staleness_unrecorded": 0,
+        "stale_forecasts": 0,
+        "max_staleness_days": null
+      },
+      "publication_timing": {
+        "published_scored": 1337,
+        "timing_unknown": 1337,
+        "published_late": 0,
+        "verified_before_target": 0
+      },
+      "per_model": [
+        {
+          "model_name": "linear_regression",
+          "verified": 45619,
+          "mae": null,
+          "mean_error_pct": 0.004312593428894927,
+          "directional_accuracy": 0.5057,
+          "first_session": "2025-09-05",
+          "last_session": "2026-11-18",
+          "wape": null,
+          "aggregation_note": "Global metrics use relative errors; MAE/WAPE are omitted because price units differ across symbols.",
+          "excluded_impossible": 0,
+          "staleness_measured": 5,
+          "staleness_unrecorded": 45614,
+          "stale_forecasts": 0,
+          "max_staleness_days": 0,
+          "median_error_pct": 0.011484503746032715
+        }
+      ]
+    },
+    "message": null
+  },
+  "/forecast/compare/FPT": {
+    "success": true,
+    "data": {
+      "symbol": "FPT",
+      "models": [
+        {
+          "symbol": "FPT",
+          "model_name": "arima",
+          "model_version": "e222242b14bf4dc5b6c974198b869c70",
+          "data_sha256": "0498525a7255d1ce5ae91ac0760c2780b9b33fa6fccd6dac7c93f0f67f43ae8f",
+          "train_start": "2010-02-22 02:00:00+00:00",
+          "train_end": "2022-01-04 02:00:00+00:00",
+          "validation_start": "2022-01-05 02:00:00+00:00",
+          "validation_end": "2024-07-05 02:00:00+00:00",
+          "test_start": "2024-07-08 02:00:00+00:00",
+          "test_end": "2026-11-18 02:00:00+00:00",
+          "features": [
+            "close"
+          ],
+          "parameters": {
+            "order": [
+              5,
+              1,
+              0
+            ],
+            "n_samples": 4097,
+            "horizon": 1
+          },
+          "fit_mode": "full",
+          "fitted_through": "2026-11-18 02:00:00+00:00",
+          "training_data_end": "2026-11-18 02:00:00+00:00",
+          "evaluation_model_path": "D:\\School\\kltn\\stock-lakehouse-ai\\backend\\data\\models\\FPT\\arima\\evaluation",
+          "evaluation_fitted_through": "2024-07-05 02:00:00+00:00",
+          "metrics_source": "independent_chronological_holdout",
+          "test_target_start": "2024-07-08 02:00:00+00:00",
+          "test_target_end": "2026-11-18 02:00:00+00:00",
+          "test_points": 553,
+          "naive_baseline": {
+            "mae": 1104.7955686891235,
+            "rmse": 1606.3995173251951,
+            "mape": 1.2909649241025,
+            "directional_accuracy": 0.0
+          },
+          "mae": 1120.3447560099567,
+          "rmse": 1633.924954939219,
+          "mape": 1.3334065559145414,
+          "directional_accuracy": 0.48846960167714887,
+          "model_path": "D:\\School\\kltn\\stock-lakehouse-ai\\backend\\data\\models\\FPT\\arima",
+          "created_at": "2026-11-18T21:34:07.640075+00:00",
+          "disclaimer": "Metrics are computed on a chronological hold-out split. They do not guarantee future performance."
+        },
+        {
+          "symbol": "FPT",
+          "model_name": "linear_regression",
+          "model_version": "359cf8049e994bf783689616b6571e65",
+          "data_sha256": "62b9e3a6025119d002fb4abea375ed15c45267468447c7a94a0f9daf836a2ebc",
+          "train_start": "2010-05-05 02:00:00+00:00",
+          "train_end": "2022-01-24 02:00:00+00:00",
+          "validation_start": "2022-01-25 02:00:00+00:00",
+          "validation_end": "2024-07-16 02:00:00+00:00",
+          "test_start": "2024-07-17 02:00:00+00:00",
+          "test_end": "2026-11-17 02:00:00+00:00",
+          "features": [
+            "close",
+            "volume",
+            "return",
+            "sma_5",
+            "sma_10",
+            "sma_20",
+            "sma_50",
+            "ema_12",
+            "ema_26",
+            "rsi_14",
+            "macd",
+            "macd_signal",
+            "macd_hist",
+            "bb_middle",
+            "bb_upper",
+            "bb_lower",
+            "rolling_std_20",
+            "close_lag_1",
+            "close_lag_2",
+            "return_lag_1",
+            "volume_lag_1"
+          ],
+          "parameters": {
+            "n_features": 21,
+            "n_samples": 4047,
+            "horizon": 1
+          },
+          "fit_mode": "full",
+          "fitted_through": "2026-11-17 02:00:00+00:00",
+          "training_data_end": "2026-11-18 02:00:00+00:00",
+          "evaluation_model_path": "D:\\School\\kltn\\stock-lakehouse-ai\\backend\\data\\models\\FPT\\linear_regression\\evaluation",
+          "evaluation_fitted_through": "2022-01-24 02:00:00+00:00",
+          "metrics_source": "independent_chronological_holdout",
+          "test_target_start": "2024-07-18 02:00:00+00:00",
+          "test_target_end": "2026-11-18 02:00:00+00:00",
+          "test_points": 553,
+          "naive_baseline": {
+            "mae": 1102.6899671052631,
+            "rmse": 1608.5144472593797,
+            "mape": 1.2922853600271405,
+            "directional_accuracy": 0.0
+          },
+          "mae": 1135.3908634500542,
+          "rmse": 1634.1247546209424,
+          "mape": 1.3485515835100212,
+          "directional_accuracy": 0.5136268343815513,
+          "model_path": "D:\\School\\kltn\\stock-lakehouse-ai\\backend\\data\\models\\FPT\\linear_regression",
+          "created_at": "2026-11-18T21:50:04.336467+00:00",
+          "disclaimer": "Metrics are computed on a chronological hold-out split. They do not guarantee future performance."
+        },
+        {
+          "symbol": "FPT",
+          "model_name": "lstm",
+          "model_version": "9674e160deec42fca5f0da31cd5e916f",
+          "data_sha256": "ed150b49a6b84f9b12b771a268df337c7ddd4f2826e89ad52ff089a0a77f79fc",
+          "train_start": "2010-03-29 02:00:00+00:00",
+          "train_end": "2022-01-13 02:00:00+00:00",
+          "validation_start": "2022-01-14 02:00:00+00:00",
+          "validation_end": "2024-07-10 02:00:00+00:00",
+          "test_start": "2024-07-11 02:00:00+00:00",
+          "test_end": "2026-11-17 02:00:00+00:00",
+          "features": [
+            "close",
+            "volume",
+            "return",
+            "sma_20",
+            "ema_12",
+            "rsi_14",
+            "macd",
+            "bb_middle",
+            "rolling_std_20"
+          ],
+          "parameters": {
+            "sequence_length": 60,
+            "hidden_size": 64,
+            "num_layers": 2,
+            "dropout": 0.2,
+            "learning_rate": 0.001,
+            "batch_size": 32,
+            "epochs_ran": 8,
+            "patience": 5,
+            "target_mode": "relative",
+            "horizon": 1,
+            "epochs": 8
+          },
+          "fit_mode": "full",
+          "fitted_through": "2026-11-17 02:00:00+00:00",
+          "training_data_end": "2026-11-18 02:00:00+00:00",
+          "evaluation_model_path": "D:\\School\\kltn\\stock-lakehouse-ai\\backend\\data\\models\\FPT\\lstm\\evaluation",
+          "evaluation_fitted_through": "2022-01-13 02:00:00+00:00",
+          "metrics_source": "independent_chronological_holdout",
+          "test_target_start": "2024-10-07 02:00:00+00:00",
+          "test_target_end": "2026-11-18 02:00:00+00:00",
+          "test_points": 553,
+          "naive_baseline": {
+            "mae": 1106.0059194168173,
+            "rmse": 1627.9750624846008,
+            "mape": 1.3161766989872947,
+            "directional_accuracy": 0.0
+          },
+          "mae": 1463.0883537335367,
+          "rmse": 1946.2833254665914,
+          "mape": 1.6740476920279486,
+          "directional_accuracy": 0.5576519916142557,
+          "model_path": "D:\\School\\kltn\\stock-lakehouse-ai\\backend\\data\\models\\FPT\\lstm",
+          "created_at": "2026-11-18T21:42:36.868237+00:00",
+          "disclaimer": "Metrics are computed on a chronological hold-out split. They do not guarantee future performance."
+        }
+      ],
+      "baseline": {
+        "model_name": "naive",
+        "mae": 1106.0059194168173,
+        "rmse": 1627.9750624846008,
+        "mape": 1.3161766989872947,
+        "directional_accuracy": 0.0
+      },
+      "comparison_points": 553,
+      "comparison_scope": "common_target_sessions",
+      "note": "Các mô hình và baseline giữ nguyên giá được chấm trên cùng 553 phiên đích."
+    },
+    "message": null
+  }
+}

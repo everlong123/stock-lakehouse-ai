@@ -118,7 +118,7 @@ services:
       DATA_SOURCE: multi_source
       CORS_ORIGINS: "http://localhost,http://127.0.0.1,http://localhost:80,http://127.0.0.1:80"
       LLM_PROVIDER: gemini
-      GEMINI_API_KEY: "${GEMINI_API_KEY:-AQ.Ab8RN6Ic6DWpYWtAXDsR4vWki5tSS-LG6s5LK0P9K1iHEjeLfw}"
+      GEMINI_API_KEY: "${GEMINI_API_KEY:-}"
     env_file:
       - path: ./backend/.env
         required: false

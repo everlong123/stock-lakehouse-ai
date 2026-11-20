@@ -4,6 +4,7 @@ import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -13,7 +14,7 @@ from fastapi.responses import StreamingResponse
 from app.api.dependencies import get_market_service
 from app.core.config import settings
 from app.core.constants import GLOBAL_SYMBOLS, currency_for_symbol
-from app.core.exceptions import NotFoundError
+from app.core.exceptions import NotFoundError, StorageError
 from app.core.logging_config import get_logger
 from app.lakehouse.storage_factory import get_storage_backend
 from app.schemas.common import ok
@@ -36,6 +37,15 @@ def _available_symbols() -> list[str]:
     Uses non-recursive listing to avoid timeout on large buckets."""
     try:
         storage = get_storage_backend()
+        if storage.backend_name == "local":
+            folder = Path(storage.root) / "bronze"
+            symbols = {
+                path.name.split("=", 1)[1].upper()
+                for path in folder.iterdir()
+                if path.is_dir() and path.name.startswith("symbol=") and any(path.rglob("*.parquet"))
+            } if folder.exists() else set()
+            canonical = list(dict.fromkeys(s for s in GLOBAL_SYMBOLS if s in symbols))
+            return canonical + sorted(symbols - set(canonical))
         # Non-recursive: list just top-level symbol= prefix dirs (fast, no timeout)
         objects = storage.client.list_objects(
             storage._bucket("bronze"), prefix="symbol=", recursive=False
@@ -48,15 +58,14 @@ def _available_symbols() -> list[str]:
                 if sym:
                     symbols.add(sym)
         if not symbols:
-            logger.warning("No symbols found in bronze, falling back to constants")
-            return list(GLOBAL_SYMBOLS)
+            return []
         # preserve canonical order from GLOBAL_SYMBOLS so UI lists are stable
-        canonical = [s for s in GLOBAL_SYMBOLS if s in symbols]
+        canonical = list(dict.fromkeys(s for s in GLOBAL_SYMBOLS if s in symbols))
         extras = sorted(symbols - set(canonical))
         return canonical + extras
     except Exception as exc:
         logger.warning("Could not enumerate symbols from storage: %s", exc)
-        return list(GLOBAL_SYMBOLS)
+        raise StorageError("Cannot enumerate the stored stock universe.") from exc
 
 
 @router.get("/symbols")
@@ -68,7 +77,7 @@ def get_symbols() -> dict:
     if cached is not None and now < expires_at:
         return ok(cached)
 
-    symbols = _available_symbols()
+    symbols = list(dict.fromkeys(_available_symbols()))
     payload = {"symbols": symbols, "count": len(symbols)}
     with _symbols_lock:
         _symbols_cache["value"] = payload
@@ -412,7 +421,9 @@ def get_stock(
             "interval": interval,
             "latest": latest,
             "count": int(len(frame)),
-            "rows": service.to_records(frame),
+            # Preserve the full requested window so "All" and the reported
+            # count describe the same history, including long-lived symbols.
+            "rows": service.to_records(frame, limit=0),
             "last_updated": latest["timestamp"],
             "data_source": latest.get("source_layer"),
             # Prices in this lakehouse are unitless: VCB trades near 53,500

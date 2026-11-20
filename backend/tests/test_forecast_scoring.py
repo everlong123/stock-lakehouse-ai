@@ -176,156 +176,60 @@ def test_a_forecast_rerun_keeps_the_score() -> None:
         session.close()
 
 
-def test_staleness_survives_a_forecast_rerun() -> None:
-    """A re-run records the NEW staleness without erasing the score.
-
-    The staleness belongs to the forecast, not to the outcome, so it is
-    one of the columns the forecast upsert is allowed to overwrite. A
-    retried batch that ran with fresher data must say so.
-    """
-    if not check_database_connection():
-        pytest.skip("The database is unavailable.")
-
+@pytest.fixture
+def isolated_repository():
+    """Publication tests must not edit forecasts in the live ledger."""
+    from sqlalchemy import create_engine
+    from sqlalchemy.orm import Session
+    from app.database.models.prediction import Prediction
+    from app.database.models.prediction_revision import PredictionRevision
     from app.database.repositories.prediction_repository import PredictionRepository
 
-    session = get_session_factory()()
-    try:
-        repository = PredictionRepository(session)
-        scored = repository.scored_series(limit=1)
-        if not scored:
-            pytest.skip("There is no scored forecast to test.")
-
-        row = scored[0]
-        before_score = row.actual_close
-
-        repository.upsert(
-            {
-                "symbol": row.symbol,
-                "model_name": row.model_name,
-                "target_session": row.target_session,
-                "reference_close": row.reference_close,
-                "predicted_close": row.predicted_close,
-                "predicted_return": row.predicted_return,
-                "horizon": row.horizon,
-                "source": row.source,
-                "source_layer": row.source_layer,
-                "data_staleness_days": 3,
-            }
-        )
-        session.commit()
-
-        matching = [
-            item
-            for item in repository.scored_series(symbol=row.symbol, model_name=row.model_name, limit=500)
-            if item.target_session == row.target_session
-        ]
-        assert matching, "the scored row disappeared"
-        # The staleness was written...
-        assert matching[0].data_staleness_days == 3
-        # ...and the score was not touched.
-        assert matching[0].actual_close == before_score
-    finally:
-        session.close()
+    engine = create_engine("sqlite:///:memory:")
+    Prediction.__table__.create(engine)
+    PredictionRevision.__table__.create(engine)
+    with Session(engine) as session:
+        yield PredictionRepository(session)
+    engine.dispose()
 
 
-def test_a_forecast_rerun_moves_the_publication_time() -> None:
-    """A re-run says WHEN it published, not when the row was first created.
-
-    ``created_at`` is when THIS forecast was published. A retried batch
-    that ran with fresher data produced a NEW forecast, so the row has to
-    say so - otherwise the reader sees the old timestamp and has no way
-    to tell that the forecast was redone.
-
-    The column's default is a SERVER default, so it does not fire
-    ``onupdate`` on its own: the repository sets it explicitly.
-    """
-    if not check_database_connection():
-        pytest.skip("The database is unavailable.")
-
-    from app.database.repositories.prediction_repository import PredictionRepository
-
-    session = get_session_factory()()
-    try:
-        repository = PredictionRepository(session)
-        scored = repository.scored_series(limit=1)
-        if not scored:
-            pytest.skip("There is no scored forecast to test.")
-
-        row = scored[0]
-        before = row.created_at
-
-        repository.upsert(
-            {
-                "symbol": row.symbol,
-                "model_name": row.model_name,
-                "target_session": row.target_session,
-                "reference_close": row.reference_close,
-                "predicted_close": row.predicted_close,
-                "predicted_return": row.predicted_return,
-                "horizon": row.horizon,
-                "source": row.source,
-                "source_layer": row.source_layer,
-            }
-        )
-        session.commit()
-
-        matching = [
-            item
-            for item in repository.scored_series(symbol=row.symbol, model_name=row.model_name, limit=500)
-            if item.target_session == row.target_session
-        ]
-        assert matching, "the scored row disappeared"
-        # The publication time moved forward...
-        assert matching[0].created_at >= before
-        # ...and the score survived.
-        assert matching[0].actual_close == row.actual_close
-    finally:
-        session.close()
+def _publication(**changes):
+    from datetime import date
+    return {"symbol": "AAPL", "model_name": "linear_regression",
+            "target_session": date(2099, 1, 5), "reference_close": 100.,
+            "predicted_close": 110., "source": "manual_api", **changes}
 
 
-def test_staleness_is_none_when_it_was_not_measured() -> None:
-    """A row written before the column existed carries NULL, not zero.
+def test_staleness_survives_a_forecast_rerun(isolated_repository) -> None:
+    """Scored publication metadata cannot be rewritten by a retried batch."""
+    repository = isolated_repository
+    row = repository.upsert(_publication(data_staleness_days=0))
+    repository.score({"symbol": row.symbol, "model_name": row.model_name,
+                      "target_session": row.target_session, "actual_close": 105.})
+    with pytest.raises(ValueError, match="immutable"):
+        repository.upsert(_publication(data_staleness_days=3))
+    assert row.data_staleness_days == 0
+    assert row.actual_close == 105.
 
-    Zero is a MEASUREMENT - it says the data was current. NULL says the
-    lag was never recorded. The two must not look the same, because only
-    one of them is a claim about the quality of the forecast.
-    """
-    if not check_database_connection():
-        pytest.skip("The database is unavailable.")
 
-    from app.database.repositories.prediction_repository import PredictionRepository
+def test_a_forecast_revision_moves_the_publication_time(isolated_repository) -> None:
+    """A changed unscored forecast records a new issue time and archives the old one."""
+    from datetime import datetime
+    from sqlalchemy import select
+    from app.database.models.prediction_revision import PredictionRevision
 
-    session = get_session_factory()()
-    try:
-        repository = PredictionRepository(session)
-        scored = repository.scored_series(limit=1)
-        if not scored:
-            pytest.skip("There is no scored forecast to test.")
+    repository = isolated_repository
+    row = repository.upsert(_publication())
+    row.created_at = datetime(2020, 1, 1)
+    repository.session.flush()
+    repository.upsert(_publication(predicted_close=120.))
+    assert row.created_at > datetime(2020, 1, 1)
+    revision = repository.session.scalars(select(PredictionRevision)).one()
+    assert revision.issued_at == datetime(2020, 1, 1)
+    assert revision.payload["predicted_close"] == 110.
 
-        row = scored[0]
 
-        repository.upsert(
-            {
-                "symbol": row.symbol,
-                "model_name": row.model_name,
-                "target_session": row.target_session,
-                "reference_close": row.reference_close,
-                "predicted_close": row.predicted_close,
-                "predicted_return": row.predicted_return,
-                "horizon": row.horizon,
-                "source": row.source,
-                "source_layer": row.source_layer,
-                "data_staleness_days": None,
-            }
-        )
-        session.commit()
-
-        matching = [
-            item
-            for item in repository.scored_series(symbol=row.symbol, model_name=row.model_name, limit=500)
-            if item.target_session == row.target_session
-        ]
-        assert matching, "the scored row disappeared"
-        assert matching[0].data_staleness_days is None
-    finally:
-        session.close()
+def test_staleness_is_none_when_it_was_not_measured(isolated_repository) -> None:
+    """Unknown freshness must stay distinct from measured zero lag."""
+    row = isolated_repository.upsert(_publication())
+    assert row.data_staleness_days is None

@@ -1,0 +1,131 @@
+{
+  "deck": "08-operations",
+  "notes": [
+    {
+      "term": "Hạ tầng vận hành của hệ thống gồm những container nào?",
+      "answer": "Kiến trúc hiện tại (sau khi gỡ Kafka và Iceberg ngày 10/11/2026):\n\n- **mysql** - MySQL 8, database `stock_lakehouse`, cổng host **3307**.\n- **minio** - S3-compatible, cổng **9000** (API) và **9001** (Console), credentials `minioadmin/minioadmin`.\n- **backend** - FastAPI, cổng **8000**.\n- **frontend** - React/Vite, cổng **5173**.\n- **scheduler** - chạy cron theo `backend/crontab`, theo profile.\n\nĐiểm thiết kế quan trọng: **không còn message broker**. Batch pipeline đọc thẳng từ provider rồi ghi vào Bronze. Nên không cần Kafka cho đường dữ liệu.\n\nLệnh thường dùng:\n\n- `docker compose --profile infra up -d` - bật hạ tầng.\n- `docker compose ps` - trạng thái container.\n- `docker compose down` - dừng (giữ volume).\n- `docker compose down -v` - dừng và **xoá data** (cẩn thận).\n\n> `down -v` là lệnh xoá dữ liệu thật. Trong một lakehouse, đó là lệnh nguy hiểm nhất trong bộ công cụ.",
+      "code": "docker-compose.yml",
+      "tags": "operations docker compose containers infrastructure mysql minio"
+    },
+    {
+      "term": "Vì sao Kafka và Iceberg bị gỡ khỏi dự án?",
+      "answer": "Hai lý do đo được được, không phải sở thích:\n\n**1. Kafka không còn cần thiết.** Khi đường realtime bị gỡ (11/11/2026), batch pipeline đọc thẳng từ provider nên không cần message broker nữa. Giữ Kafka nghĩa là giữ một hạ tầng nguyên lý chỉ để không ai dùng.\n\n**2. Iceberg-REST cũng vậy.** Project dùng Parquet phân vùng trên MinIO theo mô hình medallion. Iceberg chưa bao giờ được tích hợp thật, và dự án tài liệu nói rõ: đây là prototype theo kiến trúc medallion, **không** cung cấp giao dịch bảng ACID hay time-travel.\n\nNgoài ra còn có cảnh báo vận hành: **không** đặt `USE_KAFKA=true` khi venv chưa có `kafka-python`, vì `app/main.py` import `app.streaming.kafka_consumer` ngay lúc khởi động nên backend sẽ **crash**.\n\n> Bỏ một thành phần hạ tầng là một quyết định kiến trúc. Giữ nó chỉ vì \"có thể sau này cần\" là cách hệ thống trở nên nặng nề mà không thêm năng lực nào.",
+      "code": "docker-compose.yml, backend/app/main.py",
+      "tags": "kafka iceberg removed architecture simplification"
+    },
+    {
+      "term": "Cấu hình `.env` quan trọng nhất của hệ thống gồm những gì?",
+      "answer": "Các nhóm biến chính:\n\n**MySQL**\n\n- `MYSQL_HOST=localhost`, `MYSQL_PORT=3307`, `MYSQL_PASSWORD=123456`\n- `DATABASE_URL=mysql+pymysql://root:123456@localhost:3307/stock_lakehouse`\n\n**MinIO**\n\n- `STORAGE_BACKEND=minio` (mặc định) hoặc `local`\n- `MINIO_ENDPOINT=localhost:9000`, `MINIO_ACCESS_KEY=minioadmin`, `MINIO_SECRET_KEY=minioadmin`\n\n**Data source**\n\n- `DATA_SOURCE=multi_source` - chuỗi failover: yfinance -> finnhub -> alpha_vantage -> web_scraper\n- `FINNHUB_API_KEY`, `ALPHA_VANTAGE_API_KEY` (tuỳ chọn)\n\n**AI Agent**\n\n- `LLM_PROVIDER=gemini`\n- `GEMINI_API_KEY` (miễn phí tại aistudio.google.com)\n- `GEMINI_MODEL=gemini-2.0-flash-exp`\n\nQuy tắc: file `.env` ở thư mục gốc và `backend/.env` **đều được đọc**, và `backend/.env` **override** các biến tương ứng.\n\n> Một cấu hình có hai nơi và một quy tắc override rõ ràng là tốt. Hai cấu hình mà không có quy tắc là một cấu hình không xác định.",
+      "code": ".env.example, backend/app/core/config.py",
+      "tags": "config env mysql minio data source gemini"
+    },
+    {
+      "term": "Auto-refresh hoạt động theo những bước nào?",
+      "answer": "`services/auto_refresh.py` là dịch vụ làm mới dữ liệu định kỳ:\n\n1. Lấy danh sách symbol trong universe.\n2. Với mỗi symbol, đọc **watermark** (bar mới nhất đã chốt) từ Bronze.\n3. Bỏ qua symbol đã **đủ mới** (mới hơn `AUTO_REFRESH_SKIP_IF_FRESH_HOURS`).\n4. Gọi provider với **overlap 5 ngày** để bắt cả bar bị sửa (restatement).\n5. Ghi vào Bronze.\n6. Nếu `new_records > 0` **hoặc** `updated_records > 0` -> rebuild Silver và Gold từ `changed_since`.\n7. Invalidate cache của các symbol vừa ghi.\n\nĐiểm then chốt ở bước 4 và 6: overlap 5 ngày là cần thiết vì provider có thể **sửa lại** bar đã có, và `updated_records` là tín hiệu rebuild.\n\n> Một lượt refresh không phải là \"lấy dữ liệu mới\". Nó là \"lấy dữ liệu mới **và** dữ liệu bị sửa\". Bỏ qua vế thứ hai là mất nửa bài toán.",
+      "code": "backend/app/services/auto_refresh.py",
+      "tags": "auto refresh pipeline watermark overlap rebuild silver gold"
+    },
+    {
+      "term": "Vì sao overlap 5 ngày lại gây ra hiệu năng tệ nếu tín hiệu rebuild sai?",
+      "answer": "Vì auto-refresh luôn fetch với overlap 5 ngày, nên **phần lớn batch đầu vào là dòng lakehouse đã có**.\n\nNếu báo cáo `records_written` (số dòng trong batch đầu vào) làm tín hiệu rebuild, thì **mọi** symbol trông như có dữ liệu mới -> kích hoạt rebuild Silver + Gold cho toàn bộ -> mỗi rebuild đọc lại và ghi lại **~121 partition tháng**.\n\nKết quả đo được: một lượt no-op rẻ biến thành **~16s traffic MinIO cho mỗi symbol**, và đường đọc HTTP bị bóp nghẹt - chính điều đó làm UI vượt timeout 90s.\n\nFix: tín hiệu phải là `new_records` (partition **lớn thêm**) cộng `updated_records` (bar bị **sửa**), không phải số dòng nhận vào.\n\n> Đây là một ví dụ rất sạch về việc **định nghĩa sai biến đo** biến một thao tác rẻ thành thao tác đắt. Chi phí nằm ở chỗ đặt tên, không phải ở chỗ viết code.",
+      "code": "backend/app/services/auto_refresh.py",
+      "tags": "auto refresh performance overlap new_records signal rebuild"
+    },
+    {
+      "term": "Ba chiến lược đọc dữ liệu tối ưu cho ba mục đích khác nhau là gì?",
+      "answer": "Hệ thống có ba đường đọc, mỗi đường phục vụ một mục đích và có một đường đi riêng:\n\n**1. `read(symbol)`** - toàn bộ lịch sử, qua `frame_cache`. Dùng cho pipeline, scoring, lịch giao dịch - nơi cần lịch sử đầy đủ.\n\n**2. `read_window(symbol, since, until)`** - chỉ các partition có thể chứa khoảng ngày, **không cache**. Dùng cho API ngày tháng.\n\n**3. `read_newest(symbol)`** - chỉ **một** partition mới nhất. Dùng cho tape thị trường và endpoint giá mới nhất.\n\nĐo ngày 14/11/2026: tape 10 mã mất **11.7s** khi lạnh, vì mỗi quote kéo cả lịch sử của mã. Đọc partition mới nhất chỉ cần một listing + một download.\n\n> Ba đường đọc này tồn tại vì cùng một dữ liệu phục vụ ba mức chi phí khác nhau. Một đường đọc duy nhất sẽ phải chọn, và lựa chọn đó luôn sai với một trong ba nhóm consumer.",
+      "code": "backend/app/lakehouse/gold.py",
+      "tags": "read strategy full window newest partition purpose"
+    },
+    {
+      "term": "`frame_cache` có TTL và được invalidate như thế nào?",
+      "answer": "Cache lưu frame theo key `(layer, symbol)`.\n\nCơ chế làm mới **chủ động**, không chờ TTL:\n\n- `SilverLayer.write()` gọi `frame_cache.invalidate_cached('silver', symbol)` cho mỗi symbol vừa ghi.\n- `GoldLayer._invalidate_written()` làm tương tự cho Gold.\n\nLý do: dữ liệu vừa thay đổi, nên bản cache **đã cũ** - và nếu không invalidate, các reader sau sẽ nhận frame cũ trong khi storage đã có frame mới. Đó chính xác là dạng lệch tầng mà quality gate săn tìm.\n\nRàng buộc quan trọng: **cửa sổ có giới hạn không bao giờ được cache**. Cache chứa lịch sử *đầy đủ*; lưu một frame một phần dưới key của symbol sẽ khiến mọi reader sau tưởng symbol chỉ có vài dòng đó.\n\n> Cache không tự biết nó đã lỗi thời. Người ghi luôn là người duy nhất biết.",
+      "code": "backend/app/lakehouse/frame_cache.py",
+      "tags": "frame cache ttl invalidate active writer authority"
+    },
+    {
+      "term": "`request_gate` và `heavy_worker` giải quyết vấn đề gì?",
+      "answer": "Hai cơ chế bảo vệ server khỏi việc một tác vụ nặng chặn đường đọc.\n\n**`request_gate.py`** - kiểm soát **số request đồng thời** được phép chạy. Tác vụ nặng (backtest, walk-forward, train) bị giới hạn số lượng, còn request nhẹ (đọc giá, chỉ báo) đi qua.\n\n**`heavy_worker.py`** - đưa tác vụ nặng ra khỏi tiến trình chính, chạy ở chế độ **background**, và trả kết quả về sau.\n\nVì sao cần: `services/auto_refresh.py` là file 42 KB và làm việc nặng. Nếu nó chạy trong event loop của FastAPI, mọi request HTTP khác sẽ bị nghẽn.\n\nCùng bài học đã xuất hiện nhiều lần trong dự án: một tác vụ nền tốn 2s có thể biến một endpoint thành timeout 75s nếu nó chiếm GIL hoặc event loop.\n\n> Tách tác vụ nặng khỏi đường đọc là một quyết định kiến trúc, không phải một tối ưu hiệu năng.",
+      "code": "backend/app/core/{request_gate,heavy_worker}.py",
+      "tags": "request gate heavy worker concurrency background isolation"
+    },
+    {
+      "term": "Cron (`backend/crontab`) đặt lịch những việc gì?",
+      "answer": "Batch theo lịch trong container `scheduler`:\n\n- **Ingest dữ liệu định kỳ** - đọc thẳng từ provider rồi ghi vào Bronze.\n- **Rebuild Silver/Gold** cho các symbol có thay đổi.\n- **Batch EOD** (End Of Day) - sau khi phiên đóng cửa: nạp bar của ngày, hỏi mô hình dự báo cho phiên kế tiếp, ghi vào bảng `predictions`.\n- **Scoring** - chấm điểm các dự báo đã publish khi phiên đích đã xảy ra.\n- **Walk-forward đa mã** - chạy định kỳ theo yêu cầu nghiên cứu.\n\nVì không có Kafka, toàn bộ đường dữ liệu là: `cron -> provider -> Bronze -> Silver -> Gold -> predictions`.\n\n> Batch theo lịch là mô hình đơn giản và dễ kiểm toán hơn streaming. Với dữ liệu daily, nó cũng **đúng** - ngày giao dịch có ranh giới rõ ràng.",
+      "code": "backend/crontab",
+      "tags": "cron scheduler batch eod ingest scoring pipeline"
+    },
+    {
+      "term": "Vì sao phải có `AUTO_REFRESH_SKIP_IF_FRESH_HOURS`?",
+      "answer": "Vì universe có ~1000 mã. Nếu mỗi lượt refresh đều gọi provider cho **tất cả**, nó sẽ tốn hàng nghìn round-trip mạng và có thể chạm giới hạn rate-limit của provider.\n\nNgưỡng này bỏ qua các mã đã **đủ mới**.\n\nNhưng nó chỉ đúng khi watermark phản ánh đúng trạng thái. Đó là lý do `latest_settled_timestamp()` phải bỏ qua **bar đang hình thành**: nếu không, BTC-USD và ETH-USD có timestamp luôn mới hơn 24 giờ, nên bị bỏ qua ở **mọi** lượt - và bar đã chốt thật của chúng không bao giờ được lấy lại.\n\nĐo được: bar ngày 2026-11-04 của BTC đóng băng ở 77.912 trong khi provider đã chốt ở 80.405.\n\n> Một tối ưu hiệu năng chỉ đúng khi tín hiệu của nó đúng. Sai tín hiệu thì tối ưu biến thành nguồn dữ liệu sai.",
+      "code": "backend/app/services/auto_refresh.py",
+      "tags": "auto refresh skip fresh hours threshold rate limit"
+    },
+    {
+      "term": "Quy trình khởi động toàn hệ thống trên Windows là gì?",
+      "answer": "Trên máy này: WSL2 `Ubuntu-24.04` có Docker Engine, Python venv tại `backend/.venv`, Node dependencies tại `frontend/node_modules`.\n\nLệnh:\n\n```powershell\npowershell -ExecutionPolicy Bypass -File .\\start-all.ps1\n```\n\nScript chỉ báo thành công khi **API, MySQL, MinIO và frontend** đã sẵn sàng. Khi lỗi, xem cửa sổ backend/frontend và mã thoát. Dừng bằng `stop-all.ps1`.\n\nĐiểm Windows đặc biệt: MinIO dùng `network_mode: host` nên Windows **không** vào được ổn định bằng `127.0.0.1:9000`. Đường đi ổn định là **relay của chính dự án** - chạy bên trong WSL:\n\n```bash\npython3 backend/scripts/relay_ports.py 13307:3307 19000:9000 19092:9092\n```\n\nSau đó `backend/.env.local` trỏ vào `MINIO_ENDPOINT=127.0.0.1:19000`, `MYSQL_PORT=13307`.\n\n> Trên Windows, \"localhost không truy cập được\" thường là vấn đề định tuyến mạng giữa WSL và host, không phải vấn đề dịch vụ. Biết điều này tiết kiệm hàng giờ debug.",
+      "code": "start-all.ps1, backend/scripts/relay_ports.py",
+      "tags": "windows wsl startup start-all relay ports minio"
+    },
+    {
+      "term": "Quy tắc ứng phó khi hạ tầng không chạy là gì?",
+      "answer": "Đây là một quy tắc được viết thành văn bản, và nó là điểm khác biệt giữa một hệ thống nghiêm túc và một demo.\n\nThứ tự xử lý đúng:\n\n1. **Bật hạ tầng thật**: `docker compose up -d mysql minio kafka` rồi kiểm tra cổng đang mở.\n2. **Nếu chưa bật được**, **báo cáo trung thực** endpoint nào đang lỗi và vì sao.\n3. **KHÔNG** dựng server giả để \"cho UI chạy\".\n\nBackend đã có sẵn đường lùi về filesystem cục bộ (`STORAGE_BACKEND=local`, dữ liệu ở `backend/data/<layer>/symbol=.../`) - dùng đường lùi **thật** này thay vì bịa dữ liệu.\n\nCấm tuyệt đối: file kiểu `mock_api.py`, `fake_server.py`, `demo_server.py` phục vụ số liệu bịa. Backend thật là `backend/app/main.py`; nếu nó chết thì phải **sửa nó**.\n\n> \"Cho UI chạy\" bằng dữ liệu giả là cách nhanh nhất để phá hủy toàn bộ giá trị của một dự án lakehouse.",
+      "code": ".cursor/rules/no-fake-data.mdc",
+      "tags": "infrastructure down honest reporting no fake server local fallback"
+    },
+    {
+      "term": "Hai cách bịa dữ liệu tinh vi nào phải kiểm tra trước khi commit?",
+      "answer": "Theo rule `no-fake-data`:\n\n**1. Số đúng nhưng sai nguồn** - ví dụ `close` lấy từ tầng `local` cũ trong khi tầng `minio` đã được cập nhật. Số vẫn \"thật\" nhưng **không truy vết được** về lần ingest mới nhất.\n\nKiểm tra: `source_layer` phải khớp với tầng đang được bật.\n\n**2. Số đúng nhưng sai thời điểm** - ví dụ `timestamp` cố định thay vì lấy từ bar cuối cùng.\n\nKiểm tra: timestamp của bar mới nhất phải khớp ngày giao dịch gần nhất.\n\nLệnh kiểm tra trước khi commit:\n\n```powershell\nrg -n \"random\\.(uniform|randint|choice)|np\\.random\\.(rand|normal|uniform)\" backend/app\nrg -n \"mock|fake|dummy|synthetic|Math\\.random\" frontend/src\n```\n\n> Hai dạng này không bị phát hiện bởi mắt hay bởi kiểm tra \"số có hợp lệ không\". Chúng chỉ bị phát hiện bằng so sánh với **nguồn** và với **thời gian**.",
+      "code": ".cursor/rules/no-fake-data.mdc",
+      "tags": "fake data subtle wrong source wrong timestamp pre-commit check"
+    },
+    {
+      "term": "Quy trình kiểm chứng bằng số thật gồm những bước nào?",
+      "answer": "Ba bước có thể chạy được, và là bằng chứng cho câu hỏi \"số này từ đâu?\":\n\n**1. Bucket có dữ liệu thật không**\n\n```powershell\npython -c \"from minio import Minio; c=Minio('127.0.0.1:19000',access_key='minioadmin',secret_key='minioadmin',secure=False); print([b.name for b in c.list_buckets()])\"\n```\n\n**2. API trả về bar thật, có cột `source` truy vết được**\n\n```powershell\ncurl \"http://127.0.0.1:8000/api/v1/stocks/AAPL/latest\"\n```\n\nKết quả mong đợi có `source_layer: \"gold\"`, `source: \"yahoo_http\"`, và `close` là số thật.\n\n**3. Tầng Silver/Gold không bị file Parquet hỏng**\n\n```powershell\npython backend/scripts/check_layer_divergence.py\n```\n\nGhi chú quan trọng: `source_layer: \"gold\"` / `source: \"yahoo_http\"` trong response là **bằng chứng** dữ liệu thật. Nếu một response không có trường này mà vẫn có số, hãy **nghi ngờ ngay lập tức** và truy ra nguồn.\n\n> Ba bước này là câu trả lời cho \"số đúng nhưng sai nguồn\" - và câu hỏi đó không tự trả lời được.",
+      "code": "backend/scripts/check_layer_divergence.py",
+      "tags": "verification evidence minio bucket api source curl steps"
+    },
+    {
+      "term": "Vì sao `docs/OPERATIONS_RAM.md` tồn tại?",
+      "answer": "Vì WSL2 + Docker trên Windows giữ lại bộ nhớ sau khi dừng, và điều đó có tác động thật lên khả năng chạy các tác vụ nặng của dự án.\n\nTác vụ nặng của hệ thống: LSTM training, walk-forward đa mã, rebuild toàn universe. Những việc này cần RAM. Nếu WSL giữ lại vài GB không trả về Windows, các lần chạy sau sẽ bị thiếu RAM và **chậm** hoặc **fail** một cách khó chẩn đoán.\n\nNội dung tài liệu hướng dẫn cách giải phóng RAM đúng cách sau khi dừng WSL/Docker.\n\n> Tài liệu vận hành không phải là phần phụ. Một hệ thống chạy được trên máy của thầy giáo là một hệ thống **hoàn thành**.",
+      "code": "docs/OPERATIONS_RAM.md",
+      "tags": "operations ram wsl docker memory release documentation"
+    },
+    {
+      "term": "CI workflow `checks.yml` chạy những gì?",
+      "answer": "Workflow kiểm tra tự động trong `.github/workflows/checks.yml`.\n\nMục tiêu của nó trong dự án này là bảo vệ đúng những thứ dễ vỡ nhất:\n\n- **Test backend** - `backend/tests/`, bao gồm các test hồi quy kiểm tra (`test_audit_regressions.py`), test truy cập agent vào universe (`test_agent_universe.py`), test tính toàn vẹn publication (`test_publication_integrity.py`), test trạng thái pipeline (`test_pipeline_run_status.py`), test lịch sử biểu đồ (`test_chart_history.py`), test contamination trong huấn luyện quy mô lớn (`test_scale_contaminated_training.py`).\n- **Lint** - ruff (cache `.ruff_cache` trong repo).\n- **Build frontend** - TypeScript + Vite.\n\nCác test hồi quy là đặc biệt quan trọng: chúng **ghim** lại những lỗi đã sửa, để lỗi đó không quay lại. Mỗi card trong deck này mô tả một lỗi đã sửa là một ứng viên cho test hồi quy.\n\n> Một test hồi quy cho mỗi bug nghiêm trọng là cách biến một sự cố đã xử lý thành tài sản của dự án.",
+      "code": ".github/workflows/checks.yml",
+      "tags": "ci workflow checks pytest ruff frontend build regression"
+    },
+    {
+      "term": "Vì sao test hồi quy lại quan trọng đặc biệt trong dự án này?",
+      "answer": "Vì dự án đã trải qua nhiều lỗi **âm thầm** - loại lỗi mà mọi thứ vẫn chạy nhưng kết quả sai. Chúng không bao giờ tự lộ ra bằng một exception.\n\nDanh sách các lỗi đã sửa (mỗi cái là một ứng viên test hồi quy):\n\n- Prefix partition nối chuỗi đọc sai 51 ticker.\n- `new_records` không phát hiện restatement -> Silver/Gold giữ giá cũ vĩnh viễn.\n- ARIMA `directional_accuracy` luôn bằng 0.\n- Biểu đồ lệch đúng 1 phiên.\n- Bar forming của crypto làm watermark sai -> BTC đóng băng.\n- 151 dự báo nhắm thứ Bảy.\n- 200 dòng `TST0`..`TST199` trong ledger.\n- RSI strategy tốn 2.0s trong 4.5s walk-forward.\n\nCác file test tương ứng: `test_audit_regressions.py`, `test_accuracy_report.py`, `test_chart_history.py`, `test_pipeline_run_status.py`, `test_publication_integrity.py`.\n\n> Test hồi quy không chứng minh tính đúng đắn. Nó chứng minh **sự ổn định**. Với một hệ thống đã sửa nhiều lỗi, đó mới là điều cần giữ.",
+      "code": "backend/tests/test_audit_regressions.py",
+      "tags": "regression test silent bugs pinned invariants"
+    },
+    {
+      "term": "Tại sao song song hoá là chiến lược tối ưu chính của dự án?",
+      "answer": "Vì phần lớn công việc của hệ thống là **I/O bound**, không phải CPU bound.\n\nCác chứng cứ đo được:\n\n- **Ghi partition**: Silver serial 2.87s/mã -> song song cắt wall-clock xuống một phần nhỏ. Gold serial ~1.5s/mã.\n- **Đọc storage trong quality gate**: 100 mã mất **50s** tuần tự, **~12s** với 12 worker.\n- **RSI strategy**: viết lại bằng numpy, tiết kiệm 2.0s trong 4.5s của một lượt walk-forward.\n\nTrong cả ba trường hợp, **CPU không phải nút thắt** - nó ngồi chờ byte và chờ GIL.\n\nNguyên tắc rút ra: trước khi tối ưu thuật toán, hãy hỏi **tài nguyên nào đang thực sự khan hiếm**. Ở đây, câu trả lời luôn là I/O và GIL, không phải FLOPs.\n\n> Tối ưu hiệu quả nhất thường nằm ở chỗ ít người nghĩ tới: cách chờ, không phải cách tính.",
+      "code": "backend/app/lakehouse/parallel_write.py, backend/app/core/quality_gate.py",
+      "tags": "performance io bound concurrency parallel bottleneck gil"
+    },
+    {
+      "term": "Vì sao `minio` không truy cập được trực tiếp từ Windows qua 127.0.0.1:9000?",
+      "answer": "Vì MinIO trong `docker-compose.yml` dùng **`network_mode: host`**. Container chạy trong network namespace của WSL2, không phải của Windows host.\n\nWindows vì vậy không định tuyến được tới cổng 9000 của container.\n\nĐường đi ổn định là **relay của chính dự án** - chạy bên trong WSL:\n\n```bash\npython3 backend/scripts/relay_ports.py 13307:3307 19000:9000 19092:9092\n```\n\nRelay này nằm ở trong WSL nên Windows truy cập được qua `127.0.0.1:19000`.\n\nSau đó `backend/.env.local` trỏ vào:\n\n- `MINIO_ENDPOINT=127.0.0.1:19000`\n- `MYSQL_PORT=13307`\n- `DATABASE_URL=mysql+pymysql://root:123456@127.0.0.1:13307/stock_lakehouse`\n\n> Vấn đề mạng giữa WSL và Windows có nhiều biểu hiện giống nhau (kết nối bị từ chối, timeout, chậm bất thường). Biết nguyên nhân gốc đổi việc debug từ vài giờ xuống vài phút.",
+      "code": "backend/scripts/relay_ports.py, docker-compose.yml",
+      "tags": "minio network mode host wsl relay windows port"
+    },
+    {
+      "term": "Chuỗi khởi động backend chuẩn gồm những bước nào?",
+      "answer": "Theo thứ tự:\n\n```powershell\ncd backend\npy -3.11 -m venv .venv\n.\\.venv\\Scripts\\Activate.ps1\npip install -r requirements.txt\n\n# tạo database + chạy Alembic migrations (idempotent)\npython scripts\\init_database.py\n\n# (optional) tạo MinIO buckets\npython scripts\\bootstrap_infrastructure.py\n\n# (optional) ingest dữ liệu lịch sử thật\npython scripts\\ingest_historical.py --source multi_source --years 10\npython scripts\\ingest_vn.py --years 10\n\n# chạy API server\nuvicorn app.main:app --host 127.0.0.1 --port 8000 --reload\n```\n\nSau khi server lên, kiểm tra:\n\n- Swagger UI: http://127.0.0.1:8000/docs\n- Health check: http://127.0.0.1:8000/api/v1/health\n- OpenAPI schema: http://127.0.0.1:8000/openapi.json\n\nLưu ý: `init_database.py` là **idempotent**, nên chạy lại nhiều lần không sao.\n\n> Thứ tự này có lý do: mã nguồn -> dependency -> schema -> dữ liệu -> server. Đảo thứ tự sẽ tạo ra lỗi khó chẩn đoán như \"endpoint trả 500 vì bảng chưa tồn tại\".",
+      "code": "backend/scripts/init_database.py",
+      "tags": "backend setup venv init database migrate uvicorn steps"
+    },
+    {
+      "term": "Frontend chạy thế nào và vì sao không cần CORS?",
+      "answer": "```powershell\ncd frontend\nnpm install\nnpm run dev\n```\n\nFrontend chạy tại http://127.0.0.1:5173.\n\nĐiểm thiết kế quan trọng: Vite được cấu hình **proxy** `/api/v1` -> `http://127.0.0.1:8000`. Nhờ vậy browser có thể gọi API trực tiếp qua `/api/v1/...` mà **không cần CORS**.\n\nĐây là lý do tên gọi `frontend/src/api/client.ts` dùng base URL tương đối.\n\nLệnh khác:\n\n- `npm run build` - build production (tsc + vite build).\n- `npm run preview` - xem bản build.\n\nBiến môi trường: `VITE_API_BASE_URL=http://127.0.0.1:8000/api/v1` trong `frontend/.env`.\n\n> Proxy tầng dev là một quyết định nhỏ nhưng tiết kiệm hàng giờ debug CORS - và nó giải thích vì sao môi trường dev và production có thể dùng cùng một cách gọi.",
+      "code": "frontend/vite.config.ts, frontend/src/api/client.ts",
+      "tags": "frontend vite proxy cors npm dev setup"
+    }
+  ]
+}

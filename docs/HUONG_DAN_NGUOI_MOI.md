@@ -716,14 +716,15 @@ Vì vậy hệ thống báo cáa **median** (trung vị) thay vì mean cho phầ
 | WAPE | 2,75% | Sai số % có trọng số theo giá |
 | **Độ đúng hướng** | **50,58%** | **Gần như ngẫu nhiên** |
 
-> **Đo lại ngày 18/11/2026:** tổng số dự báo là **46.514** (thêm 9 dự báo mới cho
-> phiên chưa diễn ra, nên số dòng **đã chấm** vẫn giữ nguyên **46.385**, và
-> median sai số vẫn **1,15%**). Hệ thống bắt đầu đo **độ trễ của dữ liệu đầu vào**
+> **Đo lại ngày 18/11/2026:** tổng số dự báo là **46.531**, trong đó **46.487**
+> dòng đã chấm (tăng 102 dòng vì các phiên 17–18/11 đã đóng cửa và được chấm
+> bằng giá thật). Median sai số vẫn **1,15%**, MAE **337,61**, WAPE **2,76%**,
+> độ đúng hướng **50,60%**. Hệ thống bắt đầu đo **độ trễ của dữ liệu đầu vào**
 > cho mọi dự báo mới — xem mục 6.2 ở trên.
 
 Và đây là điểm quan trọng nhất của cả đồ án:
 
-> **50,58% nghĩa là hệ thống gần như không có khả năng dự đoán hướng giá vượt quá ngẫu nhiên.**
+> **50,60% nghĩa là hệ thống gần như không có khả năng dự đoán hướng giá vượt quá ngẫu nhiên.**
 
 Ba mô hình đều cho kết quả tương tự. Đây là kết quả **thật**, và đồ án báo cáo nguyên vẹn thay vì chỉ chọn mô hình đẹp nhất.
 

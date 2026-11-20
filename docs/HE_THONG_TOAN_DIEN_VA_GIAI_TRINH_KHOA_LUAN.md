@@ -4186,20 +4186,54 @@ Chart có **đường kẻ dọc** ngăn cách "đã xảy ra" và "dự báo", 
 
 ## 10.7.1. Chi tiết: băng giá trên thanh điều hướng
 
-Thanh điều hướng không chỉ có 8 tab. Phía trên tab là một **dải giá chạy ngang
-(market tape)** đọc từ lakehouse.
+Thanh điều hướng không chỉ có các tab. **Phía trên** các tab là một **dải giá
+chạy ngang (market tape)** đọc từ lakehouse, và các tab được **chia thành ba
+cụm** có nhãn thay vì một hàng dài.
 
 ```
 ┌──────────────────────────────────────────────────────────────────────────┐
-│ ● BĂNG GIÁ  AAPL 342.37 $-0.52%  MSFT 530.61 $-0.99%  NVDA 186.64 $2.78% │  ← chạy
+│ ▣ StockVision AI │ AAPL ▾ │ ● BĂNG GIÁ  AAPL 352.45 +0.15%  MSFT 502.83  │  ← header + tape
 ├──────────────────────────────────────────────────────────────────────────┤
-│  Dashboard   Dữ liệu thị trường   Phân tích kỹ thuật   Dự báo   Backtest │  ← tab
+│ DỮ LIỆU          │ MÔ HÌNH            │ CÔNG CỤ                          │  ← 3 cụm
+│ [Tổng quan] Thị trường Phân tích │ Dự báo Chiến lược │ Trợ lý AI Hệ thống│
 └──────────────────────────────────────────────────────────────────────────┘
 ```
 
-**Vì sao cần dải giá:** một hàng 8 link xám là **bản đồ trang**, không phải
+**Vì sao cần dải giá:** một hàng link xám là **bản đồ trang**, không phải
 công cụ đầu tư. Mở app lên mà phải chờ đọc chữ là lãng phí một thứ không phải
 thông tin — người dùng muốn thấy **giá** trước khi thấy **mục lục**.
+
+**Vì sao dải nằm ở HEADER chứ không nằm dưới thanh tab:** dải chạy cần
+chiều ngang rộng. Hàng header là dải duy nhất còn khoảng trống ở giữa (giữa ô
+chọn mã và các nút bên phải), nên đặt dải vào đó vừa lấp đúng chỗ trống vừa
+đưa **một con số lên trên menu** — thứ mắt chạm vào đầu tiên là giá, không
+phải chữ. Dưới `lg` (1280px) dải bị ẩn, vì ở độ rộng đó nó sẽ chen vào ô
+chọn mã và bộ chuyển ngôn ngữ; một dải bị cắt cụt còn tệ hơn không có dải.
+
+**Vì sao chia ba cụm thay vì một hàng 7 mục:** bảy link nằm cạnh nhau là
+**bản đồ trang** — người đọc phải đọc hết từng chữ mới biết mình muốn cái gì.
+Chia theo câu hỏi mà mỗi cụm trả lời ("mã này đang thế nào" / "nó sẽ ra sao" /
+"mình có thể hỏi gì") biến hàng đó thành ba câu hỏi nhìn là biết.
+
+**Vì sao ba cụm trải đều chứ không dồn vào một chỗ:** một hàng nav bám sát mép
+trái để nửa phải màn 1600px trống trơi, và khoảng trống đó đọc ra là **layout
+hỏng** chứ không phải khoảng thở có chủ đích. `justify-between` biến thanh
+nav thành một bảng điều khiển trải hết chiều ngang: mỗi cụm nằm ở một phần
+ba, không mục nào bị dồn vào một góc.
+
+**Vì sao có nhãn nhóm (DỮ LIỆU / MÔ HÌNH / CÔNG CỤ):** nhãn là thứ làm cho
+việc gom nhóm đọc được mà không cần hover vào tooltip. Nó dùng đúng cỡ chữ
+12px mono uppercase mà cả hệ thống đã dùng cho caption, nên nhìn là **thuộc
+hệ thống** chứ không phải một đồ trang trí mới.
+
+**Vì sao tab active là nền nhạt chứ không phải nền đặc:** ô chọn mã và chip
+ngôn ngữ trong header đã dùng `primary` đặc rồi. Một accent đặc thứ ba trên
+cùng màn hình sẽ làm loãng accent thứ nhất, nên tab active chỉ nhận accent ở
+dạng **tint 10%** kèm chữ `primary` — vẫn nhận ra ngay, nhưng khác sắc độ.
+
+**Vì sao gạch chân 2px biến mất:** chỉ khác nhau bằng một gạch chân thì phải
+nhìn kỹ mới thấy mục nào đang mở. Nền tint + chữ đậm + icon cùng màu accent
+là ba tín hiệu cùng lúc — nhận ra bằng tiền điện tử, không cần săn mắt.
 
 **Vì sao gọi là "băng" (tape) và không phải "widget giá":** thuật ngữ tape là
 thuật ngữ giao dịch thật — dải giá chạy là cách các sàn và terminal hiển thị
@@ -4224,6 +4258,27 @@ hiển thị" thành "công cụ điều khiển".
 endpoint khác. Mã không có dữ liệu trong lakehouse thì **bị bỏ khỏi dải**, không
 được hiện là `0.00` — mã vắng mặt thì thành thật, mã giá 0 thì là nói dối.
 
+**Danh sách mã dùng chung:** dải ở header và bảng "Danh sách theo dõi" ở
+Dashboard là **hai cách nhìn cùng một quyết định** ("mình đang theo dõi mã
+nào"). Nếu hai chỗ mang hai danh sách khác nhau, hai bảng sẽ mâu thuẫn về
+thứ người dùng đang theo dõi. Vì vậy cả hai đọc chung một hằng
+`WATCHLIST_SYMBOLS` trong `frontend/src/utils/constants.ts`.
+
+**Đo ngày 19/11/2026** (trên app đang chạy, viewport 1648px):
+
+| Vị trí | Giá trị đo |
+|---|---|
+| Cụm "DỮ LIỆU" | x = 48px, rộng 423px |
+| Cụm "MÔ HÌNH" | x = 727px, rộng 311px |
+| Cụm "CÔNG CỤ" | x = 1294px, rộng 306px, mép phải = 1600px |
+| Bề rộng dải giá (viewport 1648px) | 1058px |
+| Chiều cao tab active | 44px (đạt chuẩn vùng bấm tối thiểu) |
+| Nền tab active | `rgba(27, 106, 77, 0.1)` |
+| Chữ tab active | `rgb(27, 106, 77)`, weight 600 |
+| Bề rộng track dải (12 mã × 2 bản) | 4231px, animation `tape-scroll` 64s |
+| Số mã hiện trong dải | 12/12, tất cả `source_layer=gold` |
+| Header: logo / ô chọn mã / dải / nút | 138px / 176px / 1058px / 115px |
+
 **Đo ngày 10/11/2026:** endpoint trả về đủ 12/12 mã, tất cả `source_layer=gold`:
 
 ```
@@ -4232,6 +4287,26 @@ AMZN 259.30 -0.35%   GOOGL 284.78 +0.78%  META 610.15 +0.84%
 FPT  51 000 -3.59% ₫  VCB 53 500 -1.29% ₫  VHM 62 300 -1.58% ₫
 HPG  21 200 -1.40% ₫  MWG 73 900 -1.47% ₫
 ```
+
+**Đo ngày 19/11/2026** (sau khi dựng lại thanh nav), lấy trực tiếp từ
+`GET /api/v1/stocks/tape`, tất cả `source_layer=gold`:
+
+```
+AAPL 352.45 +0.15%   MSFT 502.83 -0.67%   NVDA 152.82 -1.70%   TSLA 380.06 -0.01%
+AMZN 262.63 +1.84%   GOOGL 281.45 +0.45%  META 611.79 -1.14%
+FPT  45 700 -2.66% ₫ VCB 50 800  0.00% ₫ VHM 60 400 -0.66% ₫
+HPG  20 450  0.00% ₫ MWG 72 100 -0.69% ₫
+```
+
+**Đường dẫn mã nguồn:**
+
+| Thành phần | File |
+|---|---|
+| Dải giá (component) | `frontend/src/components/layout/MarketTape.tsx` |
+| Thanh điều hướng 3 cụm | `frontend/src/components/layout/NavBar.tsx` |
+| Header (chứa dải) | `frontend/src/components/layout/Header.tsx` |
+| Danh sách mã dùng chung | `frontend/src/utils/constants.ts` |
+| CSS dải chạy + tab | `frontend/src/index.css` (`.tape-viewport`, `.tape-track`, `.navtab`) |
 
 ## 10.8. Chi tiết: trang Dữ liệu thị trường — bàn làm việc dữ liệu
 
@@ -4369,10 +4444,19 @@ Trước đây 8 mục là **link gạch chân**. Vấn đề:
 
 Sau khi đổi:
 
-- Mỗi mục là một **nút** viền hairline, bo góc 6px, **cao 44px** (đạt chuẩn
+- Mỗi mục là một **nút** bo góc 6px, **cao 44px** (đạt chuẩn
   vùng bấm tối thiểu).
-- Mục đang active nền **primary** (xanh thương hiệu) — nhìn là biết.
-- Hàng được **căn giữa**: khoảng trống trái = phải (đo được 369px = 369px).
+- Mục đang active nền **tint primary 10%** + chữ primary đậm.
+- Hàng được **trải đều** thành 3 cụm có nhãn (xem mục 10.7.1).
+
+**Lưu ý về lịch sử:** bản "nút viền hairline, nền primary đặc, hàng căn giữa"
+từng có thật, nhưng sau đó đã bị thay. Lý do: khi dải giá được đưa lên
+header và các mục được chia thành 3 cụm, hàng không còn là một dải link
+trần nữa — nó là một bảng điều khiển có cấu trúc. Viền hairline quanh mọi
+mục sẽ biến hàng thành "một bức tường ô xám", và nền primary đặc sẽ là
+accent thứ hai đặc trên cùng màn hình (sau ô chọn mã và chip ngôn ngữ).
+Bản hiện tại giữ **vùng bấm 44px** (điều đáng giá nhất của bản nút) nhưng
+đổi phần trang trí.
 
 ### 10.9.5. Lỗi đã gặp và cách sửa
 
@@ -4418,16 +4502,416 @@ tương đối; bấm một mục tải lại 24 bóng chat (12 lượt); bấm 
 ```
 components/
   charts/    CandlestickChart  EquityCurve  ForecastChart  IndicatorChart  PriceChart
+             DashboardCharts  VerifiedForecastChart
   common/    Explainer  EmptyState  ErrorBoundary  ErrorState  Loading
-             PageTitle  TimeRangeSelector  BarIntervalSelector
-  dashboard/ LakehouseFlow  LiveWatchlist  MarketCard  MetricCard  RecentActivity
-  layout/    Header  MainLayout  NavBar
+             PageHeader  QuoteHeader  KeyStatistics  DataTable  Sparkline
+             ChartTimeControls  ChartViewToggle  ThemeToggle  Panel  SubTabs
+             SymbolSearch  BarIntervalSelector  TimeRangeSelector
+  dashboard/ LakehouseWatchlist  NextSessionCard  MetricCard  RecentActivity
+  forecasting/ ForecastVerification  PublishedForecastComparison
+  layout/    Header  MainLayout  NavBar  MarketTape
   agent/     ChatBox  ChatMessage  Markdown  ToolCallDisplay
-  ui/        badge  button  card  checkbox  input  select  skeleton  switch
+  ui/        badge  button  checkbox  input  select
+hooks/       useTheme
 ```
 
----
+## 10.11. Chi tiết: thiết kế lại giao diện theo kiểu Yahoo Finance (19/11/2026)
 
+### 10.11.1. Hiểu đơn giản
+
+Trước đợi, mỗi con số trên web nằm ở một chỗ khác nhau: giá nằm dưới tiêu đề,
+cao nhất / thấp nhất thì không có, khối lượng nằm trong một ô "chi tiết" bị thu
+gọn. Người dùng phải nhảy tới nhảy lui mới ghép được câu hỏi cơ bản nhất của
+một trang giá: **"hôm nay mã này đang ở đâu?"**
+
+Bây giờ phần đầu mỗi trang mã gom đúng bốn thứ theo đúng thứ tự mà mọi trang
+tài chính lớn dùng:
+
+1. **Danh tính** — tên mã, đơn vị tiền, cảnh báo dữ liệu cũ.
+2. **Giá hiển thị** — con số lớn nhất trang, cỡ 40px, chữ số thẳng hàng.
+3. **Mức thay đổi** — vừa là số tuyệt đối vừa là phần trăm, ngay bên cạnh giá.
+4. **Khoảng trong phiên** — một thanh ngang, con trỏ chỉ vị trí giá nằm giữa
+   ngày cao nhất và thấp nhất.
+
+Điểm mấu chốt: **màu được chia theo vai trò**. Sau lần thiết kế lại ngày
+20/11/2026 (mục 10.12) màu thương hiệu là **navy/indigo**, còn **xanh lá thuộc
+về số liệu tăng** và **đỏ thuộc về số liệu giảm** — đúng như mọi trang tài
+chính lớn, và đúng như cách người đọc đã quen từ lâu. Trước đó cả hai vai trò
+dùng chung một màu, nên nút bấm và con số tăng trông giống nhau và người đọc
+không phân biệt được.
+
+### 10.11.2. Thuật ngữ
+
+| Từ tiếng Việt dễ hiểu | Thuật ngữ | Nghĩa là gì | Dùng ở đâu |
+|---|---|---|---|
+| **Dải tóm tắt mã** | Quote header | Dải đầu trang gom tên mã, giá, thay đổi, số phiên | `frontend/src/components/common/QuoteHeader.tsx` |
+| **Bảng thống kê** | Key statistics panel | Bảng key/value dày, số phải căn phải để dễ so sánh | `frontend/src/components/common/KeyStatistics.tsx` |
+| **Đường giá nhỏ** | Sparkline | Đường giá thu nhỏ, vẽ bằng SVG thuần | `frontend/src/components/common/Sparkline.tsx` |
+| **Bảng dữ liệu xếp được** | Sortable data table | Bảng có cột sắp xếp, header dính khi cuộn | `frontend/src/components/common/DataTable.tsx` |
+| **Va chạm class** | tailwind-merge | Thư viện chọn class nào thắng khi hai class xung đột | `frontend/src/lib/utils.ts` |
+| **Màu thương hiệu** | Brand accent | Màu nhận diện của sản phẩm (`primary`, navy) | `frontend/src/index.css` |
+| **Màu chiều tăng** | Up colour | Màu riêng cho số liệu tăng (`up`, xanh lá) | `frontend/src/index.css` |
+
+### 10.11.3. Chi tiết: các vai trò màu
+
+Bảng màu nằm ở `frontend/src/index.css`, khai báo trong `:root` (nền sáng) và
+`[data-theme="dark"]` (nền tối) — xem mục 10.12.3 cho bảng đầy đủ:
+
+```css
+--primary:     226 68% 42%;   /* #2B4BC4 — màu thương hiệu duy nhất  */
+--on-primary:   0 0% 100%;    /* #FFFFFF — chữ trên primary         */
+--up:          152 58% 34%;   /* #1F9D57 — số liệu TĂNG             */
+--negative:     0 72% 48%;    /* #D92D20 — số liệu GIẢM             */
+```
+
+Bản đồ role → Tailwind → chỗ dùng:
+
+| CSS variable | Tailwind class | Dùng cho |
+|---|---|---|
+| `--primary` | `text-primary`, `bg-primary` | Nút chính, tab active, link nhấn mạnh, logo |
+| `--up` | `text-up` | Số tăng, nến tăng, delta dương, đường giá đi lên |
+| `--negative` | `text-negative` | Số giảm, nến giảm, cảnh báo |
+| `--ink` / `--muted` | `text-ink`, `text-muted` | Chữ chính / chữ phụ |
+
+**Vì sao phải tách `up` khỏi `primary`:** trước đây `primary` vừa là màu
+thương hiệu vừa là màu "tăng". Một nút xanh lá cạnh một con số tăng xanh lá
+trông như hai thứ khác nhau đang cùng nói một điều. Tách ra thì màu nào đang
+mang ý nghĩa là nhìn là biết, không cần đọc chữ.
+
+> **Lưu ý:** các đo đạc và ảnh chụp màn hình trong mục 10.11.4 được đo ngày
+> **19/11/2026**, tức là **trước** lần đổi màu ngày 20/11/2026. Khi đọc lại
+> những bảng đó, hãy hiểu rằng "màu xanh dương" trong cột "Sau" của bản đo
+> 19/11 là **màu của thời điểm đó**; palette hiện hành xem mục 10.12.3.
+
+### 10.11.4. Lỗi đã gặp và cách sửa
+
+**Triệu chứng:** giá hiển thị ở đầu trang Tổng quan vốn phải là 40px, nhưng đo
+bằng DevTools ra **14px**. Các số liệu khác cũng bị nhỏ đi một cỡ.
+
+**Vì sao xảy ra:** `tailwind-merge` mặc định xếp **mọi** class `text-*` vào
+cùng một nhóm "màu chữ", vì trong Tailwind mặc định `text-lg` / `text-red-500`
+cùng tiền tố. Thang cỡ chữ của dự án (`text-display`, `text-heading`,
+`text-body`, `text-small`, `text-label`) trông **giống hệt** tên class màu, nên
+khi viết:
+
+```tsx
+cn("font-mono text-display font-semibold tabular-nums", up ? "text-up" : "text-negative")
+```
+
+`tailwind-merge` thấy hai class "màu" (`text-display` và `text-up`), giữ lại
+class đứng sau và **xoá mất** `text-display`. Class list vẫn còn `text-display`
+nên nhìn vào code không thấy lỗi — chỉ đo bằng DevTools mới thấy.
+
+**Fix:** khai báo 5 cỡ chữ của dự án thuộc nhóm `font-size` thật, tách khỏi
+nhóm màu. File `frontend/src/lib/utils.ts`:
+
+```ts
+const twMerge = extendTailwindMerge({
+  extend: {
+    classGroups: {
+      "font-size": [{ text: ["display", "heading", "body", "small", "label"] }],
+    },
+  },
+});
+```
+
+**Bằng chứng (Đo ngày 19/11/2026, Chrome DevTools, trang Tổng quan):**
+
+| Đo điểm | Trước | Sau |
+|---|---|---|
+| `twMerge("text-display text-up")` | `"text-up"` | `"text-display text-up"` |
+| Font-size của giá hiển thị | `14px` | `40px` |
+| Font-size của tiêu đề mã | `24px` | `24px` |
+
+Kiểm tra lại sau mỗi lần đổi thang cỡ chữ:
+
+```powershell
+cd frontend
+node -e "const {twMerge}=require('tailwind-merge'); console.log(twMerge('text-display text-up'))"
+# Phải in ra: text-display text-up
+```
+
+**Triệu chứng:** dòng "Lợi nhuận 52 tuần" trong bảng thống kê hiện ra
+`31.79%+31.79%` — cùng một con số, hai lần, hai kiểu chữ.
+
+**Vì sao xảy ra:** bảng thống kê dùng thuộc tính `tone` để **tô màu** giá trị
+theo chiều đi lên / xuống, nhưng bản đầu tiên lại **in ra** `tone` thành một
+tỷ lệ phần trăm thứ hai. Với dòng "số phiên tăng" (một số đếm, không phải tỷ
+lệ), `tone: 1` biến thành `+100.00%` — **một phần trăm được bịa ra từ một cờ
+màu**.
+
+**Fix:** `tone` giờ chỉ **tô màu** giá trị, không in thêm chữ. Thêm thuộc tính
+riêng `direction: "up" | "down"` cho các dòng là số đếm. Phần trăm có dấu được
+in bằng `formatSignedPercent()` trong `frontend/src/utils/format.ts`.
+
+**Bằng chứng (Đo ngày 19/11/2026, trang Tổng quan và trang Dữ liệu thị trường):**
+
+| Dòng | Trước | Sau |
+|---|---|---|
+| Lợi nhuận 52 tuần (Tổng quan) | `31.79%+31.79%` | `+31.79%` (màu xanh dương) |
+| Tổng lợi nhuận (Dữ liệu thị trường) | `31.78%` | `+31.78%` (màu xanh dương) |
+| Số phiên tăng | `132` + `+100.00%` | `132` (màu xanh dương) |
+| Số phiên giảm | `119` + `-100.00%` | `119` (màu đỏ) |
+
+### 10.11.5. Chi tiết: các thành phần mới
+
+| Thành phần | Việc nó làm | Tại sao không làm bằng cách khác |
+|---|---|---|
+| `QuoteHeader.tsx` | Gom danh tính + giá 40px + delta + 5 số phiên + thanh khoảng trong phiên | Không có viền bao: nó là **danh tính của trang**, không phải widget nằm trong trang. Một đường hairline dưới cả dải là đủ tách. |
+| `KeyStatistics.tsx` | Bảng thống kê 2 cột, số căn phải | Số liệu thống kê được đọc bằng cách **so sánh** (khối lượng so với bình quân, RSI so với 70). Card làm lệch các số không còn nằm chồng nhau nữa. |
+| `Sparkline.tsx` | Đường giá 30 phiên, SVG thuần ~30 dòng | Dùng Recharts cho hình 72×24px sẽ kéo thêm ~400KB runtime vào bundle chính, để đổi lấy một hình không có trục, không tooltip, không animation. |
+| `DataTable.tsx` | Bảng dữ liệu có cột xếp được, header dính | Bảng lịch sử phiên là bảng **đọc theo cột**; số phải căn phải để dấu thập phân thẳng hàng. |
+| `ChartTimeControls.tsx` | Tab gạch chân cho khoảng thời gian + khoảng nến | Ô vuông cho mỗi lựa chọn tạo nhiễu; gạch chân đủ để biết đang chọn gì. |
+| `ChartViewToggle.tsx` | Chuyển giữa biểu đồ đường và biểu đồ nến | Dùng lại đúng module Recharts đã có, **không** thêm thư viện. |
+
+### 10.11.6. Chi tiết: không đụng gì tới backend
+
+Toàn bộ lần thiết kế lại này **chỉ nằm trong `frontend/src/`**. Không có API
+mới, không có cột mới, không có thay đổi nào trong `backend/`. Mọi con số hiện
+trên màn hình vẫn đến từ đúng những endpoint cũ:
+
+| Số liệu hiển thị | Endpoint cũ, không đổi |
+|---|---|
+| Giá mới nhất, phiên trước, khối lượng, RSI | `GET /api/v1/dashboard/{symbol}` |
+| Cao nhất / thấp nhất trong phiên | `GET /api/v1/dashboard/{symbol}` (mảng `candles`) |
+| Thống kê 52 tuần, giá cao/thấp 52 tuần | `GET /api/v1/stocks/stats/{symbol}?days=365` |
+| Đường giá nhỏ 30 phiên | `GET /api/v1/stocks/compare?symbols=...&days=30` |
+| Lịch sử phiên trong bảng | `GET /api/v1/stocks/{symbol}/history` |
+
+Đo lại trực tiếp ngày **19/11/2026** trên backend đang chạy, các endpoint trên
+vẫn trả đúng dữ liệu thật, không đổi:
+
+```
+GET /api/v1/stocks/AAPL/latest
+→ {"symbol":"AAPL","close":352.45001220703125,"volume":34090200.0,
+   "source_layer":"gold","latest_session":"2026-11-18","data_status":"recent"}
+
+GET /api/v1/stocks/stats/AAPL?days=365
+→ {"sessions":252,"high":356.2699890136719,"low":246.6300048828125,
+   "total_return_pct":31.78657231139157,"up_days":132,"down_days":119,
+   "avg_volume":47712243.253968254}
+```
+
+> **Cách trả lời khi thầy hỏi "số liệu có còn truy vết được về sàn giao dịch
+> thật không?":**
+> *"Có. Lần thiết kế lại giao diện không thêm, không sửa, không bỏ một lệnh gọi
+> API nào. Tôi đã đo lại trực tiếp trên backend đang chạy: giá AAPL là
+> `352.45` với `source_layer: gold` và `data_status: recent`, thống kê 52 tuần
+> trả về 252 phiên với cao nhất `356.27` và thấp nhất `246.63` — đúng những
+> con số mà bảng thống kê trên màn hình hiển thị."*
+
+## 10.12. Chi tiết: đổi màu thương hiệu + giao diện sáng/tối (20/11/2026)
+
+### 10.12.1. Hiểu đơn giản
+
+Bản thiết kế ngày 19/11/2026 giải quyết chuyện **bố cục**. Bản ngày
+20/11/2026 giải quyết chuyện **màu sắc và chiều sâu**, dựa trên yêu cầu:
+làm theo kiểu các trang tài chính lớn, có hiệu ứng sinh động nhưng không
+rối mắt, và chạy nhanh mượt.
+
+Ba thay đổi lớn:
+
+1. **Màu thương hiệu chuyển từ xanh lá sang navy/indigo.**
+   Trước đó màu xanh lá vừa là màu nút bấm vừa là màu "giá tăng", nên hai
+   ý nghĩa bị trùng. Navy không trùng với gì cả, nên cặp màu hướng được giải
+   phóng đúng chuẩn ngành: **xanh lá = tăng, đỏ = giảm**.
+
+2. **Có cả giao diện sáng và giao diện tối**, chuyển bằng nút trên thanh
+   đầu. Không phải bật/tắt bằng JavaScript — mà bằng cách **đổi tên biến
+   màu**, nên toàn bộ trang đổi màu trong một lần tính lại duy nhất.
+
+3. **Thêm chiều sâu**: bóng đổ nhẹ theo bậc, mặt kính mờ ở thanh đầu và
+   thanh điều hướng, nền có một vệt sáng rất mờ.
+
+### 10.12.2. Thuật ngữ
+
+| Từ tiếng Việt dễ hiểu | Thuật ngữ | Nghĩa là gì | Dùng ở đâu |
+|---|---|---|---|
+| **Biến màu** | CSS custom property | Một tên gắn với một màu; đổi tên là đổi màu | `frontend/src/index.css` |
+| **Nền tối** | Dark theme | Bảng màu thứ hai cho nền tối | `[data-theme="dark"]` |
+| **Nhấp nháy sai màu khi tải trang** | FOUC (Flash of Unstyled Content) | Trang hiện nền sáng rồi mới chuyển nền tối | Script trong `frontend/index.html` |
+| **Mặt kính mờ** | Glassmorphism | Nền nửa trong suất + làm mờ phía sau | `.glass-bar` |
+| **Thang bóng** | Elevation scale | Bóng đổ chia nhiều bậc thay vì một kiểu duy nhất | `--shadow-xs` … `--shadow-popover` |
+| **Chuyển động chạy trên GPU** | Compositor-only animation | Hiệu ứng chỉ đổi `transform`/`opacity`, không tính lại layout | `index.css` |
+| **Tôn trọng người dùng nhạy cảm thị giác** | `prefers-reduced-motion` | Tắt hiệu ứng khi hệ điều hành yêu cầu | `index.css` |
+
+### 10.12.3. Chi tiết: bảng màu hai chế độ
+
+`frontend/src/index.css` khai báo mỗi vai trò màu **hai lần** — một lần cho
+nền sáng, một lần cho nền tối:
+
+```css
+:root {
+  --canvas:      222 24% 96%;   /* #F1F3F8 — nền trang          */
+  --surface:     222 33% 99.4%; /* #FCFDFF — card, panel        */
+  --ink:         223 42% 11%;   /* #121828 — chữ               */
+  --primary:     226 68% 42%;   /* #2B4BC4 — accent duy nhất   */
+  --up:          152 58% 34%;   /* #1F9D57 — số liệu TĂNG      */
+  --negative:     0 72% 48%;    /* #D92D20 — số liệu GIẢM      */
+}
+
+[data-theme="dark"] {
+  --canvas:      223 26% 7.5%;  /* #0B0E16                    */
+  --surface:     223 22% 11%;   /* #141824                    */
+  --ink:         220 30% 95%;   /* #F0F3FA                    */
+  --primary:     222 92% 68%;   /* #7FA8FF — accent sáng hơn  */
+  --up:          150 62% 52%;   /* #3DD68C                    */
+  --negative:     0 84% 63%;    /* #FF6B5E                    */
+}
+```
+
+**Vì sao bảng tối không phải là bảng sáng bị đảo ngược:**
+
+- **Accent sáng hơn ở nền tối.** Một navy đậm trên nền gần đen là **không đọc
+  được**. Cùng một vai trò phải đổi độ sáng theo nền, nên `primary` ở nền tối
+  là `#7FA8FF` chứ không phải `#2B4BC4`.
+- **Nền tối là xanh-đen nhạt, không phải đen tuyệt đối.** Đen tuyệt đối
+  (`#000`) với trắng tuyệt đối (`#fff`) là cặp màu không có quyết định nào.
+- **Xanh lá được nâng sáng.** Một xanh lá trung bình **biến mất** trên nền
+  gần đen, nên `up` ở nền tối phải sáng và bão hoà hơn.
+
+**Vì sao Tailwind không dùng `dark:`:** nếu dùng class `dark:` của Tailwind thì
+mỗi component phải tự biết mình đang ở theme nào, và phải viết lại màu ở
+mọi nơi. Với biến màu, một lần đổi `data-theme` trên `<html>` là **toàn bộ
+ứng dụng** đổi theo, kể cả các biểu đồ Recharts (vì chúng đọc cùng bộ biến).
+
+**Đo ngày 20/11/2026** (Chrome DevTools, trang Tổng quan, theme sáng):
+
+| Điểm đo | Giá trị đọc được |
+|---|---|
+| `--primary` | `rgb(34, 68, 180)` — navy |
+| `--up` | `rgb(36, 137, 90)` — xanh lá |
+| `--negative` | `rgb(211, 34, 34)` — đỏ |
+| `data-theme` trên `<html>` khi bấm "Giao diện tối" | `dark` |
+| Nền trang ở nền tối | `rgb(14, 17, 24)` |
+
+### 10.12.4. Chi tiết: chống "nháy sai màu" khi tải trang
+
+**Triệu chứng:** bấm "Giao diện tối", reload trang — trong khoảng 1/4 giây đầu
+trang hiện nền **sáng**, rồi mới nhảy sang nền tối.
+
+**Vì sao xảy ra:** React chưa kịp chạy tới lúc `useTheme` set
+`data-theme`, mà trình duyệt đã kịp vẽ frame đầu tiên bằng palette mặc
+định (nền sáng).
+
+**Fix:** một **script đồng bộ trong `<head>`** của `frontend/index.html`, chạy
+**trước** frame đầu tiên:
+
+```html
+<script>
+  (function () {
+    try {
+      var stored = localStorage.getItem("stock-lakehouse-theme");
+      var dark = stored === "dark" ||
+        (!stored && window.matchMedia("(prefers-color-scheme: dark)").matches);
+      document.documentElement.setAttribute("data-theme", dark ? "dark" : "light");
+    } catch (e) {
+      document.documentElement.setAttribute("data-theme", "light");
+    }
+  })();
+</script>
+```
+
+**Bằng chứng (Đo ngày 20/11/2026):** sau khi bật nền tối và reload, giá trị
+`data-theme` trên `<html>` đã là `dark` **ngay khi script chạy** — nền trang đo
+được là `rgb(14, 17, 24)`, không còn frame sáng nào.
+
+### 10.12.5. Chi tiết: chiều sâu mà không rối mắt
+
+Bản rule thiết kế gốc **cấm tuyệt đối** `box-shadow` (coi đó là dấu hiệu
+"AI vibe"). Ngày 20/11/2026 luật này được **nới có chủ đích**, vì một màn
+hình dữ liệu mà mọi vùng đều là ô phẳng thì rất khó đọc.
+
+Cách nới mà không rơi vào "rối":
+
+| Cấp | Biến | Dùng cho |
+|---|---|---|
+| 1 | `--shadow-xs` | Nút `primary` (một chút sáng) |
+| 2 | `--shadow-sm` | Panel, hàng bảng, thẻ bấm được |
+| 3 | `--shadow-md` | Vùng nổi lên một bậc |
+| 4 | `--shadow-lg` | Tooltip, dropdown |
+| 5 | `--shadow-popover` | Lớp phủ cao nhất |
+
+Ba điều vẫn bị cấm sau khi nới luật:
+
+- `hover:shadow-md`, `hover:-translate-y-0.5`, `scale-[0.98]` — bóng là để phân
+  cấp bề mặt, **không** phải để cho thẻ "nhảy" khi rê chuột.
+- Gradient overlay lên biểu đồ, gradient strip trên card.
+- Bóng **đen cứng**. Mọi bóng đều lấy từ biến, nên bảng tối tự động dùng
+  bóng nông và mềm hơn (trên nền gần đen, một bóng lớn là vô hình).
+
+Ngoài ra `.glass-bar` dùng `backdrop-filter: blur(12px)` cho thanh đầu và
+thanh điều hướng — đây là **một** chỗ duy nhất trong app dùng blur, vì nó là
+vùng cố định nhỏ và trình duyệt cache kết quả blur giữa các lần cuộn.
+
+### 10.12.6. Chi tiết: hiệu ứng sinh động nhưng không tốn hiệu năng
+
+Nguyên tắc: **mọi hiệu ứng phải chạy trên GPU và phải tôn trọng cài đặt của
+người dùng.**
+
+| Hiệu ứng | Cách làm | Tại sao không tốn |
+|---|---|---|
+| Dải giá cuộn ngang | CSS keyframe, track nhân đôi, `translate3d(-50%)` | Không có JS ticker đo layout mỗi frame |
+| Đường giá nhỏ tự vẽ | `pathLength="1"` + `stroke-dashoffset` | Không cần đo độ dài đường bằng JS |
+| Nhấp nháy khi giá đổi | `background-color` trong 640ms | Chỉ đổi màu nền, không tính lại layout |
+| Gạch chân tab nở ra | `width` 0 → 100% trong 160ms | Thuộc tính hình học rẻ |
+| Làn sóng khi đang tải | Gradient nền dịch vị trí | Chỉ đổi `background-position` |
+| Fade khi đổi trang | `opacity` + `translate3d` | `transform`/`opacity` không ép tính lại layout |
+
+Ba thời lượng dùng chung cho cả app: **140ms** (hover), **220ms** (đổi trạng
+thái), **320ms** (hiệu ứng hiện ra). Một app dữ liệu mà chờ lâu hơn 320ms cho
+trang trí thì người đọc đang chờ **con số**, không phải chờ trang trí.
+
+Khối bắt buộc trong `frontend/src/index.css`:
+
+```css
+@media (prefers-reduced-motion: reduce) {
+  .tape-track { animation: none; }
+  .dot-live,
+  .dot-warn  { animation: none; }
+  .flash-up,
+  .flash-down,
+  .page-enter { animation: none; }
+  .navtab::after { transition: none; }
+  .theme-fade { animation: none; }
+}
+```
+
+### 10.12.7. Chi tiết: không đụng gì tới backend
+
+Giống mục 10.11.6: toàn bộ thay đổi ngày 20/11/2026 nằm trong `frontend/src/`
+và `frontend/index.html`. **Không** có API mới, **không** có thay đổi hợp đồng
+JSON, **không** có thay đổi cấu hình backend.
+
+Đo lại ngày **20/11/2026** trên backend đang chạy với MinIO và MySQL thật:
+
+```
+GET /api/v1/stocks/AAPL/latest
+→ {"symbol":"AAPL","close":352.45001220703125,"volume":34090200.0,
+   "source_layer":"gold","latest_session":"2026-11-18","data_status":"recent"}
+
+GET /api/v1/dashboard/AAPL
+→ HTTP 200, 0.42 giây
+```
+
+**Đo ngày 20/11/2026** trên frontend (`npm run build`):
+
+| Chỉ số | Giá trị |
+|---|---|
+| CSS gốc (chưa nén) | 32.20 kB (nén 7.29 kB) |
+| Chunk `index` | 216.28 kB (nén 68.77 kB) |
+| Chunk `charts` (Recharts) | 406.86 kB (nén 109.81 kB) |
+| Chunk `react` | 156.48 kB (nén 51.23 kB) |
+| Tổng số chunk | 22 — mỗi trang là một chunk riêng, tải theo yêu cầu |
+
+> **Cách trả lời khi thầy hỏi "đổi giao diện có làm web chậm đi không?":**
+> *"Không. Toàn bộ phần nặng vẫn được tách chunk như trước — Recharts nằm ở
+> chunk riêng 407 kB và chỉ tải khi mở trang có biểu đồ. Phần CSS của toàn bộ
+> app sau khi nén chỉ 7,3 kB. Hiệu ứng chuyển động dùng `transform`/`opacity`
+> nên trình duyệt chạy trên GPU, và tôi đã thêm khối `prefers-reduced-motion`
+> để tắt hết khi hệ điều hành yêu cầu."*
+
+---
 # PHẦN 11 — MỐI LIÊN KẾT FRONTEND ↔ BACKEND
 
 ## 11.1. Hiểu đơn giản
@@ -4463,7 +4947,7 @@ Mọi thứ frontend hiển thị đều đi qua **3 bước giống nhau**:
 | `/api/v1/health` | GET | SystemStatus | Sống hay chết |
 | `/api/v1/system/status` | GET | SystemStatus, Dashboard | Trạng thái 7 dịch vụ + layer counts |
 | `/api/v1/stocks/symbols` | GET | Header | Danh sách 1.037 mã |
-| `/api/v1/stocks/tape` | GET | NavBar | Băng giá 12 mã, 1 request |
+| `/api/v1/stocks/tape` | GET | MarketTape (header), LakehouseWatchlist | Băng giá 12 mã, 1 request |
 | `/api/v1/stocks/compare` | GET | MarketData | So sánh nhiều mã trên cùng thang giá (rebase 100) |
 | `/api/v1/stocks/stats/{symbol}` | GET | MarketData | Hồ sơ thống kê: biến động, drawdown, phiên tăng/giảm |
 | `/api/v1/stocks/{symbol}/latest` | GET | Dashboard | Giá mới nhất |
@@ -4816,7 +5300,8 @@ kiến thức dài hạn của hệ thống đến từ batch cron. Vậy nên v
 
 Bảng "Danh sách theo dõi" ở cột phải của Dashboard trước đây đọc
 `/api/v1/stream/latest` — tức là bộ nhớ đệm rỗng. Nó giờ đọc
-`GET /api/v1/stocks/tape`: **cùng endpoint** với dải giá ở thanh điều hướng,
+`GET /api/v1/stocks/tape`: **cùng endpoint** với dải giá ở thanh header, và
+**cùng danh sách mã** (`WATCHLIST_SYMBOLS` trong `frontend/src/utils/constants.ts`),
 đọc từ Gold → Silver → Bronze. Mọi giá hiển thị đều là giá đóng cửa đã lưu
 trong lakehouse, kèm `source_layer` để truy vết.
 

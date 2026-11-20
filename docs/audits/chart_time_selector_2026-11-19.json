@@ -1,0 +1,318 @@
+{
+  "symbol": "AAPL",
+  "source_sessions": 2544,
+  "first": "2016-10-06 13:30:00+00:00",
+  "last": "2026-11-18 14:30:00+00:00",
+  "cases": [
+    {
+      "route": "/market",
+      "range": "1 tháng",
+      "aggregation": "Ngày",
+      "sessions": 23,
+      "candles": 23,
+      "summary": "2026-10-19 → 2026-11-18 · 23 phiên · 23 điểm trên biểu đồ",
+      "passed": true
+    },
+    {
+      "route": "/market",
+      "range": "1 tháng",
+      "aggregation": "Tuần",
+      "sessions": 23,
+      "candles": 5,
+      "summary": "2026-10-19 → 2026-11-18 · 23 phiên · 5 điểm trên biểu đồ",
+      "passed": true
+    },
+    {
+      "route": "/market",
+      "range": "1 tháng",
+      "aggregation": "Tháng",
+      "sessions": 23,
+      "candles": 2,
+      "summary": "2026-10-19 → 2026-11-18 · 23 phiên · 2 điểm trên biểu đồ",
+      "passed": true
+    },
+    {
+      "route": "/market",
+      "range": "3 tháng",
+      "aggregation": "Ngày",
+      "sessions": 65,
+      "candles": 65,
+      "summary": "2026-08-19 → 2026-11-18 · 65 phiên · 65 điểm trên biểu đồ",
+      "passed": true
+    },
+    {
+      "route": "/market",
+      "range": "3 tháng",
+      "aggregation": "Tuần",
+      "sessions": 65,
+      "candles": 14,
+      "summary": "2026-08-19 → 2026-11-18 · 65 phiên · 14 điểm trên biểu đồ",
+      "passed": true
+    },
+    {
+      "route": "/market",
+      "range": "3 tháng",
+      "aggregation": "Tháng",
+      "sessions": 65,
+      "candles": 4,
+      "summary": "2026-08-19 → 2026-11-18 · 65 phiên · 4 điểm trên biểu đồ",
+      "passed": true
+    },
+    {
+      "route": "/market",
+      "range": "6 tháng",
+      "aggregation": "Ngày",
+      "sessions": 127,
+      "candles": 127,
+      "summary": "2026-05-20 → 2026-11-18 · 127 phiên · 127 điểm trên biểu đồ",
+      "passed": true
+    },
+    {
+      "route": "/market",
+      "range": "6 tháng",
+      "aggregation": "Tuần",
+      "sessions": 127,
+      "candles": 27,
+      "summary": "2026-05-20 → 2026-11-18 · 127 phiên · 27 điểm trên biểu đồ",
+      "passed": true
+    },
+    {
+      "route": "/market",
+      "range": "6 tháng",
+      "aggregation": "Tháng",
+      "sessions": 127,
+      "candles": 7,
+      "summary": "2026-05-20 → 2026-11-18 · 127 phiên · 7 điểm trên biểu đồ",
+      "passed": true
+    },
+    {
+      "route": "/market",
+      "range": "1 năm",
+      "aggregation": "Ngày",
+      "sessions": 253,
+      "candles": 253,
+      "summary": "2025-11-17 → 2026-11-18 · 253 phiên · 253 điểm trên biểu đồ",
+      "passed": true
+    },
+    {
+      "route": "/market",
+      "range": "1 năm",
+      "aggregation": "Tuần",
+      "sessions": 253,
+      "candles": 53,
+      "summary": "2025-11-17 → 2026-11-18 · 253 phiên · 53 điểm trên biểu đồ",
+      "passed": true
+    },
+    {
+      "route": "/market",
+      "range": "1 năm",
+      "aggregation": "Tháng",
+      "sessions": 253,
+      "candles": 13,
+      "summary": "2025-11-17 → 2026-11-18 · 253 phiên · 13 điểm trên biểu đồ",
+      "passed": true
+    },
+    {
+      "route": "/market",
+      "range": "Tất cả",
+      "aggregation": "Ngày",
+      "sessions": 2544,
+      "candles": 2544,
+      "summary": "2016-10-06 → 2026-11-18 · 2,544 phiên · 2,544 điểm trên biểu đồ",
+      "passed": true
+    },
+    {
+      "route": "/market",
+      "range": "Tất cả",
+      "aggregation": "Tuần",
+      "sessions": 2544,
+      "candles": 529,
+      "summary": "2016-10-06 → 2026-11-18 · 2,544 phiên · 529 điểm trên biểu đồ",
+      "passed": true
+    },
+    {
+      "route": "/market",
+      "range": "Tất cả",
+      "aggregation": "Tháng",
+      "sessions": 2544,
+      "candles": 122,
+      "summary": "2016-10-06 → 2026-11-18 · 2,544 phiên · 122 điểm trên biểu đồ",
+      "passed": true
+    },
+    {
+      "route": "/",
+      "range": "1 tháng",
+      "aggregation": "Ngày",
+      "sessions": 23,
+      "candles": 23,
+      "summary": "2026-10-19 → 2026-11-18 · 23 phiên · 23 điểm trên biểu đồ",
+      "passed": true
+    },
+    {
+      "route": "/",
+      "range": "1 tháng",
+      "aggregation": "Tuần",
+      "sessions": 23,
+      "candles": 5,
+      "summary": "2026-10-19 → 2026-11-18 · 23 phiên · 5 điểm trên biểu đồ",
+      "passed": true
+    },
+    {
+      "route": "/",
+      "range": "1 tháng",
+      "aggregation": "Tháng",
+      "sessions": 23,
+      "candles": 2,
+      "summary": "2026-10-19 → 2026-11-18 · 23 phiên · 2 điểm trên biểu đồ",
+      "passed": true
+    },
+    {
+      "route": "/",
+      "range": "3 tháng",
+      "aggregation": "Ngày",
+      "sessions": 65,
+      "candles": 65,
+      "summary": "2026-08-19 → 2026-11-18 · 65 phiên · 65 điểm trên biểu đồ",
+      "passed": true
+    },
+    {
+      "route": "/",
+      "range": "3 tháng",
+      "aggregation": "Tuần",
+      "sessions": 65,
+      "candles": 14,
+      "summary": "2026-08-19 → 2026-11-18 · 65 phiên · 14 điểm trên biểu đồ",
+      "passed": true
+    },
+    {
+      "route": "/",
+      "range": "3 tháng",
+      "aggregation": "Tháng",
+      "sessions": 65,
+      "candles": 4,
+      "summary": "2026-08-19 → 2026-11-18 · 65 phiên · 4 điểm trên biểu đồ",
+      "passed": true
+    },
+    {
+      "route": "/",
+      "range": "6 tháng",
+      "aggregation": "Ngày",
+      "sessions": 127,
+      "candles": 127,
+      "summary": "2026-05-20 → 2026-11-18 · 127 phiên · 127 điểm trên biểu đồ",
+      "passed": true
+    },
+    {
+      "route": "/",
+      "range": "6 tháng",
+      "aggregation": "Tuần",
+      "sessions": 127,
+      "candles": 27,
+      "summary": "2026-05-20 → 2026-11-18 · 127 phiên · 27 điểm trên biểu đồ",
+      "passed": true
+    },
+    {
+      "route": "/",
+      "range": "6 tháng",
+      "aggregation": "Tháng",
+      "sessions": 127,
+      "candles": 7,
+      "summary": "2026-05-20 → 2026-11-18 · 127 phiên · 7 điểm trên biểu đồ",
+      "passed": true
+    },
+    {
+      "route": "/",
+      "range": "1 năm",
+      "aggregation": "Ngày",
+      "sessions": 253,
+      "candles": 253,
+      "summary": "2025-11-17 → 2026-11-18 · 253 phiên · 253 điểm trên biểu đồ",
+      "passed": true
+    },
+    {
+      "route": "/",
+      "range": "1 năm",
+      "aggregation": "Tuần",
+      "sessions": 253,
+      "candles": 53,
+      "summary": "2025-11-17 → 2026-11-18 · 253 phiên · 53 điểm trên biểu đồ",
+      "passed": true
+    },
+    {
+      "route": "/",
+      "range": "1 năm",
+      "aggregation": "Tháng",
+      "sessions": 253,
+      "candles": 13,
+      "summary": "2025-11-17 → 2026-11-18 · 253 phiên · 13 điểm trên biểu đồ",
+      "passed": true
+    },
+    {
+      "route": "/",
+      "range": "Tất cả",
+      "aggregation": "Ngày",
+      "sessions": 2544,
+      "candles": 2544,
+      "summary": "2016-10-06 → 2026-11-18 · 2,544 phiên · 2,544 điểm trên biểu đồ",
+      "passed": true
+    },
+    {
+      "route": "/",
+      "range": "Tất cả",
+      "aggregation": "Tuần",
+      "sessions": 2544,
+      "candles": 529,
+      "summary": "2016-10-06 → 2026-11-18 · 2,544 phiên · 529 điểm trên biểu đồ",
+      "passed": true
+    },
+    {
+      "route": "/",
+      "range": "Tất cả",
+      "aggregation": "Tháng",
+      "sessions": 2544,
+      "candles": 122,
+      "summary": "2016-10-06 → 2026-11-18 · 2,544 phiên · 122 điểm trên biểu đồ",
+      "passed": true
+    }
+  ],
+  "screenshots": [
+    "docs\\audits\\chart_time_selector_market_2026-11-19.png",
+    "docs\\audits\\chart_time_selector_market_mobile_2026-11-19.png",
+    "docs\\audits\\chart_time_selector_dashboard_2026-11-19.png",
+    "docs\\audits\\chart_time_selector_dashboard_mobile_2026-11-19.png"
+  ],
+  "mobile": [
+    {
+      "route": "/market",
+      "width": 390,
+      "selector_bounds": [
+        {
+          "left": 16,
+          "right": 197.875
+        },
+        {
+          "left": 16,
+          "right": 351.796875
+        }
+      ],
+      "passed": true
+    },
+    {
+      "route": "/",
+      "width": 390,
+      "selector_bounds": [
+        {
+          "left": 16,
+          "right": 197.875
+        },
+        {
+          "left": 16,
+          "right": 351.796875
+        }
+      ],
+      "passed": true
+    }
+  ],
+  "runtime_exceptions": [],
+  "passed": true
+}

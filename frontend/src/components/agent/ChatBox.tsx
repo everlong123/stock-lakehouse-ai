@@ -128,11 +128,9 @@ export function ChatBox() {
   /**
    * Clear the visible transcript.
    *
-   * WHY THIS DOES NOT DELETE THE SERVER ROWS: the user asked for BOTH a
-   * "new chat" action and a "delete chat" action, and they are different.
    * "Chat mới" starts a fresh conversation; the old one stays in the
-   * history list and can be reopened. Deleting is a separate, explicit
-   * action on a specific row in the sidebar.
+   * history list and can be reopened. Deleting a saved conversation is a
+   * separate action on its row in the sidebar.
    */
   const newChat = () => {
     setTurns([]);
@@ -173,11 +171,11 @@ export function ChatBox() {
       */}
       <aside
         className={cn(
-          "flex w-full shrink-0 flex-col border-b border-hairline bg-surface-2 md:w-64 md:border-b-0 md:border-r",
+          "flex max-h-48 min-h-0 w-full shrink-0 flex-col border-b border-hairline bg-surface-2 md:max-h-none md:w-64 md:border-b-0 md:border-r",
           historyOpen ? "flex" : "hidden md:flex",
         )}
       >
-        <div className="border-b border-hairline p-3">
+        <div className="hidden border-b border-hairline p-3 md:block">
           <Button
             variant="primary"
             size="sm"
@@ -242,8 +240,8 @@ export function ChatBox() {
       {/*
         ── The conversation ───────────────────────────────────────────
       */}
-      <div className="flex min-w-0 flex-1 flex-col">
-        <div className="flex items-center justify-between gap-4 border-b border-hairline px-4 py-3">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-hairline px-4 py-3">
           <div className="flex items-center gap-3">
             <div className="flex h-8 w-8 items-center justify-center rounded bg-primary text-on-primary">
               <Bot size={15} />
@@ -258,12 +256,10 @@ export function ChatBox() {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            {turns.length > 0 && (
-              <Button variant="text" size="sm" onClick={newChat}>
-                <Trash2 size={13} />
-                {t("agent.clear", locale)}
-              </Button>
-            )}
+            <Button variant="text" size="sm" onClick={newChat} className="md:hidden">
+              <MessageSquarePlus size={13} />
+              {t("agent.new_chat", locale)}
+            </Button>
             {/* On narrow screens the history rail is hidden, so it needs a
                 way to be opened. */}
             <Button
@@ -278,7 +274,7 @@ export function ChatBox() {
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto bg-canvas p-6">
+        <div className="min-h-0 flex-1 overflow-y-auto bg-canvas p-6">
           {turns.length === 0 ? (
             <div className="flex h-full flex-col items-start justify-center">
               <h2 className="font-display text-heading text-ink">{t("agent.welcome_title", locale)}</h2>

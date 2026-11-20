@@ -1,0 +1,245 @@
+{
+  "deck": "12-fundamentals-macro",
+  "notes": [
+    {
+      "term": "Dữ liệu cơ bản (fundamental) được lấy từ những nguồn nào?",
+      "answer": "`EnhancedFundamentalProvider` có hai nguồn, thử theo thứ tự:\n\n**1. Yahoo Finance** (`query1.finance.yahoo.com/v10/finance/quoteSummary/{symbol}`) với các module `summaryDetail`, `defaultKeyStatistics`, `financialData`, `assetProfile`. Nguồn này hoạt động tốt cho cổ Mỹ.\n\n**2. VietStock** (`finance.vietstock.vn/{symbol}/financial-ratio`) - fallback cho cổ Việt Nam, dùng BeautifulSoup để quét bảng.\n\nCả hai nguồn đều trả về dataclass `FinancialMetrics` với **cùng một bộ trường**.\n\nNếu cả hai thất bại, provider trả về một `FinancialMetrics` với **toàn bộ trường bằng `None`** - chứ không trả về số 0 và không ném lỗi.\n\n> Điểm quan trọng: `None` (chưa biết) khác `0` (biết và bằng không). Việc một chỉ số không tìm thấy được phải hiển thị là 'không có dữ liệu', không phải 'P/E = 0'.",
+      "code": "backend/app/data_sources/enhanced_fundamental_provider.py",
+      "tags": "fundamental provider yahoo vietstock metrics"
+    },
+    {
+      "term": "Bộ chỉ số tài chính nào được thu thập và chia theo nhóm nào?",
+      "answer": "Dataclass `FinancialMetrics` gồm 24 trường, chia 5 nhóm:\n\n**Định giá** - `market_cap`, `pe_ratio`, `pb_ratio`, `ps_ratio`, `peg_ratio`, `ev_ebitda`, `dividend_yield`.\n\n**Hiệu quả kinh doanh** - `roe`, `roa`, `roic`, `gross_margin`, `operating_margin`, `net_margin`.\n\n**Tăng trưởng** - `revenue_growth_yoy`, `profit_growth_yoy`, `eps_growth_yoy`.\n\n**Sức khoẻ tài chính** - `debt_equity`, `current_ratio`, `quick_ratio`.\n\n**Trên mỗi cổ phiếu** - `eps`, `bvps`, `dps`.\n\nNgoài ra: `symbol` và `timestamp` để truy vết nguồn.\n\n> Cùng cấu trúc với dataclass `OrderBook` và `Trade` - dùng dataclass thay vì dict để trường rõ ràng và có kiểu.",
+      "code": "backend/app/data_sources/enhanced_fundamental_provider.py:FinancialMetrics",
+      "tags": "fundamental metrics valuation profitability growth health"
+    },
+    {
+      "term": "Ba báo cáo tài chính lịch sử được lấy như thế nào?",
+      "answer": "Cả ba đều lấy từ **cùng một endpoint** Yahoo chart API:\n\n`query1.finance.yahoo.com/v8/finance/chart/{symbol}` với `interval=1mo`, `range={years}y`.\n\nTừ response, lấy các khối khác nhau:\n- `incomeStatementHistory.incomeStatementHistory` -> doanh thu, lợi nhuận gộp, EBIT, lợi nhuận ròng, EPS.\n- `balanceSheetHistory.balanceSheetStatements` -> tổng tài sản, nợ phải trả, vốn chủ sở hữu, tiền mặt, nợ ngắn hạn, nợ dài hạn.\n- `cashflowStatementHistory.cashflowStatements` -> dòng tiền.\n\nMỗi bản ghi có `symbol`, `period`, `timestamp` (chuyển sang UTC).\n\nTham số `years` được giới hạn trong Pydantic: `Field(default=4, ge=1, le=10)`.\n\n> Giới hạn trên là **hợp đồng tool**, không chỉ là kiểm tra input: nó ngăn AI agent yêu cầu 50 năm dữ liệu và làm treo request.",
+      "code": "backend/app/agent/tools/fundamental_tools.py",
+      "tags": "fundamental income statement balance sheet cash flow yahoo"
+    },
+    {
+      "term": "Vì sao mọi bảng dữ liệu fundamental đều có cột `source` và `ingestion_time`?",
+      "answer": "Vì đó là **quy tắc bất di bất dịch** của dự án: mọi dòng dữ liệu phải truy vết được về một nguồn thật và một thời điểm thật.\n\nTrong provider:\n\n```python\nif not frame.empty:\n    frame[\"source\"] = self.source_name\n    frame[\"ingestion_time\"] = pd.Timestamp.now(tz=\"UTC\")\n```\n\n`source_name` là `\"fundamental_enhanced\"` - nhưng đây là tên **lớp provider**, không phải tên nguồn cuối. Khi lưu vào lakehouse, lớp lưu sẽ ghi nguồn cụ thể (Yahoo hay VietStock) vào cột `source`.\n\n`ingestion_time` cho phép biết dữ liệu được lấy lúc nào - cần thiết khi phát hiện dữ liệu bị sửa hoặc provider đổi hành vi.\n\n> Cùng nguyên tắc với Bronze: không có ngoại lệ nào cho dữ liệu không có nguồn.",
+      "code": "backend/app/data_sources/enhanced_fundamental_provider.py:get_income_statement",
+      "tags": "fundamental lineage source ingestion_time traceability"
+    },
+    {
+      "term": "Cấu trúc dữ liệu sổ lệnh (order book) gồm những gì?",
+      "answer": "Dataclass `OrderBook`:\n\n- `symbol` - mã.\n- `timestamp` - thời điểm chụp (UTC).\n- `bids` - danh sách `OrderBookEntry`, **giá giảm dần** (mức mua tốt nhất đứng đầu).\n- `asks` - danh sách `OrderBookEntry`, **giá tăng dần** (mức bán tốt nhất đứng đầu).\n- `best_bid` - giá mua cao nhất.\n- `best_ask` - giá bán thấp nhất.\n- `spread` - `best_ask - best_bid`.\n- `mid_price` - `(best_bid + best_ask) / 2`.\n\nMỗi `OrderBookEntry` có: `price`, `volume` (khối lượng tại mức giá), `orders` (số lệnh tại mức giá).\n\nDataclass `Trade` cho giao dịch khớp: `price`, `volume`, `side` (`buy`/`sell`), `trade_type` (`regular`/`odd_lot`/`block`).\n\n> `orders` tách riêng `volume` là chi tiết quan trọng: 100 lệnh × 10 cổ = 1.000 cổ cho biểu hiện cung cầu khác hẳn 1 lệnh × 1.000 cổ.",
+      "code": "backend/app/data_sources/orderbook_provider.py:OrderBook",
+      "tags": "orderbook bids asks spread mid price microstructure"
+    },
+    {
+      "term": "Vì sao cần hai nguồn cho order book và chúng khác nhau thế nào?",
+      "answer": "Provider thử hai nguồn theo thứ tự:\n\n**1. Cafef** - `s.cafef.vn/Ajax/Page/OrderBook/{symbol}.json`. Response có key `Buy` và `Sell`, mỗi entry dùng key `Price`, `Volume`, `Orders` (viết hoa).\n\n**2. SSI** - `www.ssi.com.vn/ajax/getorderbook/{symbol}`. Response có key `bids` và `asks`, mỗi entry dùng key `price`, `vol`, `orders` (chữ thường).\n\nKhác biệt nằm ở **tên key**, nên hai hàm parse phải viết riêng - nhưng cùng trả về cùng một dataclass `OrderBook`.\n\nNếu nguồn đầu lỗi, provider trả `None` và thử nguồn sau. Nếu cả hai lỗi, trả `None`.\n\n> Đây là cùng mẫu **failover** như chuỗi provider của bộ dữ liệu OHLCV: nhiều nguồn, một kiểu dữ liệu, và khi tất cả hỏng thì trả trạng thái rỗng chứ không bịa.",
+      "code": "backend/app/data_sources/orderbook_provider.py:get_order_book",
+      "tags": "orderbook cafef ssi failover provider"
+    },
+    {
+      "term": "Dữ liệu macro được lấy từ những nguồn nào?",
+      "answer": "`MacroDataProvider` gồm ba nhóm:\n\n**Tỷ giá** - `portal.vietcombank.com.vn` (bảng tỷ giá có `buy_rate`, `sell_rate`, `mid_rate`), fallback `s.cafef.vn/Tien-Te.chn` để lấy nhanh tỷ giá USD.\n\n**Vàng** - `sjc.com.vn/giavang` (giá vàng SJC trong nước).\n\n**Dầu** - `api.eia.gov` (WTI/Brent, cần API key).\n\nLưu ý về logic Vietcombank: bảng HTML được parse bằng BeautifulSoup, **bỏ qua hàng tiêu đề** (`find_all(\"tr\")[1:]`), và lấy ô đầu làm mã tiền, ô 2 là giá mua, ô 3 là giá bán.\n\nNếu CafeF thành công sau khi Vietcombank đã tạo record, nó **ghi đè** các giá trị của record đầu tiên - đó là cơ chế ưu tiên nguồn nhẹ hơn.\n\n> Mỗi bảng kết quả đều mang `source = \"macro\"` và `ingestion_time`.",
+      "code": "backend/app/data_sources/macro_provider.py",
+      "tags": "macro provider vietcombank gold sjc oil eia exchange rate"
+    },
+    {
+      "term": "Vì sao `add_macro_features()` bỏ trống cột khi không có dữ liệu macro?",
+      "answer": "Vì nguyên tắc **không có giá trị macro bịa**.\n\nCode có comment tường minh:\n\n> No fabricated macro values. If a macro series was not supplied we leave the column out entirely so downstream models never see invented prices.\n\nCụ thể:\n- Nếu không có `macro_data`, hàm trả về frame **không thêm cột nào**.\n- Nếu có `exchange_rate` nhưng không có `gold`, không có cột `gold_usd_oz`.\n- `macro_normalized` chỉ được tính khi `usd_vnd` thực sự tồn tại.\n\nVì sao quan trọng đến vậy: một cột đầy `NaN` hay giá trị 0 sẽ đi vào mô hình ML như một tín hiệu, và mô hình sẽ **học** từ nó. Giá trị bịa trong feature là nguồn gốc của dự báo bịa.\n\n> So sánh: nếu điền 0 cho cột vàng, mô hình sẽ học 'vàng = 0 nghĩa là thị trường mạnh'. Đó là học từ dữ liệu giả.",
+      "code": "backend/app/features/macro_features.py:add_macro_features",
+      "tags": "macro features no fabricated values model leakage"
+    },
+    {
+      "term": "Cột `macro_normalized` được tính như thế nào và vì sao nhân với 1000?",
+      "answer": "Công thức: `close / usd_vnd * 1000`.\n\nÝ nghĩa: giá cổ phiếu VND chia cho tỷ giá USD/VND cho ra giá quy đổi sang USD, rồi nhân 1000 để **đặt trong cùng thang đo** với cổ Mỹ (một cổ giá 100 USD ≈ 1000 điểm quy đổi).\n\nMục tiêu: cho phép so sánh một cổ Việt Nam với một cổ Mỹ trong cùng một mô hình mà không phải chuẩn hoá thêm.\n\nLưu ý về code: có **hai** biểu thức khác nhau trong file.\n- Trong nhánh merge: `fx_adjusted_close = close / usd_vnd * 10000` (hệ số 10.000).\n- Sau đó: `macro_normalized = close / usd_vnd * 1000` (hệ số 1.000).\n\nHai cột khác nhau (`fx_adjusted_close` và `macro_normalized`) với hệ số khác nhau.\n\n> Cần lưu ý: dự án có quy tắc 'không tự ý làm đẹp số liệu'. Hai hệ số này không được giải thích trong comment, và sự lệch 10 lần giữa hai cột là điểm cần kiểm chứng khi dùng.",
+      "code": "backend/app/features/macro_features.py:add_macro_features",
+      "tags": "macro normalization fx adjusted close scale factor"
+    },
+    {
+      "term": "Các đặc trưng trạng thái thị trường (market regime) gồm những loại nào?",
+      "answer": "`add_market_regime_features()` tạo bốn trạng thái, mỗi trạng thái là **tổ hợp của xu hướng và biến động**:\n\n**Biến động** - `volatility_20d` = độ lệch chuẩn 20 phiên của lợi nhuận. `volatility_actual` = biến động có cao hơn ngưỡng không.\n\n**Xu hướng** - `sma_20`, `sma_50`. `trend_bull` = close > SMA20. `trend_strong` = close > SMA20 **và** SMA20 > SMA50.\n\n**Khối lượng** - `volume_ma20`, `volume_spike` = volume > 1,5 × trung bình 20 phiên.\n\nGhép lại thành `regime`:\n- `bull_low_vol` (1), `bull_high_vol` (2), `neutral` (0), `bear_low_vol` (-1), `bear_high_vol` (-2).\n\nVà `regime_numeric` là bản số của nó.\n\n> Điểm quan trọng: `trend_strong` là **AND của hai điều kiện**, nên nó là trạng thái mạnh hơn `trend_bull` đơn thuần - không phải hai trạng thái song song.",
+      "code": "backend/app/features/macro_features.py:add_market_regime_features",
+      "tags": "market regime volatility trend volume feature engineering"
+    },
+    {
+      "term": "Vì sao ngưỡng biến động được dùng `expanding().quantile(0.75).shift(1)`?",
+      "answer": "Vì nếu không `shift(1)`, ngưỡng sẽ **dùng dữ liệu của chính dòng đó** và cả những dòng tương lai.\n\nCụ thể, `expanding()` tính phân vị 75% của `volatility_20d` **từ đầu đến dòng hiện tại**. Nếu tính rồi so sánh luôn, dòng đó nằm trong mẫu dùng để đặt ngưỡng - tức là **look-ahead leakage**.\n\n`shift(1)` đảm bảo ngưỡng của dòng `t` chỉ dùng dữ liệu đến `t-1`.\n\nĐây là cùng nguyên tắc với toàn bộ dự án: **mọi cửa sổ và mọi ngưỡng phải nhìn về quá khứ**.\n\nĐối chiếu:\n- `rolling(20)` - cửa sổ cố định 20 dòng.\n- `expanding()` - cửa sổ **mở rộng** từ đầu.\n- `shift(1)` - loại bỏ dòng hiện tại.\n\n> Đây chính là lý do feature engineering phải được kiểm tra bằng test rò rỉ (leakage test), không chỉ bằng mắt.",
+      "code": "backend/app/features/macro_features.py:add_market_regime_features",
+      "tags": "leakage expanding quantile shift look ahead"
+    },
+    {
+      "term": "Vì sao `add_sector_features()` gộp theo tháng chứ không theo ngày?",
+      "answer": "Vì dữ liệu hiệu suất ngành trong nguồn là **tần suất tháng**, nên phải gộp theo cùng tần suất.\n\nCơ chế:\n1. `result[\"year_month\"]` từ `timestamp` của OHLCV.\n2. `sector_data[\"year_month\"]` từ cột `date`.\n3. Merge `on=\"year_month\"` với `how=\"left\"`.\n\nDùng `how=\"left\"` để giữ **toàn bộ** các dòng OHLCV - nếu dùng `inner`, những tháng không có dữ liệu ngành sẽ bị mất khỏi tập huấn luyện, làm thay đổi số lượng mẫu theo cách không kiểm soát.\n\nHai cột được lấy: `sector_performance` và `sector_momentum`.\n\n> Rủi ro cần nói thẳng: khi gộp theo tháng, **mọi phiên trong tháng đều nhận cùng một giá trị**. Với mô hình theo ngày, đó là một dạng rò rỉ thời gian nếu giá trị tháng được biết chỉ tại cuối tháng. Đây là điểm cần kiểm chứng khi đưa vào mô hình.",
+      "code": "backend/app/features/macro_features.py:add_sector_features",
+      "tags": "sector features merge year_month left join"
+    },
+    {
+      "term": "Vì sao `add_price_features()` chỉ dùng giá trị hiện tại và quá khứ?",
+      "answer": "Vì đây là **đặc điểm nhận dạng của feature trong dự án này**: mọi feature phải tính được từ dữ liệu có sẵn tại thời điểm dự báo.\n\nDocstring ghi rõ: *\"Price-derived features computed only from current and past values.\"*\n\nDanh sách feature:\n\n- `return` = `pct_change()`\n- `log_return` = `log(close / close.shift(1))` - tốt hơn cho biến động dài hạn vì tính đối xứng và ổn định khi biến động lớn.\n- `price_change` = `diff()`\n- `volume_change` = `pct_change()` của volume\n- `rolling_std_20`, `rolling_min_20`, `rolling_max_20` - cửa sổ 20 phiên, `min_periods=20`.\n- `volume_ma_20`\n- `close_lag_1`, `close_lag_2`, `return_lag_1`, `volume_lag_1` - giá trị trễ.\n\nKhông có `shift(-1)` ở đâu cả. Đó là điểm: `shift(-1)` chỉ được dùng trong `add_target_features()`, và **chỉ** để tạo nhãn.\n\n> Ranh giới: **feature** nhìn về quá khứ, **target** nhìn về tương lai. Trộn hai chiều là nguồn gốc của hầu hết các mô hình 'quá giỏi'.",
+      "code": "backend/app/features/price_features.py:add_price_features",
+      "tags": "price features causal past only rolling lag"
+    },
+    {
+      "term": "Vì sao hàng cuối cùng của bảng có `target_*` là NaN 'by design'?",
+      "answer": "Vì **phiên tiếp theo chưa xảy ra**.\n\n`add_target_features()` tạo:\n- `target_close_next` = `close.shift(-1)`\n- `target_return_next` = `pct_change().shift(-1)`\n- `target_direction_next` = 1 nếu return > 0, 0 nếu < 0, NaN nếu return là NaN.\n\nHàng cuối cùng không có giá đóng cửa của phiên kế tiếp, nên nhãn của nó không xác định. Đó không phải lỗi dữ liệu - đó là **ranh giới của tương lai**.\n\nVì sao điều này quan trọng: khi chia train/test, hàng cuối cùng của tập train sẽ có nhãn NaN và phải bị loại. Nếu không xử lý, mô hình sẽ được huấn luyện trên nhãn NaN và cho ra dự báo NaN.\n\nDocstring nói rõ: *\"All targets are shifted forward so they never leak into features.\"*\n\n> Quy tắc: NaN ở hàng cuối là **thuộc tính đúng** của bảng nhãn, không phải dữ liệu hỏng.",
+      "code": "backend/app/features/target_features.py:add_target_features",
+      "tags": "target features shift negative nan boundary supervised learning"
+    },
+    {
+      "term": "Vì sao `target_direction_next` trả về NaN thay vì 0 khi return là NaN?",
+      "answer": "Vì **chưa biết** khác với **biết và không đúng**.\n\nLogic:\n\n```python\nnp.where(\n    result[\"target_return_next\"] > 0,\n    1,\n    np.where(result[\"target_return_next\"].isna(), np.nan, 0),\n)\n```\n\n- Return > 0 -> nhãn 1 (tăng).\n- Return NaN -> nhãn NaN (chưa biết - thường là hàng cuối).\n- Return < 0 -> nhãn 0 (giảm).\n\nNếu dùng `np.where(return > 0, 1, 0)`, hàng cuối sẽ nhận nhãn 0 - tức là được coi là 'giảm'. Mô hình sẽ học từ một nhãn sai, và độ chính xác hướng sẽ bị đánh giá thấp hơn thực tế.\n\n> Nguyên tắc đã lặp lại xuyên suốt dự án: NULL/NaN = chưa biết, 0 = biết và bằng không. Áp dụng cả trong database lẫn trong feature engineering.",
+      "code": "backend/app/features/target_features.py:add_target_features",
+      "tags": "target direction nan vs zero label semantics"
+    },
+    {
+      "term": "Vì sao VWAP trong dự án dùng giá trọng số điển hình `(high+low+close)/3`?",
+      "answer": "Vì VWAP cần một **giá đại diện cho mỗi bar**, và giá trọng số điển hình là giá trung bình của high, low, close:\n\n```python\ntypical_price = (high + low + close) / 3\nvwap = (typical_price * volume).cumsum() / volume.cumsum()\n```\n\nCông thức VWAP là tổng (giá × khối lượng) chia tổng khối lượng, tính lũy kế.\n\nĐiểm khác biệt so với VWAP chuẩn của sàn: ở sàn, VWAP được tính theo **từng lệnh khớp** trong phiên. Ở đây, dữ liệu chỉ có bar ngày nên VWAP là **mức trung bình có trọng số theo khối lượng ngày** - gần với VWAP thật nhưng không giống hệt.\n\nDự án còn tính thêm `vwap_deviation` = `(close - vwap) / vwap * 100` - sai lệch phần trăm so với VWAP, dùng để đánh giá giá đóng cửa so với mức bình quân trong phiên.\n\n> Ghi nhận giới hạn: đây là VWAP ở độ phân giải ngày. Cần nói rõ khi trình bày, không gọi nó là VWAP chuẩn của sàn.",
+      "code": "backend/app/features/advanced_features.py:vwap",
+      "tags": "vwap typical price volume weighted average deviation"
+    },
+    {
+      "term": "Vì sao `atr()` và `adx()` dùng `rolling().mean()` chứ không dùng `ewm()`?",
+      "answer": "Vì chúng **khác nhau về ý nghĩa**, dù cùng là trung bình.\n\n**ATR** - Average True Range - theo định nghĩa gốc của Wilder là **trung bình đơn giản** của True Range trên N kỳ:\n\n```python\natr = true_range.rolling(window=period).mean()\n```\n\n**Keltner Channel** - ngược lại, dùng **EMA** cho cả giá và ATR:\n\n```python\natr = true_range.ewm(span=period, adjust=False).mean()\nkc_upper = ema_close + multiplier * atr\n```\n\nĐây là hai định nghĩa khác nhau cho cùng một khái niệm, và chúng cho kết quả khác nhau - Keltner rộng hơn ATR đơn giản vì phản ứng nhanh hơn với biến động mới.\n\n> Nguyên tắc: khi triển khai chỉ báo, **theo đúng định nghĩa gốc**, đừng thay thế bằng biến thể 'gần giống' cho tiện. Nếu khác biệt, phải ghi rõ trong tài liệu.",
+      "code": "backend/app/features/advanced_features.py:atr",
+      "tags": "atr adx rolling mean versus ema wilder keltner"
+    },
+    {
+      "term": "Vì sao ADX có `+DI` và `-DI` cùng với chính nó?",
+      "answer": "Vì **ADX đo cường độ của xu hướng, không đo hướng của xu hướng**.\n\nCơ chế:\n\n- `plus_dm` = biến động tăng, chỉ tính khi `high_diff > low_diff` và `high_diff > 0`.\n- `minus_dm` = biến động giảm, chỉ tính khi `low_diff > high_diff` và `low_diff > 0`.\n- `+DI` = 100 × trung bình `plus_dm` / ATR.\n- `-DI` = 100 × trung bình `minus_dm` / ATR.\n- `DX` = 100 × `| +DI - -DI | / ( +DI + -DI )`.\n- `ADX` = trung bình động của DX.\n\nADX là giá trị **không âm**, không nói lên thị trường đang tăng hay giảm. Hướng đến từ việc so sánh `+DI` với `-DI`:\n- `+DI > -DI` -> xu hướng tăng.\n- `-DI > +DI` -> xu hướng giảm.\n\n> Vì sao quan trọng: đọc ADX = 30 là 'xu hướng mạnh', nhưng nếu không kèm `+DI`/`-DI` thì người đọc **không biết** đó là xu hướng tăng hay giảm. Ba cột phải đi cùng nhau.",
+      "code": "backend/app/features/advanced_features.py:adx",
+      "tags": "adx directional index plus di minus di trend strength"
+    },
+    {
+      "term": "Vì sao Aroon nhạy cảm với việc dữ liệu là 1 bar/phiên?",
+      "answer": "Vì Aroon đo **vị trí của đỉnh gần nhất trong cửa sổ**, dùng `argmax`:\n\n```python\naroon_up = high.rolling(window=period + 1).apply(\n    lambda x: float(np.argmax(x)) / period * 100, raw=True\n)\n```\n\n`np.argmax` trả về **chỉ số của giá trị lớn nhất**. Với cửa sổ `period + 1` và chia cho `period`, giá trị chạm 100 khi đỉnh nằm ở bar cuối cùng, và 0 khi đỉnh nằm ở bar đầu tiên.\n\nĐiểm nhạy cảm: nếu một phiên giao dịch bị **tách thành nhiều bar** (nếu dữ liệu intraday lọt vào tầng Gold thay vì bar ngày), thì:\n- Cửa sổ 25 bar trở thành 25 **phút** thay vì 25 phiên.\n- Đỉnh gần nhất có thể nằm ở giữa phiên, nên Aroon báo 'xu hướng tăng mới đạt đỉnh' một cách sai lệch.\n\nĐây là lý do tầng Silver **canonicalize về đúng 1 bar mỗi phiên** trước khi tầng Gold tính chỉ báo.\n\n> Bài học chung: các chỉ báo giả định một tần suất dữ liệu cụ thể. Đảm bảo tầng trên thực sự thỏa mãn giả định đó.",
+      "code": "backend/app/features/advanced_features.py:aroon",
+      "tags": "aroon argmax window position one bar per session"
+    },
+    {
+      "term": "Vì sao OBV được tính bằng vòng lặp Python thay vì vector hoá?",
+      "answer": "Vì OBV là **tích luỹ có điều kiện** - mỗi bước phụ thuộc vào bước trước, nên không vector hoá được trực tiếp bằng phép nhân trên cả mảng.\n\n```python\nobv_values = [0]\nfor i in range(1, len(close)):\n    if close.iloc[i] > close.iloc[i - 1]:\n        obv_values.append(obv_values[-1] + volume.iloc[i])\n    elif close.iloc[i] < close.iloc[i - 1]:\n        obv_values.append(obv_values[-1] - volume.iloc[i])\n    else:\n        obv_values.append(obv_values[-1])\n```\n\nBa trường hợp:\n- Close tăng -> cộng khối lượng.\n- Close giảm -> trừ khối lượng.\n- Close bằng -> **giữ nguyên** (không cộng, không trừ).\n\nKết quả trả về gồm `obv` và `obv_change` (pct_change).\n\n> Nhận xét hiệu năng: vòng lặp này dùng `close.iloc[i]` - tra cứu theo vị trí trong pandas rất chậm. Với tập dữ liệu lớn, chuyển sang `numpy` (như đã làm với `rsi_strategy.py` trong backtesting) sẽ nhanh hơn đáng kể. Đây là một cơ hội tối ưu đã được nhận diện nhưng chưa thực hiện.",
+      "code": "backend/app/features/advanced_features.py:obv",
+      "tags": "obv on balance volume loop cumulative numpy optimization"
+    },
+    {
+      "term": "Stochastic Oscillator được tính thế nào và %K khác %D ra sao?",
+      "answer": "Gồm hai bước:\n\n**%K** (nhanh, 14 kỳ):\n\n```python\nlowest_low = low.rolling(window=k_period).min()\nhighest_high = high.rolling(window=k_period).max()\nstoch_k = 100 * (close - lowest_low) / (highest_high - lowest_low)\n```\n\nÝ nghĩa: giá đóng cửa đang ở đâu trong khoảng [đáy thấp nhất, đỉnh cao nhất] của 14 kỳ, quy đổi ra 0-100.\n\n**%D** (chậm, 3 kỳ): `stoch_d = stoch_k.rolling(window=d_period).mean()` - trung bình động của %K.\n\nGiao cắt %K và %D tạo tín hiệu: %K vượt lên trên %D là tín hiệu tăng, và ngược lại là tín hiệu giảm.\n\n> Cạnh bẻ: khi `highest_high == lowest_low` (giá đi ngang tuyệt đối), tử số và mẫu đều bằng 0 -> kết quả là `NaN` chứ không phải lỗi chia. Biểu đồ hiển thị khoảng trống, đúng như nó phải là.",
+      "code": "backend/app/features/advanced_features.py:stochastic_oscillator",
+      "tags": "stochastic oscillator percent k percent d overbought oversold"
+    },
+    {
+      "term": "CCI đo cái gì và hệ số 0.015 trong công thức có ý nghĩa gì?",
+      "answer": "CCI (Commodity Channel Index) đo **mức độ lệch của giá so với trung bình thống kê**.\n\nCông thức:\n\n```python\ntypical_price = (high + low + close) / 3\nsma_tp = typical_price.rolling(window=period).mean()\nmean_deviation = typical_price.rolling(window=period).apply(\n    lambda x: np.mean(np.abs(x - np.mean(x))), raw=True\n)\ncci = (typical_price - sma_tp) / (0.015 * mean_deviation)\n```\n\nBa thành phần:\n\n- `typical_price` - giá trọng số điển hình (giống VWAP).\n- `mean_deviation` - **độ lệch trung bình tuyệt đối** so với SMA (mean absolute deviation, không phải std).\n- Hệ số **0.015** - hằng số chuẩn hoá của CCI.\n\nVề hệ số 0.015: nó là quy ước để CCI có phạm vi thông thường **±100 ở vùng bất thường**. Vì `mean_deviation` xấp xỉ 1/5 của std (đối với phân phối bình thường), hệ số 0.015 biến độ lệch chuẩn ~1 thành CCI ~100. Đây là **hằng số theo quy ước**, không phải hằng số toán học.\n\n> CCI > +100: quá mua. CCI < -100: quá bán.",
+      "code": "backend/app/features/advanced_features.py:cci",
+      "tags": "cci commodity channel index mean deviation constant"
+    },
+    {
+      "term": "Williams %R khác Stochastic Oscillator như thế nào?",
+      "answer": "Chúng là **cùng một phép tính** với hai ký hiệu khác nhau:\n\nWilliams %R:\n\n```python\nwr = -100 * (highest_high - close) / (highest_high - lowest_low)\n```\n\nStochastic %K:\n\n```python\nstoch_k = 100 * (close - lowest_low) / (highest_high - lowest_low)\n```\n\nToán học: `wr = stoch_k - 100`.\n\nKhác biệt nằm ở **phạm vi giá trị**:\n\n- Stochastic: **0 đến 100**.\n- Williams %R: **-100 đến 0**.\n\nHệ quả cho người đọc:\n\n- Stochastic trên 80 = quá mua. Williams %R dưới -80 = quá mua.\n- Stochastic dưới 20 = quá bán. Williams %R trên -20 = quá bán.\n\nDự án có cả hai, vì chúng xuất hiện trong các bộ chỉ báo khác nhau và việc quy đổi lại gây nhầm lẫn không cần thiết.\n\n> Nguyên tắc khi làm chỉ báo: giữ **cả hai dạng** nếu người dùng quen một dạng, và luôn ghi rõ phạm vi giá trị trong tài liệu.",
+      "code": "backend/app/features/advanced_features.py:williams_r",
+      "tags": "williams r stochastic relationship range oscillator"
+    },
+    {
+      "term": "Vì sao `add_advanced_indicators()` dùng `pd.concat` thay vì gán cột trực tiếp?",
+      "answer": "Vì mỗi chỉ báo trả về **một DataFrame riêng** với index của chính nó.\n\n```python\nresult = pd.concat([result, stochastic_oscillator(high, low, close)], axis=1)\nresult = pd.concat([result, cci(high, low, close)], axis=1)\n...\n```\n\n`pd.concat(..., axis=1)` nối theo **index**. Điều này giữ cho mỗi chỉ báo là một hàm độc lập, trả về đúng các cột của nó - dễ kiểm thử, dễ đọc, dễ thêm chỉ báo mới.\n\nĐối chiếu với cách gán cột trực tiếp (`result[\"cci\"] = cci(...)`) đòi hỏi mỗi hàm phải trả về một Series cùng index - ít linh hoạt hơn.\n\n> Điểm cần lưu ý: `pd.concat` theo index sẽ tạo **NaN** ở những dòng mà một chỉ báo chưa đủ cửa sổ (ví dụ ATR cần 14 phiên). Đó là hành vi đúng - chỉ báo chưa có giá trị thì phải là trống, không phải 0.",
+      "code": "backend/app/features/advanced_features.py:add_advanced_indicators",
+      "tags": "advanced indicators concat dataframe modular features"
+    },
+    {
+      "term": "Vì sao `IndicatorConfig` lại được import vào module features?",
+      "answer": "Vì `add_advanced_indicators()` cần cấu hình tham số của chỉ báo để **truyền xuống** các hàm con.\n\nNhưng ở đây có một điểm đáng nói: file `advanced_features.py` import `IndicatorConfig` nhưng **không dùng trực tiếp** trong `add_advanced_indicators()` - các tham số như `k_period=14`, `period=20` được hard-code trong lời gọi hàm con, và giá trị mặc định trong chữ ký hàm con.\n\nVì vậy import này là **dư** (hoặc là dấu vết của một thiết kế chưa hoàn tất).\n\nHàm `IndicatorConfig` nằm ở `app/indicators/service.py` và là nơi cấu hình chỉ báo cho **API** được định nghĩa. Còn `features/` là nơi tính toán cho **tầng Gold**.\n\n> Nguyên tắc: một import không dùng là dấu hiệu thiết kế chưa khép lại. Khi phát hiện, nên hoặc dùng nó, hoặc bỏ nó - chứ không để lại im lặng.",
+      "code": "backend/app/features/advanced_features.py",
+      "tags": "features indicator config import coupling design debt"
+    },
+    {
+      "term": "Các chỉ báo nâng cao được chia theo nhóm nào trong `advanced_features.py`?",
+      "answer": "Bốn nhóm, tổng cộng 14 chỉ báo:\n\n**Momentum**\n- `stochastic_oscillator` -> `stoch_k`, `stoch_d`\n- `cci` -> `cci`\n- `williams_r` -> `williams_r`\n\n**Biến động**\n- `atr` -> `atr`, `atr_percent`\n- `keltner_channel` -> `kc_upper`, `kc_middle`, `kc_lower`, `kc_width`\n\n**Sức mạnh xu hướng**\n- `adx` -> `adx`, `plus_di`, `minus_di`\n- `aroon` -> `aroon_up`, `aroon_down`, `aroon_osc`\n\n**Khối lượng và giá**\n- `obv` -> `obv`, `obv_change`\n- `vwap` -> `vwap`, `vwap_deviation`\n- `mfi` -> chỉ báo dòng tiền\n- `ichimoku` -> mây Ichimoku\n- `supertrend` -> Supertrend\n\nCùng với `technical_features.py` (SMA, EMA, RSI, MACD, Bollinger) và `price_features.py`, tổng cộng khoảng **94 đặc trưng** ở tầng Gold.\n\n> Mỗi chỉ báo có **thêm cột phái sinh** đi kèm (`atr_percent`, `kc_width`, `aroon_osc`, `vwap_deviation`, `obv_change`) - vì bản thân số phái sinh thường có tín hiệu mạnh hơn số gốc.",
+      "code": "backend/app/features/advanced_features.py",
+      "tags": "advanced indicators grouping momentum volatility trend volume"
+    },
+    {
+      "term": "Có bao nhiêu feature ở tầng Gold và chúng được xếp theo nhóm nào?",
+      "answer": "Khoảng **94 đặc trưng**, xếp theo 6 nhóm module trong `backend/app/features/`:\n\n- **`price_features.py`** - lợi nhuận, log lợi nhuận, thay đổi giá/khối lượng, rolling std/min/max, volume MA, các lag.\n- **`technical_features.py`** - SMA, EMA, RSI, MACD, Bollinger.\n- **`advanced_features.py`** - 14 chỉ báo nâng cao (momentum, biến động, xu hướng, khối lượng).\n- **`macro_features.py`** - tỷ giá, vàng, dầu, sector performance, market regime.\n- **`target_features.py`** - 3 cột nhãn.\n- **`feature_engineering.py`** - điều phối việc gọi các nhóm trên.\n\nRanh giới quan trọng: **feature** nhìn về quá khứ, **target** nhìn về tương lai. Không nhóm nào trong `price`/`technical`/`advanced` chứa `shift(-1)`.\n\n> Tất cả đặc trưng được tính trên dữ liệu **đã canonicalize 1 bar/phiên** ở tầng Silver - điều kiện tiên quyết cho các chỉ báo có cửa sổ phiên.",
+      "code": "backend/app/features/feature_engineering.py",
+      "tags": "features gold layer 94 features grouping modules"
+    },
+    {
+      "term": "Vì sao `is_impossible_price()` là lớp bảo vệ cuối cùng cho dữ liệu tài chính?",
+      "answer": "Vì giá là **đại lượng không thể âm** trên bất kỳ sàn giao dịch nào. Đó là bất biến vật lý, không phải quy ước.\n\nTrong dự án, lớp bảo vệ này đã chặn được những thứ thật:\n\n- Ngày 15/11/2026: **19 dòng** forecast với giá âm trong ledger - `LCID` ở -4,09; `SOXS` ở -359.121.248.\n- Nguyên nhân gốc: mô hình ở mức giá được fit trên lịch sử **trộn hai thang giá** (sau các lần chia ngược), rồi ngoại suy ra khỏi cuối chuỗi.\n\nHậu quả nếu không chặn: một giá âm **làm hỏng mọi phép trung bình** tính trên bảng - mean, std, tỷ lệ - và nó làm hỏng cả những dòng hợp lệ khác.\n\nNó cũng là lớp cuối cùng sau `is_fabricated_symbol()` (chặn mã test giả) và sau kiểm tra tỷ lệ so với reference (`MAX_PREDICTION_REFERENCE_FACTOR`).\n\n> Ba lớp bảo vệ, ba loại lỗi khác nhau: **mã giả**, **giá bất khả thi**, **giá lệch quá xa reference**. Không lớp nào thay thế lớp nào.",
+      "code": "backend/app/core/data_integrity.py:is_impossible_price",
+      "tags": "data integrity impossible price negative guard"
+    },
+    {
+      "term": "Có xung đột nào giữa dữ liệu fundamental và quy tắc 'no fake data' không?",
+      "answer": "Có, và cần nói thẳng.\n\n`EnhancedFundamentalProvider._fetch_vietstock_metrics()` **quét HTML** của VietStock bằng BeautifulSoup:\n\n```python\npe_ratio=self._find_metric(soup, \"hệ số\", \"P/E\")\n```\n\n`_find_metric` tìm một ô có chứa cụm từ định nghĩa và cụm từ tên chỉ báo, rồi **diễn giải chuỗi thành số**.\n\nRủi ro thực tế:\n\n1. **Cấu trúc HTML thay đổi** -> chỉ số trả về `None` (đây là hành vi an toàn, không phải số bịa).\n2. **Diễn giải sai** -> ví dụ chọn nhầm cột hoặc đọc sai dấu phân cách thập phân kiểu Việt Nam (`1,234` là 1234 chứ không phải 1.234).\n3. **Cell không tồn tại** -> `_find_metric` trả về `None`.\n\nĐiểm tốt: khi không lấy được, provider trả về `FinancialMetrics` với **toàn bộ trường `None`** chứ không điền 0. Điều này giữ đúng nguyên tắc 'không có số thì không hiện số'.\n\n> Điểm cần nói rõ khi trình bày: dữ liệu fundamental từ nguồn scrape **ít tin cậy hơn** dữ liệu OHLCV từ API chính thức, và mọi số từ nó đều cần được coi là 'cần kiểm chứng'.",
+      "code": "backend/app/data_sources/enhanced_fundamental_provider.py:_fetch_vietstock_metrics",
+      "tags": "fundamental scraping reliability no fake data caveat"
+    },
+    {
+      "term": "Vì sao `FinancialMetrics` dùng `float | None` cho mọi trường thay vì `float`?",
+      "answer": "Vì **thiếu dữ liệu là một trạng thái hợp lệ** và phải được biểu diễn rõ ràng trong kiểu dữ liệu.\n\nMọi trường đều là `float | None`:\n\n- `market_cap: float | None`\n- `pe_ratio: float | None`\n- ... và tất cả 24 trường.\n\nNếu dùng `float` thuần, kiểu `None` sẽ lọt vào mà type checker không bắt được, và dữ liệu thiếu sẽ trở thành `0.0` trong mọi phép tính.\n\nLợi ích thực tế:\n\n- Bắt buộc người viết code kiểm tra trước khi dùng.\n- `metrics_to_dict()` chuyển `None` thành `None` trong JSON, và frontend hiển thị `—`.\n- Không bao giờ có `P/E = 0` trên màn hình.\n\n> Nguyên tắc được nhúng thẳng vào kiểu dữ liệu: **một giá trị có thể vắng mặt phải được khai báo là có thể vắng mặt**.",
+      "code": "backend/app/data_sources/enhanced_fundamental_provider.py:FinancialMetrics",
+      "tags": "fundamental optional typing none nullable dataclass"
+    },
+    {
+      "term": "Điều gì xảy ra khi cả hai nguồn fundamental đều thất bại?",
+      "answer": "Provider trả về một `FinancialMetrics` với **toàn bộ 24 trường bằng `None`**, và `timestamp` là thời điểm hiện tại (UTC).\n\nĐây là quyết định thiết kế có chủ đích, khác với việc ném lỗi.\n\nLý do:\n\n1. **Hợp đồng của tool với AI agent.** `get_fundamental_metrics()` phải luôn trả về một object có cấu trúc đúng. Nếu provider ném exception, agent sẽ coi đó là lỗi tool call và có thể thử lại vô ích.\n2. **Không có số bịa.** Trả `None` cho mọi trường là thành thật: 'mã này không có dữ liệu fundamental trong hai nguồn này'.\n3. **Frontend xử lý được.** Frontend hiển thị `—` kèm lý do.\n\nĐối chiếu: với dữ liệu OHLCV, `multi_source.py` dùng chuỗi failover 6 nguồn và trả về lỗi khi tất cả hỏng. Sự khác nhau nằm ở bản chất: giá OHLCV là **dữ liệu cốt lõi** (thiếu thì hệ thống không dùng được), còn fundamental là **dữ liệu bổ trợ** (thiếu thì hệ thống vẫn chạy).\n\n> Nguyên tắc: xử lý khác nhau theo mức độ quan trọng, nhưng cả hai đều **không bịa số**.",
+      "code": "backend/app/data_sources/enhanced_fundamental_provider.py:get_comprehensive_metrics",
+      "tags": "fundamental fallback none all sources failed agent contract"
+    },
+    {
+      "term": "Vì sao `OrderBookInput.depth` bị giới hạn `ge=1, le=50`?",
+      "answer": "Vì `depth` là tham số **tài nguyên**: số mức giá được tải về.\n\n```python\ndepth: int = Field(default=10, ge=1, le=50, description=\"Số mức giá\")\n```\n\n- `ge=1` - depth 0 là vô nghĩa.\n- `le=50` - chặn một yêu cầu quá lớn.\n\nCơ chế: người dùng cuối có thể yêu cầu trực tiếp qua AI agent, và agent có thể tự đặt tham số. Nếu không có trần, một lời gọi có thể kéo về hàng nghìn mức giá và làm chậm hoặc treo response.\n\nĐây là cùng nguyên tắc với `IncomeStatementInput.years` (`ge=1, le=10`) và `MarketIndexInput`.\n\n> Nguyên tắc: **mọi tham số do LLM chọn phải có trần cứng**, vì LLM không biết giới hạn hệ thống và sẽ chọn giá trị hợp lý theo góc nhìn của nó.",
+      "code": "backend/app/agent/tools/fundamental_tools.py:OrderBookInput",
+      "tags": "pydantic input validation bounds llm parameters depth years"
+    },
+    {
+      "term": "Vì sao `get_order_book` trả về `None` khi cả hai nguồn hỏng, thay vì ném lỗi?",
+      "answer": "Vì đây là **dữ liệu theo thời gian thực** vốn đã có thể không tồn tại.\n\nCác lý do có thể xảy ra với nguồn thật:\n\n- Thị trường đóng cửa - không có sổ lệnh.\n- Mã không thuộc sàn Việt Nam.\n- Endpoint đổi cấu trúc.\n- Mạng lỗi.\n\nTất cả đều là tình huống **bình thường**, không phải lỗi hệ thống. Ném exception sẽ khiến agent hiểu rằng tool hỏng và thử lại, hoàn toàn lãng phí.\n\nProvider bắt exception ở từng nguồn với `logger.debug()` (không phải `warning`) vì lỗi mạng tạm thời là **bình thường** và không nên làm nhiễu log.\n\n> Nguyên tắc phân loại lỗi: lỗi **chặn luồng** (mất kết nối DB) phải ném; lỗi **tùy nhiên** (một nguồn phụ không có dữ liệu lúc này) nên trả trạng thái rỗng.",
+      "code": "backend/app/data_sources/orderbook_provider.py:get_order_book",
+      "tags": "orderbook none fallback error classification debug log"
+    },
+    {
+      "term": "Vì sao `spread` và `mid_price` được tính ngay trong provider thay vì để tầng trên tính?",
+      "answer": "Vì chúng là **thuộc tính cấu thành** của một sổ lệnh, không phải phép tính tùy ý.\n\n```python\nbest_bid = bids[0].price if bids else 0\nbest_ask = asks[0].price if asks else 0\nspread = best_ask - best_bid\nmid_price = (best_bid + best_ask) / 2\n```\n\nLợi ích:\n\n1. **Tính nhất quán**: mọi consumer (API, AI agent, UI) nhận cùng một giá trị. Nếu để mỗi tầng tự tính, chỉ cần một khác biệt nhỏ về thứ tự là ra hai con số khác nhau.\n2. **Đơn vị ngữ nghĩa rõ ràng**: `spread` là chi phí giao dịch tức thời; `mid_price` là giá trung lập giữa hai bên.\n3. **Một chỗ để kiểm thử**.\n\nLưu ý: khi không có dữ liệu, `best_bid` và `best_ask` bằng 0, nên `spread` bằng 0 và `mid_price` bằng 0. Đây là trường hợp cần cẩn thận khi tiêu thụ - phải kiểm tra `bids`/`asks` rỗng trước khi tin `mid_price`.\n\n> Nguyên tắc: thuộc tính của một khái niệm nên được tính **một lần**, ngay tại nơi khái niệm đó được tạo ra.",
+      "code": "backend/app/data_sources/orderbook_provider.py:_fetch_cafef_orderbook",
+      "tags": "orderbook spread mid price single source of truth"
+    },
+    {
+      "term": "Vì sao `get_recent_trades()` trả về DataFrame còn `get_order_book()` trả về dataclass?",
+      "answer": "Vì chúng có **hình dạng dữ liệu khác nhau**, và hình dạng nên phản ánh bản chất.\n\n**Sổ lệnh** là một **ảnh chụp tại một thời điểm** với cấu trúc cố định (mức giá, khối lượng, số lệnh). Dataclass mô tả đúng điều đó, và nó cho type hints đầy đủ cho tầng trên.\n\n**Giao dịch khớp** là một **danh sách biến thiên** (số giao dịch không cố định), phù hợp với DataFrame - dễ lọc, sắp xếp, tổng hợp.\n\nDataFrame thường đi kèm hai cột bắt buộc: `source` và `ingestion_time`.\n\n> Nguyên tắc: chọn cấu trúc dữ liệu theo **hình dạng**, không theo thói quen. Dataclass cho bản ghi đơn lẻ có cấu trúc; DataFrame cho tập hợp biến thiên.",
+      "code": "backend/app/data_sources/orderbook_provider.py:get_recent_trades",
+      "tags": "orderbook trades dataframe dataclass data shape"
+    },
+    {
+      "term": "Vì sao `trade_type` phân biệt `regular`, `odd_lot` và `block`?",
+      "answer": "Vì ba loại này có **ý nghĩa thị trường khác nhau** và bị xử lý khác nhau.\n\n- **`regular`** - giao dịch thông thường, khớp theo bộ chứng khoán với giá bình thường.\n- **`odd_lot`** - giao dịch lẻ lẻ (khối lượng nhỏ hơn lô chuẩn, thường dưới 100 cổ với cổ Việt Nam). Ở Việt Nam, lệnh lẻ lẻ được khớp ở **phiên giao dịch không liên tục** (15:00-15:30) với giá riêng.\n- **`block`** - giao dịch thỏa thuận, khối lượng lớn, thường là thỏa thuận giữa hai bên trước giờ mở cửa.\n\nTại sao phải tách: một lệnh `block` có thể chiếm một phần lớn khối lượng ngày, và nhìn chung với lệnh thường sẽ cho ra một bức tranh sai về thanh khoản. Cùng lý do, lệnh lẻ lẻ khớp ở giá khác nên trộn vào sẽ làm méo VWAP.\n\n> Nguyên tắc: dữ liệu thị trường cần giữ **ngữ cảnh thực thi**, không chỉ giá và khối lượng.",
+      "code": "backend/app/data_sources/orderbook_provider.py:Trade",
+      "tags": "trade type regular odd lot block market microstructure vn"
+    },
+    {
+      "term": "Vì sao các provider fundamental và order book dùng `requests.Session`?",
+      "answer": "Vì `Session` cho phép **tái sử dụng kết nối TCP** giữa các request, thay vì mở kết nối mới mỗi lần.\n\nLợi ích cụ thể trong dự án:\n\n1. **Hiệu năng**: TLS handshake là phần đắt nhất của một request HTTPS. Tái sử dụng connection tiết kiệm đáng kể khi scrape nhiều trang (VietStock, SSI).\n2. **Header nhất quán**: `session.headers.update(...)` đặt User-Agent và Accept một lần, áp dụng cho mọi request của session đó.\n\nHeader đặt trong cả hai provider:\n\n```python\nself.session.headers.update({\n    \"User-Agent\": \"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36\",\n    \"Accept\": \"application/json, text/html\",\n})\n```\n\nLý do cần User-Agent thật: nhiều trang chặn request không có User-Agent trình duyệt (bot protection).\n\n> Đây không phải giả mạo dữ liệu - nó là cách thông thường để một HTTP client hợp lệ đọc trang công khai, giống như trình duyệt làm.",
+      "code": "backend/app/data_sources/orderbook_provider.py:OrderBookProvider.__init__",
+      "tags": "requests session connection reuse user agent scraping"
+    },
+    {
+      "term": "Các lớp bảo vệ dữ liệu tích cực trong toàn bộ dự án được xếp lớp như thế nào?",
+      "answer": "Bốn lớp, từ sớm đến muộn:\n\n**1. Lớp nguồn** - provider chỉ lấy từ nguồn thật; mỗi dòng mang `source` và `ingestion_time`.\n\n**2. Lớp plausibility** (`plausibility.py`) - lọc giá không hợp lý, timestamp ngoài khoảng cho phép, lệch quá 2,5 lần so với dữ liệu streaming.\n\n**3. Lớp Silver/Gold** - kiểm tra bất biến OHLC (high >= max(open, close), low <= min(open, close)), loại OHLC không hợp lệ vào `_errors/`, canonicalize 1 bar/phiên.\n\n**4. Lớp ghi** (`data_integrity.py`) - chặn mã giả (`TST`, `TEST`, `MOCK`) và giá bất khả thi ngay tại `PredictionRepository.upsert()`.\n\nNgoài ra còn có **quality gate** (`quality_gate.py`) chạy 6 kiểm tra tự động theo vòng quay 40 mã mỗi lượt, trả kết luận `passed` / `warning` / `failed`.\n\n> Nguyên tắc: **phòng thủ theo nhiều lớp**. Một lớp bị lọt không phải lý do để bỏ các lớp còn lại - đặc biệt là lớp ghi, vì nó bảo vệ trước khi dữ liệu xấu được publish.",
+      "code": "backend/app/core/data_integrity.py",
+      "tags": "data integrity defense in depth layers guards"
+    },
+    {
+      "term": "Vì sao `add_correlation_features()` cần `index_df` và tính beta thế nào?",
+      "answer": "Vì **beta** là độ nhạy của một cổ phiếu so với chỉ số thị trường, và không có dữ liệu chỉ số thì không tính được.\n\nÝ nghĩa của `index_df`: dữ liệu giá của một chỉ số (ví dụ `^GSPC` cho S&P 500, `^IXIC` cho NASDAQ) để làm **mốc so sánh**.\n\nBeta đo: cổ phiếu tăng 1% thì chỉ số tăng bao nhiêu phần trăm (và ngược lại).\n\nGiá trị của việc có beta:\n\n- Mô hình có thể điều chỉnh theo trạng thái thị trường chung, không chỉ điều chỉnh theo lịch sử riêng của mã.\n- Nó phân biệt được 'cổ phiếu giảm vì thị trường giảm' với 'cổ phiếu giảm dù thị trường tăng' - hai tình huống hoàn toàn khác nhau.\n- Tương quan với thị trường là một đặc trưng phân biệt giữa cổ phiếu hệ thống và cổ phiếu phòng hộ.\n\n> Lưu ý: hàm trả về df nguyên vẹn nếu `index_df` là `None` hoặc rỗng - không sinh cột beta giả.",
+      "code": "backend/app/features/macro_features.py:add_correlation_features",
+      "tags": "beta correlation market index feature"
+    },
+    {
+      "term": "Những điều gì CHƯA có trong dự án về mặt fundamental và macro?",
+      "answer": "Cần nói thẳng để tránh hiểu nhầm về phạm vi:\n\n**Chưa có:**\n- Bảng cân đối kế toán và báo cáo lưu chuyển tiền tệ **chưa được lưu vào lakehouse** - chúng chỉ tồn tại dưới dạng DataFrame trả về từ provider, phục vụ riêng cho tool của AI agent.\n- Chưa có **độ trễ công bố** (publication lag) được xử lý. Đây là điểm quan trọng: báo cáo tài chính quý được công bố **sau** ngày kết thúc quý, nên ghép nó vào dữ liệu giá theo ngày sẽ tạo look-ahead leakage nếu không dịch thời điểm công bố.\n- Chưa có **dữ liệu cơ bản trong tầng Gold** - các feature macro/sector tồn tại nhưng chưa được đưa vào pipeline feature chính.\n- Chưa có **định giá DCF hay luồng tiền chiết khấu**.\n- Dữ liệu từ VietStock là **HTML scrape**, kém tin cậy hơn API chính thức.\n\n> Theo nguyên tắc 'không tự ý làm đẹp số liệu', các giới hạn này được ghi ra thay vì che giấu. Khi viết luận văn, phải nêu rõ đây là phạm vi hiện tại chứ không phải hệ thống đã hoàn chỉnh.",
+      "code": "backend/app/features/macro_features.py",
+      "tags": "fundamental macro gaps scope limitations publication lag"
+    }
+  ]
+}

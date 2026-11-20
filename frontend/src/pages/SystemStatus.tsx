@@ -11,7 +11,7 @@ import { fetchSystemStatus } from "@/api/agent";
 import { errorMessage } from "@/api/client";
 import { ErrorState } from "@/components/common/ErrorState";
 import { Loading } from "@/components/common/Loading";
-import { PageTitle } from "@/components/common/PageTitle";
+import { PageHeader } from "@/components/common/PageHeader";
 import { QualityGatePanel } from "@/components/quality/QualityGatePanel";
 import { Badge } from "@/components/ui/badge";
 import { useI18n, t } from "@/lib/i18n";
@@ -165,16 +165,46 @@ export function SystemStatusPage() {
   ];
 
   return (
-    <div className="space-y-12">
-      <PageTitle
+    <div className="space-y-10">
+      {/*
+        ── The page header ───────────────────────────────────────────
+        The refresh cadence is stated in the subtitle, because a status
+        page that auto-refreshes without saying so makes a reader wonder
+        whether the numbers they are looking at are stale.
+      */}
+      <PageHeader
+        section="Hệ thống"
         title={t("system.title", locale)}
         subtitle={
           locale === "vi"
             ? "Trạng thái các service trong hệ thống Lakehouse. Tự làm mới mỗi 15 giây."
             : "Status of all services in the Lakehouse. Auto-refresh every 15s."
         }
-        meta="07 · Platform"
+        aside={
+          <span className="inline-flex items-center gap-2 font-mono text-label uppercase text-muted">
+            <span className="dot dot-live" />
+            {query.isFetching
+              ? (locale === "vi" ? "Đang làm mới" : "Refreshing")
+              : (locale === "vi" ? "Trực tiếp" : "Live")}
+          </span>
+        }
       />
+
+      {/* ── The layer counts ─────────────────────────────────────────
+          Three numbers that answer "how much data does this system
+          actually hold". They are the first thing a reader of a status
+          page wants, so they sit above the service checklist rather
+          than beside it in a narrow column. */}
+      <div className="grid grid-cols-3 gap-6 border-y border-hairline py-6">
+        {layerCounts.map(({ key, label }) => (
+          <div key={key} className="min-w-0">
+            <div className="label">{label}</div>
+            <div className="mt-1 font-mono text-heading font-semibold tabular-nums text-ink">
+              {(counts[key] ?? 0).toLocaleString("en-US")}
+            </div>
+          </div>
+        ))}
+      </div>
 
       {/* Services: one checklist column, on the left. */}
       <div className="grid gap-12 xl:grid-cols-3">
@@ -201,29 +231,14 @@ export function SystemStatusPage() {
           </ul>
         </section>
 
-        {/* Layer counts: three numbers, vertically, as a reference panel. */}
         <aside>
-          <div className="section-head">
-            <h2 className="section-title">{t("system.counts", locale)}</h2>
-          </div>
-          <dl className="pt-2">
-            {layerCounts.map(({ key, label }) => (
-              <div
-                key={key}
-                className="flex items-baseline justify-between gap-4 border-b border-hairline py-3 last:border-b-0"
-              >
-                <dt className="label">{label}</dt>
-                <dd className="font-mono text-heading font-semibold tabular-nums text-ink">
-                  {(counts[key] ?? 0).toLocaleString("en-US")}
-                </dd>
-              </div>
-            ))}
-          </dl>
+          {/* Data quality gate: the one panel that says whether the DATA
+              is right. It moved into this column because it is the
+              counterpart of the service checklist: "the services are up"
+              and "the data is good" are two different claims. */}
+          <QualityGatePanel />
         </aside>
       </div>
-
-      {/* Data quality gate: the one panel that says whether the DATA is right. */}
-      <QualityGatePanel />
 
       {/* Last pipeline run */}
       {lastRun ? (

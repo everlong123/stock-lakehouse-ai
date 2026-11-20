@@ -39,6 +39,14 @@ THE JOBS
     symbols are current, and that a slice of the universe still matches
     the live provider. This is the pass that answers "is the data we are
     serving actually right?".
+
+``walk-forward``
+    Run the multi-symbol walk-forward report and store it in the
+    lakehouse's ``backtests`` layer. This is the pass that produces the
+    research evidence for the strategy layer: the strategy measured
+    against a buy-and-hold baseline across many symbols, on paired
+    windows. It used to be a hand-written snapshot; running it on a
+    schedule is what makes the numbers on the page current.
 """
 
 from __future__ import annotations
@@ -160,10 +168,84 @@ def run_quality_gate(args: argparse.Namespace) -> dict:
     return payload
 
 
+def run_walk_forward(args: argparse.Namespace) -> dict:
+    """Run the multi-symbol walk-forward report and store it.
+
+    WHY THIS IS A SEPARATE JOB
+    ---------------------------
+    The report is the research evidence for the whole strategy layer:
+    it is the only place where the strategy is compared with a
+    buy-and-hold baseline across MANY symbols, on PAIRED windows. It
+    used to be a snapshot - a file that somebody had produced once and
+    nobody refreshed - so the numbers on the page were whatever was
+    true on the day the file was written.
+
+    It is also expensive: the run replays ~100 symbols over ~37
+    windows each, which took 75.5 s measured on 18/11/2026. That is
+    fine for a nightly job and far too slow for a request handler.
+
+    So it runs once a day, after the price layers have settled, and it
+    writes the result into the lakehouse's ``backtests`` layer - the
+    one place the ``scheduler`` container and the ``backend`` container
+    can both reach. The API then serves the stored report instead of
+    recomputing it.
+    """
+    from app.services.walk_forward_report_service import (
+        format_summary,
+        persist_report,
+        run_report,
+    )
+
+    strategies = [
+        name.strip()
+        for name in str(args.strategy).split(",")
+        if name.strip()
+    ] or ["ma_crossover"]
+
+    results: list[dict] = []
+    for strategy in strategies:
+        payload = run_report(
+            strategy=strategy,
+            per_exchange=args.per_exchange,
+            limit=args.limit,
+            train_days=args.train_days,
+            test_days=args.test_days,
+            step_days=args.step_days,
+            progress=lambda message: _log_line(f"walk-forward: {message}"),
+        )
+        persist_report(strategy, payload)
+
+        head = payload["head_to_head"]
+        _log_line(
+            f"walk-forward: strategy={strategy} "
+            f"symbols={payload['config']['symbols_tested']} "
+            f"paired_windows={head['paired_windows']} "
+            f"median_excess={head['median_paired_excess_return']} "
+            f"pct_symbols_beating_bh={head['pct_symbols_beating_buy_hold']} "
+            f"errors={len(payload['errors'])} "
+            f"elapsed={payload['elapsed_seconds']}s"
+        )
+        print(format_summary(payload))
+        results.append(
+            {
+                "strategy": strategy,
+                "symbols_tested": payload["config"]["symbols_tested"],
+                "paired_windows": head["paired_windows"],
+                "median_paired_excess_return": head["median_paired_excess_return"],
+                "pct_symbols_beating_buy_hold": head["pct_symbols_beating_buy_hold"],
+                "errors": len(payload["errors"]),
+                "elapsed_seconds": payload["elapsed_seconds"],
+            }
+        )
+
+    return {"reports": results}
+
+
 JOBS = {
     "eod": run_eod,
     "universe-forecast": run_universe_forecast,
     "quality-gate": run_quality_gate,
+    "walk-forward": run_walk_forward,
 }
 
 
@@ -172,7 +254,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "job",
         choices=sorted(JOBS),
-        help="The job to run: eod, universe-forecast, quality-gate",
+        help="The job to run: eod, universe-forecast, quality-gate, walk-forward",
     )
     parser.add_argument(
         "--model",
@@ -183,6 +265,47 @@ def main(argv: list[str] | None = None) -> int:
             "'linear_regression,arima,lstm'. A symbol without a trained "
             "model for one of them gets no row for that model."
         ),
+    )
+    parser.add_argument(
+        "--strategy",
+        default="ma_crossover",
+        help=(
+            "The strategy(ies) the walk-forward report covers. "
+            "Comma-separated, e.g. 'ma_crossover,rsi_strategy'."
+        ),
+    )
+    parser.add_argument(
+        "--per-exchange",
+        type=int,
+        default=8,
+        help=(
+            "How many symbols the walk-forward report takes from EVERY "
+            "exchange. 8 measured 102 symbols in 75.5 s on 18/11/2026."
+        ),
+    )
+    parser.add_argument(
+        "--limit",
+        type=int,
+        default=0,
+        help="Sample N symbols from the whole universe (walk-forward only).",
+    )
+    parser.add_argument(
+        "--train-days",
+        type=int,
+        default=365,
+        help="Walk-forward training window length in days.",
+    )
+    parser.add_argument(
+        "--test-days",
+        type=int,
+        default=90,
+        help="Walk-forward test window length in days.",
+    )
+    parser.add_argument(
+        "--step-days",
+        type=int,
+        default=90,
+        help="How far each walk-forward window slides, in days.",
     )
     parser.add_argument(
         "--provider",

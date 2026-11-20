@@ -1,0 +1,155 @@
+{
+  "deck": "01-lakehouse-architecture",
+  "notes": [
+    {
+      "term": "Medallion Architecture là gì và project này dùng mấy tầng?",
+      "answer": "Kiến trúc **Medallion** chia dữ liệu thành các tầng lớp dần chất lượng tăng dần, mỗi tầng kiểm soát tầng trước đó.\n\nProject dùng **3 tầng**:\n\n- **Bronze** - dữ liệu thô (raw OHLCV) giữ nguyên schema của nguồn, append-only, có cột `source` và `ingestion_time` để truy vết.\n- **Silver** - dữ liệu đã làm sạch: UTC chuẩn hóa, OHLC hợp lệ, khử trùng lặp, gộp 1 bar/phiên.\n- **Gold** - dữ liệu sẵn sàng phân tích: đặc trưng kỹ thuật + nâng cao + macro + tín hiệu tổng hợp + nhãn mục tiêu (`target`).\n\nLuồng bắt buộc: `Provider thật → Bronze → Silver → Gold → API → UI`. UI không được cắt ngang bước nào.\n\n> Tầng Gold là hợp đồng với mọi consumer: phân tích kỹ thuật, mô hình ML/DL, backtesting, dashboard và AI Agent đều đọc cùng một nguồn.",
+      "code": "backend/app/lakehouse/{bronze,silver,gold}.py",
+      "tags": "lakehouse architecture medallion bronze silver gold"
+    },
+    {
+      "term": "Cấu trúc partition của dữ liệu trong MinIO là gì?",
+      "answer": "Dữ liệu được chia theo Hive-style partition: `symbol=<MA>/year=<YYYY>/month=<MM>/`.\n\nHệ quả trực tiếp:\n\n- Một mã daily 10 năm ≈ **121 partition tháng**.\n- Đọc \"6 tháng gần nhất\" chỉ cần 6 partition, thay vì tải cả 121 rồi vứt bỏ 115.\n- Tên partition sort **lexicographically** theo thứ tự thời gian (`year=2026/month=11`), nên sort ngược là mới nhất trước.\n\nĐịnh dạng lưu trữ là **Apache Parquet** (cột-oriented, nén, đọc được bằng pandas/pyarrow mà không cần Spark).",
+      "code": "backend/app/lakehouse/parquet_manager.py",
+      "tags": "lakehouse partition parquet minio storage"
+    },
+    {
+      "term": "Vì sao prefix phải có dấu gạch chéo kết thúc (`symbol=M/`)?",
+      "answer": "Vì MinIO/S3 prefix là **prefix dạng chuỗi**, không phải thư mục thật.\n\nThực tế: đọc với prefix `symbol=M` sẽ khớp luôn `symbol=MA/`, `symbol=MCD/`, `symbol=META/`... Kết quả đo được: đọc mã `M` đã âm thầm nối **51 ticker**, **5.801 partition**, **121.913 dòng** - và mọi consumer phía dưới (API, biểu đồ, chỉ báo) đều vẽ ra hỗn hợp đó.\n\nFix: `symbol_prefix()` luôn kết thúc bằng `/` để dừng đúng ở ranh giới thư mục.\n\n> Đây là loại bug \"số đúng nhưng sai nguồn\" - nguy hiểm hơn nhiều so với lỗi hiển thị, vì mọi thứ vẫn chạy.",
+      "code": "backend/app/lakehouse/bronze.py:symbol_prefix",
+      "tags": "lakehouse partition prefix minio bug"
+    },
+    {
+      "term": "Schema chuẩn của tầng Bronze gồm những cột nào?",
+      "answer": "`BRONZE_SCHEMA` định nghĩa 10 cột:\n\n- `symbol` (string, chuẩn hóa uppercase)\n- `timestamp` (datetime64[ns, UTC])\n- `open`, `high`, `low`, `close`, `adj_close`, `volume` (float64)\n- `source` (string) - nhà cung cấp thật đã sinh ra dòng này\n- `ingestion_time` (datetime64[ns, UTC])\n\n`validate_schema()` ép kiểu: symbol -> str.upper, timestamp -> UTC, các cột số -> `pd.to_numeric(errors='coerce')`.\n\n> Cột `source` là bắt buộc: mọi dòng trong Bronze phải truy vết được về một sàn giao dịch thật. Không có ngoại lệ.",
+      "code": "backend/app/lakehouse/bronze.py:BRONZE_SCHEMA",
+      "tags": "bronze schema raw ingestion lineage"
+    },
+    {
+      "term": "Bronze là append-only nghĩa là gì và vì sao quan trọng?",
+      "answer": "Bronze **chỉ thêm, không sửa và không xoá** dữ liệu đã có. Khi có bản ghi mới, tệp partition được đọc lại, hợp nhất, khử trùng và ghi đè.\n\nÝ nghĩa:\n\n- Giữ được **dấu vết nguồn**: dữ liệu thô luôn còn nguyên để kiểm chứng lại.\n- Cho phép **replay**: nếu logic Silver sai, dựng lại từ Bronze mà không cần gọi provider lần nữa.\n- Một lỗi ở tầng trên không thể **phá hủy** dữ liệu gốc.\n\nĐổi lại: Bronze **không** phải tầng để query trực tiếp cho người dùng - nó là đầu vào của Silver.",
+      "code": "backend/app/lakehouse/bronze.py:BronzeLayer.append",
+      "tags": "bronze append-only immutability replay"
+    },
+    {
+      "term": "`new_records` và `updated_records` khác nhau thế nào trong Bronze?",
+      "answer": "Đây là hai khái niệm tách biệt, và việc tách là một bug fix đã được sửa.\n\n- **`new_records`** = partition **lớn thêm** bao nhiêu dòng. Đo lường **sự tăng trưởng**.\n- **`updated_records`** = bao nhiêu dòng **đã tồn tại** nhưng bị nhà cung cấp **sửa lại giá** (restatement).\n\nVì sao phải tách: khi Yahoo sửa `ADS.DE` ngày 2026-11-03 từ 168.85 xuống 168.10, partition **không lớn thêm** dòng nào. Auto-refresh chỉ nhìn `new_rows > 0` nên kết luận \"không có gì mới\", không rebuild Silver/Gold. Silver và Gold giữ mãi giá 168.85 và web phục vụ nó mãi mãi.\n\n> Vấn đề không phải là thiếu dữ liệu - mà là dữ liệu **đúng nhưng sai thời điểm**, một dạng bịa dữ liệu tinh vi mà rule \"no fake data\" phải chặn.",
+      "code": "backend/app/lakehouse/bronze.py:_count_restated_rows",
+      "tags": "bronze restatement updated_records new_records refresh"
+    },
+    {
+      "term": "Restatement được phát hiện bằng so sánh tương đối hay tuyệt đối?",
+      "answer": "**Tương đối**, với ngưỡng `1e-6` - cùng ngưỡng mà script kiểm chứng dùng, nên \"restated\" ở đây có nghĩa **đúng như** mismatch ở kia.\n\nCông thức: `|new - old| / max(|old|, 1e-9) > 1e-6`.\n\nVì sao không dùng ngưỡng tuyệt đối:\n\n- Với cổ phiếu sub-dollar (ACH ở 0.21 USD), chênh lệch 1e-9 tuyệt đối đã là 5e-9 tương đối - tức là \"thay đổi\" dù chỉ là nhiễu float.\n- Với cổ phiếu VND (VCB ở 54.200), cùng chênh lệch tuyệt đối đó chỉ là 2e-14 tương đối - nhiễu float, **không phải** sửa đổi.\n\n> Cùng một ngưỡng tuyệt đối sẽ cho hai kết luận đối lập trên hai thị trường có thang giá khác nhau gấp 250.000 lần.",
+      "code": "backend/app/lakehouse/bronze.py:_count_restated_rows",
+      "tags": "bronze restatement relative tolerance float"
+    },
+    {
+      "term": "Bronze khử trùng lặp bằng hai lớp - vì sao cần hai?",
+      "answer": "**Lớp 1 - trùng timestamp chính xác.** `drop_duplicates(subset=['symbol','timestamp'], keep='last')`.\n\n**Lớp 2 - trùng cùng một bar nhưng khác timestamp** (`dedupe_same_bars`).\n\nLý do cần lớp 2: hai provider có thể mô tả **cùng một phiên** dưới hai timestamp khác nhau (`yfinance_eod` đóng dấu 04:00Z, `yahoo_http` đóng dấu 13:30Z). Lớp 1 không bắt được, và bản copy thứ hai vẫn sống sót - chiếm **hai ô** trong mọi cửa sổ trượt phía dưới.\n\nKhử trùng theo **payload giá** vẫn giữ được tick intraday thật: AAPL ngày 2026-10-13 có 13 tick thật với giá khác nhau, tất cả đều sống sót.",
+      "code": "backend/app/lakehouse/dedupe.py:dedupe_same_bars",
+      "tags": "bronze dedupe duplicate same bar timestamp"
+    },
+    {
+      "term": "Ba loại đếm bản ghi mà Bronze trả về khác nhau thế nào?",
+      "answer": "Metadata của `append()` trả về 4 con số, mỗi con một ý nghĩa riêng:\n\n- `records_received` - số dòng đã qua sàng lọc plausibility và được nhận.\n- `records_written` - số dòng trong **batch đầu vào** (kể cả dòng đã có sẵn rồi bị dedupe đi).\n- `new_records` - số dòng **thực sự mới** của partition sau dedupe (đo lường **tăng trưởng**).\n- `updated_records` - số dòng **restate** (đã tồn tại nhưng giá bị sửa).\n\nSự phân biệt này quyết định hành vi auto-refresh: chỉ khi `new_records > 0` **hoặc** `updated_records > 0` thì mới rebuild Silver/Gold.\n\n> Nếu báo cáo `records_written` làm tín hiệu, mỗi lần refresh với overlap 5 ngày sẽ gọi rebuild cho **mọi** mã, mỗi rebuild ghi lại ~121 partition - tạo ~16s traffic MinIO/mã và làm UI vượt timeout 90s.",
+      "code": "backend/app/lakehouse/bronze.py:BronzeLayer.append",
+      "tags": "bronze metadata counters refresh trigger"
+    },
+    {
+      "term": "Vì sao Bronze lưu thêm file `_lineage.json` cho mỗi symbol?",
+      "answer": "Để **truy vết nguồn gốc** ngay tại tầng thô, không cần join với bảng metadata nào.\n\nFile `symbol=<MA>/_lineage.json` chứa metadata của lần append gần nhất: số bản ghi nhận/ghi/thêm mới/sửa, số trùng, lý do bị plausibility từ chối, danh sách partition đã ghi, lineage, thời điểm ingest và tên storage backend.\n\nTác dụng thực tế: khi có nghi vấn về một con số trên UI, có thể mở đúng file lineage của đúng mã đó để xem dữ liệu đến từ đâu, bị từ chối bao nhiêu dòng và bằng storage backend nào.\n\n> Nguyên tắc \"Real Data Only\" cần một cơ chế **chứng minh**, không chỉ một lời hứa.",
+      "code": "backend/app/lakehouse/bronze.py:BronzeLayer.append",
+      "tags": "bronze lineage metadata traceability"
+    },
+    {
+      "term": "Tầng Silver thực hiện những bước làm sạch nào, theo đúng thứ tự?",
+      "answer": "Thứ tự trong `_transform_pandas()`:\n\n1. Chuẩn hóa kiểu dữ liệu (UTC, numeric, symbol uppercase)\n2. Đếm trùng timestamp chính xác **trên frame gốc** (trước khi xoá dòng nào)\n3. Khử trùng cùng-bar (`dedupe_same_bars`) - bắt trường hợp provider đóng dấu lại phiên\n4. `drop_duplicates` theo `(symbol, timestamp)`\n5. Phát hiện lỗi: missing, **invalid_ohlc**, invalid_volume\n6. Ghi các dòng lỗi vào `_errors/` kèm `error_reason`\n7. **Canonicalize** về 1 bar/phiên giao dịch\n8. Sort + reset index, sinh quality report\n\n> Bước 7 đứng **sau** bước 5 là cố ý. Nếu canonicalize trước, một ngày mà tick duy nhất thiếu volume sẽ bị cộng thành bar có volume hợp lệ và lọt qua - đồng thời bộ đếm từ chối sẽ báo 0 lỗi.",
+      "code": "backend/app/lakehouse/silver.py:SilverLayer._transform_pandas",
+      "tags": "silver cleaning validation pipeline order"
+    },
+    {
+      "term": "Quy tắc OHLC hợp lệ của tầng Silver là gì?",
+      "answer": "Một dòng bị coi là `invalid_ohlc` nếu vi phạm bất kỳ điều kiện nào:\n\n- `high >= open`\n- `high >= close`\n- `low <= open`\n- `low <= close`\n- `high >= low`\n\nTức là giá đóng cửa và giá mở cửa phải nằm **bên trong** khoảng `[low, high]`. Đây là bất biến của thị trường: không thể có giá cao nhất thấp hơn giá thấp nhất.\n\nDòng vi phạm không bị xoá âm thầm - nó được ghi ra `_errors/errors_<timestamp>.parquet` kèm cột `error_reason` để truy vết.",
+      "code": "backend/app/lakehouse/silver.py:SilverLayer._transform_pandas",
+      "tags": "silver ohlc validation invalid rule"
+    },
+    {
+      "term": "Tại sao phải gộp về đúng 1 bar mỗi phiên giao dịch?",
+      "answer": "Lakehouse là **single-interval** (chỉ daily). Một ngày mang nhiều dòng không phải thông tin thêm - đó là **lỗi**:\n\n- Biểu đồ vẽ **hai nến cho một phiên**.\n- Mọi cửa sổ trượt đếm phiên đó **hai lần**, làm lệch SMA/RSI/MACD.\n- Phá vỡ các chỉ báo dựa trên `argmax` (Aroon, Stochastic, Williams %R, CCI) vì chúng tìm vị trí đỉnh trong cửa sổ.\n\nCách xử lý: ngày chỉ có dòng intraday được **aggregate** thành một bar (không xoá, không bịa), còn ngày có dữ liệu ngày thì giữ nguyên.\n\n> Đây là lý do `canonicalize_daily_sessions` phải chạy **sau** bước validate.",
+      "code": "backend/app/lakehouse/silver.py:SilverLayer._transform_pandas",
+      "tags": "silver session canonicalization one bar per day"
+    },
+    {
+      "term": "Quality report của tầng Silver chứa những trường nào?",
+      "answer": "Các trường chính:\n\n- `engine` - `pandas` hay `spark`\n- `record_count` / `source_count` - số dòng sau / trước xử lý\n- `duplicate_count` - trùng timestamp chính xác\n- `same_bar_count` - số dòng bị gộp vì cùng một bar\n- `duplicate_session_rows_dropped` / `intraday_days_aggregated` / `intraday_rows_aggregated`\n- `missing_count`, `invalid_ohlc_count`, `invalid_volume_count`, `error_count`\n- `min_timestamp`, `max_timestamp`\n- `quality_status` - `passed` / `warning` / `failed`\n\nReport được ghi vào `silver/symbol=<MA>/_quality.json` cho từng mã.\n\n> `quality_status` là `failed` khi frame hợp lệ rỗng, và `warning` khi có dòng invalid_ohlc.",
+      "code": "backend/app/lakehouse/silver.py:SilverLayer._transform_pandas",
+      "tags": "silver quality report metadata status"
+    },
+    {
+      "term": "Vì sao tầng Silver có 2 đường chạy Pandas và Spark?",
+      "answer": "Tùy biến môi trường. `transform()` chọn engine:\n\n- Nếu `spark_enabled()` -> `_transform_spark()`: Spark đảm nhiệm ép kiểu cột và dedupe timestamp.\n- Ngược lại -> `_transform_pandas()`: xử lý toàn bộ bằng pandas.\n\n**Ràng buộc quan trọng:** Spark chỉ làm ép kiểu + dedupe timestamp. Quy tắc **1 bar/phiên** được áp dụng trên frame đã collect về pandas (`canonicalize_daily_sessions`), để hai engine cho ra output **giống nhau từng byte**.\n\n> Nếu không, đường Spark vẫn sẽ phát ra hai nến cho một phiên - và một đường chạy sai là một đường sai âm thầm.",
+      "code": "backend/app/lakehouse/silver.py:SilverLayer._transform_spark",
+      "tags": "silver spark pandas engine parity"
+    },
+    {
+      "term": "Vì sao ghi partition của Silver chạy song song (concurrent)?",
+      "answer": "Một mã daily 10 năm bị chia thành **~121 partition tháng**. Ghi tuần tự tốn **2.87s** round-trip MinIO. Auto-refresh rebuild hàng trăm mã, nên thời gian serial đó chi phối toàn bộ lượt refresh.\n\nCác partition độc lập và idempotent (mỗi key được ghi đúng một lần), nên thread pool an toàn và cắt wall-clock xuống một phần nhỏ.\n\nCùng lý do đó áp dụng cho Gold: ghi serial tốn ~1.5s/mã (đo ngày 14/11/2026).\n\n> Song song ở đây là **I/O bound** - CPU ngồi chờ byte. Chạy song song gần như miễn phí.",
+      "code": "backend/app/lakehouse/parallel_write.py",
+      "tags": "silver gold concurrent write parallel minio"
+    },
+    {
+      "term": "Tham số `changed_since` giải quyết vấn đề gì?",
+      "answer": "Vấn đề **ghi lại nội dung không đổi**.\n\nPhép biến đổi của Silver là **row-local** (khử trùng, gộp phiên) và mọi đặc trưng của Gold là **causal** (chỉ nhìn về quá khứ). Nên khi có một bar mới ở cuối lịch sử, kết quả cho mọi phiên trước đó là **y hệt** - ghi lại chúng là lãng phí thuần.\n\n`changed_since` là phiên sớm nhất có thể đã thay đổi. Chỉ các partition từ tháng đó trở đi được ghi. Truyền `None` nghĩa là ghi hết - đúng những gì một full backfill cần.\n\n> Cùng cơ chế này giữ cho `frame_cache` phải bị invalidate sau khi ghi, vì bản cache đã cũ.",
+      "code": "backend/app/lakehouse/silver.py:SilverLayer.write",
+      "tags": "silver incremental changed_since partition"
+    },
+    {
+      "term": "Tầng Gold chứa những nhóm đặc trưng nào?",
+      "answer": "Gold là nơi **94 feature** được sinh ra. Các nhóm:\n\n- **Price features** - return, log return, biên độ, khoảng cách high-low\n- **Technical features** - SMA/EMA (5/10/20/50), RSI 14, MACD, Bollinger\n- **Advanced features** - Stochastic, CCI, Williams %R, ATR, Keltner, ADX, Aroon, OBV, VWAP, MFI, Ichimoku, Supertrend, các mẫu nến\n- **Macro features** - chỉ số vĩ mô (lãi suất, CPI, GDP...) đóng vào cùng frame\n- **Composite signals** - tín hiệu tổng hợp từ SMA + RSI + MACD, phân loại `trend_strength`\n- **Target** - nhãn mục tiêu, dùng `shift(-1)` để dự báo phiên kế tiếp\n\nTên đặc trưng phải **đúng như cột trong frame** vì mô hình lưu `feature_names` cùng với weights.",
+      "code": "backend/app/features/feature_engineering.py",
+      "tags": "gold features 94 indicators target"
+    },
+    {
+      "term": "Vì sao mọi đặc trưng Gold phải là causal (không nhìn về tương lai)?",
+      "answer": "Để tránh **look-ahead leakage** - dạng rò rỉ thông tin làm mô hình trông giỏi hơn thực tế.\n\nHai hệ quả cụ thể:\n\n1. Target dùng `shift(-1)`: nhãn của phiên t là giá đóng cửa của phiên t+1, được **dịch** để không trộn.\n2. Mọi cửa sổ trượt đều nhìn **về quá khứ** (`rolling` không có `center=True`).\n\nCòn nếu một đặc trưng nhìn tương lai, walk-forward sẽ cho kết quả đẹp giả và toàn bộ phần đánh giá mô hình trở nên vô nghĩa.\n\n> Đây cũng chính là lý do `shift(1)` được áp cho tín hiệu giao dịch: tín hiệu hôm nay chỉ được thực thi **ngày mai**.",
+      "code": "backend/app/features/target_features.py",
+      "tags": "gold causal features look-ahead leakage"
+    },
+    {
+      "term": "Phân biệt `read()`, `read_window()` và `read_newest()` trong các tầng?",
+      "answer": "Ba cách đọc với ba mục đích khác nhau, tất cả đều sinh ra từ cùng một vấn đề: **một mã 10 năm = ~121 partition**.\n\n- **`read(symbol)`** - đọc **toàn bộ** lịch sử qua `frame_cache`. Dùng cho pipeline, scoring, lịch giao dịch.\n- **`read_window(symbol, since, until)`** - chỉ đọc các partition có thể chứa khoảng ngày. **Không bao giờ cache**, vì cache chứa lịch sử *đầy đủ*; lưu frame một phần dưới key của symbol sẽ khiến mọi reader sau tưởng symbol chỉ có vài dòng đó.\n- **`read_newest(symbol)`** - đọc **một** partition mới nhất. Đo ngày 14/11/2026: tape 10 mã mất 11.7s khi lạnh vì mỗi quote kéo cả lịch sử; đọc partition mới nhất chỉ cần 1 listing + 1 download.",
+      "code": "backend/app/lakehouse/gold.py:GoldLayer.read_window",
+      "tags": "lakehouse read window newest partition performance"
+    },
+    {
+      "term": "Tại sao `symbol_prefix` được dùng ở cả Bronze, Silver và Gold?",
+      "answer": "Vì cả ba tầng dùng **cùng một cách tổ chức partition** (`symbol=<MA>/year=.../month=...`), nên một hàm tạo prefix dùng chung đảm bảo:\n\n- Không tầng nào lệch quy ước -> không có lớp nào đọc nhầm tầng khác.\n- Dấu `/` kết thúc được áp dụng đồng nhất -> lỗi prefix nối chuỗi không thể xảy ra ở bất kỳ tầng nào.\n\nHàm được định nghĩa **một lần** trong `bronze.py` và được import sang `silver.py`, `gold.py`.\n\n> Chuẩn hóa là loại công việc không có tính trí, nhưng thiếu nó sẽ tạo ra những bug rất khó nhìn thấy.",
+      "code": "backend/app/lakehouse/bronze.py:symbol_prefix",
+      "tags": "lakehouse shared prefix convention"
+    },
+    {
+      "term": "Hai storage backend của hệ thống và khi nào dùng backend nào?",
+      "answer": "Hệ thống có `StorageBackend` abstraction với 2 hiện thực:\n\n- **MinIO** (mặc định): S3-compatible, bucket `stock-bronze`, `stock-silver`, `stock-gold`, `stock-models`, `stock-backtests`. Dùng khi `STORAGE_BACKEND=minio`.\n- **Local** (fallback): Parquet trên filesystem tại `backend/data/<layer>/symbol=.../`. Dùng khi `STORAGE_BACKEND=local`.\n\nQuy tắc: backend local là **đường lùi thật**, không phải lý do để bịa dữ liệu. Khi MinIO chết thì phải báo cáo trung thực endpoint nào lỗi - **không** dựng server giả.\n\n> Bộ backend được chọn qua `storage_factory.get_storage_backend()`.",
+      "code": "backend/app/lakehouse/storage_factory.py",
+      "tags": "storage backend minio local fallback"
+    },
+    {
+      "term": "Bucket nào chứa dữ liệu gì trong MinIO?",
+      "answer": "Theo layer và loại sản phẩm:\n\n- `stock-bronze` - dữ liệu thô + `_quality/rejected_rows.json` + `_lineage.json`\n- `stock-silver` - dữ liệu đã làm sạch + `_errors/` + `_quality.json`\n- `stock-gold` - đặc trưng + nhãn mục tiêu\n- `stock-models` - artifact mô hình (`lstm.pt`, `scalers.joblib`, `metadata.json`, `arima_result.pkl`)\n- `stock-backtests` - kết quả backtest\n- `stock-fundamentals` - dữ liệu cơ bản (báo cáo tài chính)\n\nĐếm số object thật bằng `list_objects` / `count_objects` - **không** dùng con số ghi trong response mà không truy vết được.",
+      "code": "backend/app/lakehouse/minio_storage.py",
+      "tags": "minio buckets storage layout"
+    },
+    {
+      "term": "`frame_cache` giải quyết bottleneck nào?",
+      "answer": "Đọc toàn bộ lịch sử một mã 10 năm (121 partition Parquet) từ MinIO tốn **~0.5s** (đo 13/11/2026). Lượt đêm đọc **973 mã**, nên phần đọc chiếm **~90%** chi phí của lượt.\n\nCache biến các lần đọc lặp thành tra cứu bộ nhớ: lượt dự báo, lượt scoring và lịch giao dịch đều làm việc trên **cùng một frame**.\n\nCơ chế làm mới: khi auto-refresh ghi lại một symbol, entry cache của symbol đó bị **invalidate** ngay - bản frame mới thay bản cũ thay vì chờ TTL hết hạn.\n\n> Ràng buộc quan trọng: **cửa sổ có giới hạn không bao giờ được cache**.",
+      "code": "backend/app/lakehouse/frame_cache.py",
+      "tags": "frame cache performance minio read"
+    },
+    {
+      "term": "Ba tầng Lakehouse phục vụ những consumer nào?",
+      "answer": "Tầng Gold là đầu ra duy nhất cho phần lớn consumer:\n\n- **Phân tích kỹ thuật** - SMA/EMA/RSI/MACD/Bollinger/ATR/ADX/Ichimoku\n- **Dự báo** - Linear Regression, ARIMA, LSTM\n- **Backtesting** - MA Crossover, RSI Strategy, baseline mua & giữ, walk-forward\n- **AI Agent** - tool calling vào backend thật\n- **Dashboard / UI** - biểu đồ, watchlist, metric card\n\nBronze và Silver là **đầu vào** của Gold và là đối tượng của các kiểm tra chất lượng (quality gate so sánh 3 tầng), không phải nơi UI đọc trực tiếp.",
+      "code": "backend/app/lakehouse/gold.py",
+      "tags": "gold consumers ta forecasting backtesting agent"
+    }
+  ]
+}

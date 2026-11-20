@@ -1,0 +1,70 @@
+{
+  "success": true,
+  "data": {
+    "series": [
+      {
+        "symbol": "PVE",
+        "model_name": "linear_regression",
+        "target_session": "2025-08-29",
+        "reference_close": null,
+        "predicted_close": 2597.71,
+        "actual_close": 2700.0,
+        "abs_error": 102.286,
+        "error_pct": null,
+        "direction_correct": null,
+        "source": "backfill_walk_forward",
+        "data_staleness_days": null,
+        "scored_at": "2026-11-13T04:08:40"
+      }
+    ],
+    "summary": {
+      "verified": 45733,
+      "mae": 337.6094886815329,
+      "mean_error_pct": 0.004309412107459656,
+      "directional_accuracy": 0.506,
+      "first_session": "2025-09-05",
+      "last_session": "2026-11-18",
+      "wape": 2.762981773703667,
+      "excluded_impossible": 0,
+      "staleness_measured": 6,
+      "staleness_unrecorded": 45727,
+      "stale_forecasts": 0,
+      "max_staleness_days": 0,
+      "median_error_pct": 0.0114838
+    },
+    "published_summary": {
+      "verified": 1317,
+      "mae": 492.9183149991328,
+      "mean_error_pct": 0.003572212791495823,
+      "median_error_pct": 0.00973269,
+      "wape": 3.6672325252776767,
+      "directional_accuracy": 0.46319018404907975,
+      "first_session": "2026-11-10",
+      "last_session": "2026-11-18",
+      "excluded_impossible": 0,
+      "staleness_measured": 6,
+      "staleness_unrecorded": 1311,
+      "stale_forecasts": 0,
+      "max_staleness_days": 0
+    },
+    "per_model": [
+      {
+        "model_name": "linear_regression",
+        "verified": 45616,
+        "mae": 334.19023739633866,
+        "mean_error_pct": 0.004312487677826835,
+        "directional_accuracy": 0.5058,
+        "first_session": "2025-09-05",
+        "last_session": "2026-11-18",
+        "wape": 2.748487388537762,
+        "excluded_impossible": 0,
+        "staleness_measured": 2,
+        "staleness_unrecorded": 45614,
+        "stale_forecasts": 0,
+        "max_staleness_days": 0,
+        "median_error_pct": 0.0114846
+      }
+    ]
+  },
+  "message": null
+}

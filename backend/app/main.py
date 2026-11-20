@@ -142,7 +142,7 @@ async def lifespan(_app: FastAPI):
 app = FastAPI(
     title=settings.app_name,
     description=(
-        "Nền tảng Data Lakehouse phân tích và dự báo chứng khoán phục vụ nghiên cứu học thuật. "
+        "StockVision AI — nền tảng phân tích thị trường và dự báo chứng khoán. "
         "Kết quả không phải khuyến nghị đầu tư và không cam kết lợi nhuận."
     ),
     version="1.0.0",
@@ -216,5 +216,5 @@ def root() -> dict:
             "docs": "/docs",
             "api": settings.api_prefix,
         },
-        "message": "Research prototype. Not investment advice.",
+        "message": "Stock analytics and forecasting. Not investment advice.",
     }

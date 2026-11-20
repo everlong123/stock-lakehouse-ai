@@ -15,9 +15,11 @@ export interface ForecastResponse {
    *   chart, so the number describes the curve below it.
    * - "training_split" - the metrics recorded when the model was trained.
    */
-  metrics_source?: "chart_holdout" | "training_split";
+  metrics_source?: "chart_holdout" | "training_split" | "unavailable_independent_evaluation";
   parameters?: Record<string, unknown> | string | null;
   predictions: ForecastPoint[];
+  forecast_available?: boolean;
+  forecast_reason?: string | null;
 }
 
 export interface ModelMetrics {
@@ -99,6 +101,7 @@ export interface AccuracySummary {
 }
 
 export interface AccuracyResponse {
+  publication_timing?: { published_scored: number; timing_unknown: number; published_late: number; verified_before_target: number };
   series: VerifiedForecast[];
   summary: AccuracySummary;
   /**

@@ -99,10 +99,10 @@ class DashboardService:
         if "rsi_14" in history.columns and pd.notna(last["rsi_14"]):
             rsi_value = float(last["rsi_14"])
         summary = describe_indicators(last) if "sma_20" in history.columns else {}
-        # 2500 daily bars ≈ 10 years of trading days, which is the full
-        # lookback supported by the data sources. The previous cap of 250
-        # only returned ~1 year, so long-term trends (2016-2026) were hidden.
-        candles = self.market.to_records(history, limit=2500)
+        # The requested window already bounds the frame. Preserve every
+        # session in it: even ten years can exceed 2500 daily bars, and
+        # silently trimming the front makes the chart's "All" range false.
+        candles = self.market.to_records(history, limit=0)
         prediction = None
         models = list_trained_models(symbol)
         if models:
@@ -261,6 +261,6 @@ class DashboardService:
             "counts": self._layer_counts(symbol),
             "data_source": settings.data_source,
             "disclaimer": (
-                "This dashboard is a research prototype. Forecasts and backtests are not investment advice."
+                "Analysis, forecasts, and backtests are for information only, not investment advice."
             ),
         }

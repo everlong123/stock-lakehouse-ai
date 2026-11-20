@@ -39,9 +39,12 @@ from typing import Any
 
 import pandas as pd
 
+from app.core.data_integrity import describe_impossible_price, is_impossible_price
+from app.core.exceptions import PredictionError
 from app.core.logging_config import get_logger
 from app.forecasting import sessions
 from app.forecasting.model_registry import load_model, load_registry_record
+from app.lakehouse.exchange_timezone import session_day_of
 
 logger = get_logger(__name__)
 
@@ -56,7 +59,7 @@ def _reference_close(gold: pd.DataFrame) -> float | None:
     return float(closes.iloc[-1])
 
 
-def session_date(timestamp: Any) -> Any:
+def session_date(timestamp: Any, symbol: str | None = None) -> Any:
     """The trading day a forecast timestamp belongs to."""
     if not timestamp:
         return None
@@ -64,7 +67,7 @@ def session_date(timestamp: Any) -> Any:
         stamp = pd.Timestamp(timestamp)
         if stamp.tzinfo is None:
             stamp = stamp.tz_localize("UTC")
-        return stamp.date()
+        return session_day_of(stamp, symbol)
     except Exception:  # noqa: BLE001
         return None
 
@@ -112,7 +115,8 @@ def staleness_days(gold: pd.DataFrame, target_session: Any) -> int | None:
         if target.tzinfo is None:
             target = target.tz_localize("UTC")
         target_day = target.date()
-        latest_day = latest.date()
+        symbol = str(gold["symbol"].iloc[-1]) if "symbol" in gold.columns else None
+        latest_day = session_day_of(latest, symbol)
     except Exception:  # noqa: BLE001
         return None
 
@@ -171,16 +175,19 @@ def future_series(
         return []
 
     if model_name == "arima":
-        return _arima_future(symbol, gold, horizon)
+        points = _arima_future(symbol, gold, horizon)
+    else:
+        from app.forecasting.multistep import forecast_ahead
 
-    from app.forecasting.multistep import forecast_ahead
-
-    model = load_model(symbol, model_name)
-    try:
-        return forecast_ahead(model, gold, model_name, horizon)
-    except Exception as exc:  # noqa: BLE001
-        logger.warning("Light forecast failed for %s/%s: %s", symbol, model_name, exc)
-        return []
+        model = load_model(symbol, model_name)
+        points = forecast_ahead(model, gold, model_name, horizon)
+    reference = _reference_close(gold)
+    if points and len(points) != horizon:
+        raise PredictionError(f"Requested {horizon} future sessions, but only {len(points)} points were available.")
+    for point in points:
+        if is_impossible_price(point.get("predicted"), reference):
+            raise PredictionError(describe_impossible_price(point.get("predicted"), reference))
+    return points
 
 
 def next_point(
@@ -207,7 +214,14 @@ def next_point(
     point = series[0]
     reference = _reference_close(gold)
     predicted = float(point["predicted"])
-    target = session_date(point.get("timestamp"))
+    target = session_date(point.get("timestamp"), symbol)
+    lag = staleness_days(gold, target)
+    if lag is not None and lag > 0:
+        return {
+            "available": False,
+            "reason": f"Input data is {lag} trading session(s) behind. Refresh the data before forecasting.",
+            "data_staleness_days": lag,
+        }
     return {
         "available": True,
         "symbol": symbol.upper(),
@@ -220,10 +234,13 @@ def next_point(
             (predicted - reference) / reference if reference else None
         ),
         "horizon": horizon,
+        "target_open_at": pd.to_datetime(point["timestamp"], utc=True).to_pydatetime().replace(tzinfo=None),
+        "input_data_end": pd.to_datetime(gold["timestamp"], utc=True).max().to_pydatetime().replace(tzinfo=None),
+        "model_version": load_registry_record(symbol, model_name).get("model_version"),
         # How many trading sessions of history were missing when this
         # forecast was made. 0 means the data was current. See
         # `staleness_days` for why this is counted in sessions.
-        "data_staleness_days": staleness_days(gold, target),
+        "data_staleness_days": lag,
     }
 
 
@@ -253,7 +270,7 @@ def _arima_future(
             try:
                 model.extend(unseen["close"].to_numpy(dtype=float))
             except Exception as exc:  # noqa: BLE001
-                logger.warning("Could not extend the ARIMA model for %s: %s", symbol, exc)
+                raise PredictionError(f"Could not update ARIMA with the latest observations for {symbol}: {exc}") from exc
 
     try:
         predicted = model.predict(list(range(horizon)))
@@ -289,7 +306,7 @@ def _arima_future(
 
 def _fitted_through(registry: dict[str, Any]) -> pd.Timestamp | None:
     """The last session the ARIMA model was fitted on."""
-    value = registry.get("train_end")
+    value = registry.get("fitted_through") or registry.get("train_end")
     if not value:
         return None
     try:

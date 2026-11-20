@@ -90,6 +90,29 @@ function Wait-Port {
     return $false
 }
 
+function Wait-Ready {
+    param([int]$TimeoutSec = 120)
+    $sw = [System.Diagnostics.Stopwatch]::StartNew()
+    $lastError = "API not responding"
+    while ($sw.Elapsed.TotalSeconds -lt $TimeoutSec) {
+        try {
+            $health = Invoke-RestMethod -Uri "http://127.0.0.1:8000/api/v1/health" -TimeoutSec 5
+            $status = Invoke-RestMethod -Uri "http://127.0.0.1:8000/api/v1/system/status" -TimeoutSec 10
+            $storage = Invoke-RestMethod -Uri "http://127.0.0.1:8000/api/v1/pipeline/storage/status" -TimeoutSec 10
+            if ($health.data.status -eq "ok" -and $status.data.mysql.status -eq "connected" -and $storage.available) {
+                Write-Host "  [OK] API, MySQL and storage are ready" -ForegroundColor Green
+                return $true
+            }
+            $lastError = "MySQL=$($status.data.mysql.status), storage=$($storage.available)"
+        } catch {
+            $lastError = $_.Exception.Message
+        }
+        Start-Sleep -Seconds 2
+    }
+    Write-Host "  [FAIL] Backend dependencies are not ready: $lastError" -ForegroundColor Red
+    return $false
+}
+
 function Start-Window {
     param(
         [string]$Title,
@@ -109,7 +132,7 @@ function Start-Window {
 
 Write-Host ""
 Write-Host "============================================" -ForegroundColor Cyan
-Write-Host "  Stock Lakehouse AI - Dev Stack Launcher  " -ForegroundColor Cyan
+Write-Host "  StockVision AI - Dev Stack Launcher  " -ForegroundColor Cyan
 Write-Host "============================================" -ForegroundColor Cyan
 Write-Host "  Backend:  http://127.0.0.1:$backendPort"      -ForegroundColor Gray
 Write-Host "  Frontend: http://127.0.0.1:$frontendPort"     -ForegroundColor Gray
@@ -123,7 +146,8 @@ if (-not (Test-Path $venvPy)) {
 }
 
 if (-not (Test-Path (Join-Path $frontend "node_modules"))) {
-    Write-Host "[WARN] frontend/node_modules missing. Run 'npm install' in frontend/ first." -ForegroundColor Yellow
+    Write-Host "[ERROR] frontend/node_modules missing. Run 'npm install' in frontend/ first." -ForegroundColor Red
+    exit 1
 }
 
 Stop-Existing
@@ -154,11 +178,6 @@ if ($keepalive -and $keepalive.State -eq "Ready") {
 # its own - but the run is much more useful right after the stack starts, so
 # the launcher triggers it here too. The task itself is Hidden and runs under
 # pythonw.exe, so nothing pops up on screen.
-$dailyRefresh = Get-ScheduledTask -TaskName "Stock-LH-DailyRefresh" -ErrorAction SilentlyContinue
-if ($dailyRefresh -and $dailyRefresh.State -ne "Running") {
-    Write-Host "[refresh] Triggering 'Stock-LH-DailyRefresh'..." -ForegroundColor Cyan
-    Start-ScheduledTask -TaskName "Stock-LH-DailyRefresh" -ErrorAction SilentlyContinue | Out-Null
-}
 
 # ---- Bring the infra containers back up ----
 # `docker compose stop` marks a container as manually stopped, so
@@ -225,38 +244,56 @@ if (Wait-Job $job -Timeout 180) {
         Write-Host "  [OK] Infra containers up." -ForegroundColor Green
     } else {
         $res | ForEach-Object { $_.Output } | ForEach-Object { Write-Host "  $_" -ForegroundColor DarkGray }
-        Write-Host "  [WARN] compose up returned exit $code - continuing; the backend will report what it cannot reach." -ForegroundColor Yellow
+        Write-Host "  [FAIL] compose up returned exit $code." -ForegroundColor Red
+        exit 1
     }
 } else {
     Stop-Job $job -ErrorAction SilentlyContinue
     Remove-Job $job -Force
-    Write-Host "  [WARN] compose up timed out after 180s." -ForegroundColor Yellow
+    Write-Host "  [FAIL] compose up timed out after 180s." -ForegroundColor Red
+    exit 1
 }
+
+$ipResult = Invoke-Compose -Command "hostname -I" -TimeoutSec 20
+$wslHostIp = (($ipResult.Output -join " ") -split '\s+' | Where-Object { $_ -match '^\d+\.\d+\.\d+\.\d+$' } | Select-Object -First 1)
+if ($ipResult.ExitCode -ne 0 -or -not $wslHostIp) {
+    Write-Host "  [FAIL] Cannot determine the current WSL IP address." -ForegroundColor Red
+    exit 1
+}
+Write-Host "  [OK] WSL host address: $wslHostIp" -ForegroundColor Green
 
 # ---- Start backend in its own persistent cmd window ----
 Write-Host "[1/2] Starting backend (uvicorn on :$backendPort)..." -ForegroundColor Cyan
-$backendCmd = "cd /d `"$backend`" && title Stock-LH Backend :$backendPort && `"$venvPy`" -m uvicorn app.main:app --host 127.0.0.1 --port $backendPort"
+$backendCmd = "cd /d `"$backend`" && set `"STOCK_LH_WSL_IP=$wslHostIp`" && title Stock-LH Backend :$backendPort && `"$venvPy`" -m uvicorn app.main:app --host 127.0.0.1 --port $backendPort"
 Start-Window -Title "Stock-LH-Backend" -Command $backendCmd
 
 # ---- Start frontend in its own persistent cmd window ----
 Write-Host "[2/2] Starting frontend (vite on :$frontendPort)..." -ForegroundColor Cyan
-$frontendCmd = "cd /d `"$frontend`" && title Stock-LH Frontend :$frontendPort && npm run dev"
+$frontendCmd = "cd /d `"$frontend`" && title Stock-LH Frontend :$frontendPort && npm run dev -- --strictPort"
 Start-Window -Title "Stock-LH-Frontend" -Command $frontendCmd
 
 Write-Host ""
 Write-Host "[wait] Waiting for services to come up..." -ForegroundColor Yellow
-$backendUp  = Wait-Port -Port $backendPort  -Name "Backend"  -TimeoutSec 30 -ExpectProcess "python"
+$backendUp  = Wait-Port -Port $backendPort  -Name "Backend"  -TimeoutSec 120 -ExpectProcess "python"
 $frontendUp = Wait-Port -Port $frontendPort -Name "Frontend" -TimeoutSec 45 -ExpectProcess "node"
+$backendReady = $false
+if ($backendUp) { $backendReady = Wait-Ready }
 
 Write-Host ""
-if ($backendUp -and $frontendUp) {
+if ($backendReady -and $frontendUp) {
     Write-Host "All services are up." -ForegroundColor Green
+    $dailyRefresh = Get-ScheduledTask -TaskName "Stock-LH-DailyRefresh" -ErrorAction SilentlyContinue
+    if ($dailyRefresh -and $dailyRefresh.State -ne "Running") {
+        Write-Host "[refresh] Triggering 'Stock-LH-DailyRefresh'..." -ForegroundColor Cyan
+        Start-ScheduledTask -TaskName "Stock-LH-DailyRefresh" -ErrorAction SilentlyContinue | Out-Null
+    }
     Write-Host "  - Open http://127.0.0.1:$frontendPort in your browser" -ForegroundColor Green
     Write-Host "  - Stop: run .\stop-all.ps1  (or close the 2 cmd windows)" -ForegroundColor Green
 } else {
     Write-Host "Some services failed to start. Check the cmd windows for errors." -ForegroundColor Red
     Write-Host "  - Backend window:  Stock-LH-Backend"  -ForegroundColor Gray
     Write-Host "  - Frontend window: Stock-LH-Frontend" -ForegroundColor Gray
+    exit 1
 }
 Write-Host ""
 exit 0

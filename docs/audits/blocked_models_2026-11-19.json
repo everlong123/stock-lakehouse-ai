@@ -1,0 +1,26 @@
+[
+  {
+    "symbol": "MRNA",
+    "model": "linear_regression",
+    "reason": "MRNA cannot be trained on this window: suspected scale discontinuity (span 4.38x; the detector also checks local jumps). A reverse split, a provider unit change or an actual market jump requires investigation. Verify the source, re-ingest inconsistent data, or explicitly select a recent stable training window. No prices were altered.",
+    "archive": "data\\model_versions\\MRNA\\linear_regression\\blocked_d871ee20be5d4e0db956683ccb8105df"
+  },
+  {
+    "symbol": "PARA",
+    "model": "linear_regression",
+    "reason": "PARA cannot be trained on this window: suspected scale discontinuity (span 24.08x; the detector also checks local jumps). A reverse split, a provider unit change or an actual market jump requires investigation. Verify the source, re-ingest inconsistent data, or explicitly select a recent stable training window. No prices were altered.",
+    "archive": "data\\model_versions\\PARA\\linear_regression\\blocked_bd33fb591bc2405d91e789e1f34bdca2"
+  },
+  {
+    "symbol": "ACH",
+    "model": "linear_regression",
+    "reason": "ACH cannot be trained on this window: suspected scale discontinuity (span 2.81x; the detector also checks local jumps). A reverse split, a provider unit change or an actual market jump requires investigation. Verify the source, re-ingest inconsistent data, or explicitly select a recent stable training window. No prices were altered.",
+    "archive": "data\\model_versions\\ACH\\linear_regression\\blocked_2d175d3af0e14bd7a4a04c10e1d2f3c7"
+  },
+  {
+    "symbol": "EMBJ",
+    "model": "linear_regression",
+    "reason": "EMBJ cannot be trained on this window: suspected scale discontinuity (span 1.12x; the detector also checks local jumps). A reverse split, a provider unit change or an actual market jump requires investigation. Verify the source, re-ingest inconsistent data, or explicitly select a recent stable training window. No prices were altered.",
+    "archive": "data\\model_versions\\EMBJ\\linear_regression\\blocked_becab070ef424f1f851350c1e3abcafa"
+  }
+]

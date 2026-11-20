@@ -103,3 +103,11 @@ scratch_*.py
 # MySQL dumps (use proper migration instead)
 *_pre_refactor.sql
 *_dump.sql
+
+# Built Anki packages
+#
+# WHY: an .apkg is a ZIP holding a SQLite database - a binary blob that
+# only changes when the JSON content changes. The SOURCE (anki/content/*.json,
+# anki/deck_builder.py) is committed; the built artefact is regenerated with
+# `python anki/build_all.py` and is reproducible byte-for-byte from it.
+anki/build/

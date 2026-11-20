@@ -28,6 +28,7 @@ import pandas as pd
 import pytest
 
 from app.forecasting.lstm import LSTMForecastModel
+from app.forecasting.lstm_network import LSTMNetwork
 
 
 def _rising_frame(rows: int = 400, start: float = 50.0, step: float = 0.35) -> pd.DataFrame:
@@ -48,6 +49,27 @@ def _rising_frame(rows: int = 400, start: float = 50.0, step: float = 0.35) -> p
             "rolling_std_20": pd.Series(close).rolling(20, min_periods=2).std().fillna(0.0).to_numpy(),
         }
     )
+
+
+@pytest.mark.parametrize("rows", [3, 17])
+def test_batched_inference_matches_individual_windows(rows: int) -> None:
+    frame = pd.DataFrame({"close": np.linspace(50., 80., rows),
+                          "volume": np.linspace(100., 200., rows)})
+    model = LSTMForecastModel(sequence_length=3, hidden_size=4, num_layers=1,
+                              batch_size=4, dropout=0.)
+    model.feature_names = list(frame.columns)
+    model.feature_scaler.fit(frame)
+    model.target_scaler.fit(np.array([[.9], [1.1]]))
+    model.network = LSTMNetwork(input_size=2, hidden_size=4, num_layers=1, dropout=0.)
+    model.is_fitted = True
+    batched = model.predict(frame)
+    individual = np.concatenate([
+        model.predict(frame.iloc[index:index + model.sequence_length])
+        for index in range(rows - model.sequence_length + 1)
+    ])
+    np.testing.assert_allclose(batched, individual, rtol=1e-6)
+    assert len(batched) == rows - model.sequence_length + 1
+    assert not model.network.training
 
 
 def _fit(frame: pd.DataFrame, sequence_length: int = 10, epochs: int = 12) -> tuple:

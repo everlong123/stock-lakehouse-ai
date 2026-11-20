@@ -21,6 +21,9 @@ def get_status() -> dict:
     svc = get_service()
     return ok(
         {
+            "running": svc.running,
+            "progress": svc.progress,
+            "last_started_at": svc.last_started_at.isoformat() if svc.last_started_at else None,
             "last_run_at": svc.last_run_at.isoformat() if svc.last_run_at else None,
             "last_summary": svc.last_summary,
         }

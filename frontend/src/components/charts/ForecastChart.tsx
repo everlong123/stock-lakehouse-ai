@@ -5,8 +5,9 @@ import { shortDate } from "@/utils/format";
 const tooltipStyle = {
   background: "hsl(var(--surface))",
   border: "1px solid hsl(var(--hairline))",
-  borderRadius: 6,
+  borderRadius: 8,
   fontSize: 12,
+  boxShadow: "var(--shadow-lg)",
 };
 
 /**
@@ -51,8 +52,8 @@ export function ForecastChart({ data }: { data: ForecastPoint[] }) {
     };
   });
 
-  const boundary = splitIndex > 0 ? data[splitIndex - 1]?.timestamp : undefined;
-  const lastActual = splitIndex > 0 ? data[splitIndex - 1]?.predicted : null;
+  const boundary = firstFutureIndex > 0 ? data[splitIndex - 1]?.timestamp : undefined;
+  const lastActual = splitIndex > 0 ? data[splitIndex - 1]?.actual ?? null : null;
 
   // Anchor the forecast line to the last known close.
   if (boundary !== undefined && lastActual !== null && chartData.length > 0) {
@@ -65,8 +66,8 @@ export function ForecastChart({ data }: { data: ForecastPoint[] }) {
       <ResponsiveContainer>
         <LineChart data={chartData} margin={{ top: 8, right: 12, bottom: 4, left: 4 }}>
           <CartesianGrid stroke="hsl(var(--hairline))" strokeDasharray="3 3" />
-          <XAxis dataKey="timestamp" tickFormatter={shortDate} minTickGap={32} stroke="hsl(var(--muted))" fontSize={12} />
-          <YAxis domain={["auto", "auto"]} stroke="hsl(var(--muted))" fontSize={12} />
+          <XAxis dataKey="timestamp" tickFormatter={shortDate} minTickGap={32} stroke="hsl(var(--muted))" fontSize={12} tickLine={false} />
+          <YAxis domain={["auto", "auto"]} stroke="hsl(var(--muted))" fontSize={12} tickLine={false} />
           <Tooltip
             contentStyle={tooltipStyle}
             labelFormatter={(v) => shortDate(String(v))}
@@ -82,7 +83,7 @@ export function ForecastChart({ data }: { data: ForecastPoint[] }) {
               stroke="hsl(var(--muted))"
               strokeDasharray="4 4"
               label={{
-                value: "Dự báo tỡ dụy",
+                value: "Bắt đầu dự báo",
                 position: "insideTopRight",
                 fontSize: 12,
                 fill: "hsl(var(--muted))",
@@ -93,76 +94,36 @@ export function ForecastChart({ data }: { data: ForecastPoint[] }) {
             type="monotone"
             dataKey="actual"
             stroke="hsl(var(--ink))"
-            strokeWidth={2}
+            strokeWidth={2.25}
             dot={false}
             name="actual"
             connectNulls={false}
+            isAnimationActive={data.length <= 200}
+            animationDuration={600}
           />
           <Line
             type="monotone"
             dataKey="predicted"
             stroke="hsl(var(--primary))"
-            strokeWidth={1.5}
+            strokeWidth={1.75}
             strokeDasharray="4 3"
             dot={false}
             name="predicted"
             connectNulls={false}
+            isAnimationActive={data.length <= 200}
+            animationDuration={600}
           />
           <Line
             type="monotone"
             dataKey="forecast"
             stroke="hsl(var(--primary))"
-            strokeWidth={2.5}
+            strokeWidth={2.75}
             strokeDasharray="8 4"
-            dot={{ r: 3, fill: "hsl(var(--primary))" }}
+            dot={{ r: 3.5, fill: "hsl(var(--primary))", stroke: "hsl(var(--surface))", strokeWidth: 2 }}
             name="forecast"
             connectNulls={false}
-          />
-        </LineChart>
-      </ResponsiveContainer>
-    </div>
-  );
-}
-
-/**
- * The forecast-only chart: just the future sessions.
- *
- * Kept separate from the history chart because the two answer different
- * questions. The history chart answers "how well did the model do?"; this
- * one answers "what does it say comes next?".
- */
-export function FutureForecastChart({ data }: { data: ForecastPoint[] }) {
-  const future = data.filter((p) => p.actual === null || p.actual === undefined);
-  if (!future.length) return null;
-
-  const chartData = future.map((point) => ({
-    timestamp: point.timestamp,
-    predicted: point.predicted,
-  }));
-
-  return (
-    <div className="h-56 w-full">
-      <ResponsiveContainer>
-        <LineChart data={chartData} margin={{ top: 8, right: 12, bottom: 4, left: 4 }}>
-          <CartesianGrid stroke="hsl(var(--hairline))" strokeDasharray="3 3" />
-          <XAxis dataKey="timestamp" tickFormatter={shortDate} minTickGap={24} stroke="hsl(var(--muted))" fontSize={12} />
-          <YAxis domain={["auto", "auto"]} stroke="hsl(var(--muted))" fontSize={12} />
-          <Tooltip
-            contentStyle={tooltipStyle}
-            labelFormatter={(v) => shortDate(String(v))}
-            formatter={(value) => [
-              typeof value === "number" ? value.toFixed(2) : String(value ?? ""),
-              "Dự báo",
-            ]}
-          />
-          <Line
-            type="monotone"
-            dataKey="predicted"
-            stroke="hsl(var(--primary))"
-            strokeWidth={2.5}
-            strokeDasharray="8 4"
-            dot={{ r: 3, fill: "hsl(var(--primary))" }}
-            name="predicted"
+            isAnimationActive={data.length <= 200}
+            animationDuration={600}
           />
         </LineChart>
       </ResponsiveContainer>

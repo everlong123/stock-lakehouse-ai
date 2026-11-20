@@ -18,8 +18,9 @@
 #   * The two batch entries cover the two market closes. There is no
 #     intraday job: the news poll was removed on 12/11/2026 together with
 #     the whole news pipeline (see the removal notes below).
-#   * The quality gate and the universe forecast run ONCE per day, after
-#     both market closes, because both of them need the settled bars.
+#   * The quality gate, the universe forecast and the walk-forward report
+#     run ONCE per day, after both market closes, because all three of
+#     them need the settled bars.
 #
 # THE TIMES ARE UTC
 # -----------------
@@ -30,8 +31,8 @@
 #     21:00 UTC in EST. The batch runs at 21:30 UTC, which is after BOTH
 #     closes - running at 20:30 would miss the last hour of every summer
 #     session.
-#   * HOSE closes at 02:30 UTC (09:30 Asia/Ho_Chi_Minh). The batch runs
-#     at 03:30 UTC.
+#   * HOSE closes at 07:45 UTC (14:45 Asia/Ho_Chi_Minh). The batch runs
+#     at 08:30 UTC (15:30 Vietnam time), allowing provider settlement.
 #
 # The symbols overlap in time, so both sessions are covered by two runs.
 #
@@ -42,8 +43,8 @@
 # Both need the price layers to be settled, so it cannot start before the
 # EOD batch has finished for that market.
 #
-# It runs in the early morning UTC because that is after the HOSE close
-# (03:30 UTC) and before the NYSE close, and the forecast it publishes
+# It runs in the early morning UTC because that is after the HOSE batch
+# (08:30 UTC) and before the NYSE close, and the forecast it publishes
 # covers the NYSE session that is about to open. The scoring part then
 # verifies the previous day's forecasts against the closes that have
 # happened.
@@ -62,11 +63,11 @@ APP_HOME=/app
 # NYSE: 21:30 UTC (after the 20:00/21:00 UTC close)
 30 21 * * 1-5 root cd $APP_HOME && /opt/venv/bin/python scripts/run_scheduled_job.py eod >> $APP_HOME/logs/cron.log 2>&1
 
-# HOSE: 03:30 UTC (after the 02:30 UTC close)
-30 3 * * 1-5 root cd $APP_HOME && /opt/venv/bin/python scripts/run_scheduled_job.py eod >> $APP_HOME/logs/cron.log 2>&1
+# HOSE: 08:30 UTC (after the 07:45 UTC close)
+30 8 * * 1-5 root cd $APP_HOME && /opt/venv/bin/python scripts/run_scheduled_job.py eod >> $APP_HOME/logs/cron.log 2>&1
 
 # ── Universe forecast (predict every symbol + score the old forecasts) ─────
-# 04:30 UTC: after the HOSE batch has settled the bars, before the NYSE
+# 09:30 UTC: after the HOSE batch has settled the bars, before the NYSE
 # session opens. The forecast it publishes covers the coming NYSE session.
 #
 # WHY ALL THREE MODEL FAMILIES
@@ -85,15 +86,45 @@ APP_HOME=/app
 #
 # Measured cost of the whole pass after the LSTM inference fix (17/11/2026,
 # all three families, whole universe): 2.76 minutes of inference.
-30 4 * * 1-5 root cd $APP_HOME && /opt/venv/bin/python scripts/run_scheduled_job.py universe-forecast --model linear_regression,arima,lstm >> $APP_HOME/logs/cron.log 2>&1
+30 9 * * 1-5 root cd $APP_HOME && /opt/venv/bin/python scripts/run_scheduled_job.py universe-forecast --model linear_regression,arima,lstm --no-train >> $APP_HOME/logs/cron.log 2>&1
 
 # ── Data quality gate ──────────────────────────────────────────────────────
-# 05:30 UTC: after both EOD batches and after the forecast pass, so the
+# 10:30 UTC: after both EOD batches and after the forecast pass, so the
 # gate checks the layers as they are LEFT by the nightly work.
 #
 # The gate is the only job that makes a network call to the provider, so it
 # runs on its own and its own failure cannot stall the price refresh. Its
 # provider comparison rotates over the universe, so each run checks a slice
 # and a full sweep completes over many runs.
-30 5 * * 1-5 root cd $APP_HOME && /opt/venv/bin/python scripts/run_scheduled_job.py quality-gate >> $APP_HOME/logs/cron.log 2>&1
+30 10 * * 1-5 root cd $APP_HOME && /opt/venv/bin/python scripts/run_scheduled_job.py quality-gate >> $APP_HOME/logs/cron.log 2>&1
+
+# ── Multi-symbol walk-forward report ────────────────────────────────────────
+# 22:30 UTC: an hour after the NYSE end-of-day batch has settled the
+# bars, and clear of the forecast pass (09:30) and the quality gate
+# (10:30), so this CPU-bound job does not compete with them.
+#
+# WHY IT RUNS EVERY NIGHTDAY
+# --------------------------
+# The report used to be a hand-written snapshot: a file that somebody
+# produced once, and that nothing ever refreshed. The numbers on the
+# Backtesting page were therefore whatever was true on the day the file
+# was written, with nothing on the page saying so.
+#
+# This job is the fix. It runs the SAME machinery the manual script runs
+# - the shared service, so the two cannot drift apart - and writes the
+# result into the lakehouse's `backtests` layer. That layer is MinIO in
+# production, which is the one place the `scheduler` container and the
+# `backend` container can both reach: they do NOT share the `data`
+# volume, so a file written to the scheduler's filesystem would be
+# invisible to the API.
+#
+# The report covers the strategy layer's central claim - does the
+# strategy beat simply holding the stock, across many symbols, on
+# PAIRED windows? - so it has to be current for that claim to be
+# defensible.
+#
+# Measured cost: 102 symbols over ~37 windows each took 75.5 s on
+# 18/11/2026 for the MA-crossover report. Two strategies are run, so
+# the pass takes a few minutes.
+30 22 * * 1-5 root cd $APP_HOME && /opt/venv/bin/python scripts/run_scheduled_job.py walk-forward --strategy ma_crossover,rsi_strategy --per-exchange 8 >> $APP_HOME/logs/cron.log 2>&1
 

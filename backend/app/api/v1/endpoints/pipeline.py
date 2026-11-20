@@ -3,12 +3,16 @@
 from __future__ import annotations
 
 from typing import Literal
+import re
 
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field, field_validator
 from starlette.concurrency import run_in_threadpool
 
 from app.core.constants import SUPPORTED_INTERVALS, GLOBAL_SYMBOLS
+from app.core.config import settings
+from app.lakehouse.storage_factory import get_storage_backend
+from app.lakehouse.local_storage import LocalStorageBackend
 from app.core.logging_config import get_logger
 from app.lakehouse.pipeline import LakehousePipeline, PipelineConfig, PipelineRun, run_pipeline
 
@@ -26,8 +30,8 @@ class PipelineRunRequest(BaseModel):
         default=None,
         description="List of symbols. If None, uses all supported symbols."
     )
-    use_minio: bool = Field(
-        default=False,
+    use_minio: bool | None = Field(
+        default=None,
         description="Use MinIO storage backend instead of local."
     )
     skip_silver: bool = Field(
@@ -118,7 +122,7 @@ async def run_lakehouse_pipeline(request: PipelineRunRequest) -> PipelineRunResp
     # Build config
     symbols = request.symbols or GLOBAL_SYMBOLS
     config = PipelineConfig(
-        use_minio=request.use_minio,
+        use_minio=request.use_minio if request.use_minio is not None else settings.storage_backend == "minio",
         symbols=symbols,
         interval=request.interval,
         lookback_days=request.lookback_days,
@@ -130,31 +134,39 @@ async def run_lakehouse_pipeline(request: PipelineRunRequest) -> PipelineRunResp
         logger.info(f"Starting pipeline for {len(symbols)} symbols")
         pipeline = LakehousePipeline(config)
         result = pipeline.run(symbols)
+        pipeline.storage.write_json("quality", f"_pipeline_runs/{result.run_id}.json", result.to_dict())
         return PipelineRunResponse(**result.to_dict())
 
     return await run_in_threadpool(_run)
 
 
 @router.get("/run/{run_id}", response_model=PipelineRunResponse)
-async def get_pipeline_run(run_id: str) -> PipelineRunResponse:
-    """Get status of a pipeline run (placeholder - run history not persisted yet)."""
-    raise HTTPException(
-        status_code=501,
-        detail="Run history not implemented. Re-run the pipeline to get fresh results."
-    )
+def get_pipeline_run(run_id: str, use_minio: bool | None = None) -> PipelineRunResponse:
+    """Read the persisted result of an actual pipeline execution."""
+    if not re.fullmatch(r"[A-Za-z0-9_-]+", run_id):
+        raise HTTPException(status_code=422, detail="Invalid pipeline run identifier.")
+    storage = LocalStorageBackend() if use_minio is False else get_storage_backend()
+    try:
+        payload = storage.read_json("quality", f"_pipeline_runs/{run_id}.json")
+    except Exception as exc:
+        missing = "not found" in str(exc).lower() or "NoSuchKey" in str(exc)
+        raise HTTPException(status_code=404 if missing else 503, detail="No stored pipeline run with this identifier." if missing else "Pipeline history storage is unavailable.") from exc
+    if not payload:
+        raise HTTPException(status_code=404, detail="No stored pipeline run with this identifier.")
+    return PipelineRunResponse(**payload)
 
 
 @router.get("/layers/{symbol}", response_model=LayerInfoResponse)
 def get_layer_info(
     symbol: str,
-    use_minio: bool = Query(default=False, description="Use MinIO storage backend.")
+    use_minio: bool | None = Query(default=None, description="Override the configured storage backend.")
 ) -> LayerInfoResponse:
     """
     Get information about data in all layers for a symbol.
     
     Shows record counts and availability for Bronze, Silver, and Gold layers.
     """
-    config = PipelineConfig(use_minio=use_minio)
+    config = PipelineConfig(use_minio=use_minio if use_minio is not None else settings.storage_backend == "minio")
     pipeline = LakehousePipeline(config)
     info = pipeline.get_layer_info(symbol.upper())
     return LayerInfoResponse(**info)
@@ -165,14 +177,14 @@ def get_lakehouse_data(
     symbol: str,
     layer: Literal["bronze", "silver", "gold"] = Query(default="gold"),
     limit: int = Query(default=100, ge=1, le=10000),
-    use_minio: bool = Query(default=False),
+    use_minio: bool | None = Query(default=None),
 ) -> dict:
     """
     Get data from a specific layer.
     
     Returns up to `limit` rows sorted by timestamp.
     """
-    config = PipelineConfig(use_minio=use_minio)
+    config = PipelineConfig(use_minio=use_minio if use_minio is not None else settings.storage_backend == "minio")
     pipeline = LakehousePipeline(config)
     
     try:

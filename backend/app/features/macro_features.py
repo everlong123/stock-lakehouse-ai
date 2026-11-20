@@ -91,7 +91,9 @@ def add_market_regime_features(df: pd.DataFrame, lookback: int = 20) -> pd.DataF
     # Volatility regime (rolling std of returns)
     result["returns"] = result["close"].pct_change()
     result["volatility_20d"] = result["returns"].rolling(lookback).std()
-    result["volatility_actual"] = result["volatility_20d"] > result["volatility_20d"].quantile(0.75)
+    # Fit the regime threshold only on observations available before this row.
+    threshold = result["volatility_20d"].expanding(min_periods=lookback).quantile(0.75).shift(1)
+    result["volatility_actual"] = result["volatility_20d"] > threshold
 
     # Trend regime (SMA crossover)
     result["sma_20"] = result["close"].rolling(20).mean()

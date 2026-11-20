@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils";
+import { useI18n } from "@/lib/i18n";
 import { BAR_INTERVAL_LABELS, type BarInterval } from "@/utils/resample";
 
 const INTERVALS: BarInterval[] = ["1d", "1w", "1mo"];
@@ -23,28 +24,49 @@ interface BarIntervalSelectorProps {
  * The lakehouse only stores daily bars, so the coarser granularities are
  * derived on the client from the daily bars the API already returns - no new
  * endpoint, no extra storage.
+ *
+ * WHY THE OPTIONS ARE PLAIN WORDS: same reason as the range selector — a
+ * timeframe is a target the reader aims at, not a field they fill in. A
+ * bordered tray around three short words adds a box without adding meaning.
  */
 export function BarIntervalSelector({
   value,
   onChange,
 }: BarIntervalSelectorProps) {
+  const { locale } = useI18n();
+  const label = locale === "vi" ? "Gộp theo" : "Group by";
+  const labels = locale === "vi"
+    ? BAR_INTERVAL_LABELS
+    : { "1d": "Day", "1w": "Week", "1mo": "Month" };
+
   return (
-    <div role="tablist" aria-label="Khung thời gian" className="segmented">
-      {INTERVALS.map((key) => {
-        const active = key === value;
-        return (
-          <button
-            key={key}
-            role="tab"
-            aria-selected={active}
-            onClick={() => onChange(key)}
-            type="button"
-            className={cn("segmented-item", active && "bg-primary text-on-primary")}
-          >
-            {BAR_INTERVAL_LABELS[key]}
-          </button>
-        );
-      })}
-    </div>
+    <fieldset className="min-w-0">
+      <legend className="sr-only">{label}</legend>
+      <div className="flex flex-wrap items-center gap-x-1">
+        {INTERVALS.map((key) => {
+          const active = key === value;
+          return (
+            <button
+              key={key}
+              aria-pressed={active}
+              onClick={() => onChange(key)}
+              type="button"
+              className={cn(
+                "relative min-h-9 whitespace-nowrap rounded px-2 text-small font-medium transition-colors",
+                active ? "text-primary" : "text-muted hover:text-ink",
+              )}
+            >
+              {labels[key]}
+              {active ? (
+                <span
+                  aria-hidden="true"
+                  className="absolute inset-x-1 -bottom-px h-0.5 rounded-full bg-primary"
+                />
+              ) : null}
+            </button>
+          );
+        })}
+      </div>
+    </fieldset>
   );
 }

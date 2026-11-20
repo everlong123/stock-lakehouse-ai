@@ -1,0 +1,117 @@
+[
+  {
+    "symbol": "SPXU",
+    "response": {
+      "success": true,
+      "data": {
+        "available": true,
+        "symbol": "SPXU",
+        "model_name": "linear_regression",
+        "target_session": "2026-11-18",
+        "target_timestamp": "2026-11-18 14:30:00+00:00",
+        "reference_close": 39.029998779296875,
+        "predicted_close": -39.35910938968391,
+        "predicted_return": -2.0084322475193517,
+        "horizon": 1,
+        "metrics": null,
+        "metrics_source": null,
+        "source_layer": "gold",
+        "data_staleness_days": 0,
+        "generated_at": "2026-11-18T21:07:12.364651+00:00"
+      },
+      "message": null
+    }
+  },
+  {
+    "symbol": "SQQQ",
+    "response": {
+      "success": true,
+      "data": {
+        "available": true,
+        "symbol": "SQQQ",
+        "model_name": "linear_regression",
+        "target_session": "2026-11-18",
+        "target_timestamp": "2026-11-18 14:30:00+00:00",
+        "reference_close": 46.95000076293945,
+        "predicted_close": -458.0390799522138,
+        "predicted_return": -10.755890788265384,
+        "horizon": 1,
+        "metrics": null,
+        "metrics_source": null,
+        "source_layer": "gold",
+        "data_staleness_days": 0,
+        "generated_at": "2026-11-18T21:07:12.147387+00:00"
+      },
+      "message": null
+    }
+  },
+  {
+    "symbol": "PARA",
+    "response": {
+      "success": true,
+      "data": {
+        "available": true,
+        "symbol": "PARA",
+        "model_name": "linear_regression",
+        "target_session": "2026-11-18",
+        "target_timestamp": "2026-11-18 14:30:00+00:00",
+        "reference_close": 0.0729999989271164,
+        "predicted_close": 279013.5398040164,
+        "predicted_return": 3822102.3411601153,
+        "horizon": 1,
+        "metrics": null,
+        "metrics_source": null,
+        "source_layer": "gold",
+        "data_staleness_days": 0,
+        "generated_at": "2026-11-18T21:07:13.454399+00:00"
+      },
+      "message": null
+    }
+  },
+  {
+    "symbol": "SOXS",
+    "response": {
+      "success": true,
+      "data": {
+        "available": true,
+        "symbol": "SOXS",
+        "model_name": "linear_regression",
+        "target_session": "2026-11-18",
+        "target_timestamp": "2026-11-18 14:30:00+00:00",
+        "reference_close": 58.77000045776367,
+        "predicted_close": -277289577.52789706,
+        "predicted_return": -4718217.358143084,
+        "horizon": 1,
+        "metrics": null,
+        "metrics_source": null,
+        "source_layer": "gold",
+        "data_staleness_days": 0,
+        "generated_at": "2026-11-18T21:07:12.554173+00:00"
+      },
+      "message": null
+    }
+  },
+  {
+    "symbol": "UVXY",
+    "response": {
+      "success": true,
+      "data": {
+        "available": true,
+        "symbol": "UVXY",
+        "model_name": "linear_regression",
+        "target_session": "2026-11-18",
+        "target_timestamp": "2026-11-18 14:30:00+00:00",
+        "reference_close": 22.68000030517578,
+        "predicted_close": -28501.897381957227,
+        "predicted_return": -1257.6973985204418,
+        "horizon": 1,
+        "metrics": null,
+        "metrics_source": null,
+        "source_layer": "gold",
+        "data_staleness_days": 0,
+        "generated_at": "2026-11-18T21:07:12.810119+00:00"
+      },
+      "message": null
+    }
+  }
+]

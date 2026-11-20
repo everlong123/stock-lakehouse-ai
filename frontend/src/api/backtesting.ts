@@ -14,12 +14,17 @@ export async function fetchBacktestHistory(symbol?: string) {
 }
 
 /**
- * The offline multi-symbol walk-forward report.
+ * The multi-symbol walk-forward report.
  *
- * The report is produced by a script, not by a request, because the run
- * replays ~100 symbols and takes about 90 seconds. The endpoint returns
- * `{ available: false, reason }` when the file has not been generated
- * yet, and the page shows that reason instead of a placeholder.
+ * The report is produced AHEAD OF TIME - by the nightly `walk-forward`
+ * cron job, which stores it in the lakehouse's `backtests` layer - and
+ * the endpoint only reads it. The run replays ~100 symbols over ~37
+ * windows each, which takes ~75 seconds of CPU, far too slow for a
+ * request handler.
+ *
+ * The endpoint returns `{ available: false, reason }` when the report
+ * has not been produced yet, and the page shows that reason instead of
+ * a placeholder.
  */
 export async function fetchMultiSymbolReport(strategy: string) {
   const { data } = await api.get<ApiEnvelope<MultiSymbolReport>>(

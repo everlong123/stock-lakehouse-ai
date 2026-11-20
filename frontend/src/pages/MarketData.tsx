@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   CartesianGrid,
-  Legend,
   Line,
   LineChart,
   ResponsiveContainer,
@@ -13,15 +12,18 @@ import {
 import { Download, X } from "lucide-react";
 import { useMarket } from "@/hooks/useMarket";
 import { useStocks } from "@/hooks/useStocks";
-import { csvUrl, fetchCompare, fetchStats, fetchSymbols } from "@/api/stocks";
+import { csvUrl, fetchCompare, fetchStats } from "@/api/stocks";
 import { CandlestickChart } from "@/components/charts/CandlestickChart";
+import { VolumeChart } from "@/components/charts/DashboardCharts";
 import { EmptyState } from "@/components/common/EmptyState";
 import { ErrorState } from "@/components/common/ErrorState";
 import { Loading } from "@/components/common/Loading";
-import { PageTitle } from "@/components/common/PageTitle";
-import { BarIntervalSelector } from "@/components/common/BarIntervalSelector";
-import { TimeRangeSelector, type TimeRange } from "@/components/common/TimeRangeSelector";
-import { ForecastVerification } from "@/components/dashboard/ForecastVerification";
+import { PageHeader } from "@/components/common/PageHeader";
+import { ChartTimeControls } from "@/components/common/ChartTimeControls";
+import { ChartViewToggle, type ChartView } from "@/components/common/ChartViewToggle";
+import { DataTable, sortRows, type Column, type SortState } from "@/components/common/DataTable";
+import { KeyStatistics, type KeyStat } from "@/components/common/KeyStatistics";
+import type { TimeRange } from "@/components/common/TimeRangeSelector";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { errorMessage } from "@/api/client";
@@ -30,20 +32,15 @@ import {
   changeClass,
   formatNumber,
   formatPercent,
+  formatSignedPercent,
   formatPrice,
   formatVolume,
   isUsableNumber,
   rangeStartDate,
   shortDate,
 } from "@/utils/format";
-import { BAR_INTERVAL_LABELS, resampleSolidBars, type BarInterval, type SolidBar } from "@/utils/resample";
+import { resampleSolidBars, barPeriodLabel, type BarInterval, type SolidBar } from "@/utils/resample";
 import { cn } from "@/lib/utils";
-
-const DEFAULT_SYMBOLS = [
-  "AAPL", "MSFT", "GOOGL", "AMZN", "NVDA", "META", "TSLA", "AMD", "JPM", "V",
-  "JNJ", "WMT", "UNH", "XOM", "CVX", "BAC", "KO", "PEP", "DIS", "NFLX",
-  "CRM", "ORCL", "ADBE", "INTC", "CSCO", "IBM", "QCOM", "TXN", "AVGO", "COST",
-];
 
 /**
  * How many days of history the "statistics" and "comparison" panels use.
@@ -63,7 +60,7 @@ const WINDOW_DAYS: Record<Exclude<TimeRange, "ALL">, number> = {
 
 const COMPARE_COLORS = [
   "hsl(var(--primary))",
-  "hsl(var(--negative))",
+  "hsl(var(--up))",
   "hsl(var(--muted))",
   "hsl(var(--ink))",
   "hsl(var(--hairline))",
@@ -120,24 +117,23 @@ const tooltipStyle = {
  * is the stored rows. Nothing is smoothed, extrapolated, or filled in.
  */
 export function MarketDataPage() {
-  const { symbol: ctxSymbol, interval, setSymbol } = useMarket();
+  const { symbol: activeSymbol, interval } = useMarket();
   const { locale } = useI18n();
 
-  const [localSymbol, setLocalSymbol] = useState(ctxSymbol);
-  useEffect(() => { setLocalSymbol(ctxSymbol); }, [ctxSymbol]);
-
-  const [filter, setFilter] = useState("");
   // The window for the charts and the table.
   const [range, setRange] = useState<TimeRange>("1Y");
   // The granularity of the drawn bars.
   const [barInterval, setBarInterval] = useState<BarInterval>("1d");
+  // Line or candles.
+  const [view, setView] = useState<ChartView>("candle");
   // The tickers being compared on the common-scale chart.
   const [compareSymbols, setCompareSymbols] = useState<string[]>([
     "AAPL", "MSFT", "FPT",
   ]);
   const [compareInput, setCompareInput] = useState("");
-
-  const activeSymbol = localSymbol || ctxSymbol;
+  // The session table's sort order. Newest session first is the default,
+  // because that is what a reader opening an archive wants to see.
+  const [sort, setSort] = useState<SortState<string>>({ key: "timestamp", direction: "desc" });
 
   // The window in calendar days. "ALL" means the entire stored history.
   const windowDays = range === "ALL" ? null : WINDOW_DAYS[range];
@@ -152,8 +148,8 @@ export function MarketDataPage() {
   // fraction of the time.
   //
   // The anchor is the newest stored bar, which the backend returns as
-  // `latest.timestamp`. It is not known before the first request, so
-  // the first request asks for the window measured from TODAY and the
+  // `latest.timestamp`. It is not known before the first request, so the
+  // first request asks for the window measured from TODAY and the
   // second - triggered by the anchor arriving - asks for the exact
   // window. Both are real requests for real stored rows.
   const [anchorTs, setAnchorTs] = useState<number | null>(null);
@@ -170,18 +166,6 @@ export function MarketDataPage() {
     const parsed = Date.parse(latest);
     if (!Number.isNaN(parsed)) setAnchorTs(parsed);
   }, [query.data?.latest?.timestamp]);
-
-  const symbolsQuery = useQuery({
-    queryKey: ["symbols"],
-    queryFn: fetchSymbols,
-    staleTime: 5 * 60 * 1000,
-  });
-  const availableSymbols = symbolsQuery.data?.symbols?.length
-    ? symbolsQuery.data.symbols
-    : DEFAULT_SYMBOLS;
-  const visibleSymbols = availableSymbols.filter((s) =>
-    s.toLowerCase().includes(filter.toLowerCase()),
-  );
 
   // Statistics for the focused symbol, over the same window.
   const statsQuery = useQuery({
@@ -212,6 +196,84 @@ export function MarketDataPage() {
   // ────────────────────────────────────────────────────────────────────
 
   const rows = query.data?.rows ?? [];
+
+  // ────────────────────────────────────────────────────────────────────
+  // The session table's columns.
+  //
+  // WHY THE TABLE IS DEFINED AS DATA: the page needs the same column set
+  // for rendering AND for sorting, and a table that renders one shape and
+  // sorts another is a table that sorts the wrong thing. One definition
+  // feeds both.
+  //
+  // WHY IT IS A MEMO: the columns close over the locale, and rebuilding
+  // them on every render would invalidate the sorted-rows memo below.
+  // ────────────────────────────────────────────────────────────────────
+  type SessionRow = (typeof rows)[number];
+
+  const COLUMNS = useMemo<Column<SessionRow>[]>(
+    () => [
+      {
+        key: "timestamp",
+        label: t("market.col_time", locale),
+        sortValue: (row) => Date.parse(row.timestamp),
+        render: (row) => (
+          <span className="font-mono whitespace-nowrap text-muted">
+            {shortDate(row.timestamp)}
+          </span>
+        ),
+      },
+      {
+        key: "open",
+        label: t("market.col_open", locale),
+        align: "right",
+        sortValue: (row) => (isUsableNumber(row.open) ? row.open : null),
+        render: (row) => (
+          <span className="font-mono tabular-nums">{formatNumber(row.open)}</span>
+        ),
+      },
+      {
+        key: "high",
+        label: t("market.col_high", locale),
+        align: "right",
+        sortValue: (row) => (isUsableNumber(row.high) ? row.high : null),
+        render: (row) => (
+          <span className="font-mono tabular-nums text-up">{formatNumber(row.high)}</span>
+        ),
+      },
+      {
+        key: "low",
+        label: t("market.col_low", locale),
+        align: "right",
+        sortValue: (row) => (isUsableNumber(row.low) ? row.low : null),
+        render: (row) => (
+          <span className="font-mono tabular-nums text-negative">{formatNumber(row.low)}</span>
+        ),
+      },
+      {
+        key: "close",
+        label: t("market.col_close", locale),
+        align: "right",
+        sortValue: (row) => (isUsableNumber(row.close) ? row.close : null),
+        render: (row) => (
+          <span className="font-mono font-semibold tabular-nums text-ink">
+            {formatNumber(row.close)}
+          </span>
+        ),
+      },
+      {
+        key: "volume",
+        label: t("market.col_volume", locale),
+        align: "right",
+        sortValue: (row) => (isUsableNumber(row.volume) ? row.volume : null),
+        render: (row) => (
+          <span className="font-mono tabular-nums text-muted">
+            {formatVolume(row.volume)}
+          </span>
+        ),
+      },
+    ],
+    [locale],
+  );
 
   // The window, applied to the stored rows.
   // The rows arrive ascending; the window keeps the tail.
@@ -272,6 +334,14 @@ export function MarketDataPage() {
     });
   }, [compareQuery.data]);
 
+  // ────────────────────────────────────────────────────────────────────
+  // The session table's rows, in the reader's chosen order.
+  // ────────────────────────────────────────────────────────────────────
+  const sortedRows = useMemo(
+    () => sortRows(windowedRows, COLUMNS, sort),
+    [windowedRows, COLUMNS, sort],
+  );
+
   if (query.isLoading) return <Loading />;
   if (query.isError)
     return (
@@ -292,15 +362,6 @@ export function MarketDataPage() {
   const latest = query.data?.latest;
   const currency = latest?.currency ?? null;
 
-  const COLUMNS = [
-    t("market.col_time", locale),
-    t("market.col_open", locale),
-    t("market.col_high", locale),
-    t("market.col_low", locale),
-    t("market.col_close", locale),
-    t("market.col_volume", locale),
-  ];
-
   const toggleCompare = (symbol: string) => {
     setCompareSymbols((current) =>
       current.includes(symbol)
@@ -320,21 +381,89 @@ export function MarketDataPage() {
 
   const stats = statsQuery.data;
 
+  // The statistics panel's rows.
+  const statRows: KeyStat[] = stats
+    ? [
+        {
+          label: t("market.stat_return", locale),
+          value: formatSignedPercent(stats.total_return_pct / 100),
+          tone: stats.total_return_pct / 100,
+        },
+        {
+          label: t("market.stat_volatility", locale),
+          value: formatPercent(stats.volatility_pct === null ? null : stats.volatility_pct / 100),
+        },
+        {
+          label: t("market.stat_drawdown", locale),
+          value: formatPercent(stats.max_drawdown_pct / 100),
+        },
+        {
+          label: t("market.stat_high", locale),
+          value: formatPrice(stats.high, stats.currency),
+        },
+        {
+          label: t("market.stat_low", locale),
+          value: formatPrice(stats.low, stats.currency),
+        },
+        {
+          label: t("market.stat_sessions", locale),
+          value: stats.sessions.toLocaleString("en-US"),
+        },
+        {
+          label: t("market.stat_up_days", locale),
+          value: stats.up_days.toLocaleString("en-US"),
+          direction: "up",
+        },
+        {
+          label: t("market.stat_down_days", locale),
+          value: stats.down_days.toLocaleString("en-US"),
+          direction: "down",
+        },
+        {
+          label: t("market.stat_avg_volume", locale),
+          value: formatVolume(stats.avg_volume),
+        },
+        {
+          label: t("market.stat_total_volume", locale),
+          value: formatVolume(stats.total_volume),
+        },
+      ]
+    : [];
+
   return (
-    <div className="space-y-12">
-      <PageTitle
+    <div className="space-y-10">
+      {/*
+        ── The page header ───────────────────────────────────────────
+        The symbol and the export action. The title stays a title; the
+        symbol lives beside it because that is the thing the page is
+        actually about.
+      */}
+      <PageHeader
+        section="Dữ liệu"
         title={t("market.title", locale)}
         subtitle={t("market.subtitle", locale)}
-        meta={`02 · ${rows.length.toLocaleString("en-US")} bars · ${activeSymbol}`}
-        actions={
-          <a href={csvUrl(activeSymbol, interval)}>
-            <Button variant="outline" size="sm">
-              <Download size={13} />
-              {t("market.csv", locale)}
-            </Button>
-          </a>
+        aside={
+          <>
+            <span className="rounded border border-hairline bg-surface-2 px-2 py-1 font-mono text-small font-semibold text-ink">
+              {activeSymbol}
+            </span>
+            <a href={csvUrl(activeSymbol, interval)}>
+              <Button variant="outline" size="sm">
+                <Download size={13} />
+                {t("market.csv", locale)}
+              </Button>
+            </a>
+          </>
         }
       />
+
+      {latest?.data_status === "stale" ? (
+        <p role="status" className="border-l-2 border-negative pl-3 text-small text-negative">
+          {locale === "vi"
+            ? `Dữ liệu lịch sử chưa được cập nhật. Phiên cuối: ${latest.latest_session ?? latest.timestamp.slice(0, 10)}. Cần kiểm tra nguồn hoặc trạng thái giao dịch của mã này.`
+            : `Historical data has not been updated. Latest session: ${latest.latest_session ?? latest.timestamp.slice(0, 10)}. Check the data source or listing status.`}
+        </p>
+      ) : null}
 
       {/*
         ── The controls ────────────────────────────────────────────────
@@ -345,61 +474,50 @@ export function MarketDataPage() {
         controls say it shows.
       */}
       <section>
-        <div className="section-head">
-          <div>
-            <h2 className="section-title">{t("market.candle_title", locale)}</h2>
-            <p className="section-sub">
-              {windowedRows.length.toLocaleString("en-US")} / {rows.length.toLocaleString("en-US")} phiên
-              {" · "}
-              {chartBars.length} bars · {BAR_INTERVAL_LABELS[barInterval]}
-            </p>
-          </div>
-          <div className="flex flex-wrap items-center gap-3">
-            <BarIntervalSelector value={barInterval} onChange={setBarInterval} />
-            <TimeRangeSelector value={range} onChange={setRange} />
-          </div>
-        </div>
+        <ChartTimeControls
+          barInterval={barInterval}
+          onBarIntervalChange={setBarInterval}
+          range={range}
+          onRangeChange={setRange}
+          dailyPoints={windowedRows}
+          barCount={chartBars.length}
+        >
+          <ChartViewToggle value={view} onChange={setView} />
+        </ChartTimeControls>
 
         <div className="pt-4">
-          {chartBars.length ? (
-            <CandlestickChart
-              points={chartBars.slice(-260)}
-              height={360}
-              currency={currency}
-            />
+          {view === "candle" ? (
+            chartBars.length ? (
+              <CandlestickChart
+                points={chartBars}
+                height={360}
+                currency={currency}
+                barInterval={barInterval}
+              />
+            ) : (
+              <EmptyState message={t("dashboard.empty_candle", locale)} />
+            )
+          ) : chartBars.length ? (
+            <PriceLine points={chartBars} currency={currency} barInterval={barInterval} />
           ) : (
             <EmptyState message={t("dashboard.empty_candle", locale)} />
           )}
         </div>
       </section>
 
-      {/*
-        ── Forecast verification ───────────────────────────────────────
-        WHY IT SITS HERE AND NOT ON ITS OWN PAGE
-        ------------------------------------------
-        The candles above show what the price DID. This panel shows what
-        the system SAID would happen, and whether it was right. The two
-        belong on the same page: the reader's question at this point is
-        "what does this ticker do, and can the system predict it?", and
-        answering it in two places makes them hunt.
-
-        The forecasting page keeps its own charts, because that page is
-        where models are trained and compared - a laboratory. This panel
-        is the production record: forecasts that were published, and their
-        outcomes.
-      */}
       <section>
         <div className="section-head">
           <div>
-            <h2 className="section-title">Kiểm chứng dự báo</h2>
+            <h2 className="section-title">{t("dashboard.volume_title", locale)}</h2>
             <p className="section-sub">
-              Những dự báo đã được ghi xuống trước khi phiên mở cửa, so với giá đóng cửa
-              thật sau đó. Đây là độ chính xác ngoài tập huấn luyện — không phải backtest.
+              {locale === "vi"
+                ? "Khối lượng theo cùng cách gộp và khoảng xem của biểu đồ nến."
+                : "Volume uses the same grouping and date range as the candlestick chart."}
             </p>
           </div>
         </div>
-        <div className="pt-4">
-          <ForecastVerification symbol={activeSymbol} currency={currency} />
+        <div className="h-48 pt-4">
+          <VolumeChart data={chartBars} barInterval={barInterval} />
         </div>
       </section>
 
@@ -412,40 +530,31 @@ export function MarketDataPage() {
       <div className="grid gap-12 xl:grid-cols-2">
         {/* ── Statistical profile ─────────────────────────────────── */}
         <section>
-          <div className="section-head">
-            <div>
-              <h2 className="section-title">{t("market.stats_title", locale)}</h2>
-              <p className="section-sub">{t("market.stats_sub", locale)}</p>
-            </div>
-          </div>
-
           {statsQuery.isLoading ? (
-            <Loading variant="skeleton" className="pt-4" />
+            <>
+              <div className="section-head">
+                <h2 className="section-title">{t("market.stats_title", locale)}</h2>
+              </div>
+              <Loading variant="skeleton" className="pt-4" />
+            </>
           ) : statsQuery.isError ? (
-            <EmptyState
-              className="mt-4"
-              message={t("market.stats_empty", locale)}
-              hint={errorMessage(statsQuery.error, "")}
-            />
+            <>
+              <div className="section-head">
+                <h2 className="section-title">{t("market.stats_title", locale)}</h2>
+              </div>
+              <EmptyState
+                className="mt-4"
+                message={t("market.stats_empty", locale)}
+                hint={errorMessage(statsQuery.error, "")}
+              />
+            </>
           ) : stats ? (
             <>
-              <dl className="mt-4 grid grid-cols-2 gap-x-6 gap-y-6 border-y border-hairline py-6 md:grid-cols-3">
-                <Stat label={t("market.stat_return", locale)} value={formatPercent(stats.total_return_pct / 100)} tone={stats.total_return_pct} />
-                <Stat label={t("market.stat_volatility", locale)} value={formatPercent(stats.volatility_pct === null ? null : stats.volatility_pct / 100)} />
-                <Stat label={t("market.stat_drawdown", locale)} value={formatPercent(stats.max_drawdown_pct / 100)} tone={stats.max_drawdown_pct} />
-                <Stat label={t("market.stat_high", locale)} value={formatPrice(stats.high, stats.currency)} />
-                <Stat label={t("market.stat_low", locale)} value={formatPrice(stats.low, stats.currency)} />
-                <Stat label={t("market.stat_avg_volume", locale)} value={formatVolume(stats.avg_volume)} />
-              </dl>
-
-              <dl className="mt-6 grid grid-cols-2 gap-x-6 gap-y-4 md:grid-cols-4">
-                <Stat label={t("market.stat_sessions", locale)} value={stats.sessions.toLocaleString("en-US")} />
-                <Stat label={t("market.stat_up_days", locale)} value={stats.up_days.toLocaleString("en-US")} tone={1} />
-                <Stat label={t("market.stat_down_days", locale)} value={stats.down_days.toLocaleString("en-US")} tone={-1} />
-                <Stat label={t("market.stat_total_volume", locale)} value={formatVolume(stats.total_volume)} />
-              </dl>
-
-              <p className="mt-4 font-mono text-label uppercase text-muted">
+              <KeyStatistics
+                title={t("market.stats_title", locale)}
+                stats={statRows}
+              />
+              <p className="mt-3 font-mono text-label uppercase text-muted">
                 {shortDate(stats.window_start)} → {shortDate(stats.window_end)}
                 {" · "}
                 {stats.currency}
@@ -466,14 +575,19 @@ export function MarketDataPage() {
           {/* Ticker picker: the chips ARE the legend, so the reader can
               see which line is which without hovering the chart. */}
           <div className="mt-4 flex flex-wrap items-center gap-2">
-            {compareSymbols.map((symbol) => (
+            {compareSymbols.map((symbol, index) => (
               <button
                 key={symbol}
                 type="button"
                 onClick={() => toggleCompare(symbol)}
                 className="inline-flex items-center gap-2 rounded border border-hairline bg-surface px-2 py-1 font-mono text-label font-medium uppercase text-ink transition-colors hover:bg-surface-2"
-                title="Bỏ khỏi so sánh"
+                title={locale === "vi" ? `Bỏ ${symbol} khỏi so sánh` : `Remove ${symbol} from comparison`}
               >
+                <span
+                  aria-hidden="true"
+                  className="h-2 w-2 shrink-0 rounded-full"
+                  style={{ backgroundColor: COMPARE_COLORS[index % COMPARE_COLORS.length] }}
+                />
                 {symbol}
                 <X size={11} className="text-muted" />
               </button>
@@ -528,11 +642,6 @@ export function MarketDataPage() {
                       name,
                     ]}
                   />
-                  <Legend
-                    wrapperStyle={{ fontSize: 12, fontFamily: '"IBM Plex Mono", monospace' }}
-                    iconType="plainline"
-                    iconSize={14}
-                  />
                   {compareSymbols.map((symbol, index) => (
                     <Line
                       key={symbol}
@@ -559,8 +668,8 @@ export function MarketDataPage() {
               <thead>
                 <tr>
                   <th>{t("market.compare_col_symbol", locale)}</th>
-                  <th>{t("market.compare_col_base", locale)}</th>
-                  <th>{t("market.compare_col_return", locale)}</th>
+                  <th className="text-right">{t("market.compare_col_base", locale)}</th>
+                  <th className="text-right">{t("market.compare_col_return", locale)}</th>
                 </tr>
               </thead>
               <tbody>
@@ -589,9 +698,9 @@ export function MarketDataPage() {
 
       {/*
         ── The complete session table ─────────────────────────────────
-        Every bar in the window, newest first, with a sticky header. This
-        is the page's reason to exist: the dashboard shows a summary of
-        the latest session, this shows the archive.
+        Every bar in the window, sortable, with a sticky header. This is
+        the page's reason to exist: the dashboard shows a summary of the
+        latest session, this shows the archive.
       */}
       <section>
         <div className="section-head">
@@ -605,106 +714,112 @@ export function MarketDataPage() {
             {activeSymbol} · {interval}
           </span>
         </div>
-        <div className="mt-4 max-h-[520px] overflow-auto rounded border border-hairline bg-surface">
-          <table className="table">
-            <thead className="sticky top-0">
-              <tr>
-                {COLUMNS.map((col) => (
-                  <th key={col}>{col}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {[...windowedRows].reverse().map((row) => (
-                <tr key={row.timestamp}>
-                  <td className="font-mono whitespace-nowrap text-muted">
-                    {shortDate(row.timestamp)}
-                  </td>
-                  <td className="font-mono tabular-nums">{formatNumber(row.open)}</td>
-                  <td className="font-mono tabular-nums text-primary">{formatNumber(row.high)}</td>
-                  <td className="font-mono tabular-nums text-negative">{formatNumber(row.low)}</td>
-                  <td className="font-mono font-semibold tabular-nums">{formatNumber(row.close)}</td>
-                  <td className="font-mono tabular-nums text-muted">
-                    {formatVolume(row.volume)}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </section>
-
-      {/*
-        ── Symbol picker rail ─────────────────────────────────────────
-        The picker is a control, not content, so it sits at the bottom as
-        a full-width search rather than a narrow column that steals
-        width from the chart.
-      */}
-      <section>
-        <div className="section-head">
-          <div>
-            <h2 className="section-title">{t("market.picker", locale)}</h2>
-            <p className="section-sub">
-              {visibleSymbols.length} / {availableSymbols.length} mã
-            </p>
-          </div>
-          <Input
-            value={filter}
-            onChange={(e) => setFilter(e.target.value)}
-            placeholder={t("market.filter_placeholder", locale)}
-            className="max-w-xs font-mono"
+        <div className="mt-4">
+          <DataTable
+            columns={COLUMNS}
+            rows={sortedRows}
+            sort={sort}
+            onSortChange={setSort}
+            rowKey={(row) => row.timestamp}
+            emptyMessage={
+              locale === "vi"
+                ? "Không có phiên nào trong khoảng xem này."
+                : "No sessions in this range."
+            }
+            maxHeight="max-h-[520px]"
           />
         </div>
-        <ul className="mt-4 flex flex-wrap gap-2">
-          {visibleSymbols.slice(0, 120).map((s) => {
-            const active = activeSymbol === s;
-            return (
-              <li key={s}>
-                <button
-                  onClick={() => {
-                    setLocalSymbol(s);
-                    setSymbol(s);
-                  }}
-                  className={cn(
-                    "min-h-11 rounded border px-3 font-mono text-label transition-colors",
-                    active
-                      ? "border-primary text-primary"
-                      : "border-hairline text-ink hover:bg-surface-2",
-                  )}
-                >
-                  {s}
-                </button>
-              </li>
-            );
-          })}
-        </ul>
       </section>
     </div>
   );
 }
 
 /**
- * One statistic in the profile panel.
+ * The line view of the price chart.
  *
- * WHY NO BOX: same reason as the dashboard's metric row — five numbers in
- * a row read as data, not as five widgets. The hairline does the
- * separating.
+ * WHY IT IS ITS OWN COMPONENT: the candlestick chart is hand-drawn SVG
+ * while this one uses recharts, and the page chooses between them. Keeping
+ * them apart means neither pays for the other's code path.
  */
-function Stat({
-  label,
-  value,
-  tone,
+function PriceLine({
+  points,
+  currency,
+  barInterval,
 }: {
-  label: string;
-  value: string;
-  tone?: number | null;
+  points: SolidBar[];
+  currency?: string | null;
+  barInterval: BarInterval;
+}) {
+  const { locale } = useI18n();
+  const data = useMemo(
+    () => points.map((p) => ({ timestamp: p.timestamp, price: p.close })),
+    [points],
+  );
+  if (!data.length) return null;
+
+  return (
+    <ResponsiveContainer>
+      <AreaLineChart
+        data={data}
+        currency={currency}
+        barInterval={barInterval}
+        locale={locale}
+      />
+    </ResponsiveContainer>
+  );
+}
+
+/**
+ * The recharts line chart, kept separate so `PriceLine` stays a thin
+ * wrapper and the chart itself is easy to read.
+ */
+function AreaLineChart({
+  data,
+  currency,
+  barInterval,
+  locale,
+}: {
+  data: Array<{ timestamp: string; price: number }>;
+  currency?: string | null;
+  barInterval: BarInterval;
+  locale: "vi" | "en";
 }) {
   return (
-    <div className="min-w-0 border-l border-hairline pl-4 first:border-l-0 first:pl-0">
-      <dt className="label">{label}</dt>
-      <dd className={cn("mt-1 font-mono text-body font-semibold tabular-nums", changeClass(tone))}>
-        {value}
-      </dd>
-    </div>
+    <LineChart data={data} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
+      <CartesianGrid stroke="hsl(var(--hairline))" vertical={false} />
+      <XAxis
+        dataKey="timestamp"
+        tickFormatter={(v: string) => v.slice(5)}
+        minTickGap={32}
+        stroke="hsl(var(--muted))"
+        fontSize={12}
+      />
+      <YAxis
+        stroke="hsl(var(--muted))"
+        fontSize={12}
+        fontFamily='"IBM Plex Mono", monospace'
+        domain={["auto", "auto"]}
+        width={64}
+        tickFormatter={(v: number) => v.toFixed(0)}
+      />
+      <Tooltip
+        contentStyle={tooltipStyle}
+        labelStyle={{ color: "hsl(var(--muted))", fontSize: 12 }}
+        formatter={(v: number) => [
+          formatPrice(v, currency),
+          locale === "vi" ? "Giá đóng cửa" : "Close",
+        ]}
+        labelFormatter={(v) => barPeriodLabel(String(v), barInterval, locale)}
+      />
+      <Line
+        type="monotone"
+        dataKey="price"
+        stroke="hsl(var(--primary))"
+        strokeWidth={1.75}
+        dot={false}
+        activeDot={{ r: 3, fill: "hsl(var(--primary))" }}
+        isAnimationActive={false}
+      />
+    </LineChart>
   );
 }

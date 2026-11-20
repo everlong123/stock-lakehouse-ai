@@ -17,6 +17,7 @@ drift away from what the nightly batch does.
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import sys
 import time
@@ -46,6 +47,7 @@ def main() -> int:
         action="store_true",
         help="Skip the training pass; use the models already on disk.",
     )
+    parser.add_argument("--output", type=Path, help="Save the complete publication/scoring summary as JSON.")
     args = parser.parse_args()
 
     setup_logging()
@@ -61,6 +63,9 @@ def main() -> int:
         train=not args.no_train,
     )
     payload = summary.as_dict()
+    if args.output:
+        args.output.parent.mkdir(parents=True, exist_ok=True)
+        args.output.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
     print(
         f"[publish-forecasts] models={','.join(models)} "
         f"symbols={len(symbols) or 'all'} "

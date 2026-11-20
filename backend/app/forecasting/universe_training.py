@@ -258,7 +258,7 @@ def _has_fresh_model(
     # the last 20% out), so the check is against the HOLD-OUT boundary:
     # the model is fresh when the hold-out covers the newest session, i.e.
     # the newest session is inside the scored range.
-    test_end = registry.get("test_end")
+    test_end = registry.get("training_data_end") or registry.get("test_target_end") or registry.get("test_end")
     if test_end:
         try:
             return pd.to_datetime(test_end, utc=True) >= newest

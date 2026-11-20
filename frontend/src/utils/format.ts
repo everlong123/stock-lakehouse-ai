@@ -45,6 +45,24 @@ export function formatPercent(value: number | null | undefined, digits = 2): str
 }
 
 /**
+ * A percentage that always carries its sign.
+ *
+ * WHY THIS EXISTS: `formatPercent(0.3179)` returns "31.79%", which reads
+ * as a magnitude and hides the direction. A return is a signed quantity -
+ * "+31.79%" and "-31.79%" are different facts - so a row whose whole
+ * point is the direction needs the sign on the face of the number.
+ *
+ * WHY THE ZERO CASE IS UNSIGNED: "+0.00%" claims a move that did not
+ * happen. "0.00%" is the honest rendering of a flat period.
+ */
+export function formatSignedPercent(value: number | null | undefined, digits = 2): string {
+  if (!isUsableNumber(value)) return "—";
+  const pct = value * 100;
+  const sign = pct > 0 ? "+" : "";
+  return `${sign}${pct.toFixed(digits)}%`;
+}
+
+/**
  * Render a price with its currency.
  *
  * WHY the currency is an argument and not a global default: prices in this
@@ -60,7 +78,12 @@ export function formatPrice(value: number | null | undefined, currency?: string 
   if (!isUsableNumber(value)) return "—";
   const unit = currencySymbol(currency);
   const formatted = formatNumber(value, 2);
-  return unit ? `${formatted} ${unit}` : formatted;
+  if (!unit) return formatted;
+  const code = currency?.trim().toUpperCase();
+  if (["USD", "EUR", "GBP", "JPY", "HKD", "KRW", "CNY", "TWD"].includes(code ?? "")) {
+    return `${unit}${formatted}`;
+  }
+  return `${formatted} ${unit}`;
 }
 
 /**
@@ -103,6 +126,9 @@ export function currencyForSymbol(symbol: string): string {
     const found = bySuffix[suffix];
     if (found) return found;
   }
+
+  // These colliding bare tickers hold US series in the lakehouse.
+  if (["FRT", "NET", "DBC"].includes(sym)) return "USD";
 
   // Vietnamese tickers: the lakehouse serves them from SSI iBoard, and Yahoo
   // has no ".VN" listing for them, so they carry no suffix to read.
@@ -203,16 +229,39 @@ export function tradingDay(timestamp: string): string {
 /**
  * Colour for a signed change.
  *
- * WHY rising maps to `primary` and not a separate "up" green: the design
- * system has exactly one accent, and a rise is the one thing in this app
- * that deserves it. A second green (`up`) beside the accent green would
- * put two near-identical colours on the same screen.
+ * WHY A RISE IS GREEN AND NOT THE ACCENT
+ * --------------------------------------
+ * The accent is the app's own voice: the logo, the active nav tab, the
+ * primary button, the live dot. While the accent was emerald it was ALSO
+ * the colour of a rising price, which put two different meanings on one
+ * hue — on a candle chart a reader could not tell "this candle is up"
+ * from "this is the brand".
+ *
+ * The accent is navy now, so the collision is gone, and the direction
+ * pair can go back to the convention every finance reader already has in
+ * their fingers: green for up, red for down.
+ *
+ * WHY RED STAYS THE SAME: "down" was already the `negative` role, and
+ * it was never competing with the accent for attention.
  */
 export function changeClass(value: number | null | undefined): string {
   if (!isUsableNumber(value)) return "text-muted";
-  if (value > 0) return "text-primary";
+  if (value > 0) return "text-up";
   if (value < 0) return "text-negative";
   return "text-muted";
+}
+
+/**
+ * The chart-side counterpart of `changeClass`.
+ *
+ * WHY A SEPARATE FUNCTION: the CSS classes carry the text colour, but a
+ * chart needs a raw colour value for `fill` and `stroke`. Handing a
+ * class name to recharts would silently paint nothing, so the two
+ * directions are also expressed as raw CSS variables.
+ */
+export function changeColor(value: number | null | undefined): string {
+  if (!isUsableNumber(value) || value === 0) return "hsl(var(--muted))";
+  return value > 0 ? "hsl(var(--up))" : "hsl(var(--negative))";
 }
 
 export function relativeTime(iso?: string | null): string {

@@ -222,7 +222,7 @@ stock-lakehouse-ai/
 
 | Đường dẫn | Tác dụng |
 |---|---|
-| `tests/` | **585 test.** Chạy: `pytest tests -q`. Xem bảng ở `docs/HE_THONG_TOAN_DIEN_VA_GIAI_TRINH_KHOA_LUAN.md` §14.3. |
+| `tests/` | **603 test** trong 40 file. Chạy: `pytest tests -q`. Xem bảng ở `docs/HE_THONG_TOAN_DIEN_VA_GIAI_TRINH_KHOA_LUAN.md` §14.3. |
 | `scripts/` | **81 script vận hành/kiểm chứng.** Xem `backend/scripts/README.md`. |
 | `alembic/` | Migration cấu trúc DB (`versions/0002..0005`). |
 | `alembic.ini` | Cấu hình Alembic. |

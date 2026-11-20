@@ -11,8 +11,9 @@ interface IndicatorChartProps {
 const tooltipStyle = {
   background: "hsl(var(--surface))",
   border: "1px solid hsl(var(--hairline))",
-  borderRadius: 6,
+  borderRadius: 8,
   fontSize: 12,
+  boxShadow: "var(--shadow-lg)",
 };
 
 export function IndicatorChart({ data, lines, referenceLines, height = 220 }: IndicatorChartProps) {
@@ -27,8 +28,9 @@ export function IndicatorChart({ data, lines, referenceLines, height = 220 }: In
             minTickGap={32}
             stroke="hsl(var(--muted))"
             fontSize={12}
+            tickLine={false}
           />
-          <YAxis stroke="hsl(var(--muted))" fontSize={12} />
+          <YAxis stroke="hsl(var(--muted))" fontSize={12} tickLine={false} />
           <Tooltip contentStyle={tooltipStyle} labelFormatter={(v) => shortDate(String(v))} />
           {referenceLines?.map((ref) => (
             <ReferenceLine
@@ -45,9 +47,12 @@ export function IndicatorChart({ data, lines, referenceLines, height = 220 }: In
               type="monotone"
               dataKey={line.key}
               stroke={line.color}
-              strokeWidth={1.5}
+              strokeWidth={1.75}
               dot={false}
               name={line.name ?? line.key}
+              isAnimationActive={data.length <= 200}
+              animationDuration={600}
+              animationEasing="ease-out"
             />
           ))}
         </LineChart>

@@ -1,56 +1,71 @@
-import { Languages, RefreshCw, Search } from "lucide-react";
+import { ChartNoAxesCombined, RefreshCw } from "lucide-react";
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { runPipeline } from "@/api/agent";
-import { Button } from "@/components/ui/button";
-import { IntervalSwitcher } from "@/components/market/IntervalSwitcher";
-import { useMarket } from "@/hooks/useMarket";
-import { useMarketBusy } from "@/hooks/useMarketBusy";
-import { useI18n, t } from "@/lib/i18n";
 import { fetchSymbols } from "@/api/stocks";
+import { useMarket } from "@/hooks/useMarket";
+import { useI18n, t } from "@/lib/i18n";
+import { SymbolSearch } from "@/components/common/SymbolSearch";
+import { ThemeToggle } from "@/components/common/ThemeToggle";
+import { cn } from "@/lib/utils";
 
 /**
- * The global top bar.
+ * The top bar: identity, the symbol search, the refresh action, the theme
+ * switch and the language switch.
  *
- * WHY IT LOOKS THE WAY IT DOES
- * ------------------------------
- * A finance app's top bar is a single flat row: wordmark on the left, the
- * symbol picker next to it, small controls on the right. No gradient, no
- * shadow, no floating pill. The wordmark uses the DISPLAY font family so
- * the brand reads as a title, while every control around it uses the body
- * font - that contrast is what stops the bar looking like one flat strip
- * of grey.
+ * WHY THE SYMBOL PICKER BECAME A SEARCH BOX
+ * -----------------------------------------
+ * The lakehouse holds over a thousand tickers. A `<select>` listing all
+ * of them is a flat, unsearchable list — and opening a native select with
+ * a thousand options costs a visible stall on Windows. Yahoo Finance
+ * solves this with a combobox, so this does too: type two letters and
+ * the universe filters in front of you.
+ *
+ * WHY THE CLOCK IS IN THE BAR AND NOT ON THE QUOTE PAGE
+ * ------------------------------------------------------
+ * "Is the market open?" is a question about the app, not about one
+ * ticker, and the answer belongs in the chrome that is on every page.
+ * The session label is derived from the LAKEHOUSE's newest stored bar,
+ * so it is a fact about the data rather than a guess about the wall
+ * clock.
+ *
+ * WHY THE BAR IS TRANSLUCENT
+ * --------------------------
+ * The header sits on top of scrolling content. A solid bar would cut
+ * the page in two with a hard edge; a translucent one with a blur lets
+ * the content behind it show through faintly, so the bar reads as
+ * floating above the page rather than as a wall. The blur is cheap
+ * because the bar is a small, fixed area.
  */
 export function Header() {
   const { symbol, setSymbol } = useMarket();
-  const fetching = useMarketBusy();
   const { locale, setLocale } = useI18n();
   const [busy, setBusy] = useState(false);
-  const [symbolFocused, setSymbolFocused] = useState(false);
+  const queryClient = useQueryClient();
 
-  // Full list from lakehouse; short list as fallback.
   const symbolsQuery = useQuery({
     queryKey: ["symbols"],
     queryFn: fetchSymbols,
     staleTime: 5 * 60 * 1000,
   });
-  const availableSymbols = symbolsQuery.data?.symbols ?? ["AAPL", "MSFT", "GOOGL", "NVDA", "TSLA"];
+  const symbols = symbolsQuery.data?.symbols ?? [];
 
   const refresh = async () => {
     setBusy(true);
     try {
       await runPipeline(symbol, "1d");
+      await queryClient.invalidateQueries();
       toast.success(
-        locale === "vi"
-          ? `Pipeline đã chạy cho ${symbol}`
-          : `Pipeline ran for ${symbol}`,
+        locale === "vi" ? `Đã nạp dữ liệu cho ${symbol}` : `Data refreshed for ${symbol}`,
       );
-    } catch {
+    } catch (error) {
       toast.error(
-        locale === "vi"
-          ? "Không kết nối được backend API."
-          : "Cannot connect to backend API.",
+        error instanceof Error
+          ? error.message
+          : locale === "vi"
+            ? "Không thể nạp dữ liệu."
+            : "Data refresh failed.",
       );
     } finally {
       setBusy(false);
@@ -58,79 +73,79 @@ export function Header() {
   };
 
   return (
-    <header className="sticky top-0 z-30 border-b border-hairline bg-surface">
-      <div className="flex h-14 items-center gap-6 px-6">
-        {/* -- Brand ----------------------------------------------- */}
-        <div className="flex items-center gap-3">
-          <div className="flex h-8 w-8 items-center justify-center rounded bg-primary text-on-primary">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
-              <path
-                d="M3 17.5 9 10l4.5 4.5L21 5"
-                stroke="currentColor"
-                strokeWidth="2.2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-          </div>
-          <div className="hidden leading-none sm:block">
-            <div className="font-display text-small font-bold tracking-tight text-ink">
-              {t("app.title", locale)}
-            </div>
-            <div className="mt-1 font-mono text-label uppercase text-muted">
-              {t("app.subtitle", locale)}
-            </div>
-          </div>
-        </div>
+    <header className="glass-bar sticky top-0 z-40 border-b border-hairline">
+      <div className="mx-auto flex h-14 max-w-[1600px] items-center gap-3 px-4 sm:gap-5 sm:px-6">
+        <a
+          href="/"
+          className="group flex min-w-0 shrink-0 items-center gap-2 text-ink"
+          aria-label={t("app.title", locale)}
+        >
+          {/*
+            The logo mark. It is a gradient square rather than a flat one
+            because it is the ONE place in the app where the brand colour
+            is allowed to be loud: it is 32 pixels wide, it is the thing
+            the reader looks for when the page scrolls, and a flat navy
+            square would disappear against a navy canvas in dark mode.
+          */}
+          <span className="relative flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded bg-primary text-on-primary transition-transform duration-200 ease-out group-hover:scale-105">
+            <span
+              aria-hidden="true"
+              className="absolute inset-0 opacity-90"
+              style={{
+                backgroundImage:
+                  "linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--primary-2)) 100%)",
+              }}
+            />
+            <ChartNoAxesCombined size={18} className="relative" aria-hidden="true" />
+          </span>
+          <span className="hidden whitespace-nowrap font-display text-small font-bold sm:block">
+            StockVision AI
+          </span>
+        </a>
 
-        {/* -- Symbol picker --------------------------------------- */}
-        <div className="relative flex items-center">
-          <Search
-            size={14}
-            className="pointer-events-none absolute left-3 text-muted"
-          />
-          <select
-            value={symbol}
-            onChange={(e) => setSymbol(e.target.value)}
-            onFocus={() => setSymbolFocused(true)}
-            onBlur={() => setSymbolFocused(false)}
-            className="appearance-none rounded border bg-surface py-2 pl-8 pr-8 font-mono text-small font-medium text-ink outline-none transition-colors"
-            style={{
-              borderColor: symbolFocused ? "hsl(var(--primary))" : "hsl(var(--hairline))",
-              minWidth: 140,
-            }}
-            aria-label="Symbol"
+        <span className="hidden h-6 w-px shrink-0 bg-hairline sm:block" aria-hidden="true" />
+
+        {/*
+          The symbol search. It takes the room the market tape used to
+          hold on the left, because a symbol is a CONTROL and the tape
+          was decoration. The tape moved to its own strip below the
+          navigation, where it has the full width to scroll.
+        */}
+        <SymbolSearch
+          value={symbol}
+          symbols={symbols}
+          onSelect={setSymbol}
+          placeholder={locale === "vi" ? "Tìm mã chứng khoán" : "Search symbol"}
+          className="w-40 sm:w-56 lg:w-72"
+        />
+
+        <div className="ml-auto flex shrink-0 items-center gap-1 sm:gap-2">
+          {/*
+            The refresh button spins while the pipeline runs. It is the
+            only animated control in the bar, and the animation IS the
+            feedback: the reader does not have to wait for a toast to
+            learn that the work is under way.
+          */}
+          <button
+            type="button"
+            onClick={() => void refresh()}
+            disabled={busy}
+            title={locale === "vi" ? "Nạp lại dữ liệu mã đang chọn" : "Refresh selected stock data"}
+            aria-label={locale === "vi" ? "Nạp lại dữ liệu mã đang chọn" : "Refresh selected stock data"}
+            className={cn(
+              "flex h-9 w-9 items-center justify-center rounded text-muted transition-colors",
+              "hover:bg-surface-2 hover:text-ink disabled:opacity-50",
+            )}
           >
-            {availableSymbols.map((item) => (
-              <option key={item} value={item}>
-                {item}
-              </option>
-            ))}
-          </select>
-          <div className="pointer-events-none absolute right-3 text-muted">
-            <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
-              <path d="M2 4l3 3 3-3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </div>
-        </div>
+            <RefreshCw size={17} className={busy ? "animate-spin" : ""} />
+          </button>
 
-        {/* -- Interval switcher ------------------------------------ */}
-        <div className="flex items-center gap-3">
-          <IntervalSwitcher busy={fetching > 0} />
-          {fetching > 0 ? (
-            <span className="font-mono text-label uppercase text-primary">
-              {t("interval.loading", locale)}
-            </span>
-          ) : null}
-        </div>
+          <ThemeToggle className="hidden sm:inline-flex" />
 
-        {/* -- Right controls --------------------------------------- */}
-        <div className="ml-auto flex items-center gap-3">
-          {/* Locale toggle */}
           <div
-            className="flex items-center rounded border border-hairline p-1"
+            className="inline-flex rounded border border-hairline bg-surface-2 p-0.5"
             role="group"
-            aria-label="Language"
+            aria-label={locale === "vi" ? "Ngôn ngữ" : "Language"}
           >
             {(["vi", "en"] as const).map((code) => (
               <button
@@ -138,33 +153,16 @@ export function Header() {
                 type="button"
                 onClick={() => setLocale(code)}
                 aria-pressed={locale === code}
-                className="inline-flex items-center gap-1 rounded px-2 py-1 font-mono text-label font-medium uppercase transition-colors"
-                style={
+                className={cn(
+                  "h-8 min-w-8 rounded px-2 font-mono text-label font-semibold uppercase transition-colors",
                   locale === code
-                    ? { background: "hsl(var(--primary))", color: "hsl(var(--on-primary))" }
-                    : { color: "hsl(var(--muted))" }
-                }
+                    ? "bg-primary text-on-primary"
+                    : "text-muted hover:bg-surface-3 hover:text-ink",
+                )}
               >
-                {code === "vi" ? <Languages size={11} /> : null}
-                {code.toUpperCase()}
+                {code}
               </button>
             ))}
-          </div>
-
-          {/* Pipeline button */}
-          <Button onClick={refresh} disabled={busy} size="sm" variant="outline">
-            <RefreshCw size={13} className={busy ? "animate-spin" : ""} />
-            {busy
-              ? (locale === "vi" ? "Đang chạy…" : "Running…")
-              : t("system.refresh", locale)}
-          </Button>
-
-          {/* Live indicator */}
-          <div className="flex items-center gap-2 rounded border border-hairline px-2 py-1">
-            <span className="dot dot-live" />
-            <span className="font-mono text-label font-medium uppercase text-primary">
-              Live
-            </span>
           </div>
         </div>
       </div>

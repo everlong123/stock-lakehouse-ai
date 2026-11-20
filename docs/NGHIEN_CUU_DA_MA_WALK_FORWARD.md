@@ -1,5 +1,7 @@
 # NGHIÊN CỨU ĐA MÃ: WALK-FORWARD + ĐƯỜNG CƠ SỞ MUA & GIỮ
 
+> **Cập nhật 19/11/2026:** kết quả mới có **102 mã / 14 nhóm thị trường / 3.724 cửa sổ cặp**, sau khi sửa phân nhóm. Xem mục 8.7 của [tài liệu chính](HE_THONG_TOAN_DIEN_VA_GIAI_TRINH_KHOA_LUAN.md) và [báo cáo sửa lỗi](audits/KET_QUA_SUA_LOI_2026-11-19.md). Phần 101 mã/13 sàn bên dưới là snapshot 11/11, giữ để tra cứu lịch sử, không dùng làm kết quả hiện tại.
+
 > **Tài liệu này dành cho bạn — người mới.**
 > Mỗi khái niệm kỹ thuật đều được giải thích bằng **đời thường trước**, rồi mới nêu **tên thuật ngữ** sau.
 

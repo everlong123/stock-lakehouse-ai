@@ -1,0 +1,1464 @@
+{
+  "linear_regression": [
+    {
+      "symbol": "AVB",
+      "available": false,
+      "model_name": "linear_regression",
+      "reason": "No trained linear_regression model found for AVB.",
+      "generated_at": "2026-11-19T09:28:45.636886+00:00"
+    },
+    {
+      "symbol": "BTF",
+      "available": false,
+      "model_name": "linear_regression",
+      "reason": "Input data is 20 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 20,
+      "generated_at": "2026-11-19T09:29:07.237633+00:00"
+    },
+    {
+      "symbol": "EA",
+      "available": false,
+      "model_name": "linear_regression",
+      "reason": "No trained linear_regression model found for EA.",
+      "generated_at": "2026-11-19T09:29:48.320616+00:00"
+    },
+    {
+      "symbol": "EQR",
+      "available": false,
+      "model_name": "linear_regression",
+      "reason": "No trained linear_regression model found for EQR.",
+      "generated_at": "2026-11-19T09:29:57.199958+00:00"
+    },
+    {
+      "symbol": "MRNA",
+      "available": false,
+      "model_name": "linear_regression",
+      "reason": "MRNA cannot be trained on this window: suspected scale discontinuity (span 4.38x; the detector also checks local jumps). A reverse split, a provider unit change or an actual market jump requires investigation. Verify the source, re-ingest inconsistent data, or explicitly select a recent stable training window. No prices were altered.",
+      "generated_at": "2026-11-19T09:31:26.731913+00:00"
+    },
+    {
+      "symbol": "NSC",
+      "available": false,
+      "model_name": "linear_regression",
+      "reason": "Input data is 10 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 10,
+      "generated_at": "2026-11-19T09:31:45.157520+00:00"
+    },
+    {
+      "symbol": "NWE",
+      "available": false,
+      "model_name": "linear_regression",
+      "reason": "Input data is 3 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 3,
+      "generated_at": "2026-11-19T09:31:50.176055+00:00"
+    },
+    {
+      "symbol": "PARA",
+      "available": false,
+      "model_name": "linear_regression",
+      "reason": "PARA cannot be trained on this window: suspected scale discontinuity (span 24.08x; the detector also checks local jumps). A reverse split, a provider unit change or an actual market jump requires investigation. Verify the source, re-ingest inconsistent data, or explicitly select a recent stable training window. No prices were altered.",
+      "generated_at": "2026-11-19T09:32:04.177163+00:00"
+    },
+    {
+      "symbol": "QRVO",
+      "available": false,
+      "model_name": "linear_regression",
+      "reason": "Input data is 33 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 33,
+      "generated_at": "2026-11-19T09:32:23.352857+00:00"
+    },
+    {
+      "symbol": "ROKU",
+      "available": false,
+      "model_name": "linear_regression",
+      "reason": "Input data is 8 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 8,
+      "generated_at": "2026-11-19T09:32:30.986654+00:00"
+    },
+    {
+      "symbol": "ADS.DE",
+      "available": false,
+      "model_name": "linear_regression",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 1,
+      "generated_at": "2026-11-19T09:34:15.941187+00:00"
+    },
+    {
+      "symbol": "ALV.DE",
+      "available": false,
+      "model_name": "linear_regression",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 1,
+      "generated_at": "2026-11-19T09:34:16.802780+00:00"
+    },
+    {
+      "symbol": "BAS.DE",
+      "available": false,
+      "model_name": "linear_regression",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 1,
+      "generated_at": "2026-11-19T09:34:18.996198+00:00"
+    },
+    {
+      "symbol": "BAYN.DE",
+      "available": false,
+      "model_name": "linear_regression",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 1,
+      "generated_at": "2026-11-19T09:34:19.374240+00:00"
+    },
+    {
+      "symbol": "BMW.DE",
+      "available": false,
+      "model_name": "linear_regression",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 1,
+      "generated_at": "2026-11-19T09:34:21.009594+00:00"
+    },
+    {
+      "symbol": "BNR.DE",
+      "available": false,
+      "model_name": "linear_regression",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 1,
+      "generated_at": "2026-11-19T09:34:21.586173+00:00"
+    },
+    {
+      "symbol": "CON.DE",
+      "available": false,
+      "model_name": "linear_regression",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 1,
+      "generated_at": "2026-11-19T09:34:22.376545+00:00"
+    },
+    {
+      "symbol": "DB1.DE",
+      "available": false,
+      "model_name": "linear_regression",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 1,
+      "generated_at": "2026-11-19T09:34:25.645889+00:00"
+    },
+    {
+      "symbol": "DBK.DE",
+      "available": false,
+      "model_name": "linear_regression",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 1,
+      "generated_at": "2026-11-19T09:34:25.669062+00:00"
+    },
+    {
+      "symbol": "DHL.DE",
+      "available": false,
+      "model_name": "linear_regression",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 1,
+      "generated_at": "2026-11-19T09:34:25.797550+00:00"
+    },
+    {
+      "symbol": "DTE.DE",
+      "available": false,
+      "model_name": "linear_regression",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 1,
+      "generated_at": "2026-11-19T09:34:29.125046+00:00"
+    },
+    {
+      "symbol": "EOAN.DE",
+      "available": false,
+      "model_name": "linear_regression",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 1,
+      "generated_at": "2026-11-19T09:34:28.756767+00:00"
+    },
+    {
+      "symbol": "FRE.DE",
+      "available": false,
+      "model_name": "linear_regression",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 1,
+      "generated_at": "2026-11-19T09:34:28.733223+00:00"
+    },
+    {
+      "symbol": "HEIA.AS",
+      "available": false,
+      "model_name": "linear_regression",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 1,
+      "generated_at": "2026-11-19T09:34:32.002270+00:00"
+    },
+    {
+      "symbol": "HEN3.DE",
+      "available": false,
+      "model_name": "linear_regression",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 1,
+      "generated_at": "2026-11-19T09:34:31.912542+00:00"
+    },
+    {
+      "symbol": "IFX.DE",
+      "available": false,
+      "model_name": "linear_regression",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 1,
+      "generated_at": "2026-11-19T09:34:32.147198+00:00"
+    },
+    {
+      "symbol": "LIN.DE",
+      "available": false,
+      "model_name": "linear_regression",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 1,
+      "generated_at": "2026-11-19T09:34:35.829721+00:00"
+    },
+    {
+      "symbol": "MBG.DE",
+      "available": false,
+      "model_name": "linear_regression",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 1,
+      "generated_at": "2026-11-19T09:34:35.990162+00:00"
+    },
+    {
+      "symbol": "MRK.DE",
+      "available": false,
+      "model_name": "linear_regression",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 1,
+      "generated_at": "2026-11-19T09:34:36.220841+00:00"
+    },
+    {
+      "symbol": "MTX.DE",
+      "available": false,
+      "model_name": "linear_regression",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 1,
+      "generated_at": "2026-11-19T09:34:40.242167+00:00"
+    },
+    {
+      "symbol": "MUV2.DE",
+      "available": false,
+      "model_name": "linear_regression",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 1,
+      "generated_at": "2026-11-19T09:34:40.324923+00:00"
+    },
+    {
+      "symbol": "P911.DE",
+      "available": false,
+      "model_name": "linear_regression",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 1,
+      "generated_at": "2026-11-19T09:34:38.432977+00:00"
+    },
+    {
+      "symbol": "PAH3.DE",
+      "available": false,
+      "model_name": "linear_regression",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 1,
+      "generated_at": "2026-11-19T09:34:44.009351+00:00"
+    },
+    {
+      "symbol": "QIA.DE",
+      "available": false,
+      "model_name": "linear_regression",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 1,
+      "generated_at": "2026-11-19T09:34:45.632650+00:00"
+    },
+    {
+      "symbol": "RWE.DE",
+      "available": false,
+      "model_name": "linear_regression",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 1,
+      "generated_at": "2026-11-19T09:34:45.597769+00:00"
+    },
+    {
+      "symbol": "SAP.DE",
+      "available": false,
+      "model_name": "linear_regression",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 1,
+      "generated_at": "2026-11-19T09:34:50.908802+00:00"
+    },
+    {
+      "symbol": "SIE.DE",
+      "available": false,
+      "model_name": "linear_regression",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 1,
+      "generated_at": "2026-11-19T09:34:53.016611+00:00"
+    },
+    {
+      "symbol": "VOW3.DE",
+      "available": false,
+      "model_name": "linear_regression",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 1,
+      "generated_at": "2026-11-19T09:34:52.554512+00:00"
+    },
+    {
+      "symbol": "VNA.DE",
+      "available": false,
+      "model_name": "linear_regression",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 1,
+      "generated_at": "2026-11-19T09:34:55.474992+00:00"
+    },
+    {
+      "symbol": "ZAL.DE",
+      "available": false,
+      "model_name": "linear_regression",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 1,
+      "generated_at": "2026-11-19T09:34:55.898986+00:00"
+    },
+    {
+      "symbol": "AI.PA",
+      "available": false,
+      "model_name": "linear_regression",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 1,
+      "generated_at": "2026-11-19T09:34:56.501860+00:00"
+    },
+    {
+      "symbol": "AIR.PA",
+      "available": false,
+      "model_name": "linear_regression",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 1,
+      "generated_at": "2026-11-19T09:34:59.429242+00:00"
+    },
+    {
+      "symbol": "BNP.PA",
+      "available": false,
+      "model_name": "linear_regression",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 1,
+      "generated_at": "2026-11-19T09:34:59.606775+00:00"
+    },
+    {
+      "symbol": "BN.PA",
+      "available": false,
+      "model_name": "linear_regression",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 1,
+      "generated_at": "2026-11-19T09:34:59.581240+00:00"
+    },
+    {
+      "symbol": "CA.PA",
+      "available": false,
+      "model_name": "linear_regression",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 1,
+      "generated_at": "2026-11-19T09:35:02.924698+00:00"
+    },
+    {
+      "symbol": "CAP.PA",
+      "available": false,
+      "model_name": "linear_regression",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 1,
+      "generated_at": "2026-11-19T09:35:03.401230+00:00"
+    },
+    {
+      "symbol": "CS.PA",
+      "available": false,
+      "model_name": "linear_regression",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 1,
+      "generated_at": "2026-11-19T09:35:03.547766+00:00"
+    },
+    {
+      "symbol": "DG.PA",
+      "available": false,
+      "model_name": "linear_regression",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 1,
+      "generated_at": "2026-11-19T09:35:05.910775+00:00"
+    },
+    {
+      "symbol": "EL.PA",
+      "available": false,
+      "model_name": "linear_regression",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 1,
+      "generated_at": "2026-11-19T09:35:06.580148+00:00"
+    },
+    {
+      "symbol": "ENGI.PA",
+      "available": false,
+      "model_name": "linear_regression",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 1,
+      "generated_at": "2026-11-19T09:35:06.672620+00:00"
+    },
+    {
+      "symbol": "EN.PA",
+      "available": false,
+      "model_name": "linear_regression",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 1,
+      "generated_at": "2026-11-19T09:35:08.888085+00:00"
+    },
+    {
+      "symbol": "GLE.PA",
+      "available": false,
+      "model_name": "linear_regression",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 1,
+      "generated_at": "2026-11-19T09:35:10.132967+00:00"
+    },
+    {
+      "symbol": "HO.PA",
+      "available": false,
+      "model_name": "linear_regression",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 1,
+      "generated_at": "2026-11-19T09:35:10.257139+00:00"
+    },
+    {
+      "symbol": "MC.PA",
+      "available": false,
+      "model_name": "linear_regression",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 1,
+      "generated_at": "2026-11-19T09:35:12.641567+00:00"
+    },
+    {
+      "symbol": "ML.PA",
+      "available": false,
+      "model_name": "linear_regression",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 1,
+      "generated_at": "2026-11-19T09:35:13.446224+00:00"
+    },
+    {
+      "symbol": "OR.PA",
+      "available": false,
+      "model_name": "linear_regression",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 1,
+      "generated_at": "2026-11-19T09:35:14.128677+00:00"
+    },
+    {
+      "symbol": "PUB.PA",
+      "available": false,
+      "model_name": "linear_regression",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 1,
+      "generated_at": "2026-11-19T09:35:16.072495+00:00"
+    },
+    {
+      "symbol": "RNO.PA",
+      "available": false,
+      "model_name": "linear_regression",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 1,
+      "generated_at": "2026-11-19T09:35:16.151718+00:00"
+    },
+    {
+      "symbol": "SAF.PA",
+      "available": false,
+      "model_name": "linear_regression",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 1,
+      "generated_at": "2026-11-19T09:35:17.406338+00:00"
+    },
+    {
+      "symbol": "SAN.PA",
+      "available": false,
+      "model_name": "linear_regression",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 1,
+      "generated_at": "2026-11-19T09:35:19.023585+00:00"
+    },
+    {
+      "symbol": "SGO.PA",
+      "available": false,
+      "model_name": "linear_regression",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 1,
+      "generated_at": "2026-11-19T09:35:19.204263+00:00"
+    },
+    {
+      "symbol": "STLAM.MI",
+      "available": false,
+      "model_name": "linear_regression",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 1,
+      "generated_at": "2026-11-19T09:35:20.185223+00:00"
+    },
+    {
+      "symbol": "SU.PA",
+      "available": false,
+      "model_name": "linear_regression",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 1,
+      "generated_at": "2026-11-19T09:35:22.325891+00:00"
+    },
+    {
+      "symbol": "TTE.PA",
+      "available": false,
+      "model_name": "linear_regression",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 1,
+      "generated_at": "2026-11-19T09:35:23.192336+00:00"
+    },
+    {
+      "symbol": "VIE.PA",
+      "available": false,
+      "model_name": "linear_regression",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 1,
+      "generated_at": "2026-11-19T09:35:23.706819+00:00"
+    },
+    {
+      "symbol": "VIV.PA",
+      "available": false,
+      "model_name": "linear_regression",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 1,
+      "generated_at": "2026-11-19T09:35:25.384805+00:00"
+    },
+    {
+      "symbol": "SHEL.L",
+      "available": false,
+      "model_name": "linear_regression",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 1,
+      "generated_at": "2026-11-19T09:35:27.419654+00:00"
+    },
+    {
+      "symbol": "AZN.L",
+      "available": false,
+      "model_name": "linear_regression",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 1,
+      "generated_at": "2026-11-19T09:35:27.662076+00:00"
+    },
+    {
+      "symbol": "HSBA.L",
+      "available": false,
+      "model_name": "linear_regression",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 1,
+      "generated_at": "2026-11-19T09:35:29.145353+00:00"
+    },
+    {
+      "symbol": "BP.L",
+      "available": false,
+      "model_name": "linear_regression",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 1,
+      "generated_at": "2026-11-19T09:35:32.231874+00:00"
+    },
+    {
+      "symbol": "ULVR.L",
+      "available": false,
+      "model_name": "linear_regression",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 1,
+      "generated_at": "2026-11-19T09:35:31.846338+00:00"
+    },
+    {
+      "symbol": "DGE.L",
+      "available": false,
+      "model_name": "linear_regression",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 1,
+      "generated_at": "2026-11-19T09:35:33.129270+00:00"
+    },
+    {
+      "symbol": "GSK.L",
+      "available": false,
+      "model_name": "linear_regression",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 1,
+      "generated_at": "2026-11-19T09:35:34.645952+00:00"
+    },
+    {
+      "symbol": "RIO.L",
+      "available": false,
+      "model_name": "linear_regression",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 1,
+      "generated_at": "2026-11-19T09:35:35.890923+00:00"
+    },
+    {
+      "symbol": "BARC.L",
+      "available": false,
+      "model_name": "linear_regression",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 1,
+      "generated_at": "2026-11-19T09:35:36.295099+00:00"
+    },
+    {
+      "symbol": "LSEG.L",
+      "available": false,
+      "model_name": "linear_regression",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 1,
+      "generated_at": "2026-11-19T09:35:37.460264+00:00"
+    },
+    {
+      "symbol": "LLOY.L",
+      "available": false,
+      "model_name": "linear_regression",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 1,
+      "generated_at": "2026-11-19T09:35:39.151256+00:00"
+    },
+    {
+      "symbol": "NG.L",
+      "available": false,
+      "model_name": "linear_regression",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 1,
+      "generated_at": "2026-11-19T09:35:39.403357+00:00"
+    },
+    {
+      "symbol": "REL.L",
+      "available": false,
+      "model_name": "linear_regression",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 1,
+      "generated_at": "2026-11-19T09:35:40.478312+00:00"
+    },
+    {
+      "symbol": "TSCO.L",
+      "available": false,
+      "model_name": "linear_regression",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 1,
+      "generated_at": "2026-11-19T09:35:42.325469+00:00"
+    },
+    {
+      "symbol": "VOD.L",
+      "available": false,
+      "model_name": "linear_regression",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 1,
+      "generated_at": "2026-11-19T09:35:43.399377+00:00"
+    },
+    {
+      "symbol": "ASML.AS",
+      "available": false,
+      "model_name": "linear_regression",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 1,
+      "generated_at": "2026-11-19T09:35:44.074880+00:00"
+    },
+    {
+      "symbol": "AD.AS",
+      "available": false,
+      "model_name": "linear_regression",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 1,
+      "generated_at": "2026-11-19T09:35:45.308452+00:00"
+    },
+    {
+      "symbol": "INGA.AS",
+      "available": false,
+      "model_name": "linear_regression",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 1,
+      "generated_at": "2026-11-19T09:35:47.436259+00:00"
+    },
+    {
+      "symbol": "PHIA.AS",
+      "available": false,
+      "model_name": "linear_regression",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 1,
+      "generated_at": "2026-11-19T09:35:48.385017+00:00"
+    },
+    {
+      "symbol": "UNA.AS",
+      "available": false,
+      "model_name": "linear_regression",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 1,
+      "generated_at": "2026-11-19T09:35:47.546101+00:00"
+    },
+    {
+      "symbol": "SAN.MC",
+      "available": false,
+      "model_name": "linear_regression",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 1,
+      "generated_at": "2026-11-19T09:35:50.618838+00:00"
+    },
+    {
+      "symbol": "IBE.MC",
+      "available": false,
+      "model_name": "linear_regression",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 1,
+      "generated_at": "2026-11-19T09:35:51.431578+00:00"
+    },
+    {
+      "symbol": "ITX.MC",
+      "available": false,
+      "model_name": "linear_regression",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 1,
+      "generated_at": "2026-11-19T09:35:52.142881+00:00"
+    },
+    {
+      "symbol": "TEF.MC",
+      "available": false,
+      "model_name": "linear_regression",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 1,
+      "generated_at": "2026-11-19T09:35:54.441288+00:00"
+    },
+    {
+      "symbol": "ENI.MI",
+      "available": false,
+      "model_name": "linear_regression",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 1,
+      "generated_at": "2026-11-19T09:35:55.866918+00:00"
+    },
+    {
+      "symbol": "ISP.MI",
+      "available": false,
+      "model_name": "linear_regression",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 1,
+      "generated_at": "2026-11-19T09:35:56.103847+00:00"
+    },
+    {
+      "symbol": "ENEL.MI",
+      "available": false,
+      "model_name": "linear_regression",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 1,
+      "generated_at": "2026-11-19T09:35:58.053520+00:00"
+    },
+    {
+      "symbol": "RACE.MI",
+      "available": false,
+      "model_name": "linear_regression",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 1,
+      "generated_at": "2026-11-19T09:35:59.735152+00:00"
+    },
+    {
+      "symbol": "NESN.SW",
+      "available": false,
+      "model_name": "linear_regression",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 1,
+      "generated_at": "2026-11-19T09:36:00.744942+00:00"
+    },
+    {
+      "symbol": "NOVN.SW",
+      "available": false,
+      "model_name": "linear_regression",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 1,
+      "generated_at": "2026-11-19T09:36:02.394493+00:00"
+    },
+    {
+      "symbol": "RO.SW",
+      "available": false,
+      "model_name": "linear_regression",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 1,
+      "generated_at": "2026-11-19T09:36:02.578345+00:00"
+    },
+    {
+      "symbol": "UBSG.SW",
+      "available": false,
+      "model_name": "linear_regression",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 1,
+      "generated_at": "2026-11-19T09:36:04.224248+00:00"
+    },
+    {
+      "symbol": "ABBN.SW",
+      "available": false,
+      "model_name": "linear_regression",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 1,
+      "generated_at": "2026-11-19T09:36:05.648743+00:00"
+    },
+    {
+      "symbol": "ACH",
+      "available": false,
+      "model_name": "linear_regression",
+      "reason": "ACH cannot be trained on this window: suspected scale discontinuity (span 2.81x; the detector also checks local jumps). A reverse split, a provider unit change or an actual market jump requires investigation. Verify the source, re-ingest inconsistent data, or explicitly select a recent stable training window. No prices were altered.",
+      "generated_at": "2026-11-19T09:37:22.287657+00:00"
+    },
+    {
+      "symbol": "EMBJ",
+      "available": false,
+      "model_name": "linear_regression",
+      "reason": "EMBJ cannot be trained on this window: suspected scale discontinuity (span 1.12x; the detector also checks local jumps). A reverse split, a provider unit change or an actual market jump requires investigation. Verify the source, re-ingest inconsistent data, or explicitly select a recent stable training window. No prices were altered.",
+      "generated_at": "2026-11-19T09:37:30.214507+00:00"
+    },
+    {
+      "symbol": "AKRO",
+      "available": false,
+      "model_name": "linear_regression",
+      "reason": "No trained linear_regression model found for AKRO.",
+      "generated_at": "2026-11-19T09:39:55.909417+00:00"
+    },
+    {
+      "symbol": "ALXN",
+      "available": false,
+      "model_name": "linear_regression",
+      "reason": "No trained linear_regression model found for ALXN.",
+      "generated_at": "2026-11-19T09:39:56.226307+00:00"
+    },
+    {
+      "symbol": "ATSG",
+      "available": false,
+      "model_name": "linear_regression",
+      "reason": "No trained linear_regression model found for ATSG.",
+      "generated_at": "2026-11-19T09:39:56.382731+00:00"
+    },
+    {
+      "symbol": "BK",
+      "available": false,
+      "model_name": "linear_regression",
+      "reason": "No trained linear_regression model found for BK.",
+      "generated_at": "2026-11-19T09:39:59.162132+00:00"
+    },
+    {
+      "symbol": "BLUE",
+      "available": false,
+      "model_name": "linear_regression",
+      "reason": "No trained linear_regression model found for BLUE.",
+      "generated_at": "2026-11-19T09:39:59.557731+00:00"
+    },
+    {
+      "symbol": "CCRN",
+      "available": false,
+      "model_name": "linear_regression",
+      "reason": "No trained linear_regression model found for CCRN.",
+      "generated_at": "2026-11-19T09:40:03.032578+00:00"
+    },
+    {
+      "symbol": "CHK",
+      "available": false,
+      "model_name": "linear_regression",
+      "reason": "No trained linear_regression model found for CHK.",
+      "generated_at": "2026-11-19T09:40:03.321830+00:00"
+    },
+    {
+      "symbol": "CMA",
+      "available": false,
+      "model_name": "linear_regression",
+      "reason": "No trained linear_regression model found for CMA.",
+      "generated_at": "2026-11-19T09:40:03.997219+00:00"
+    },
+    {
+      "symbol": "CPRX",
+      "available": false,
+      "model_name": "linear_regression",
+      "reason": "No trained linear_regression model found for CPRX.",
+      "generated_at": "2026-11-19T09:40:04.907613+00:00"
+    },
+    {
+      "symbol": "CTRA",
+      "available": false,
+      "model_name": "linear_regression",
+      "reason": "No trained linear_regression model found for CTRA.",
+      "generated_at": "2026-11-19T09:40:07.234302+00:00"
+    },
+    {
+      "symbol": "DAWN",
+      "available": false,
+      "model_name": "linear_regression",
+      "reason": "No trained linear_regression model found for DAWN.",
+      "generated_at": "2026-11-19T09:40:07.553560+00:00"
+    },
+    {
+      "symbol": "DENN",
+      "available": false,
+      "model_name": "linear_regression",
+      "reason": "No trained linear_regression model found for DENN.",
+      "generated_at": "2026-11-19T09:40:08.829241+00:00"
+    },
+    {
+      "symbol": "EXPR",
+      "available": false,
+      "model_name": "linear_regression",
+      "reason": "No trained linear_regression model found for EXPR.",
+      "generated_at": "2026-11-19T09:40:18.556070+00:00"
+    },
+    {
+      "symbol": "FOLD",
+      "available": false,
+      "model_name": "linear_regression",
+      "reason": "No trained linear_regression model found for FOLD.",
+      "generated_at": "2026-11-19T09:40:18.895937+00:00"
+    },
+    {
+      "symbol": "HAB",
+      "available": false,
+      "model_name": "linear_regression",
+      "reason": "No trained linear_regression model found for HAB.",
+      "generated_at": "2026-11-19T09:40:23.794837+00:00"
+    },
+    {
+      "symbol": "HOLX",
+      "available": false,
+      "model_name": "linear_regression",
+      "reason": "No trained linear_regression model found for HOLX.",
+      "generated_at": "2026-11-19T09:40:29.070542+00:00"
+    },
+    {
+      "symbol": "IPG",
+      "available": false,
+      "model_name": "linear_regression",
+      "reason": "No trained linear_regression model found for IPG.",
+      "generated_at": "2026-11-19T09:40:36.646766+00:00"
+    },
+    {
+      "symbol": "KLG",
+      "available": false,
+      "model_name": "linear_regression",
+      "reason": "No trained linear_regression model found for KLG.",
+      "generated_at": "2026-11-19T09:40:39.630430+00:00"
+    },
+    {
+      "symbol": "LTHM",
+      "available": false,
+      "model_name": "linear_regression",
+      "reason": "No trained linear_regression model found for LTHM.",
+      "generated_at": "2026-11-19T09:40:43.469112+00:00"
+    },
+    {
+      "symbol": "PEAK",
+      "available": false,
+      "model_name": "linear_regression",
+      "reason": "No trained linear_regression model found for PEAK.",
+      "generated_at": "2026-11-19T09:40:56.392706+00:00"
+    },
+    {
+      "symbol": "PGRE",
+      "available": false,
+      "model_name": "linear_regression",
+      "reason": "No trained linear_regression model found for PGRE.",
+      "generated_at": "2026-11-19T09:40:56.836013+00:00"
+    },
+    {
+      "symbol": "PGS",
+      "available": false,
+      "model_name": "linear_regression",
+      "reason": "Input data is 2 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 2,
+      "generated_at": "2026-11-19T09:41:00.274447+00:00"
+    },
+    {
+      "symbol": "PLL",
+      "available": false,
+      "model_name": "linear_regression",
+      "reason": "No trained linear_regression model found for PLL.",
+      "generated_at": "2026-11-19T09:40:59.533076+00:00"
+    },
+    {
+      "symbol": "PVE",
+      "available": false,
+      "model_name": "linear_regression",
+      "reason": "Input data is 4 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 4,
+      "generated_at": "2026-11-19T09:41:11.394540+00:00"
+    },
+    {
+      "symbol": "PXS",
+      "available": false,
+      "model_name": "linear_regression",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 1,
+      "generated_at": "2026-11-19T09:41:16.011107+00:00"
+    },
+    {
+      "symbol": "SOFI",
+      "available": false,
+      "model_name": "linear_regression",
+      "reason": "Input data is 11 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 11,
+      "generated_at": "2026-11-19T09:41:23.020699+00:00"
+    },
+    {
+      "symbol": "TCO",
+      "available": false,
+      "model_name": "linear_regression",
+      "reason": "No trained linear_regression model found for TCO.",
+      "generated_at": "2026-11-19T09:41:26.022791+00:00"
+    },
+    {
+      "symbol": "TGNA",
+      "available": false,
+      "model_name": "linear_regression",
+      "reason": "No trained linear_regression model found for TGNA.",
+      "generated_at": "2026-11-19T09:41:26.432786+00:00"
+    },
+    {
+      "symbol": "WBA",
+      "available": false,
+      "model_name": "linear_regression",
+      "reason": "No trained linear_regression model found for WBA.",
+      "generated_at": "2026-11-19T09:41:38.493773+00:00"
+    },
+    {
+      "symbol": "WBD",
+      "available": false,
+      "model_name": "linear_regression",
+      "reason": "Input data is 33 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 33,
+      "generated_at": "2026-11-19T09:41:39.858290+00:00"
+    }
+  ],
+  "arima": [
+    {
+      "symbol": "ALV.DE",
+      "available": false,
+      "model_name": "arima",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 1,
+      "generated_at": "2026-11-19T09:34:16.275987+00:00"
+    },
+    {
+      "symbol": "BMW.DE",
+      "available": false,
+      "model_name": "arima",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 1,
+      "generated_at": "2026-11-19T09:34:20.450784+00:00"
+    },
+    {
+      "symbol": "DTE.DE",
+      "available": false,
+      "model_name": "arima",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 1,
+      "generated_at": "2026-11-19T09:34:28.826499+00:00"
+    },
+    {
+      "symbol": "SAP.DE",
+      "available": false,
+      "model_name": "arima",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 1,
+      "generated_at": "2026-11-19T09:34:50.016369+00:00"
+    },
+    {
+      "symbol": "SIE.DE",
+      "available": false,
+      "model_name": "arima",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 1,
+      "generated_at": "2026-11-19T09:34:52.515667+00:00"
+    },
+    {
+      "symbol": "AIR.PA",
+      "available": false,
+      "model_name": "arima",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 1,
+      "generated_at": "2026-11-19T09:34:58.991822+00:00"
+    },
+    {
+      "symbol": "BNP.PA",
+      "available": false,
+      "model_name": "arima",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 1,
+      "generated_at": "2026-11-19T09:34:59.113782+00:00"
+    },
+    {
+      "symbol": "MC.PA",
+      "available": false,
+      "model_name": "arima",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 1,
+      "generated_at": "2026-11-19T09:35:12.154819+00:00"
+    },
+    {
+      "symbol": "OR.PA",
+      "available": false,
+      "model_name": "arima",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 1,
+      "generated_at": "2026-11-19T09:35:13.775899+00:00"
+    },
+    {
+      "symbol": "TTE.PA",
+      "available": false,
+      "model_name": "arima",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 1,
+      "generated_at": "2026-11-19T09:35:22.764775+00:00"
+    },
+    {
+      "symbol": "SHEL.L",
+      "available": false,
+      "model_name": "arima",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 1,
+      "generated_at": "2026-11-19T09:35:26.869100+00:00"
+    },
+    {
+      "symbol": "AZN.L",
+      "available": false,
+      "model_name": "arima",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 1,
+      "generated_at": "2026-11-19T09:35:27.039378+00:00"
+    },
+    {
+      "symbol": "HSBA.L",
+      "available": false,
+      "model_name": "arima",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 1,
+      "generated_at": "2026-11-19T09:35:28.738710+00:00"
+    },
+    {
+      "symbol": "BP.L",
+      "available": false,
+      "model_name": "arima",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 1,
+      "generated_at": "2026-11-19T09:35:31.807749+00:00"
+    },
+    {
+      "symbol": "VOD.L",
+      "available": false,
+      "model_name": "arima",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 1,
+      "generated_at": "2026-11-19T09:35:43.065280+00:00"
+    },
+    {
+      "symbol": "ASML.AS",
+      "available": false,
+      "model_name": "arima",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 1,
+      "generated_at": "2026-11-19T09:35:43.601228+00:00"
+    },
+    {
+      "symbol": "INGA.AS",
+      "available": false,
+      "model_name": "arima",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 1,
+      "generated_at": "2026-11-19T09:35:47.046884+00:00"
+    },
+    {
+      "symbol": "PHIA.AS",
+      "available": false,
+      "model_name": "arima",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 1,
+      "generated_at": "2026-11-19T09:35:47.988226+00:00"
+    },
+    {
+      "symbol": "SAN.MC",
+      "available": false,
+      "model_name": "arima",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 1,
+      "generated_at": "2026-11-19T09:35:50.240205+00:00"
+    },
+    {
+      "symbol": "IBE.MC",
+      "available": false,
+      "model_name": "arima",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 1,
+      "generated_at": "2026-11-19T09:35:50.865939+00:00"
+    },
+    {
+      "symbol": "ENI.MI",
+      "available": false,
+      "model_name": "arima",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 1,
+      "generated_at": "2026-11-19T09:35:55.439265+00:00"
+    },
+    {
+      "symbol": "ISP.MI",
+      "available": false,
+      "model_name": "arima",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 1,
+      "generated_at": "2026-11-19T09:35:55.700092+00:00"
+    },
+    {
+      "symbol": "ENEL.MI",
+      "available": false,
+      "model_name": "arima",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 1,
+      "generated_at": "2026-11-19T09:35:57.554696+00:00"
+    },
+    {
+      "symbol": "NESN.SW",
+      "available": false,
+      "model_name": "arima",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 1,
+      "generated_at": "2026-11-19T09:36:00.308131+00:00"
+    },
+    {
+      "symbol": "NOVN.SW",
+      "available": false,
+      "model_name": "arima",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 1,
+      "generated_at": "2026-11-19T09:36:02.022099+00:00"
+    },
+    {
+      "symbol": "SOFI",
+      "available": false,
+      "model_name": "arima",
+      "reason": "Input data is 11 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 11,
+      "generated_at": "2026-11-19T09:41:22.654742+00:00"
+    },
+    {
+      "symbol": "WBD",
+      "available": false,
+      "model_name": "arima",
+      "reason": "Input data is 33 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 33,
+      "generated_at": "2026-11-19T09:41:39.751681+00:00"
+    }
+  ],
+  "lstm": [
+    {
+      "symbol": "ROKU",
+      "available": false,
+      "model_name": "lstm",
+      "reason": "Input data is 8 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 8,
+      "generated_at": "2026-11-19T09:32:31.412798+00:00"
+    },
+    {
+      "symbol": "ALV.DE",
+      "available": false,
+      "model_name": "lstm",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 1,
+      "generated_at": "2026-11-19T09:34:17.913363+00:00"
+    },
+    {
+      "symbol": "BMW.DE",
+      "available": false,
+      "model_name": "lstm",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 1,
+      "generated_at": "2026-11-19T09:34:21.655228+00:00"
+    },
+    {
+      "symbol": "DTE.DE",
+      "available": false,
+      "model_name": "lstm",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 1,
+      "generated_at": "2026-11-19T09:34:29.537987+00:00"
+    },
+    {
+      "symbol": "SAP.DE",
+      "available": false,
+      "model_name": "lstm",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 1,
+      "generated_at": "2026-11-19T09:34:52.258237+00:00"
+    },
+    {
+      "symbol": "SIE.DE",
+      "available": false,
+      "model_name": "lstm",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 1,
+      "generated_at": "2026-11-19T09:34:53.628077+00:00"
+    },
+    {
+      "symbol": "AIR.PA",
+      "available": false,
+      "model_name": "lstm",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 1,
+      "generated_at": "2026-11-19T09:35:00.218784+00:00"
+    },
+    {
+      "symbol": "BNP.PA",
+      "available": false,
+      "model_name": "lstm",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 1,
+      "generated_at": "2026-11-19T09:35:00.321084+00:00"
+    },
+    {
+      "symbol": "MC.PA",
+      "available": false,
+      "model_name": "lstm",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 1,
+      "generated_at": "2026-11-19T09:35:13.163479+00:00"
+    },
+    {
+      "symbol": "OR.PA",
+      "available": false,
+      "model_name": "lstm",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 1,
+      "generated_at": "2026-11-19T09:35:14.614371+00:00"
+    },
+    {
+      "symbol": "TTE.PA",
+      "available": false,
+      "model_name": "lstm",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 1,
+      "generated_at": "2026-11-19T09:35:23.821193+00:00"
+    },
+    {
+      "symbol": "SHEL.L",
+      "available": false,
+      "model_name": "lstm",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 1,
+      "generated_at": "2026-11-19T09:35:28.475213+00:00"
+    },
+    {
+      "symbol": "AZN.L",
+      "available": false,
+      "model_name": "lstm",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 1,
+      "generated_at": "2026-11-19T09:35:28.632360+00:00"
+    },
+    {
+      "symbol": "HSBA.L",
+      "available": false,
+      "model_name": "lstm",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 1,
+      "generated_at": "2026-11-19T09:35:29.805896+00:00"
+    },
+    {
+      "symbol": "BP.L",
+      "available": false,
+      "model_name": "lstm",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 1,
+      "generated_at": "2026-11-19T09:35:32.941199+00:00"
+    },
+    {
+      "symbol": "VOD.L",
+      "available": false,
+      "model_name": "lstm",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 1,
+      "generated_at": "2026-11-19T09:35:44.007535+00:00"
+    },
+    {
+      "symbol": "ASML.AS",
+      "available": false,
+      "model_name": "lstm",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 1,
+      "generated_at": "2026-11-19T09:35:44.731872+00:00"
+    },
+    {
+      "symbol": "INGA.AS",
+      "available": false,
+      "model_name": "lstm",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 1,
+      "generated_at": "2026-11-19T09:35:48.047310+00:00"
+    },
+    {
+      "symbol": "PHIA.AS",
+      "available": false,
+      "model_name": "lstm",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 1,
+      "generated_at": "2026-11-19T09:35:49.168494+00:00"
+    },
+    {
+      "symbol": "SAN.MC",
+      "available": false,
+      "model_name": "lstm",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 1,
+      "generated_at": "2026-11-19T09:35:51.359574+00:00"
+    },
+    {
+      "symbol": "IBE.MC",
+      "available": false,
+      "model_name": "lstm",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 1,
+      "generated_at": "2026-11-19T09:35:52.240046+00:00"
+    },
+    {
+      "symbol": "ENI.MI",
+      "available": false,
+      "model_name": "lstm",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 1,
+      "generated_at": "2026-11-19T09:35:56.621362+00:00"
+    },
+    {
+      "symbol": "ISP.MI",
+      "available": false,
+      "model_name": "lstm",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 1,
+      "generated_at": "2026-11-19T09:35:56.806753+00:00"
+    },
+    {
+      "symbol": "ENEL.MI",
+      "available": false,
+      "model_name": "lstm",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 1,
+      "generated_at": "2026-11-19T09:35:58.767464+00:00"
+    },
+    {
+      "symbol": "NESN.SW",
+      "available": false,
+      "model_name": "lstm",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 1,
+      "generated_at": "2026-11-19T09:36:01.468504+00:00"
+    },
+    {
+      "symbol": "NOVN.SW",
+      "available": false,
+      "model_name": "lstm",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 1,
+      "generated_at": "2026-11-19T09:36:03.000046+00:00"
+    },
+    {
+      "symbol": "SOFI",
+      "available": false,
+      "model_name": "lstm",
+      "reason": "Input data is 11 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 11,
+      "generated_at": "2026-11-19T09:41:23.584391+00:00"
+    },
+    {
+      "symbol": "WBD",
+      "available": false,
+      "model_name": "lstm",
+      "reason": "Input data is 33 trading session(s) behind. Refresh the data before forecasting.",
+      "data_staleness_days": 33,
+      "generated_at": "2026-11-19T09:41:40.013505+00:00"
+    }
+  ]
+}

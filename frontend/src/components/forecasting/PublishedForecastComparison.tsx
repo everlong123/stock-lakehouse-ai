@@ -1,5 +1,7 @@
-import { formatPercent, formatPrice, isUsableNumber } from "@/utils/format";
+import { currencyForSymbol, formatPercent, formatPrice, isUsableNumber } from "@/utils/format";
 import { changeClass } from "@/utils/format";
+import { useI18n } from "@/lib/i18n";
+import { MODELS } from "@/utils/constants";
 import type { PublishedForecast, TrainedModelMetric } from "@/types/forecasting";
 
 interface PublishedForecastComparisonProps {
@@ -20,7 +22,7 @@ interface PublishedForecastComparisonProps {
  * recompute anything: a forecast that is recomputed on every render
  * would show a different number each time the page is opened, and the
  * reader would have no way to tell which one the system actually
- * committed to. The accuracy report on the Market Data page scores
+ * committed to. The verification panel on the Forecast page scores
  * these exact rows against the real close.
  *
  * WHY THE HISTORICAL METRIC SITS NEXT TO THE FORECAST
@@ -44,13 +46,16 @@ export function PublishedForecastComparison({
   trainedModels,
   currency,
 }: PublishedForecastComparisonProps) {
+  const { locale } = useI18n();
+  const vi = locale === "vi";
+  const quoteCurrency = currency ?? currencyForSymbol(symbol);
   if (forecasts.length === 0) {
     return (
-      <div className="rounded border border-hairline bg-surface px-4 py-6">
+      <div className="border-t border-hairline py-4">
         <p className="text-small text-muted">
           {trainedModels.length > 0
-            ? `${trainedModels.length} mô hình đã được huấn luyện cho ${symbol}, nhưng chưa có dự báo nào được ghi cho phiên này. Batch EOD sẽ ghi dự báo sau khi đóng cửa.`
-            : `Chưa có mô hình nào được huấn luyện cho ${symbol}. Vào trang này để huấn luyện, hoặc chạy batch EOD.`}
+            ? (vi ? `${trainedModels.length} mô hình đã được huấn luyện cho ${symbol}, nhưng chưa có dự báo nào được công bố cho phiên này.` : `${trainedModels.length} models are trained for ${symbol}, but no forecast has been published for this session.`)
+            : (vi ? `Chưa có mô hình được huấn luyện cho ${symbol}.` : `No trained model is available for ${symbol}.`)}
         </p>
       </div>
     );
@@ -69,7 +74,31 @@ export function PublishedForecastComparison({
 
   return (
     <div>
-      <div className="overflow-x-auto rounded border border-hairline bg-surface">
+      <div className="space-y-2 sm:hidden">
+        {forecasts.map((forecast) => {
+          const metric = metricsByModel.get(forecast.model_name);
+          return (
+            <article key={forecast.model_name} className="rounded border border-hairline bg-surface p-4 shadow-sm">
+              <div className="flex items-baseline justify-between gap-2">
+                <h3 className="break-all text-small font-semibold text-ink">{MODELS.find((item) => item.id === forecast.model_name)?.label ?? forecast.model_name}</h3>
+                <span className={`shrink-0 font-mono text-small font-semibold ${changeClass(forecast.predicted_return)}`}>{formatPercent(forecast.predicted_return)}</span>
+              </div>
+              <p className="mt-3 font-display text-heading font-semibold tabular-nums text-ink">{formatPrice(forecast.predicted_close, quoteCurrency)}</p>
+              {isUsableNumber(forecast.actual_close) ? (
+                <p className="mt-1 text-small text-muted">{vi ? "Đóng cửa thực tế" : "Actual close"}: {formatPrice(forecast.actual_close, quoteCurrency)}</p>
+              ) : null}
+              <details className="mt-3 border-t border-hairline pt-2 text-small">
+                <summary className="cursor-pointer font-medium text-primary">{vi ? "Xem độ chính xác lịch sử" : "View historical accuracy"}</summary>
+                <dl className="mt-2 flex justify-between gap-3 text-muted">
+                  <div><dt>MAE</dt><dd className="font-mono text-ink">{metric && isUsableNumber(metric.mae) ? Number(metric.mae).toFixed(2) : "—"}</dd></div>
+                  <div><dt>{vi ? "Đúng hướng" : "Direction"}</dt><dd className="font-mono text-ink">{metric && isUsableNumber(metric.directional_accuracy) ? formatPercent(metric.directional_accuracy) : "—"}</dd></div>
+                </dl>
+              </details>
+            </article>
+          );
+        })}
+      </div>
+      <div className="hidden overflow-x-auto rounded border border-hairline bg-surface sm:block shadow-sm">
         <table className="w-full text-small">
           <thead>
             <tr className="border-b border-hairline text-left">
@@ -103,15 +132,15 @@ export function PublishedForecastComparison({
                   className="border-b border-hairline last:border-b-0"
                 >
                   <td className="px-4 py-3">
-                    <div className="font-mono text-ink">{forecast.model_name}</div>
+                    <div className="font-medium text-ink">{MODELS.find((item) => item.id === forecast.model_name)?.label ?? forecast.model_name}</div>
                     {scored ? (
                       <div className="mt-1 font-mono text-label text-muted">
-                        Thực tế {formatPrice(forecast.actual_close, currency)}
+                        Thực tế {formatPrice(forecast.actual_close, quoteCurrency)}
                       </div>
                     ) : null}
                   </td>
                   <td className="px-4 py-3 text-right font-mono tabular-nums text-ink">
-                    {formatPrice(forecast.predicted_close, currency)}
+                    {formatPrice(forecast.predicted_close, quoteCurrency)}
                   </td>
                   <td
                     className={`px-4 py-3 text-right font-mono tabular-nums ${
@@ -144,19 +173,12 @@ export function PublishedForecastComparison({
         </p>
       ) : null}
 
-      {targetSession ? (
-        <p className="mt-3 font-mono text-label uppercase text-muted">
-          {targetSession} · nguồn:{" "}
-          {forecasts[0]?.source ?? "auto_eod_batch"} · tầng:{" "}
-          {forecasts[0]?.source_layer ?? "gold"}
-        </p>
-      ) : null}
-
-      <p className="mt-3 text-label text-muted">
-        MAE lịch sử và tỉ lệ đúng hướng là kết quả đo trên tập hold-out của từng
-        mô hình. Dự báo ở trên là số hệ thống đã ghi xuống trước khi phiên mở
-        cửa.
-      </p>
+      {targetSession ? <p className="mt-3 text-small text-muted">{vi ? "Phiên dự báo" : "Forecast session"}: {targetSession}</p> : null}
+      <details className="mt-2 text-small text-muted">
+        <summary className="cursor-pointer font-medium text-primary">{vi ? "Nguồn và cách đánh giá" : "Source and evaluation"}</summary>
+        <p className="mt-2">{vi ? "Dự báo đã được ghi trước phiên. MAE và tỉ lệ đúng hướng đo trên dữ liệu kiểm tra lịch sử của từng mô hình." : "Forecasts were recorded before the session. MAE and directional accuracy come from each model's historical test set."}</p>
+        <p className="mt-1 font-mono text-label">{forecasts[0]?.source ?? "auto_eod_batch"} · {forecasts[0]?.source_layer ?? "gold"}</p>
+      </details>
     </div>
   );
 }

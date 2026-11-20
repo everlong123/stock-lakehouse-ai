@@ -253,11 +253,15 @@ class LSTMForecastModel(BaseForecastModel):
         self.network.eval()
         preds: list[float] = []
         with torch.no_grad():
-            for index in range(self.sequence_length, len(scaled_x) + 1):
-                window = scaled_x[index - self.sequence_length : index]
-                tensor = torch.from_numpy(window.astype(np.float32)).unsqueeze(0).to(self.device)
-                scaled_pred = self.network(tensor).cpu().numpy()
-                preds.append(float(scaled_pred[0][0]))
+            count = len(scaled_x) - self.sequence_length + 1
+            for begin in range(0, count, self.batch_size):
+                windows = np.stack([
+                    scaled_x[index:index + self.sequence_length]
+                    for index in range(begin, min(begin + self.batch_size, count))
+                ]).astype(np.float32)
+                tensor = torch.from_numpy(windows).to(self.device)
+                scaled_pred = self.network(tensor).cpu().numpy().reshape(-1)
+                preds.extend(scaled_pred.tolist())
         return self._unscale_targets(np.asarray(preds), features)
 
     def evaluate(self, X: pd.DataFrame | np.ndarray, y: pd.Series | np.ndarray) -> dict[str, float]:
@@ -328,7 +332,7 @@ class LSTMForecastModel(BaseForecastModel):
             num_layers=instance.num_layers,
             dropout=instance.dropout,
         )
-        instance.network.load_state_dict(torch.load(directory / "lstm.pt", map_location="cpu"))
+        instance.network.load_state_dict(torch.load(directory / "lstm.pt", map_location="cpu", weights_only=True))
         instance.network.eval()
         instance.metadata = payload.get("metadata", {})
         instance.is_fitted = True

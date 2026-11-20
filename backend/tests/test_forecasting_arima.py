@@ -76,7 +76,7 @@ def test_directional_accuracy_is_computed_against_the_previous_close() -> None:
     from app.forecasting.evaluator import evaluate_forecast
 
     close = test["close"].to_numpy(dtype=float)
-    shifted = np.concatenate([[np.nan], close[:-1]])
+    shifted = np.concatenate([[float(train["close"].iloc[-1])], close[:-1]])
     usable = np.isfinite(shifted)
     scored = evaluate_forecast(
         close[usable],

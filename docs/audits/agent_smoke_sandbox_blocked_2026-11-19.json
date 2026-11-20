@@ -1,0 +1,81 @@
+{
+  "started_at_utc": "2026-11-19T09:57:35.225512+00:00",
+  "base_url": "http://127.0.0.1:8001/api/v1",
+  "results": [
+    {
+      "question": "Giá WBA hôm nay",
+      "expected_symbol": "WBA",
+      "expected_tools": [
+        "get_market_summary",
+        "query_stock_data"
+      ],
+      "passed": false,
+      "error": "HTTPError: HTTP Error 504: Gateway Timeout",
+      "seconds": 75.55
+    },
+    {
+      "question": "Giá BK hôm nay",
+      "expected_symbol": "BK",
+      "expected_tools": [
+        "get_market_summary",
+        "query_stock_data"
+      ],
+      "http_status": 200,
+      "response": {
+        "success": true,
+        "data": {
+          "session_id": "audit-symbols-20261119-fixed",
+          "assistant_message": "Đây là câu trả lời dựa trên dữ liệu thật từ backend (tool calling).\nPhân tích và dự báo mang tính tham khảo, không phải khuyến nghị đầu tư.\n\nAAPL close=352.7799987792969, change=-0.009795914171825097, volume=45945500.0.",
+          "tools": [
+            {
+              "tool_name": "get_market_summary",
+              "tool_arguments": {
+                "symbol": "AAPL"
+              },
+              "tool_result": {
+                "symbol": "AAPL",
+                "close": 352.7799987792969,
+                "change_pct": -0.009795914171825097,
+                "volume": 45945500.0,
+                "rsi": 56.99970346159101
+              },
+              "error": null
+            }
+          ],
+          "suggested_questions": [
+            "Tính RSI và MACD cho AAPL",
+            "Phân tích kỹ thuật AAPL",
+            "So sánh model AAPL"
+          ],
+          "tool_count": 1
+        },
+        "message": null
+      },
+      "passed": false,
+      "seconds": 21.45
+    },
+    {
+      "question": "Backtest AVB",
+      "expected_symbol": "AVB",
+      "expected_tools": [
+        "run_backtest"
+      ],
+      "passed": false,
+      "error": "ConnectionResetError: [WinError 10054] An existing connection was forcibly closed by the remote host",
+      "seconds": 33.78
+    },
+    {
+      "question": "Walk-forward RSI AAPL",
+      "expected_symbol": "AAPL",
+      "expected_tools": [
+        "run_walk_forward"
+      ],
+      "passed": false,
+      "error": "URLError: <urlopen error [WinError 10061] No connection could be made because the target machine actively refused it>",
+      "seconds": 2.05
+    }
+  ],
+  "updated_at_utc": "2026-11-19T09:59:48.064211+00:00",
+  "complete": true,
+  "passed": false
+}

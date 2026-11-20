@@ -1,45 +1,32 @@
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { GitCompare, Loader2, Play, Wand2 } from "lucide-react";
+import { GitCompare, Loader2, Play } from "lucide-react";
 import { compareModels, fetchPublishedForecasts } from "@/api/forecasting";
-import { fetchSymbols } from "@/api/stocks";
 import { errorMessage } from "@/api/client";
-import { ForecastChart, FutureForecastChart } from "@/components/charts/ForecastChart";
+import { ForecastChart } from "@/components/charts/ForecastChart";
 import { Explainer } from "@/components/common/Explainer";
 import { EmptyState } from "@/components/common/EmptyState";
 import { ErrorState } from "@/components/common/ErrorState";
-import { PageTitle } from "@/components/common/PageTitle";
 import { Loading } from "@/components/common/Loading";
+import { PageHeader } from "@/components/common/PageHeader";
 import { MetricCard } from "@/components/dashboard/MetricCard";
 import { PublishedForecastComparison } from "@/components/forecasting/PublishedForecastComparison";
+import { ForecastVerification } from "@/components/forecasting/ForecastVerification";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { useMarket } from "@/hooks/useMarket";
 import { useForecast } from "@/hooks/useForecast";
+import { useI18n, t } from "@/lib/i18n";
 import { ModelMetrics } from "@/types/forecasting";
 import { MODELS } from "@/utils/constants";
-import { formatNumber, formatPercent } from "@/utils/format";
-import { cn } from "@/lib/utils";
+import { currencyForSymbol, formatNumber, formatPercent } from "@/utils/format";
 import { toast } from "sonner";
 
-const DEFAULT_SYMBOLS = [
-  "AAPL", "MSFT", "GOOGL", "AMZN", "NVDA", "META", "TSLA", "AMD", "JPM", "V",
-];
-
-const MODEL_KIND: Record<string, string> = {
-  lstm: "Deep learning · CPU",
-  arima: "Thống kê",
-  linear_regression: "Baseline",
-};
-
 export function ForecastingPage() {
-  const { symbol: ctxSymbol, setSymbol } = useMarket();
-  const [localSymbol, setLocalSymbol] = useState(ctxSymbol);
-  // Sync localSymbol when ctxSymbol changes (e.g., user changes symbol from Header)
-  useEffect(() => { setLocalSymbol(ctxSymbol); setSymbol(ctxSymbol); }, [ctxSymbol]);
-  const symbol = localSymbol || ctxSymbol;
+  const { symbol } = useMarket();
+  const { locale } = useI18n();
   const [model, setModel] = useState("linear_regression");
   const [horizon, setHorizon] = useState(5);
   const [epochs, setEpochs] = useState(8);
@@ -47,15 +34,8 @@ export function ForecastingPage() {
   const [layers, setLayers] = useState(2);
   const [seq, setSeq] = useState(60);
   const [compare, setCompare] = useState<ModelMetrics[] | null>(null);
-
-  const symbolsQuery = useQuery({
-    queryKey: ["symbols"],
-    queryFn: fetchSymbols,
-    staleTime: 5 * 60 * 1000,
-  });
-  const availableSymbols = symbolsQuery.data?.symbols?.length
-    ? symbolsQuery.data.symbols
-    : DEFAULT_SYMBOLS;
+  const [compareNote, setCompareNote] = useState("");
+  const [commonComparison, setCommonComparison] = useState(false);
 
   /*
     THE PUBLISHED FORECASTS - THE FUTURE AXIS
@@ -91,6 +71,8 @@ export function ForecastingPage() {
     train.reset();
     predict.reset();
     setCompare(null);
+    setCompareNote("");
+    setCommonComparison(false);
     // `train` and `predict` are recreated on every render, so they are
     // intentionally left out of the dependency list - the reset only needs
     // to happen when the symbol or the model changes.
@@ -101,24 +83,11 @@ export function ForecastingPage() {
     ((predict.data?.predictions || train.data?.predictions) as Array<{
       timestamp: string; actual: number | null; predicted: number;
     }> | undefined) ?? [];
-  // The points with no actual close are the future sessions - the forecast.
-  const futurePoints = predictions.filter((p) => p.actual === null || p.actual === undefined);
   const metrics = (predict.data?.metrics || train.data) as Record<string, number> | undefined;
   // `chart_holdout` means the numbers describe the curve below them;
   // `training_split` means they are the values recorded at training time.
   const metricsSource = predict.data?.metrics_source;
   const modelNameLabel = MODELS.find((m) => m.id === model)?.label ?? model;
-
-  const onTrain = async () => {
-    try {
-      await train.mutateAsync({
-        horizon, epochs, hidden_size: hidden, num_layers: layers, sequence_length: seq,
-      });
-      toast.success(`Đã train ${model} cho ${symbol}`);
-    } catch (error) {
-      toast.error(errorMessage(error, "Training thất bại."));
-    }
-  };
 
   const onPredict = async () => {
     try {
@@ -151,7 +120,9 @@ export function ForecastingPage() {
   const onCompare = async () => {
     try {
       const result = await compareModels(symbol);
-      setCompare(result.models);
+      setCompare(result.baseline ? [...result.models, result.baseline] : result.models);
+      setCompareNote(result.note);
+      setCommonComparison(result.comparison_scope === "common_target_sessions");
       toast.success(`Đã so sánh ${result.models.length} models cho ${symbol}`);
     } catch (error) {
       toast.error(errorMessage(error, "Không kết nối được backend."));
@@ -159,67 +130,64 @@ export function ForecastingPage() {
   };
 
   return (
-    <div className="space-y-12">
-      <PageTitle
-        title="Huấn luyện & so sánh model"
-        subtitle="Ba mô hình được đo trên cùng một tập hold-out. Trang này không chọn mô hình nào là tốt nhất."
-        meta="04 · Models"
-        actions={
-          <select
-            value={symbol}
-            onChange={(e) => { setLocalSymbol(e.target.value); setSymbol(e.target.value); }}
-            className="h-9 rounded border border-hairline bg-surface px-2 font-mono text-small text-ink outline-none focus:border-primary"
-          >
-            {availableSymbols.map((s) => (
-              <option key={s} value={s}>{s}</option>
-            ))}
-          </select>
+    <div className="space-y-10">
+      {/*
+        ── The page header ───────────────────────────────────────────
+        The symbol leads, because the page is about one symbol's models.
+      */}
+      <PageHeader
+        section={t("nav.models", locale)}
+        title={t("forecast.title", locale)}
+        subtitle={t("forecast.subtitle", locale)}
+        aside={
+          <span className="rounded border border-hairline bg-surface-2 px-2 py-1 font-mono text-small font-semibold text-ink">
+            {symbol}
+          </span>
         }
       />
 
       <Explainer
-        title="Trang này dùng để làm gì?"
-        intro="Ở đây bạn huấn luyện một mô hình trên lịch sử giá của một mã cổ phiếu, rồi xem mô hình đó đã đoán sai bao nhiêu và dự báo giá cho các phiên sắp tới. Mọi con số đều chỉ mô tả quá khứ — chúng không phải lời khuyên mua bán."
+        title={t("forecast.explainer_title", locale)}
+        intro={t("forecast.explainer_intro", locale)}
         items={[
           {
-            term: "Khác với kiểm chứng ở trang Dữ liệu thị trường",
-            meaning:
-              "Trang này đo MÔ HÌNH trên tập hold-out: dữ liệu đã xảy ra, mô hình được hỏi sau đó. Trang Dữ liệu thị trường đo HỆ THỐNG đang chạy: dự báo được ghi xuống trước khi phiên mở cửa, rồi mới so với giá thật. Hai con số khác nhau và không thay thế cho nhau.",
+            term: t("forecast.term_verification", locale),
+            meaning: t("forecast.term_verification_meaning", locale),
           },
           {
-            term: "Hold-out (tập kiểm tra)",
-            meaning: "Phần dữ liệu mô hình chưa từng thấy khi huấn luyện. Đây là nơi đo độ chính xác thật của mô hình.",
+            term: t("forecast.term_holdout", locale),
+            meaning: t("forecast.term_holdout_meaning", locale),
           },
           {
-            term: "MAE / RMSE",
-            meaning: "Sai số trung bình (MAE) và sai số bình phương trung bình (RMSE), tính bằng đơn vị tiền. Càng nhỏ càng tốt.",
+            term: t("forecast.term_mae", locale),
+            meaning: t("forecast.term_mae_meaning", locale),
           },
           {
-            term: "MAPE",
-            meaning: "Sai số trung bình tính theo phần trăm. Cho phép so sánh giữa các mã có giá rất khác nhau.",
+            term: t("forecast.term_mape", locale),
+            meaning: t("forecast.term_mape_meaning", locale),
           },
           {
-            term: "Directional Accuracy",
-            meaning: "Tỉ lệ % phiên mà mô hình đoán đúng hướng đi lên hay xuống (không quan tâm độ lớn).",
+            term: t("forecast.term_direction", locale),
+            meaning: t("forecast.term_direction_meaning", locale),
           },
           {
-            term: "Đường liền vs đường đứt",
-            meaning: "Đường liền là giá thật. Đường đứt là ước lượng của mô hình cho các phiên đã xảy ra.",
+            term: t("forecast.term_lines", locale),
+            meaning: t("forecast.term_lines_meaning", locale),
           },
           {
-            term: "Vùng dự báo",
-            meaning: "Phần đường đứt nằm bên phải vạch phân cách: đó là các phiên chưa xảy ra. Sai số tích luỹ dần theo mỗi bước.",
+            term: t("forecast.term_region", locale),
+            meaning: t("forecast.term_region_meaning", locale),
           },
           {
-            term: "Train vs Predict",
-            meaning: "Train là học lại mô hình từ đầu. Predict chỉ dùng mô hình đã có để dự báo — nhanh hơn nhiều.",
+            term: t("forecast.term_train_predict", locale),
+            meaning: t("forecast.term_train_predict_meaning", locale),
           },
         ]}
         steps={[
-          "Chọn mã cổ phiếu ở góc trên bên phải.",
-          "Chọn model (Linear Regression / ARIMA / LSTM) và số phiên muốn dự báo.",
-          "Bấm 'Train và Dự báo' — một bước là xong.",
-          "Đổi mã hoặc đổi model thì phải Train lại cho mã/model mới.",
+          t("forecast.step_1", locale),
+          t("forecast.step_2", locale),
+          t("forecast.step_3", locale),
+          t("forecast.step_4", locale),
         ]}
       />
 
@@ -236,12 +204,8 @@ export function ForecastingPage() {
       <section>
         <div className="section-head">
           <div>
-            <h2 className="section-title">Dự báo đã công bố</h2>
-            <p className="section-sub">
-              Số hệ thống đã ghi xuống trước khi phiên mở cửa, cho từng mô hình
-              trên cùng một phiên. Khi phiên đã xảy ra, giá thật hiện ngay bên
-              dưới để so sánh.
-            </p>
+            <h2 className="section-title">{t("forecast.published_title", locale)}</h2>
+            <p className="section-sub">{t("forecast.published_sub", locale)}</p>
           </div>
         </div>
         <div className="pt-4">
@@ -249,7 +213,7 @@ export function ForecastingPage() {
             <Loading variant="skeleton" className="h-32" />
           ) : publishedQuery.isError ? (
             <ErrorState
-              message={errorMessage(publishedQuery.error, "Không đọc được dự báo đã công bố.")}
+              message={errorMessage(publishedQuery.error, t("forecast.published_empty", locale))}
               onRetry={() => void publishedQuery.refetch()}
             />
           ) : (
@@ -263,55 +227,15 @@ export function ForecastingPage() {
         </div>
       </section>
 
-      {/*
-        ── Model picker ────────────────────────────────────────────
-        The three models are *choices*, and a choice is exactly the thing
-        that should look clickable. They are radio-like rows in one
-        continuous list rather than three separate cards, so the reader
-        compares them against each other instead of seeing three equal
-        little boxes.
-      */}
-      <section>
+      <section id="forecast-verification">
         <div className="section-head">
-          <h2 className="section-title">Mô hình</h2>
+          <div>
+            <h2 className="section-title">{t("forecast.verification_title", locale)}</h2>
+            <p className="section-sub">{t("forecast.verification_sub", locale)}</p>
+          </div>
         </div>
         <div className="pt-4">
-          <div role="radiogroup" aria-label="Mô hình" className="flex flex-wrap gap-x-8 gap-y-4">
-            {MODELS.map((m) => {
-              const active = model === m.id;
-              return (
-                <button
-                  key={m.id}
-                  role="radio"
-                  aria-checked={active}
-                  onClick={() => setModel(m.id)}
-                  className="group flex min-h-11 items-center gap-3 text-left"
-                >
-                  <span
-                    className={cn(
-                      "flex h-4 w-4 shrink-0 items-center justify-center rounded-full border transition-colors",
-                      active ? "border-primary" : "border-hairline",
-                    )}
-                  >
-                    {active ? <span className="h-2 w-2 rounded-full bg-primary" /> : null}
-                  </span>
-                  <span>
-                    <span
-                      className={cn(
-                        "block text-small font-semibold",
-                        active ? "text-ink" : "text-muted",
-                      )}
-                    >
-                      {m.label}
-                    </span>
-                    <span className="block font-mono text-label uppercase text-muted">
-                      {MODEL_KIND[m.id]}
-                    </span>
-                  </span>
-                </button>
-              );
-            })}
-          </div>
+          <ForecastVerification symbol={symbol} currency={currencyForSymbol(symbol)} />
         </div>
       </section>
 
@@ -320,12 +244,19 @@ export function ForecastingPage() {
         Parameters are grouped by what they affect: the forecast window
         applies to every model; the neural-network knobs only appear for
         LSTM. One primary button ("Train và Dự báo") carries the page —
-        the other two are quieter alternatives.
+        the second action reuses a model that is already trained.
+
+        WHY THE FORM IS A RECESSED PANEL: it is a set of inputs, and
+        inputs read as a form. The panel gives them one background, so
+        the results below are clearly "output" and not "more settings".
       */}
-      <section className="rounded border border-hairline bg-surface p-4">
+      <section className="rounded border border-hairline bg-surface-2 p-4">
+        <h2 className="mb-4 font-display text-body font-semibold">
+          {`${t("forecast.form_title", locale)} ${symbol}`}
+        </h2>
         <div className="grid gap-4 md:grid-cols-4">
           <label className="block text-small">
-            <span className="label mb-1 block">Model</span>
+            <span className="label mb-1 block">{t("forecast.model_label", locale)}</span>
             <Select value={model} onChange={(e) => setModel(e.target.value)} className="w-full">
               {MODELS.map((item) => (
                 <option key={item.id} value={item.id}>{item.label}</option>
@@ -333,25 +264,25 @@ export function ForecastingPage() {
             </Select>
           </label>
           <label className="block text-small">
-            <span className="label mb-1 block">Số phiên dự báo</span>
+            <span className="label mb-1 block">{t("forecast.horizon_label", locale)}</span>
             <Input type="number" value={horizon} onChange={(e) => setHorizon(Number(e.target.value))} />
           </label>
           {model === "lstm" ? (
             <>
               <label className="block text-small">
-                <span className="label mb-1 block">Sequence length</span>
+                <span className="label mb-1 block">{t("forecast.seq_label", locale)}</span>
                 <Input type="number" value={seq} onChange={(e) => setSeq(Number(e.target.value))} />
               </label>
               <label className="block text-small">
-                <span className="label mb-1 block">Hidden size</span>
+                <span className="label mb-1 block">{t("forecast.hidden_label", locale)}</span>
                 <Input type="number" value={hidden} onChange={(e) => setHidden(Number(e.target.value))} />
               </label>
               <label className="block text-small">
-                <span className="label mb-1 block">Layers</span>
+                <span className="label mb-1 block">{t("forecast.layers_label", locale)}</span>
                 <Input type="number" value={layers} onChange={(e) => setLayers(Number(e.target.value))} />
               </label>
               <label className="block text-small">
-                <span className="label mb-1 block">Epochs</span>
+                <span className="label mb-1 block">{t("forecast.epochs_label", locale)}</span>
                 <Input type="number" value={epochs} onChange={(e) => setEpochs(Number(e.target.value))} />
               </label>
             </>
@@ -365,38 +296,25 @@ export function ForecastingPage() {
               {train.isPending || predict.isPending ? (
                 <>
                   <Loader2 size={14} className="animate-spin" />
-                  Đang chạy
+                  {t("forecast.running", locale)}
                 </>
               ) : (
                 <>
                   <Play size={14} />
-                  Train và Dự báo
+                  {t("forecast.train_predict", locale)}
                 </>
               )}
             </Button>
-            <Button variant="outline" onClick={() => void onTrain()} disabled={train.isPending}>
-              {train.isPending ? (
-                <>
-                  <Loader2 size={14} className="animate-spin" />
-                  Training
-                </>
-              ) : (
-                <>
-                  <Wand2 size={14} />
-                  Chỉ Train
-                </>
-              )}
-            </Button>
-            <Button variant="text" onClick={() => void onPredict()} disabled={predict.isPending}>
+            <Button variant="outline" onClick={() => void onPredict()} disabled={train.isPending || predict.isPending}>
               {predict.isPending ? (
                 <>
                   <Loader2 size={14} className="animate-spin" />
-                  Predicting
+                  {t("forecast.predicting", locale)}
                 </>
               ) : (
                 <>
                   <Play size={14} />
-                  Chỉ Predict
+                  {t("forecast.reuse_model", locale)}
                 </>
               )}
             </Button>
@@ -406,51 +324,56 @@ export function ForecastingPage() {
         {(train.isPending || predict.isPending) ? (
           <div className="mt-4 flex items-center gap-3 rounded border border-hairline bg-surface-2 px-3 py-2 text-small text-ink">
             <Loader2 size={14} className="animate-spin" />
-            Training/dự báo đang chạy. LSTM trên CPU có thể mất 30s đến 3 phút.
+            {t("forecast.running_note", locale)}
           </div>
         ) : null}
-        {train.isError ? <ErrorState message={errorMessage(train.error, "Training thất bại.")} /> : null}
+        {train.isError ? <ErrorState message={errorMessage(train.error, t("forecast.train_error", locale))} /> : null}
         {predict.isError ? (
-          <ErrorState message={errorMessage(predict.error, "Chưa có model cho mã này. Hãy bấm 'Train và Dự báo'.")} />
+          <ErrorState message={errorMessage(predict.error, t("forecast.predict_error", locale))} />
         ) : null}
       </section>
 
       {/* Metrics: four numbers in a hairline-divided row, no boxes. */}
-      <section>
+      {metrics ? <section>
         <div className="grid grid-cols-2 gap-x-6 gap-y-6 border-y border-hairline py-6 xl:grid-cols-4">
-          <MetricCard label="MAE" value={formatNumber(metrics?.mae)} hint="Sai số tuyệt đối trung bình" />
-          <MetricCard label="RMSE" value={formatNumber(metrics?.rmse)} hint="Sai số bình phương trung bình" />
-          <MetricCard label="MAPE" value={formatPercent(metrics?.mape != null ? metrics.mape / 100 : null)} hint="Sai số % trung bình" />
+          <MetricCard label={t("forecast.metric_mae", locale)} value={formatNumber(metrics?.mae)} hint={t("forecast.hint_mae", locale)} />
+          <MetricCard label={t("forecast.metric_rmse", locale)} value={formatNumber(metrics?.rmse)} hint={t("forecast.hint_rmse", locale)} />
+          <MetricCard label={t("forecast.metric_mape", locale)} value={formatPercent(metrics?.mape != null ? metrics.mape / 100 : null)} hint={t("forecast.hint_mape", locale)} />
           <MetricCard
-            label="Directional Acc"
+            label={t("forecast.metric_direction", locale)}
             value={formatPercent(metrics?.directional_accuracy)}
-            hint="% đoán đúng chiều"
+            hint={t("forecast.hint_direction", locale)}
           />
         </div>
         {metricsSource === "chart_holdout" ? (
           <p className="mt-3 text-small text-muted">
-            Số trên được tính lại trên đúng tập hold-out hiển thị ở biểu đồ dưới.
+            {t("forecast.metrics_note", locale)}
           </p>
         ) : null}
-      </section>
+      </section> : null}
 
       <section>
         <div className="section-head">
           <div>
-            <h2 className="section-title">Giá thật vs dự báo</h2>
+            <h2 className="section-title">{t("forecast.chart_title", locale)}</h2>
             <p className="section-sub">
-              Đường liền là giá thật, đường đứt là ước lượng của model trên tập hold-out
-              (cùng tập dùng để tính MAE ở trên).
+              {modelNameLabel}: đường liền là giá thật, đường đứt là ước lượng trên tập
+              hold-out. Phần bên phải vạch phân cách là dự báo {horizon} phiên tới.
             </p>
           </div>
         </div>
         <div className="pt-4">
+          {predict.data?.forecast_available === false && predict.data.forecast_reason ? (
+            <p role="status" className="mb-3 border-l-2 border-negative pl-3 text-small text-negative">
+              {t("forecast.no_new_forecast", locale)} {predict.data.forecast_reason}
+            </p>
+          ) : null}
           {predictions.length ? (
             <ForecastChart data={predictions} />
           ) : (
             <EmptyState
-              message="Train model để xem biểu đồ so sánh."
-              hint="Chọn model, đặt horizon, bấm Train. Sau đó biểu đồ sẽ hiện đường dự báo so với giá thật."
+              message={t("forecast.empty_chart", locale)}
+              hint={t("forecast.empty_chart_hint", locale)}
             />
           )}
         </div>
@@ -458,39 +381,17 @@ export function ForecastingPage() {
 
       <section>
         <div className="section-head">
-          <div>
-            <h2 className="section-title">Dự báo {horizon} phiên tới</h2>
-            <p className="section-sub">
-              {modelNameLabel} dự báo giá đóng cửa cho {horizon} phiên chưa xảy ra. Sai số tích luỹ
-              theo từng bước, nên đây là tham chiếu chứ không phải dự đoán chắc chắn.
-            </p>
-          </div>
-        </div>
-        <div className="pt-4">
-          {futurePoints.length ? (
-            <FutureForecastChart data={futurePoints} />
-          ) : (
-            <EmptyState
-              message="Chưa có dự báo cho các phiên sắp tới."
-              hint="Bấm Predict sau khi train để tạo dự báo."
-            />
-          )}
-        </div>
-      </section>
-
-      <section>
-        <div className="section-head">
-          <h2 className="section-title">So sánh model</h2>
+          <h2 className="section-title">{t("forecast.compare_title", locale)}</h2>
           <Button variant="outline" size="sm" onClick={() => void onCompare()}>
             <GitCompare size={13} />
-            So sánh tất cả
+            {t("forecast.compare_all", locale)}
           </Button>
         </div>
-        <div className="mt-4 overflow-x-auto rounded border border-hairline bg-surface">
+        <div className="mt-4 overflow-x-auto rounded border border-hairline bg-surface shadow-sm">
           <table className="table">
             <thead>
               <tr>
-                {["Model", "MAE", "RMSE", "MAPE (%)", "Directional Acc (%)"].map((col) => (
+                {["Model", t("forecast.metric_mae", locale), t("forecast.metric_rmse", locale), `${t("forecast.metric_mape", locale)} (%)`, `${t("forecast.metric_direction", locale)} (%)`].map((col) => (
                   <th key={col}>{col}</th>
                 ))}
               </tr>
@@ -501,7 +402,7 @@ export function ForecastingPage() {
                   <td>
                     <div className="flex items-center gap-2">
                       <span className="font-mono font-semibold text-ink">{row.model_name}</span>
-                      {i === 0 && compare && compare.length > 1 ? <Badge variant="primary">Best MAE</Badge> : null}
+                    {commonComparison && i === 0 && compare && compare.length > 1 && row.mae != null && row.mae === Math.min(...compare.filter((r) => r.mae != null).map((r) => r.mae!)) ? <Badge variant="primary">{t("forecast.best_mae", locale)}</Badge> : null}
                     </div>
                   </td>
                   <td className="font-mono tabular-nums">{formatNumber(row.mae)}</td>
@@ -514,9 +415,10 @@ export function ForecastingPage() {
           </table>
           {!compare ? (
             <div className="px-4 py-6 text-center text-small text-muted">
-              Bấm "So sánh tất cả" để xem bảng.
+              {t("forecast.compare_empty", locale)}
             </div>
           ) : null}
+          {compareNote ? <p className="px-4 py-3 text-small text-muted">{compareNote}</p> : null}
         </div>
       </section>
     </div>

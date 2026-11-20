@@ -3,8 +3,11 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="Stock Lakehouse AI: phân tích và dự báo chứng khoán trên data lakehouse." />
-    <title>Stock Lakehouse AI · Demo đồ án</title>
+    <meta name="description" content="StockVision AI — nền tảng phân tích thị trường, dự báo chứng khoán và đánh giá chiến lược với trợ lý AI." />
+    <meta name="application-name" content="StockVision AI" />
+    <meta name="theme-color" content="#F1F3F8" />
+    <title>StockVision AI | Phân tích & Dự báo chứng khoán</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <!--
@@ -14,11 +17,54 @@
         DM Sans           -> body & UI (humanist, readable at 14-16px)
         IBM Plex Mono    -> numbers, tables, code (tabular figures)
       All three ship Vietnamese + Latin subsets.
+
+      WHY `display=swap`: without it the browser blocks the first paint on
+      the font file. With it the page paints in the fallback face and
+      swaps when the web font arrives — the page is never blank.
     -->
     <link
       href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&family=IBM+Plex+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@500;600;700&display=swap"
       rel="stylesheet"
     />
+
+    <!--
+      THE THEME SCRIPT
+      ================
+      This tiny inline script runs BEFORE the first paint and sets the
+      theme attribute on <html> from whatever the reader chose last time.
+
+      WHY IT HAS TO BE HERE AND NOT IN REACT
+      ---------------------------------------
+      React mounts after the HTML is parsed and after the browser may
+      already have painted. If the theme were decided in React, a reader
+      who chose "dark" would see a white page for a frame or two, and
+      then a jump to dark — the "flash of wrong theme" that ruins a
+      dark mode. A synchronous inline script in the head settles the
+      attribute before the browser has anything to paint.
+
+      It is also deliberately tiny and dependency-free: it must not delay
+      the first paint by more than a fraction of a millisecond.
+    -->
+    <script>
+      (function () {
+        try {
+          var stored = localStorage.getItem("stock-lakehouse-theme");
+          var theme =
+            stored === "light" || stored === "dark"
+              ? stored
+              : window.matchMedia("(prefers-color-scheme: dark)").matches
+                ? "dark"
+                : "light";
+          document.documentElement.setAttribute("data-theme", theme);
+          var meta = document.querySelector('meta[name="theme-color"]');
+          if (meta) {
+            meta.setAttribute("content", theme === "dark" ? "#0B0E16" : "#F1F3F8");
+          }
+        } catch (error) {
+          document.documentElement.setAttribute("data-theme", "light");
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

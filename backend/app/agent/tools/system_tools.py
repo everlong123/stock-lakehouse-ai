@@ -140,16 +140,17 @@ def get_symbols_info(region: str = "all") -> dict[str, Any]:
     """
     region = (region or "all").lower().strip()
 
-    all_count = len(GLOBAL_SYMBOLS) + len(MARKET_INDEXES) + len(CRYPTO_SYMBOLS) + len(VN_SYMBOLS)
+    configured = set(GLOBAL_SYMBOLS) | set(MARKET_INDEXES) | set(CRYPTO_SYMBOLS) | set(VN_SYMBOLS)
 
     payload: dict[str, Any] = {
-        "total_symbols": all_count,
+        "total_symbols": len(configured),
+        "symbol_count_scope": "unique configured tickers; not a stored-data or forecast-availability count",
         "regions": {
-            "us": len(US_SYMBOLS),
-            "global": len(GLOBAL_SYMBOLS),
-            "vn": len(VN_SYMBOLS),
-            "market_indexes": len(MARKET_INDEXES),
-            "crypto": len(CRYPTO_SYMBOLS),
+            "us": len(set(US_SYMBOLS)),
+            "global": len(set(GLOBAL_SYMBOLS)),
+            "vn": len(set(VN_SYMBOLS)),
+            "market_indexes": len(set(MARKET_INDEXES)),
+            "crypto": len(set(CRYPTO_SYMBOLS)),
         },
         "supported_symbols_count": len(SUPPORTED_SYMBOLS),
         "data_sources": [
@@ -160,6 +161,8 @@ def get_symbols_info(region: str = "all") -> dict[str, Any]:
             "ssi_vn (SSI iBoard public, HOSE/HNX/UPCoM)",
         ],
         "notes": (
+            "Tổng đếm mã cấu hình duy nhất; các nhóm có thể giao nhau và không được cộng lại. "
+            "Số này không xác nhận dữ liệu hoặc dự báo khả dụng cho từng mã. "
             "US_SYMBOLS là tập curated gồm các blue-chip/mid-cap có thanh khoản tốt. "
             "GLOBAL_SYMBOLS = US_SYMBOLS + EU/JP/HK/CN/IN/BR/CA/AU/KR/TW + ETFs. "
             "Mã Việt Nam chưa có trong GLOBAL_SYMBOLS vì yfinance không cover HOSE/HNX/UPCoM "
@@ -257,8 +260,8 @@ def get_system_architecture(detail_level: str = "summary") -> dict[str, Any]:
     payload: dict[str, Any] = {
         "project_name": settings.app_name,
         "purpose": (
-            "Nền tảng Data Lakehouse phân tích & dự báo chứng khoán phục vụ "
-            "nghiên cứu học thuật. KHÔNG phải tư vấn đầu tư."
+            "Nền tảng phân tích thị trường, dự báo chứng khoán và đánh giá chiến lược "
+            "với trợ lý AI. Kết quả mang tính tham khảo, không phải tư vấn đầu tư."
         ),
         "layers": {
             "bronze": {
@@ -327,7 +330,7 @@ def get_system_architecture(detail_level: str = "summary") -> dict[str, Any]:
             "get_system_architecture", "get_storage_stats",
         ],
         "disclaimer": (
-            "Đây là prototype nghiên cứu học thuật. Kết quả KHÔNG phải khuyến nghị "
+            "Kết quả phân tích và dự báo mang tính tham khảo, KHÔNG phải khuyến nghị "
             "đầu tư và KHÔNG cam kết lợi nhuận tương lai."
         ),
     }

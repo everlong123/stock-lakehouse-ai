@@ -75,6 +75,7 @@ import pandas as pd
 
 from app.core.constants import LINEAR_REGRESSION_FEATURES, LSTM_FEATURE_COLUMNS
 from app.core.logging_config import get_logger
+from app.core.exceptions import PredictionError
 from app.forecasting import sessions
 
 logger = get_logger(__name__)
@@ -142,8 +143,7 @@ def _recompute_indicators(frame: pd.DataFrame, feature_cols: list[str]) -> pd.Da
         if needs_price:
             work = add_price_features(work)
     except Exception as exc:  # noqa: BLE001
-        logger.warning("Could not recompute indicators for the forecast: %s", exc)
-        return frame
+        raise PredictionError(f"Could not recompute forecast indicators: {exc}") from exc
 
     # Keep only the feature columns the model actually consumes, so the
     # frame handed to `model.predict` has the exact shape the model was
@@ -180,11 +180,14 @@ def _last_prediction(model: Any, frame: pd.DataFrame, feature_cols: list[str]) -
     0.0000000000 - because the last output of a sliding-window model
     depends only on the LAST window. The extra passes were pure waste.
 
-    The trim keeps one extra row beyond the model's window so the
-    scaler, which is fitted on the frame's statistics, still sees a
-    representative sample rather than a single row.
+    Only the required window is passed to the already fitted scaler;
+    inference never refits it on the requested rows.
     """
     values = frame.loc[:, feature_cols]
+    # A tabular model needs only the last row. Recomputed historical warmup
+    # rows contain NaNs and must not be passed to sklearn for a next step.
+    if getattr(model, "sequence_length", None) is None:
+        values = values.tail(1)
 
     # How many rows the model actually needs to produce its LAST output.
     # Linear Regression needs one row per prediction; the LSTM needs a
@@ -193,7 +196,7 @@ def _last_prediction(model: Any, frame: pd.DataFrame, feature_cols: list[str]) -
     window = getattr(model, "sequence_length", None)
     if window:
         try:
-            needed = int(window) + 1
+            needed = int(window)
         except (TypeError, ValueError):
             needed = None
         if needed and len(values) > needed:
@@ -231,15 +234,16 @@ def forecast_ahead(
     frame["timestamp"] = pd.to_datetime(frame["timestamp"], utc=True)
 
     # The model was fitted on rows where every feature was present, so the
-    # forecast must start from a row that has them all. Drop the warmup
-    # rows instead of letting NaNs poison the prediction.
-    usable = frame.dropna(subset=feature_cols).reset_index(drop=True)
-    if usable.empty:
-        raise ValueError("No rows with complete feature values are available to forecast from.")
+    # forecast must start from the latest complete window. Retain older
+    # warmup rows as context when recomputing recursive indicators.
+    needed = _prediction_offset(model, model_name) + 1
+    latest_features = frame[feature_cols].tail(needed).to_numpy(dtype=float)
+    if len(latest_features) < needed or not np.isfinite(latest_features).all():
+        raise PredictionError("The latest session or its required feature window is incomplete. Rebuild Gold before forecasting.")
 
     # The last session the symbol actually has a bar for. The forecast is
     # anchored on it.
-    current_ts = usable["timestamp"].iloc[-1]
+    current_ts = frame["timestamp"].iloc[-1]
 
     # The future sessions are placed on the symbol's OWN trading calendar,
     # derived from its Gold history.
@@ -257,7 +261,7 @@ def forecast_ahead(
     # history. Nothing is hard-coded, so it works for a US, a
     # Vietnamese, a Hong Kong or a Korean listing alike.
     future_sessions = sessions.future_session_timestamps(
-        usable, current_ts, horizon, floor=None
+        frame, current_ts, horizon, floor=None
     )
     if len(future_sessions) < horizon:
         logger.warning(
@@ -266,7 +270,7 @@ def forecast_ahead(
             current_ts,
         )
 
-    working = usable.copy()
+    working = frame.copy()
 
     future: list[dict[str, Any]] = []
 
@@ -299,27 +303,14 @@ def forecast_ahead(
         next_row = working.iloc[[-1]].copy()
         next_row["close"] = prediction
         next_row["timestamp"] = next_ts
-        next_row = _recompute_indicators(next_row, feature_cols)
-
-        # A recomputed indicator of a single appended row has no rolling
-        # context of its own, so borrow the value computed over the full
-        # history for the indicators whose window the row cannot satisfy.
-        for column in feature_cols:
-            if column == "close":
-                continue
-            value = next_row[column].iloc[0] if column in next_row.columns else np.nan
-            if value is None or (isinstance(value, float) and np.isnan(value)):
-                if column in working.columns:
-                    fallback = working[column].iloc[-1]
-                    if not pd.isna(fallback):
-                        value = fallback
-                else:
-                    value = 0.0
-            next_row[column] = [value]
-
+        # Future OHLC and volume are unknown: carry the last observed values
+        # as scenario assumptions, then recompute price indicators over history.
         working = pd.concat([working, next_row], ignore_index=True)
+        working = _recompute_indicators(working, feature_cols)
         current_ts = next_ts
 
+    if len(future) != horizon:
+        raise PredictionError(f"Requested {horizon} future sessions, but the model produced only {len(future)} valid points.")
     return future
 
 
@@ -370,58 +361,44 @@ def holdout_history(
         return []
 
     frame["timestamp"] = pd.to_datetime(frame["timestamp"], utc=True)
-    usable = frame.dropna(subset=feature_cols).reset_index(drop=True)
-    if usable.empty:
-        return []
-
-    raw = np.asarray(model.predict(usable.loc[:, feature_cols])).reshape(-1)
-    if raw.size == 0:
-        return []
-
-    actual = pd.to_numeric(usable["close"], errors="coerce").to_numpy()
-    timestamps = usable["timestamp"].to_numpy()
-    rows = len(usable)
-
-    # `raw[i]` estimates the close of row `offset + 1 + i`. To align it
-    # with the session it predicts, the estimate for row j is
-    # `raw[j - offset - 1]`.
-    offset = _prediction_offset(model, model_name)
-
+    rows = len(frame)
     start = max(0, rows - limit)
-    if window is not None:
-        window_start, _window_end = window
-        # Only the START of the hold-out window is applied - see the
-        # docstring for why the end is left open.
-        #
-        # The timestamps are tz-aware, so they are compared through pandas
-        # rather than numpy - `searchsorted` on a numpy datetime64 array
-        # would strip the timezone and then compare naive against aware.
-        if window_start is not None:
-            in_window = (usable["timestamp"] >= window_start).to_numpy()
-            if in_window.any():
-                start = max(start, int(np.flatnonzero(in_window).min()))
-            else:
-                # The recorded window no longer overlaps the data (the
-                # provider may have shortened the history). Fall back to the
-                # most recent rows rather than returning an empty chart.
-                logger.warning(
-                    "The recorded hold-out window starts after the last stored "
-                    "session; showing the most recent rows instead."
-                )
+    if window is not None and window[0] is not None:
+        in_window = (frame["timestamp"] >= window[0]).to_numpy()
+        if not in_window.any():
+            return []
+        start = max(start, int(np.flatnonzero(in_window).min()))
 
+    # Keep the original timeline: dropping a feature gap before shifting
+    # would compare a t+1 prediction with the next COMPLETE row (e.g. t+3).
+    valid = np.isfinite(frame[feature_cols].to_numpy(dtype=float)).all(axis=1)
+    predictions = np.full(len(frame), np.nan)
+    offset = _prediction_offset(model, model_name)
+    boundaries = np.flatnonzero(np.diff(np.r_[False, valid, False]))
+    for begin, end in zip(boundaries[::2], boundaries[1::2]):
+        # Only compute windows contributing to the requested chart range.
+        # Retain every preceding row needed by an LSTM sequence.
+        begin = max(begin, start - offset - 1)
+        if end - begin <= offset:
+            continue
+        raw = np.asarray(model.predict(frame.loc[begin:end - 1, feature_cols])).reshape(-1)
+        target_begin = begin + offset + 1
+        count = min(len(raw), len(frame) - target_begin)
+        predictions[target_begin:target_begin + count] = raw[:count]
+
+    actual = pd.to_numeric(frame["close"], errors="coerce").to_numpy()
+    timestamps = frame["timestamp"].to_numpy()
     points: list[dict[str, Any]] = []
     for j in range(start, rows):
-        index = j - offset - 1
-        if index < 0 or index >= raw.size:
-            continue
-        value = raw[index]
-        if not np.isfinite(value):
+        value = predictions[j]
+        if not np.isfinite(value) or not np.isfinite(actual[j]):
             continue
         points.append(
             {
                 "timestamp": str(timestamps[j]),
                 "actual": float(actual[j]),
                 "predicted": float(value),
+                "reference_close": float(actual[j - 1]) if j > 0 else None,
             }
         )
     return points

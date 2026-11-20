@@ -20,7 +20,7 @@ export async function predictModel(symbol: string, model_name: string, horizon =
 }
 
 export async function compareModels(symbol: string) {
-  const { data } = await api.get<ApiEnvelope<{ models: ModelMetrics[]; note: string }>>(`/forecast/compare/${symbol}`);
+  const { data } = await api.get<ApiEnvelope<{ models: ModelMetrics[]; baseline?: ModelMetrics | null; comparison_scope?: string; note: string }>>(`/forecast/compare/${symbol}`);
   return data.data;
 }
 

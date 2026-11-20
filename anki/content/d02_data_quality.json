@@ -1,0 +1,143 @@
+{
+  "deck": "02-data-quality",
+  "notes": [
+    {
+      "term": "Vì sao project cần một \"plausibility screen\" ở tầng Bronze?",
+      "answer": "Vì Bronze trước đây nhận **mọi thứ** provider đẩy vào. Một lỗi parser biến thành **hỏng dữ liệu vĩnh viễn**.\n\nTrường hợp cụ thể đã xảy ra:\n\n- `VCB source=vn_ws ts=1970-01-10 19:15 close=56.9`\n- `VCB source=vn_rest ts=2026-10-13 02:15 close=56600`\n\nCả hai đều là VCB. Dòng WebSocket sai trên **hai trục cùng lúc**: giá 56.9 VND cho cổ phiếu giao quanh 56.000, và timestamp sớm hơn 56 năm so với thời điểm ingest. `ssi_vn_provider` và `vn_rest_poller` nhân 1000 đúng; parser SSI WebSocket chia 1000, và field `IDX_LAST_UPDATED` dường như trỏ nhầm cột.\n\nKhông có tầng nào phía dước phát hiện được lỗi này, và mọi chỉ báo trượt trên đầu chuỗi sẽ bị đầu độc.\n\n> Vì vậy bộ lọc này từ chối những dòng **chắc chắn là bất khả thi**, và cố ý giữ tiêu chuẩn hẹp.",
+      "code": "backend/app/lakehouse/plausibility.py",
+      "tags": "plausibility bronze validation corruption"
+    },
+    {
+      "term": "Ba nhóm kiểm tra tự chứa trong plausibility screen là gì?",
+      "answer": "Predicate được cố ý **hẹp**, chỉ bắt những gì *chắc chắn* là sai:\n\n1. **Timestamp ngoài khoảng hợp lệ** - nằm ngoài `[MIN_TIMESTAMP, ingestion_time + MAX_FUTURE_SKEW]`. `MIN_TIMESTAMP` = 2000-01-01 UTC (không cổ phiếu nào trong lakehouse này bắt đầu trước 2000). `MAX_FUTURE_SKEW` = 10 phút, để hấp thụ lệch đồng hồ và bar của phiên đang mở.\n2. **Giá không dương** - giá <= 0 không thể là giá thị trường.\n3. **Lệch độ lớn so với lịch sử của chính mã đó** - bắt lỗi đơn vị (nhân 1000).\n\n> Ba kiểm tra tự chứa này giữ Bronze **không phụ thuộc trạng thái**, nên một lần replay cho kết quả giống nhau. Kiểm tra độ lớn cần tham chiếu, nên nó được tách riêng và truyền vào từ caller.",
+      "code": "backend/app/lakehouse/plausibility.py",
+      "tags": "plausibility self-contained checks timestamp price"
+    },
+    {
+      "term": "Vì sao sàn giá tối thiểu 0.5 không được áp dụng tuyệt đối?",
+      "answer": "Vì ngưỡng tuyệt đối đã **ăn mất dữ liệu thật**.\n\nSự cố: `ACH` giao dịch quanh **0.21 USD** trên NYSE American. Mọi bar của nó từ 2026-10-23 đều bị từ chối với thông điệp \"All incoming rows failed the plausibility screen; nothing written\". Mã bị đóng băng tại giá đóng cửa ngày 2026-10-22 trong khi provider đã có bar mới hơn.\n\nLý do đúng: một giá dưới 1 đơn vị **không phải** bằng chứng hỏng - nó là bằng chứng của một công cụ **rẻ**. Cái thực sự chứng minh hỏng là giá **mâu thuẫn với chính lịch sử gần đây của mã đó**.\n\nNên sàn 0.5 chỉ áp dụng khi nó **không mâu thuẫn** với lịch sử của mã. Xem hàm `_effective_floor`.\n\n> Đây là ví dụ điển hình của nguyên tắc: một quy tắc chặn quá rộng nguy hiểm hơn nhiều so với một quy tắc cho lọt vài dòng.",
+      "code": "backend/app/lakehouse/plausibility.py:MIN_PLAUSIBLE_PRICE",
+      "tags": "plausibility floor price threshold absolute"
+    },
+    {
+      "term": "Vì sao một symbol cần HAI con số tham chiếu giá (`floor` và `magnitude`)?",
+      "answer": "Vì hai kiểm tra dùng tham chiếu đó hỏi **hai câu hỏi khác nhau**, và PARA là bằng chứng cụ thể cho cả hai chiều.\n\n- **`floor`** = đáy của khoảng giá gần đây (min). Trả lời \"mã này có phải công cụ rẻ không?\" - quyết định có nới sàn tuyệt đối 0.5 hay không.\n- **`magnitude`** = trung vị của khoảng giá gần đây. Trả lời \"giá này có lệch quá xa so với nơi mã này giao dịch không?\" - đây là thứ bắt lỗi đơn vị.\n\n**Vì sao không thể là một:**\n\n- Nếu `floor` lấy trung vị: partition mới nhất của PARA vẫn còn vài bar trước chia tách ở ~2.72, nên trung vị ~2.21 trong khi mức thực ~0.42. Dùng 2.21 làm sàn, giá 0.425 thật bị từ chối là `implausible_open`.\n- Nếu `magnitude` lấy đáy: PARA giao quanh 102 USD năm 2021 và 0.47 USD năm 2026, nên đáy thấp hơn trung vị ~200 lần. Dùng nó sẽ xoá lịch sử thật năm 2021 để bắt một lỗi đơn vị hiếm.\n\nLỗi đơn vị là 1000 lần - nằm ngoài cả hai dải dung sai, nên tách hai tham chiếu không làm suy yếu bộ lọc.",
+      "code": "backend/app/lakehouse/bronze.py:BronzeLayer._reference_prices",
+      "tags": "plausibility reference price floor magnitude median"
+    },
+    {
+      "term": "Vì sao tham chiếu giá đọc nhiều partition thay vì chỉ partition mới nhất?",
+      "answer": "Vì một symbol vừa chia tách hoặc giảm mạnh sẽ giữ **bar trước sự kiện** trong partition mới nhất. Nếu chỉ đọc partition mới nhất, mẫu sẽ bị chi phối bởi các bar cũ đó và tham chiếu sẽ nằm **cao hơn nhiều** so với mức thực tế của symbol.\n\nVì vậy `REFERENCE_PARTITION_SAMPLE = 3`: đọc **3 partition mới nhất**, lấy tối đa `PRICE_REFERENCE_SAMPLE = 50` giá đóng cửa dương.\n\nHiệu quả: việc lấy tham chiếu vẫn **rẻ** trên lakehouse ~1000 mã - chỉ vài object mỗi mã thay vì toàn bộ lịch sử.",
+      "code": "backend/app/lakehouse/plausibility.py:REFERENCE_PARTITION_SAMPLE",
+      "tags": "plausibility reference partition sample split"
+    },
+    {
+      "term": "Vì sao dòng streaming bị áp ngưỡng lệch giá chặt hơn (2.5x)?",
+      "answer": "Vì một dòng **streaming** (bar per-second/per-minute) mô tả **cùng phiên** với giá đóng cửa cuối cùng của chính mã đó. Nó không có lý do để nằm xa giá vừa giao dịch.\n\nSự cố đo được (2026-10-07): publisher WebSocket Finnhub gán giao dịch sai ticker, Bronze lưu chúng dưới sai symbol:\n\n- `NVDA` lưu close 855..1938 trong khi giá thật hôm đó là 237.47\n- `TSLA` lưu 68..283 trong khi giá thật là 377.81\n- `COIN` lưu 72..125 trong khi giá thật là 178.45\n- `BTC-USD` lưu 48072..97762 trong khi giá thật là 83275.93\n\nCác giá này là giao dịch **thật** của mã khác (chuỗi liên tục bên trong, không phải nhiễu ngẫu nhiên), nên kiểm tra 100x không bắt được các case nhẹ và giá sai vẫn tới được biểu đồ.\n\n2.5x là cố ý chặt: một tick intraday thật của mã thanh khoản cao không bao giờ dịch xa giá đóng cửa phiên trước như vậy, và một chia tát 2:1 hợp lệ sẽ được provider daily sửa lại.",
+      "code": "backend/app/lakehouse/plausibility.py:STREAM_PRICE_DEVIATION_FACTOR",
+      "tags": "plausibility streaming intraday symbol mapping"
+    },
+    {
+      "term": "Quality Gate kiểm tra 6 chiều nào và vì sao cần cả 6?",
+      "answer": "Sáu kiểm tra độc lập, vì chúng **hỏng vì những lý do khác nhau**:\n\n1. **`plausibility`** - các dòng Bronze đã bị sàng lọc từ chối, đọc từ `bronze/_quality/rejected_rows.json`.\n2. **`layer_agreement`** - Bronze, Silver, Gold có giữ **cùng** giá đóng cửa cho cùng một phiên? Một restatement mà Bronze hấp thụ nhưng Silver không rebuild là **invisible** với mọi kiểm tra khác.\n3. **`integrity`** - các dòng đã lưu có còn thỏa luật của thị trường không (`low <= open/close <= high`, `volume >= 0`, 1 bar/phiên, chuỗi đơn điệu)?\n4. **`freshness`** - mỗi mã có bar của một phiên gần đây không? Một mã mới nhất cách đây 1 tháng không sai, nhưng nó **stale** - và mã stale âm thầm làm hỏng mọi chỉ báo tính trên nó.\n5. **`source_agreement`** - hai provider cùng phục vụ một mã có thống nhất về giá đóng cửa không?\n6. **`forming_snapshots`** - Bronze có giữ bar daily được chụp **khi phiên còn đang chạy** không? Một snapshot đóng băng giữa phiên trông giống provider bất đồng nhưng là một lỗi khác, nên được gọi tên riêng.\n\n> Sáu kiểm tra là sáu *nguyên nhân*, không phải sáu cách cùng một việc.",
+      "code": "backend/app/core/quality_gate.py",
+      "tags": "quality gate checks layer agreement integrity freshness"
+    },
+    {
+      "term": "Quality Gate tạo ra verdict gì và quy tắc bất đối xứng ra sao?",
+      "answer": "Gate không chỉ sinh số - nó sinh một **verdict**: `passed`, `warning` hoặc `failed`, kèm lý do.\n\nQuy tắc **bất đối xứng**, cùng logic được dùng khắp codebase (xem `app/forecasting/sessions.py`): **báo động giả thì rẻ và nhìn thấy được; bỏ sót lỗi thì đắt và im lặng**.\n\n- **`failed`** - mã đang giữ dữ liệu **chắc chắn sai**: ba tầng bất đồng về giá, một dòng vi phạm quy tắc OHLC, mã mới nhất vắng mặt ở tầng đang phục vụ nó. **Có việc phải sửa.**\n- **`warning`** - dữ liệu dùng được nhưng chưa sạch: mã stale, có dòng bị plausibility từ chối, provider đã sửa lại một bar. **Không có gì sai, nhưng nên nhìn.**\n- **`passed`** - mọi kiểm tra thành công.\n\n> Chi phí của việc bỏ sót một lỗi dữ liệu lớn hơn nhiều so với việc báo động nhầm.",
+      "code": "backend/app/core/quality_gate.py",
+      "tags": "quality gate verdict failed warning passed asymmetry"
+    },
+    {
+      "term": "Vì sao Quality Gate KHÔNG báo số 0 khi một kiểm tra không chạy được?",
+      "answer": "Vì **không có metric nào được bịa**. Mọi con số đếm từ object đã lưu, quality report đã lưu, hoặc một lần gọi provider thật.\n\nNếu một kiểm tra không chạy được (MinIO chết, provider không truy cập được), gate **nói rõ điều đó** và đánh dấu kiểm tra là `unavailable`. Nó **không** báo 0, và **không** báo điểm đạt cho một kiểm tra chưa từng chạy.\n\n> Một gate báo \"100% sạch\" vì nó không nhìn thấy gì cả thì tệ hơn không có gate.\n\nNguyên tắc này áp dụng nhất quán cho toàn hệ thống: khi không có số liệu, hiển thị `—` kèm lý do, không phải `0.00%`.",
+      "code": "backend/app/core/quality_gate.py",
+      "tags": "quality gate unavailable no fabricated metric"
+    },
+    {
+      "term": "Quality Gate chạy kiểm tra provider theo kiểu xoay vòng (rotation) thế nào?",
+      "answer": "`verify_against_source.py` là kiểm tra mạnh nhất có sẵn - nó gọi lại provider cho từng mã và so sánh từng bar. Nhưng nó **chậm**, vì mỗi mã là một lần gọi mạng. Một gate chạy mỗi giờ không thể chịu điều đó.\n\nNên gate chạy **xoay vòng**: mỗi lượt kiểm tra một **lát** của universe với provider thật, và các lát cộng dồn. Vì vậy một lượt toàn diện hoàn thành sau mỗi N lượt, trong khi mỗi lượt riêng vẫn rẻ.\n\n- `PROVIDER_CHECK_BATCH = 40` mã mỗi lượt (mỗi mã ~0.3-1s -> ~15-40s trên thread pool).\n- `PROVIDER_CHECK_WINDOW = 30` phiên gần nhất (~6 tuần giao dịch).\n- Vị trí xoay vòng được **lưu lại**, nên restart không kiểm tra lại các mã cũ mà bỏ sót mã khác.\n\nBốn kiểm tra còn lại đọc dữ liệu đã lưu nên đủ rẻ để chạy trên **toàn bộ** universe mỗi lượt.",
+      "code": "backend/app/core/quality_gate.py",
+      "tags": "quality gate rotation provider batch window"
+    },
+    {
+      "term": "Vì sao đội đọc storage của Quality Gate chạy 12 thread?",
+      "answer": "Vì các kiểm tra đọc lakehouse là **I/O bound**, không phải CPU bound: công việc là một round-trip MinIO mỗi partition, còn CPU ngồi không làm gì chờ byte. Chồng lấp các lần đọc gần như **miễn phí**.\n\n`_READ_WORKERS = 12` được chọn để nằm gọn trong connection pool của MinIO (64) mà vẫn đủ che được độ trễ.\n\nĐo ngày 2026-11-15: 100 mã mất **50s** chạy tuần tự và khoảng **12s** với số worker này.\n\n> Tối ưu hiệu quả nhất trong toàn hệ thống thường là đổi cách chờ I/O, không phải làm mã nhanh hơn.",
+      "code": "backend/app/core/quality_gate.py:_READ_WORKERS",
+      "tags": "quality gate thread pool io bound workers"
+    },
+    {
+      "term": "Vì sao ngưỡng so sánh giá của quality gate là TƯƠNG ĐỐI (1e-6)?",
+      "answer": "Vì đó là **cùng ngưỡng** mà verifier dùng, nên \"mismatch\" ở đây có nghĩa **đúng như** \"mismatch\" ở kia. Hai nơi không thể định nghĩa cùng một từ mà mang hai nghĩa khác nhau.\n\nLý do phải tương đối: một ngưỡng tuyệt đối sẽ sai theo **cả hai chiều**:\n\n- Với ACH ở 0.21 USD, chênh lệch tuyệt đối 1e-9 đã là 5e-9 tương đối.\n- Với VCB ở 56.000, cùng chênh lệch tuyệt đối đó là 2e-14 tương đối - nhiễu float, không phải khác biệt dữ liệu.\n\nNgưỡng 1e-6 được đặt để coi là nhiễu làm tròn, không phải lỗi.",
+      "code": "backend/app/core/quality_gate.py:PRICE_TOLERANCE",
+      "tags": "quality gate price tolerance relative mismatch"
+    },
+    {
+      "term": "`is_fabricated_symbol()` chặn symbol giả bằng cách nào?",
+      "answer": "Bằng **denylist tiền tố**, không phải allowlist.\n\nCác tiền tố bị chặn: `TST`, `TEST`, `DEMO`, `MOCK`, `FAKE`, `DUMMY`, `SAMPLE`, `PLACEHOLDER`, `XXX`. Khớp theo **tiền tố** và không phân biệt hoa thường, nên `TST0`, `TEST-AAPL`, `MOCK_1` đều bị bắt.\n\n**Vì sao denylist chứ không allowlist:** một allowlist ticker thật phải được bảo trì mãi mãi và sẽ vỡ ngay khi có mã mới được ingest. Denylist chỉ cần biết \"một fixture trông như thế nào\" - điều đó không đổi.\n\nSự cố gốc: ngày 15/11/2026, ledger chứa 200 dòng với symbol `TST0`..`TST199`, tất cả có cùng bộ số bịa (`reference_close = 100.0`, `predicted_close = 101.0`), đều gắn `source = \"auto_eod_batch\"`. Không mã nào trong lakehouse tên `TST0`.\n\n> Đây không phải giấy phép để viết số bịa dưới một ticker **thật**. Denylist là tuyến phòng thứ nhất, rẻ.",
+      "code": "backend/app/core/data_integrity.py:is_fabricated_symbol",
+      "tags": "data integrity fabricated symbol denylist prefix"
+    },
+    {
+      "term": "Quy tắc `is_impossible_price()` chặn giá phi khả thi như thế nào?",
+      "answer": "Ngoài việc chặn symbol giả, còn có quy tắc cho **giá** không thể tồn tại.\n\nNgày 15/11/2026 phát hiện 19 dự báo có giá dự đoán **âm** hoặc lệch absurd khỏi giá tham chiếu. Nguyên tắc áp dụng: một dự báo chỉ được lưu khi giá dự đoán **dương** và **gần** giá tham chiếu trong một băng tương đối hợp lý.\n\nCùng nguyên tắc với `_count_restated_rows`: so sánh **tương đối**, vì thang giá giữa các thị trường khác nhau hàng trăm nghìn lần.\n\n> Cùng một học: mọi ngưỡng giá trong hệ thống phải **tương đối**, nếu không sẽ cho kết luận sai trên ít nhất một trong các thị trường.",
+      "code": "backend/app/core/data_integrity.py:is_impossible_price",
+      "tags": "data integrity impossible price guard"
+    },
+    {
+      "term": "Vì sao `frame_cache` phải bị invalidate sau khi Silver/Gold ghi lại?",
+      "answer": "Vì dữ liệu vừa thay đổi, nên bản cache đã **cũ**. Nếu không invalidate, các reader sau đó sẽ nhận frame cũ trong khi storage đã có frame mới - và đó chính xác là dạng lệch tầng mà quality gate săn tìm.\n\nCơ chế: `SilverLayer.write()` và `GoldLayer._invalidate_written()` gọi `frame_cache.invalidate_cached(layer, symbol)` cho **mọi** symbol vừa được ghi.\n\nCách invalidate **chủ động** này tốt hơn việc chờ TTL hết hạn: bản frame mới thay bản cũ **ngay lập tức**, không phải sau một khoảng chờ.\n\n> Cache không tự biết nó đã lỗi thời. Người ghi luôn là người duy nhất biết.",
+      "code": "backend/app/lakehouse/frame_cache.py",
+      "tags": "frame cache invalidate stale consistency"
+    },
+    {
+      "term": "Cột `source` trong Bronze là bằng chứng của điều gì?",
+      "answer": "Cột `source` là **bằng chứng truy vết** mà rule \"Real Data Only\" yêu cầu.\n\nMọi dòng trong Bronze/Silver/Gold phải mang `source` của nhà cung cấp **thật** đã sinh ra nó: `yahoo_http`, `yfinance_eod`, `finnhub_rest`, `alpha_vantage`, `ssi_vn`...\n\nHệ quả trực tiếp:\n\n- Cổng `POST /api/v1/stream/ingest` mặc định **tắt** (`allow_stream_ingest=false`) vì nó từng đẩy 18 bar gõ tay của AAPL/MSFT/NVDA vào Bronze - không có gì phân biệt được chúng với giá thật.\n- API trả kèm `source_layer` (gold/silver/bronze) và `source` (yahoo_http): đó là **bằng chứng dữ liệu thật**. Một response có số mà **không** có trường này thì phải nghi ngờ ngay lập tức.\n\n> Dữ liệu không có nguồn là dữ liệu không thể kiểm chứng - và dữ liệu không kiểm chứng được thì không được phép vào lakehouse.",
+      "code": "backend/app/lakehouse/bronze.py:BRONZE_SCHEMA",
+      "tags": "bronze source provenance evidence real data"
+    },
+    {
+      "term": "Vì sao tồn tại script `purge_fabricated_rows.py`?",
+      "answer": "Vì khi phát hiện dữ liệu giả **đã lọt** vào lakehouse, cần một cách xoá có kiểm soát thay vì xoá thủ công.\n\nQuy trình chuẩn 4 bước:\n\n1. **Dừng nguồn vi phạm** (tắt nút/toggle ghi dữ liệu).\n2. **Xoá dòng nhiễm** bằng script có sẵn `backend/scripts/purge_fabricated_rows.py`.\n3. **Ghi lại vào tài liệu** (`docs/lakehouse.md` hoặc `docs/data_verification.md`): Triệu chứng → Vì sao xảy ra → Fix → Bằng chứng, kèm ngày đo.\n4. **Không \"làm đẹp\" số liệu**: nếu kết quả sau khi xoá là 1008 symbol thay vì 1012, ghi đúng 1008.\n\n> Bước 4 là quan trọng nhất. Cái đẹp nhất trong tài liệu kỹ thuật không phải là con số đẹp - mà là con số **đúng**.",
+      "code": "backend/scripts/purge_fabricated_rows.py",
+      "tags": "data integrity purge remediation documentation"
+    },
+    {
+      "term": "Vì sao tầng Silver ghi các dòng lỗi ra `_errors/` thay vì xoá âm thầm?",
+      "answer": "Vì **không được phép mất dấu vết**. Một hệ thống lakehouse bỏ rơi dữ liệu xấu mà không nói là hệ thống nói dối về chính nó.\n\nCơ chế: dòng vi phạm được ghi ra `silver/_errors/errors_<YYYYMMDD>T<HHMMSS>.parquet` kèm cột `error_reason` gồm các nguyên nhân phân tách bằng dấu chấm phẩy:\n\n- `missing;` - thiếu giá trị ở một trong các cột bắt buộc\n- `invalid_ohlc;` - vi phạm bất biến high/low/open/close\n- `invalid_volume;` - volume âm\n- `duplicate;` - trùng timestamp chính xác\n\nBộ đếm cũng được ghi vào quality report (`missing_count`, `invalid_ohlc_count`, `invalid_volume_count`, `error_count`).\n\n> \"Bỏ dữ liệu xấu\" và \"bỏ dấu vết dữ liệu xấu\" là hai việc khác nhau. Chỉ một trong hai được phép làm.",
+      "code": "backend/app/lakehouse/silver.py:SilverLayer._transform_pandas",
+      "tags": "silver errors rejected rows audit trail"
+    },
+    {
+      "term": "Hai kiểu bịa dữ liệu tinh vi mà rule \"no fake data\" phải chặn là gì?",
+      "answer": "Đây là hai dạng lỗi đáng chú ý nhất, vì chúng **không trông sai**:\n\n**1. Số đúng nhưng sai nguồn** - ví dụ `close` lấy từ tầng `local` cũ trong khi tầng `minio` đã được cập nhật. Số vẫn \"thật\" nhưng **không truy vết được** về lần ingest mới nhất. Kiểm tra: `source_layer` phải khớp với tầng đang được bật.\n\n**2. Số đúng nhưng sai thời điểm** - ví dụ `timestamp` cố định thay vì lấy từ bar cuối cùng. Kiểm tra: timestamp của bar mới nhất phải khớp ngày giao dịch gần nhất.\n\nCả hai đều **không** bị phát hiện bởi mắt thường hay bởi kiểm tra \"số có hợp lệ không\". Chúng chỉ bị phát hiện bằng so sánh với nguồn và với thời gian.\n\n> Câu hỏi tự kiểm trước khi kết thúc: \"Nếu thầy giáo mở file này, có chỗ nào ông tưởng là dữ liệu thật nhưng thực ra là số tôi tự chế ra không?\"",
+      "code": "backend/app/core/data_integrity.py",
+      "tags": "data integrity subtle wrong source wrong timestamp"
+    },
+    {
+      "term": "Endpoint ingest stream bị tắt mặc định vì lý do gì?",
+      "answer": "Vì lịch sử của nó.\n\nCổng `POST /api/v1/stream/ingest` từng đẩy **18 bar gõ tay** của AAPL/MSFT/NVDA vào Bronze. Vấn đề không chỉ là số sai - mà là **không có gì phân biệt được chúng với giá thật**: cùng schema, cùng partition, cùng cột `source`. Chúng trộn vào lịch sử thật và mọi chỉ báo, mô hình, backtest sau đó đều dính vào mà không ai biết.\n\nNên `allow_stream_ingest=false` là mặc định và **phải giữ nguyên**.\n\n> Cổng này tồn tại cho mục đích debug có kiểm soát, không phải để bơm số vào hệ thống nghiên cứu.",
+      "code": "backend/app/core/config.py",
+      "tags": "ingest stream disabled fabricated bars safety"
+    },
+    {
+      "term": "`data_integrity.py` cố tình KHÔNG kiểm tra symbol có tồn tại trong Gold - vì sao?",
+      "answer": "Vì đó là **cân bằng giữa tầng** và cân bằng đó là cố ý.\n\nKiểm tra mạnh hơn là \"symbol này có tồn tại trong tầng Gold không?\" Nhưng nó cần một **round-trip storage**, và nó thuộc về **đường ghi kiểm chứng** (`scripts/purge_fake_predictions.py`) chứ không thuộc về **đường ghi**.\n\nLý do: đường ghi phải **rẻ** và **không được phụ thuộc** vào việc storage backend có đang chạy hay không. Nếu đường ghi cần storage, thì lúc MinIO chết thì hệ thống không ghi được dự báo - tạo một phụ thuộc vòng.\n\nDenylist tiền tố là tuyến phòng **rẻ** chống lỗi hiển nhiên; kiểm tra tồn tại thật là tuyến phòng **đắt** chống lỗi tinh vi, thuộc về lúc kiểm chứng.",
+      "code": "backend/app/core/data_integrity.py",
+      "tags": "data integrity write path storage independence layering"
+    },
+    {
+      "term": "Vì sao `verify_against_source.py` là kiểm tra mạnh nhất nhưng không thể chạy liên tục?",
+      "answer": "Vì nó **gọi lại provider cho từng mã** và so sánh bar-by-bar với Bronze/Silver/Gold/API. Đó là đối chiếu trực tiếp với nguồn sự thật - mạnh hơn bất kỳ kiểm tra nội bộ nào.\n\nNhưng nó **chậm**: một lần gọi mạng cho mỗi mã. Với ~1000 mã, đó là hàng nghìn round-trip.\n\nĐây chính là lý do Quality Gate tồn tại: nó **thay thế** cho việc chạy thủ công, bằng cách trả lời liên tục câu hỏi \"Dữ liệu trong lakehouse có sạch không, và từ khi nào?\" từ bằng chứng mà lakehouse đã mang.\n\nCòn 5 kiểm tra nội bộ (layer agreement, integrity, freshness, plausibility, forming snapshots) đọc dữ liệu **đã lưu**, nên đủ rẻ để chạy toàn universe mỗi lượt.\n\n> Bài học kiến trúc: công cụ kiểm chứng mạnh mà không ai chạy trước khi ship là **vô dụng**.",
+      "code": "backend/scripts/verify_against_source.py",
+      "tags": "verification source comparison manual gate"
+    },
+    {
+      "term": "Ba tầng kiểm tra chất lượng dữ liệu trong hệ thống khác nhau thế nào?",
+      "answer": "Ba công cụ bổ sung cho nhau, mỗi cái bắt một lớp lỗi:\n\n1. **`app/lakehouse/plausibility.py`** - chặn dòng **chưa vào** Bronze: giá không dương, timestamp vô lý, lệch độ lớn. Chạy **trên đường ghi**.\n2. **`scripts/check_layer_divergence.py`** - so sánh **3 tầng với nhau**: Bronze, Silver, Gold có cùng giá cho cùng phiên không? Chạy **sau khi ghi**.\n3. **`scripts/verify_against_source.py`** - so sánh **với provider thật**: bar-by-bar. Chạy **thủ công**, mạnh nhất, chậm nhất.\n\nQuality Gate là lớp **thứ tư**: gộp cả ba vào một verdict chạy liên tục.\n\n> Trước đây cả ba đều **thủ công** và không ai chạy trước khi ship - nên hệ thống có thể sai mà vẫn trông ổn.",
+      "code": "backend/app/core/quality_gate.py",
+      "tags": "quality three tools divergence plausibility verify"
+    }
+  ]
+}

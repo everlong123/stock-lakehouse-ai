@@ -25,6 +25,9 @@ export interface OHLCVPoint {
 }
 
 export interface LatestQuote {
+  latest_session?: string | null;
+  age_calendar_days?: number | null;
+  data_status?: "stale" | "recent";
   symbol: string;
   timestamp: string;
   open: number | null;

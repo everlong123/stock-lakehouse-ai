@@ -1,0 +1,155 @@
+{
+  "deck": "03-forecasting-models",
+  "notes": [
+    {
+      "term": "Ba mô hình dự báo trong hệ thống là gì và khác nhau thế nào?",
+      "answer": "Cả ba đều dự báo **giá đóng cửa phiên kế tiếp** từ dữ liệu tầng Gold:\n\n- **Linear Regression** (`linear_regression.py`) - hồi quy tuyến tính trên tập đặc trưng Gold. Nhanh, diễn giải được, là baseline.\n- **ARIMA** (`arima.py`) - mô hình dự báo chuỗi thời gian **đơn biến** trên series `close` (statsmodels). Bậc `(p,d,q)` cấu hình được.\n- **LSTM** (`lstm.py`) - mô hình chuỗi trong PyTorch, dùng cửa sổ trượt `sequence_length` phiên, có early stopping.\n\nTất cả kế thừa `BaseForecastModel` với cùng một hợp đồng: `fit`, `predict`, `evaluate`, `save`, `load`.\n\n> Ba mô hình này **không** được xếp hạng \"tốt nhất\". Hệ thống báo cáo chúng cạnh nhau và nói rõ rằng backtesting chỉ đánh giá hiệu suất lịch sử giả định.",
+      "code": "backend/app/forecasting/{linear_regression,arima,lstm}.py",
+      "tags": "forecasting models linear regression arima lstm"
+    },
+    {
+      "term": "Vì sao LSTM dùng target TƯƠNG ĐỐI (`next_close / close`) thay vì giá tuyệt đối?",
+      "answer": "Vì target tuyệt đối làm cho bài toán **phi dừng**.\n\nVấn đề cũ: mô hình train khi AAPL giao trong khoảng 26-196, rồi trên tập hold-out được yêu cầu dự báo giá 195-349. `MinMaxScaler` được fit trên giá train, nên mọi giá hold-out scale ra **trên 1.0** - một vùng mà mạng chưa từng thấy.\n\nKết quả là một **trần cứng**: mô hình không dự báo được giá trên đỉnh training, nên bão hoà quanh 278 trong khi cổ phiếu ở 345. MAE hold-out đo được: **50.5** (MAPE 15.6%).\n\nFix: dự báo **tỷ lệ** `next_close / close` - loại bỏ hoàn toàn mức giá khỏi target, nên cùng một mạng dùng được cho mọi vùng giá. Giá được khôi phục bằng cách nhân tỷ lệ dự đoán với giá đóng cửa của phiên đang dự báo từ đó.\n\nĐo trên AAPL, cùng mạng, cùng split, cùng seed: MAE hold-out giảm **34.6 → 3.19**, MAPE **11.9% → 1.15%**.\n\n> Nếu frame không có cột `close`, mô hình tự fallback về target tuyệt đối, nên hành vi với caller không cung cấp `close` là không đổi.",
+      "code": "backend/app/forecasting/lstm.py:_fit_targets",
+      "tags": "lstm relative target ratio non-stationary scaler"
+    },
+    {
+      "term": "Vì sao validation split không được re-fit scaler?",
+      "answer": "Vì làm vậy là **rò rỉ giá validation vào thống kê training**, và làm tín hiệu early-stopping trở nên lạc quan (optimistic).\n\nHệ thống tách rõ hai hàm:\n\n- `_fit_targets()` - fit scaler trên **tập train**, dùng khi train.\n- `_transform_targets()` - dùng scaler **đã fit**, dùng cho validation và predict.\n\nTương tự với `feature_scaler`: train dùng `fit_transform`, validation dùng `transform`.\n\n> Đây là cùng nguyên tắc với `shift(-1)` cho target và `shift(1)` cho tín hiệu giao dịch: **không được để thông tin từ tương lai chảm ngược vào quá khứ**.",
+      "code": "backend/app/forecasting/lstm.py:_transform_targets",
+      "tags": "lstm scaler leakage validation fit transform"
+    },
+    {
+      "term": "ARIMA `walk_forward()` khác gì `predict()` và vì sao quan trọng?",
+      "answer": "Đây là khác biệt giữa **dự báo nhiều bước** và **dự báo một bước**.\n\n- **`predict(X)`** gọi `result.forecast(steps=horizon)` **một lần**. Kết quả là một dự báo **nhiều bước** neo tại cuối dữ liệu **training**.\n- **`walk_forward(X)`** dự báo **từng bước một**: với mỗi phiên, dự báo từ trạng thái mô hình **trước** phiên đó, rồi mới đưa giá thực tế của phiên đó vào mô hình (`state.append(value, refit=False)`).\n\nVì sao quan trọng: metric quan trọng với một bộ dự báo là \"**nó đã nói gì TRƯỚC khi phiên xảy ra?**\". Bản cũ gọi `forecast(steps=len(X))` một lần rồi so với với các phiên test - tức là chấm điểm một **dự báo dài hạn** như thể nó là dự báo một bước, khiến sai số to lớn và **hoàn toàn không liên quan** tới năng lực thật của mô hình.\n\n> Đây là lỗi đánh giá mô hình, không phải lỗi mô hình - và nó làm cho toàn bộ phần so sánh trở nên vô nghĩa.",
+      "code": "backend/app/forecasting/arima.py:ARIMAForecastModel.walk_forward",
+      "tags": "arima walk-forward one-step forecast evaluation"
+    },
+    {
+      "term": "Bug `directional_accuracy` luôn bằng 0 của ARIMA đã được sửa thế nào?",
+      "answer": "Lỗi: metric so sánh hướng dự báo với hướng biến động thật, nhưng biến động thật được tính so với **chính giá đóng cửa của phiên đang dự báo** (`sign(actual - close)`). Mà giá thực tế **là** target, nên `actual - close` bằng 0 ở mọi dòng -> metric chỉ có thể bằng 0. Hàng ARIMA trong bảng so sánh hiển thị đúng **0.00**.\n\nFix: hướng biến động phải đo so với giá đóng cửa của phiên **trước**. Vì vậy dùng `close` **dịch một bước** (`shift(1)`), với giá của phiên cuối cùng của tập train làm tiền lệ cho dòng đầu. Dòng đầu không có phiên trước trong frame hold-out nên bị loại.\n\n> Đây là lỗi \"metric luôn bằng 0\" - loại bug nguy hiểm vì nó trông như một con số hợp lệ.",
+      "code": "backend/app/forecasting/arima.py:ARIMAForecastModel.evaluate",
+      "tags": "arima directional accuracy bug metric zero"
+    },
+    {
+      "term": "Bốn metric đánh giá mô hình dự báo và định nghĩa chính xác là gì?",
+      "answer": "Từ `app/forecasting/evaluator.py`:\n\n- **MAE** (Mean Absolute Error) = trung bình `|y_true - y_pred|`. Đơn vị tiền của mã.\n- **RMSE** (Root Mean Squared Error) = `sqrt(trung bình (y_true - y_pred)^2)`. Phạt nặng hơn MAE cho sai số lớn.\n- **MAPE** (Mean Absolute Percentage Error) = trung bình `|y_true - y_pred| / |y_true| * 100`. **Không so sánh được giữa các mã** vì khác thang giá.\n- **Directional Accuracy** = tỷ lệ phiên mà hướng dự báo (so với giá phiên trước) khớp hướng biến động thật.\n\nHai điểm quan trọng:\n\n1. MAPE có guard chia cho 0: `denom = where(abs(y_true) < 1e-8, 1e-8, abs(y_true))`.\n2. Directional accuracy chỉ tính trên các dòng mà `actual_dir != 0` (phiên không đổi giá không có hướng để so).\n\n> `evaluate_forecast()` cố ý **không** khẳng định mô hình nào là tốt nhất.",
+      "code": "backend/app/forecasting/evaluator.py",
+      "tags": "metrics mae rmse mape directional accuracy"
+    },
+    {
+      "term": "Vì sao Directional Accuracy là metric dẫn đầu trong báo cáo độ chính xác?",
+      "answer": "Vì nó là metric **duy nhất** so sánh được giữa các mã khác nhau một cách có ý nghĩa.\n\nLập luận cụ thể:\n\n- **`abs_error`** nằm trong đơn vị giá của chính mã đó, nên không thể so AAPL (340) với VCB (53.500). Bảng so sánh sẽ vô nghĩa.\n- **Lỗi tương đối** (MAPE) thì so được, nhưng nó phụ thuộc mạnh vào việc giá có bằng 0 hay không và phản ứng mạnh với giá thấp.\n- **Hướng dự báo** thì so được hoàn hảo: đúng/sai hướng là câu trả lời có/không, không phụ thuộc thang giá.\n\nNên báo cáo dẫn đầu bằng directional accuracy và mang theo các metric lỗi bên cạnh.\n\n> Đây là bài học về thiết kế metric: một metric không so sánh được giữa các đơn vị thì không phải là metric đánh giá, nó là một con số.",
+      "code": "backend/app/services/forecast_scoring.py",
+      "tags": "accuracy report directional metric comparison symbols"
+    },
+    {
+      "term": "Multi-step forecasting (recursive) hoạt động thế nào cho mô hình one-step?",
+      "answer": "Bằng cách **cho ăn lại output của mô hình** làm input của bước sau:\n\n1. Bước 1 dự báo phiên `t+1` từ đặc trưng của phiên `t`.\n2. Giá đóng cửa dự đoán của `t+1` được **ghi ngược** vào dòng đặc trưng của `t+1`.\n3. Các chỉ báo phái sinh phụ thuộc vào `close` được **tính lại** (`_recompute_indicators`), và việc tính lại chạy trên **toàn bộ frame** để cửa sổ trượt vẫn đúng (SMA 50 cần 50 phiên ngữ cảnh, không chỉ vài bước dự báo).\n4. Bước 2 dự báo phiên `t+2` từ đặc trưng đã cập nhật.\n\nCách này **trung thực** về giới hạn của nó: sai số **nhân lên** theo mỗi bước. Vì vậy biểu đồ hiển thị lịch sử hold-out và vùng dự báo thành **hai vùng tách biệt**, thay vì vẽ một đường liên tục và giả vờ đó là dự báo.\n\n> Đây là phương pháp đệ quy tiêu chuẩn cho mô hình one-step.",
+      "code": "backend/app/forecasting/multistep.py",
+      "tags": "multistep recursive forecast feedback error compounding"
+    },
+    {
+      "term": "Vì sao biểu đồ dự báo từng bị lệch đúng 1 phiên?",
+      "answer": "Vì `predict_symbol` gọi `model.predict(frame[cols])` trên **toàn bộ frame**, rồi vẽ các giá trị đó **đối chiếu với giá đóng cửa thật của cùng phiên đó**.\n\nNhưng `predict(frame)` trả về, cho mỗi dòng `t`, **ước lượng giá đóng cửa của `t+1`**. Vẽ nó cạnh giá thật của `t` là lệch **đúng một phiên**.\n\nBa triệu chứng đều từ một lệch đó:\n\n1. **Biểu đồ không đổi khi đổi mã.** Predictor đọc `GoldLayer().read(symbol)` cho mã hiện tại, nhưng đường \"actual\" lại lấy từ `predictions.parquet` của mô hình train **cuối cùng**. Chuyển AAPL sang ROKU vẫn để đường AAPL trên màn hình.\n2. **Đường \"PREDICTED\" nằm cạnh \"ACTUAL\" thay vì trùng.** Lệch một phiên trên series daily gần như vô hình trên trục 6 tháng, nên hai đường **trông như** khớp. Chúng không khớp - chúng bị lệch.\n3. **Dự báo không bao giờ tới tương lai.** Điểm cuối biểu đồ là giá đóng cửa đã biết. Tham số `horizon` không làm gì cả với mô hình dựa trên đặc trưng (chỉ ARIMA dùng được, vì ARIMA native multi-step).\n\nFix: `multistep.py` sinh dự báo đệ quy thật, và frontend xoá cache khi đổi mã.",
+      "code": "backend/app/forecasting/multistep.py",
+      "tags": "chart offset one session multistep shift bug"
+    },
+    {
+      "term": "Vì sao LSTM và Linear Regression trả về khác số phần tử cho cùng một frame?",
+      "answer": "Vì chúng có **hình dạng đầu ra khác nhau**, và code phải biết sự khác biệt đó.\n\n- **Linear Regression** trả **một** dự báo mỗi dòng. `result[i]` là ước lượng giá đóng cửa của dòng `i+1`.\n- **LSTM** tiêu thụ một **cửa sổ trượt** `sequence_length` dòng, nên trả `len(frame) - sequence_length + 1` giá trị. `result[i]` là ước lượng giá đóng cửa của dòng `sequence_length + i`.\n\nHàm `_prediction_offset(model, model_name)` báo cáo **bao nhiêu dòng ở đầu frame** mà mô hình không thể chấm điểm:\n\n- Linear Regression: **0** - mọi dòng đều chấm được.\n- LSTM: **`sequence_length - 1`** - cửa sổ đầu cần bấy nhiêu dòng trước đó.\n\n> Bỏ qua sự khác biệt này là cách kinh điển để dịch chuỗi dự báo lệch một phiên.",
+      "code": "backend/app/forecasting/multistep.py:_prediction_offset",
+      "tags": "lstm linear array shape offset sequence length"
+    },
+    {
+      "term": "Early stopping của LSTM hoạt động thế nào?",
+      "answer": "Trong vòng lặp epoch:\n\n1. Chạy epoch, tính `train_loss` trung bình trên tập train, ghi vào `train_loss_history`.\n2. Nếu có validation loader, tính `val_loss` bằng `_average_loss()` (chuyển network sang `eval()`, chạy `torch.no_grad()`, rồi trả lại `train()`).\n3. Nếu `val_loss + 1e-6 < best_val`: lưu `best_state` (deep copy của `state_dict`), reset `wait = 0`.\n4. Ngược lại: `wait += 1`; khi `wait >= patience` thì **break**.\n5. Sau vòng lặp, nạp lại `best_state` vào network.\n\nOptimizer là `torch.optim.Adam`, loss là `nn.MSELoss`, device là **CPU** (`torch.device('cpu')`) để tương thích mọi máy.\n\nChi tiết quan trọng: `best_state` được tạo bằng `{k: v.detach().cpu().clone() for k, v in ...}` - **clone** chứ không phải tham chiếu, nếu không trạng thái tốt nhất sẽ bị ghi đè bởi các epoch sau.\n\n> Early stopping là biện pháp chống overfit **rẻ nhất**: không cần thêm dữ liệu, không cần thêm kiến trúc, chỉ cần dừng đúng lúc.",
+      "code": "backend/app/forecasting/lstm.py:LSTMForecastModel.fit",
+      "tags": "lstm early stopping patience best state adam"
+    },
+    {
+      "term": "LSTM cần tối thiểu bao nhiêu dòng và vì sao?",
+      "answer": "Điều kiện trong `fit()`: `len(features) > sequence_length + 5`, nếu không thì ném `ModelTrainingError`.\n\nÝ nghĩa:\n\n- `sequence_length` dòng để tạo **cửa sổ đầu tiên**.\n- `+ 5` là biên an toàn nhỏ để có dữ liệu huấn luyện thực sự sau khi cửa sổ đầu tiên được tạo.\n\nĐây là kiểm tra **fail-fast** chứ không phải tối ưu: một LSTM train trên 20 dòng sẽ cho kết quả ngẫu nhiên nhưng trông hợp lệ, và điều đó nguy hiểm hơn là báo lỗi rõ ràng.\n\n> Fail-fast sớm với lỗi rõ ràng tốt hơn một kết quả vô nghĩa chạy trọn quy trình.",
+      "code": "backend/app/forecasting/lstm.py:LSTMForecastModel.fit",
+      "tags": "lstm minimum rows warmup model training error"
+    },
+    {
+      "term": "Artifact mô hình LSTM được lưu gồm những file nào?",
+      "answer": "Thư mục mô hình chứa 3 file:\n\n- **`lstm.pt`** - `state_dict` của network qua `torch.save`.\n- **`scalers.joblib`** - `feature_scaler` và `target_scaler` qua `joblib.dump`.\n- **`metadata.json`** - `feature_names`, `metadata`, `sequence_length`, `hidden_size`, `num_layers`, `dropout`, và quan trọng nhất là **`target_mode`**.\n\nChi tiết tương thích ngược: một model được lưu **trước** khi đổi sang target tương đối vẫn phải load được và dự đoán **đúng**. Vì vậy `load()` đọc `payload.get('target_mode', 'absolute')` - mặc định là absolute cho model cũ.\n\nKhi load, `torch.load(..., map_location='cpu', weights_only=True)` để nạp an toàn trên CPU mà không thực thi code pickle tùy ý.\n\n> `feature_names` phải được lưu vì `predict()` cần `pd.DataFrame(X, columns=self.feature_names)` - nếu thiếu, thứ tự cột có thể lệch và dự báo sai âm thầm.",
+      "code": "backend/app/forecasting/lstm.py:LSTMForecastModel.save",
+      "tags": "lstm model artifacts save load joblib metadata"
+    },
+    {
+      "term": "ARIMA cần tối thiểu bao nhiêu quan sát và bậc (p,d,q) mặc định là gì?",
+      "answer": "**Tối thiểu 20 quan sát** giá đóng cửa, nếu không ném `ModelTrainingError` với thông điệp \"ARIMA needs at least 20 close observations.\"\n\nBậc mặc định lấy từ `settings.arima_order_tuple`, và khi load model cũ thì fallback `[5, 1, 0]` nếu metadata không có trường `order`.\n\nÝ nghĩa của từng thành phần `(p, d, q)`:\n\n- **p** - số bậc tự hồi quy (AR): bao nhiêu phiên trước ảnh hưởng phiên hiện tại.\n- **d** - bậc tích phân (I): cần lấy sai phân bao nhiêu lần để dữ liệu trở nên tĩnh. `d=1` là phổ biến cho giá cổ phiếu.\n- **q** - số bậc trung bình động (MA): bao nhiêu sai số quá khứ ảnh hưởng sai số hiện tại.\n\n`self.history` được giữ lại để `extend()` và làm giá phiên trước cho directional accuracy.",
+      "code": "backend/app/forecasting/arima.py:ARIMAForecastModel.fit",
+      "tags": "arima order p d q minimum observations"
+    },
+    {
+      "term": "`extend()` của ARIMA khác gì với `refit`?",
+      "answer": "`extend()` nối quan sát mới vào series **mà không refit tham số**:\n\n```python\nself.result = self.result.append(new_values, refit=False)\n```\n\nMô hình **giữ nguyên tham số đã fit** nhưng **học** các quan sát mới qua cập nhật state-space - đúng cách một mô hình đang chạy sẽ nuốt các phiên được publish kể từ lúc nó được train.\n\nTương tự, `walk_forward()` cũng dùng `append(..., refit=False)` sau mỗi phiên.\n\nCũng trong ARIMA có một cảnh báo quan trọng: **dự báo được neo tại cuối series đã fit**. Nếu model được fit trên tập train nhưng đã có phiên mới được publish, phải gọi `extend()` trước - nếu không, dự báo bắt đầu từ một giá cũ và **mọi giá trị đều sai** bởi khoảng cách đó.\n\n> Đây là dạng lỗi \"đúng nhưng sai thời điểm\" thứ hai trong hệ thống: số hợp lệ về mặt hình thức nhưng lệch so với hiện tại.",
+      "code": "backend/app/forecasting/arima.py:ARIMAForecastModel.extend",
+      "tags": "arima extend refit state space anchor"
+    },
+    {
+      "term": "Chia dữ liệu train/hold-out của mô hình dự báo được làm thế nào?",
+      "answer": "**Theo thứ tự thời gian** (chronological split), không phải ngẫu nhiên. Split theo thứ tự thời gian là bắt buộc cho chuỗi thời gian: shuffle ngẫu nhiên sẽ để mô hình thấy được tương lai trong lúc train.\n\nThông điệp API xác nhận điều này: `\"Model trained on a chronological split. Metrics are not a profit guarantee.\"`\n\nBổ sung:\n\n- Target dùng `shift(-1)` để nhãn của phiên t là giá của phiên t+1.\n- Tập validation được giữ riêng cho early stopping của LSTM.\n- Metric được tính trên **hold-out**, tức dữ liệu mô hình **chưa từng thấy**.\n\n> Kèm theo quy ước: khi load một model đã train, hệ thống không tự retrain - nếu không có model, endpoint trả lý do cụ thể thay vì một con số bịa.",
+      "code": "backend/app/forecasting/trainer.py",
+      "tags": "chronological split holdout validation forecasting"
+    },
+    {
+      "term": "Vì sao dự báo phải **đệ quy** thay vì dùng một mô hình multi-step native?",
+      "answer": "Vì phần lớn mô hình trong hệ thống **chỉ one-step**: Linear Regression và LSTM được train để dự báo **một** phiên kế tiếp.\n\n`multistep.py` biến chúng thành bộ dự báo multi-step thật bằng cách cho ăn lại output. Đây là cách tiêu chuẩn và nó **trung thực** về giới hạn: sai số nhân lên theo mỗi bước.\n\nChỉ ARIMA là multi-step native (`result.forecast(steps=horizon)`), vì ARIMA vốn là mô hình chuỗi thời gian với trạng thái.\n\nĐây cũng là lý do biểu đồ tách **hai vùng**: lịch sử hold-out và vùng dự báo. Vẽ một đường liên tục sẽ **giả vờ** rằng độ chính xác ở bước 1 còn giữ được ở bước 10.\n\n> ARIMA đa bước native và mô hình đệ quy có hành vi sai số khác nhau - và so sánh chúng như thể tương đương là một lỗi phân tích.",
+      "code": "backend/app/forecasting/multistep.py",
+      "tags": "multistep recursive vs native arima error compounding"
+    },
+    {
+      "term": "Sổ dự báo (`predictions` table) làm gì và tại sao cần nó?",
+      "answer": "Nó **đóng vòng lặp** của hệ thống dự báo.\n\nVòng lặp:\n\n```\nforecast → phiên xảy ra → chấm điểm với giá đóng cửa thật\n(Gold, hôm qua)        (Gold, hôm nay)      (lưu vĩnh viễn)\n```\n\nVì sao cần: hệ thống trước đây chỉ có **một chiều thời gian**. Batch EOD đêm nạp bar của ngày, hỏi mô hình dự báo cho phiên kế tiếp, ghi con số vào bảng `predictions`, rồi **dừng lại**.\n\nHệ quả: **độ chính xác thật của hệ thống là không thể đo**. MAE/MAPE trên trang forecasting được tính trên hold-out lịch sử - đó là backtest, trả lời \"mô hình này chính xác cỡ nào trên các phiên đã xảy ra **trước khi** mô hình được xây\". Đó là câu hỏi **khác** với \"các dự báo hệ thống thực sự đã publish chính xác cỡ nào\".\n\n> Đây là khoảnh khắc một hệ thống ML trở nên **học được** từ chính nó.",
+      "code": "backend/app/services/forecast_scoring.py",
+      "tags": "prediction ledger scoring loop publish accuracy"
+    },
+    {
+      "term": "Vì sao điểm số phải tính từ Gold chứ không từ output của mô hình?",
+      "answer": "Vì kết quả phải là **giá đóng cửa thật** của phiên đích, đọc từ **cùng tầng Gold** mà mọi endpoint khác đọc.\n\nQuy tắc tuyệt đối: không bao giờ suy ra lại từ output của mô hình, không bao giờ xấp xỉ. Nếu Gold không có bar cho phiên đích, dự báo **vẫn chưa được chấm** - một câu trả lời trung thực \"chưa xác minh\" thay vì một điểm số bịa.\n\nHệ quả về mặt kỹ thuật: ngày dự báo phải được trích xuất **giống nhau ở cả hai phía** (`_session_date` / `session_day_of`), vì Gold đóng dấu bar daily vào **lúc mở phiên**, nhưng provider có thể publish bar sau giờ cho cùng ngày giao dịch.\n\n> Chấm điểm bằng chính dự báo là vòng tròn logic: nó luôn cho điểm tốt vì nó so sánh mô hình với chính mô hình.",
+      "code": "backend/app/services/forecast_scoring.py",
+      "tags": "scoring gold truth session date extraction"
+    },
+    {
+      "term": "Vì sao `forecast_scoring.py` không bao giờ train hay dự báo?",
+      "answer": "Vì nó chỉ **SO SÁNH**.\n\nLý do: dự báo đã được publish rồi. Nếu ta thay đổi nó bây giờ thì phá hủy đúng cái bằng chứng mà module này tồn tại để thu thập. Nếu sửa được dự báo sau khi biết kết quả, đó là **hậu nghiệm** (hindsight), và mọi con số đo được từ đó là vô nghĩa.\n\nModule này chỉ đọc:\n\n- Dòng đã publish trong bảng `predictions`.\n- Giá thật từ tầng Gold.\n\nVà ghi lại điểm số **vĩnh viễn**.\n\n> Nguyên tắc chung: **sửa dữ liệu đo lường là cách nhanh nhất để làm mất khả năng đo lường**.",
+      "code": "backend/app/services/forecast_scoring.py",
+      "tags": "scoring compare only no train hindsight integrity"
+    },
+    {
+      "term": "Endpoint `next-session` khác gì endpoint `predict` thường?",
+      "answer": "`GET /api/v1/forecast/next-session/{symbol}` dự báo cho **phiên sẽ mở tiếp theo**.\n\nĐặc điểm quan trọng: nó **dùng model ĐÃ TRAIN** và **không bao giờ train gì**. Một symbol không có model trained trả về lý do cụ thể (\"no model\"), không phải một con số bịa.\n\nCòn `POST /api/v1/forecast/predict` nhận `symbol`, `model_name`, `horizon` và sinh dự báo theo tham số.\n\nNgoài ra có `POST /api/v1/forecast/next-session/{symbol}/store` - bản **thủ công** của việc batch EOD tự động làm mỗi đêm. Dòng được lưu được gắn nhãn `source = 'manual_api'` để phân biệt với dòng mà lượt đêm ghi.\n\n> Phân biệt nhãn nguồn là điều kiện tiên quyết để sau này phân tích được dữ báo chạy bằng máy và dự báo chạy tay khác nhau.",
+      "code": "backend/app/api/v1/endpoints/forecasting.py",
+      "tags": "api next-session predict endpoint no-model reason"
+    },
+    {
+      "term": "Endpoint `published/{symbol}` trả về gì và vì sao không tính lại?",
+      "answer": "Nó trả về các dự báo **hệ thống đã publish**, một dòng cho mỗi model, cho **cùng một phiên**.\n\nNó đọc thẳng bảng `predictions` - **cùng những dòng** mà Dashboard đọc và **cùng những dòng** mà báo cáo độ chính xác chấm. Không có gì được tính lại ở đây.\n\nKết quả: con số trên trang forecasting là **byte-for-byte** con số mà batch đêm đã ghi, kèm điểm số mà nó sẽ bị đánh giá sau này.\n\nChi tiết phân biệt quan trọng: các model **đã train** nhưng **không publish** dự báo cho phiên đó được báo cáo **riêng** (`trained_models`). Đó là một mệnh đề khác hẳn với \"model đó không tồn tại\", và hai điều đó không được nhầm lẫn.\n\n> Đọc lại cùng một nguồn thay vì tính lại là nguyên tắc \"một sự thật, một nguồn\".",
+      "code": "backend/app/api/v1/endpoints/forecasting.py",
+      "tags": "api published forecast comparison same source"
+    },
+    {
+      "term": "Mô hình nào được train trên toàn universe và vì sao cần?",
+      "answer": "`universe_training.py` và `light_forecast.py` xử lý huấn luyện **hàng loạt** trên nhiều symbol thay vì một mã tại một thời điểm.\n\nBối cảnh: universe ~1000 mã. Train tuần tự từng mã bằng LSTM (CPU) sẽ mất hàng giờ và tốn RAM. `light_forecast` là biến thể **nhẹ** cho quy mô lớn.\n\nRanh giới thiết kế quan trọng: mô hình **theo mã** (per-symbol) là mặc định và là thứ có ý nghĩa cho một cổ phiếu cụ thể. Mô hình **dùng chung** chỉ được dùng khi không có lựa chọn nào khác - và phải được **ghi nhãn rõ** để không bị nhầm là mô hình chuyên biệt của mã đó.\n\n> Một dự báo được gắn nhãn sai nguồn mô hình là một con số không truy vết được, và đó là cùng loại vấn đề với dữ liệu không truy vết được.",
+      "code": "backend/app/forecasting/universe_training.py",
+      "tags": "universe training light forecast scale batching"
+    },
+    {
+      "term": "`set_global_seed` đảm bảo điều gì cho tính lặp lại?",
+      "answer": "Nó cố định seed ngẫu nhiên toàn cục (`settings.random_seed`) trước mỗi lần train, để **kết quả có thể tái lập**.\n\nĐiều này đặc biệt quan trọng với LSTM: khởi tạo trọng số ngẫu nhiên, dropout, và shuffle DataLoader đều dùng RNG. Cùng seed + cùng split + cùng dữ liệu = **cùng kết quả**.\n\nĐó là điều kiện tiên quyết để so sánh được hai lần chạy khác nhau. Trong thí nghiệm LSTM (relative target), chính xác **cùng mạng, cùng split, cùng seed** đã dùng để đo MAE giảm 34.6 → 3.19. Nếu seed đổi, phép so sánh đó không còn ý nghĩa.\n\n`shuffle=False` trong DataLoader cũng góp phần: với chuỗi thời gian, shuffle sẽ phá vỡ thứ tự.\n\n> Trong nghiên cứu, khả năng tái lập **không phải** là tiện ích - nó là điều kiện để kết luận khoa học có giá trị.",
+      "code": "backend/app/core/seeding.py",
+      "tags": "seed reproducibility random global lstm determinism"
+    },
+    {
+      "term": "Điều kiện tiên quyết nào để một mô hình được coi là \"đủ dữ liệu\"?",
+      "answer": "Trong hệ thống này, các ngưỡng thực tế là:\n\n- **5 năm daily** tối thiểu cho mỗi symbol - được verify trong `docs/data_verification.md`.\n- **> sequence_length + 5** dòng cho LSTM (sequence_length mặc định theo `settings.lstm_sequence_length`).\n- **>= 20** quan sát cho ARIMA.\n- **>= 60 bar train** và **>= 20 bar test** cho một cửa sổ walk-forward (`min_train_bars`, `min_test_bars`).\n\nĐiểm quan trọng về nguyên tắc: đủ dữ liệu là điều kiện **đủ dùng**, không phải điều kiện **có ý nghĩa thống kê**. Tài liệu dự án nói rõ: không phải mọi mã lịch sử đều còn nguồn cập nhật hoặc đủ điều kiện dự báo.\n\n> Số lượng mẫu và chất lượng mẫu là hai câu hỏi khác nhau. Một mã có 5 năm dữ liệu liên tục là mẫu tốt; một mã có 5 năm dữ liệu đầy lỗ hổng thì không.",
+      "code": "backend/app/core/config.py",
+      "tags": "data sufficiency minimum history requirements"
+    }
+  ]
+}

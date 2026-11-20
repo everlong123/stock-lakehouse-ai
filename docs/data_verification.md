@@ -1601,7 +1601,11 @@ Hai check cùng hỏi một câu hỏi giống nhau, nhưng một có công cụ
   verdict `PASSED`.
 * Test mới: `backend/tests/test_forming_snapshot_classification.py` — 12 test,
   gồm cả test bảo vệ việc lỗi ở phiên đã chốt **vẫn phải** báo `failed`.
-* Toàn bộ bộ test backend: **597/597 PASS** (đo ngày 18/11/2026).
+* Toàn bộ bộ test backend: **603/603 PASS** (đo ngày 18/11/2026, chạy trong 75
+  giây). Số test tăng từ 597 lên 603 vì lớp chặn dừng-trước-huấn-luyện bổ sung
+  `backend/tests/test_scale_contaminated_training.py` — 5 test bảo vệ việc mã có
+  lịch sử trải nhiều thang giá bị từ chối huấn luyện (kèm 1 test sinh thêm từ
+  `test_no_missing_imports.py` cho file mới).
 * Quality gate toàn bộ trên 1.002 mã (đo ngày 18/11/2026): verdict `warning`,
   **0 check nào có `failed`**.
 
@@ -1682,13 +1686,13 @@ mô phỏng ingest trễ: bar mới nhất 12/11/2026, phiên đích 18/11/2026,
 
 | Chỉ số (đo ngày 18/11/2026) | Giá trị |
 |---|---|
-| Tổng số dòng trong bảng `predictions` | 46.514 |
+| Tổng số dòng trong bảng `predictions` | 46.531 |
 | Dòng **có** đo độ trễ | 15 |
 | Dòng đo ra `0` (dữ liệu đầy đủ) | 15 |
 | Dòng đo ra `> 0` (dữ liệu trễ) | 0 |
-| Dòng **chưa** đo (`NULL`) | 46.499 |
+| Dòng **chưa** đo (`NULL`) | 46.516 |
 
-> **Vì sao 46.499 dòng vẫn là `NULL` mà không phải 0?** Vì dựng lại độ trễ cho
+> **Vì sao 46.516 dòng vẫn là `NULL` mà không phải 0?** Vì dựng lại độ trễ cho
 > chúng sẽ đòi đọc lại Gold cho hàng chục nghìn dòng và **đoán** xem bar nào là
 > bar mới nhất tại thời điểm dự báo được đưa ra — đó là **tái dựng**, không phải
 > **phép đo**. Giá trị trung thực cho những dòng đó là "chưa ghi nhận". Hệ thống

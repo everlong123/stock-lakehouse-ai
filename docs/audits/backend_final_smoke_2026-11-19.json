@@ -1,0 +1,86 @@
+{
+  "checked_at_utc": "2026-11-19T10:10:07.925178+00:00",
+  "health_status": 200,
+  "health": {
+    "success": true,
+    "data": {
+      "status": "ok",
+      "app": "StockVision AI"
+    },
+    "message": null
+  },
+  "NET": {
+    "status": 200,
+    "symbol": "NET",
+    "currency": "USD",
+    "timestamp": "2026-11-18 14:30:00+00:00"
+  },
+  "FRT": {
+    "status": 200,
+    "symbol": "FRT",
+    "currency": "USD",
+    "timestamp": "2026-11-18 14:30:00+00:00"
+  },
+  "DBC": {
+    "status": 200,
+    "symbol": "DBC",
+    "currency": "USD",
+    "timestamp": "2026-11-18 14:30:00+00:00"
+  },
+  "HDB": {
+    "status": 200,
+    "symbol": "HDB",
+    "currency": "VND",
+    "timestamp": "2026-11-19 02:00:00+00:00"
+  },
+  "refresh": {
+    "success": true,
+    "data": {
+      "running": true,
+      "progress": {
+        "symbols_total": 979,
+        "fetched": 195,
+        "silver_rebuilt": 0,
+        "gold_rebuilt": 0
+      },
+      "last_started_at": "2026-11-19T10:09:49.694351+00:00",
+      "last_run_at": null,
+      "last_summary": {}
+    },
+    "message": null
+  },
+  "agent_bk": {
+    "status": 200,
+    "response": {
+      "success": true,
+      "data": {
+        "session_id": "audit-symbols-20261119-production",
+        "assistant_message": "Giá của mã **BK** hiện tại là **$15.01**, tăng khoảng **+0.33%** so với phiên trước.",
+        "tools": [
+          {
+            "tool_name": "get_market_summary",
+            "tool_arguments": {
+              "symbol": "BK"
+            },
+            "tool_result": {
+              "symbol": "BK",
+              "close": 15.01,
+              "change_pct": 0.003342245989304741,
+              "volume": 0.0,
+              "rsi": null
+            },
+            "error": null
+          }
+        ],
+        "suggested_questions": [
+          "Tính RSI và MACD cho BK",
+          "Phân tích kỹ thuật BK",
+          "So sánh model BK"
+        ],
+        "tool_count": 1
+      },
+      "message": null
+    },
+    "passed": true
+  }
+}

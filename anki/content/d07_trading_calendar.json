@@ -1,0 +1,119 @@
+{
+  "deck": "07-trading-calendar",
+  "notes": [
+    {
+      "term": "Vì sao cần một lịch giao dịch (trading calendar) cho mỗi symbol?",
+      "answer": "Vì một dự báo phải **nêu tên phiên** mà nó nhắm tới. Nói sai ngày **không ném lỗi** - nó tạo ra một dòng không bao giờ có thể được kiểm chứng.\n\nSự cố ngày 13/11/2026: batch đêm publish **151 dự báo** có phiên đích là **thứ Bảy 2026-11-14**. Không sàn nào giao dịch vào thứ Bảy, nên Gold sẽ **không bao giờ** có bar cho ngày đó. 151 dòng đó sẽ nằm trong sổ dự báo **mãi mãi, không được chấm**, và mọi con số độ chính xác tính trên sổ sẽ được tính trên một tập âm thầm chứa những dòng không bao giờ giải quyết được.\n\n> Một dòng không bao giờ được chấm là một dòng **làm hỏng mọi phép đo** chạy trên nó. Và nó không hề báo lỗi.",
+      "code": "backend/app/forecasting/sessions.py",
+      "tags": "trading calendar session target date unscoreable"
+    },
+    {
+      "term": "Vì sao lịch giao dịch được SUY RA từ lịch sử thay vì dùng bảng ngày lễ?",
+      "answer": "Vì bảng ngày lễ sẽ **sai** cho mọi thị trường trong universe không phải Mỹ. Project chứa cổ phiếu Mỹ, Việt Nam, Hồng Kông, Hàn Quốc, Nhật Bản, Australia và châu Âu - và bảng đó phải được bảo trì tay **mỗi năm**.\n\nNên lịch được đọc từ **chính lịch sử của symbol**:\n\n- Các **thứ trong tuần** mà symbol giao dịch = các thứ trong tuần có bar trong lịch sử.\n- Các **ngày lễ** = các vắng mặt lặp đi lặp lại trong lịch sử. Một ngày vắng mặt ở **nhiều năm khác nhau** là ngày lễ, không phải thiếu dữ liệu.\n- Một quy tắc **lặp lại** (\"thứ Ba thứ ba của tháng Một\") được nhận diện là quy tắc, nên ngày lễ **di động** không bị nhầm là trùng hợp.\n- Ngày lễ rơi vào **cuối tuần** thì sàn đóng cửa vào **ngày khác**, và ngày nào là một sự thật về sàn - nên nó cũng được học.\n\nMọi sự thật đó đến từ lakehouse. Không có gì được bịa, và cùng một quy trình chạy cho cổ phiếu Việt y như cho cổ phiếu Mỹ.\n\n> Bảng ngày lễ là *kiến thức cứng*. Lịch suy ra từ lịch sử là *kiến thức mềm* - và kiến thức mềm thì tự mở rộng được.",
+      "code": "backend/app/forecasting/sessions.py",
+      "tags": "trading calendar derived history holidays global markets"
+    },
+    {
+      "term": "Bất đối xứng của thuật toán bỏ qua phiên là gì và vì sao?",
+      "answer": "Đây là bất đối xứng điều khiển **mọi ngưỡng** trong module:\n\n- **Bỏ qua một ngày mà sàn CÓ giao dịch** -> dự báo nhắm sai phiên, rồi được chấm với sai giá đóng cửa. Đó là một con số **SAI** trong sổ dự báo - **tệ hơn nhiều** so với một dòng không được chấm.\n- **Bỏ qua một ngày mà sàn KHÔNG giao dịch** -> một dòng không được chấm: một lần trượt, **nhìn thấy được và vô hại**.\n\nNên thuật toán **cố ý bất đối xứng**: nó chỉ bỏ qua một ngày khi lịch sử nói điều đó **lặp đi lặp lại và nhất quán**, và **không bao giờ** bỏ qua một ngày chỉ vì một lần xuất hiện.\n\nMột ngày lễ bị bỏ sót tốn **một** dòng không chấm. Một phiên bị bỏ qua sai tốn một **điểm sai**.\n\n> Nguyên tắc chung: khi lựa chọn giữa \"bỏ sót\" và \"làm sai\", hãy chọn bỏ sót - **trừ khi** cái sai cũng vô hại.",
+      "code": "backend/app/forecasting/sessions.py",
+      "tags": "asymmetry skip session false alarm vs missed defect"
+    },
+    {
+      "term": "Giới hạn trung thực của cách suy ra lịch là gì?",
+      "answer": "Một ngày lễ **đổi ngày mỗi năm** - ngày lễ theo **lịch âm**, mà một số sàn châu Á có - **không thể** bắt được bởi bất kỳ quy tắc nào, vì quy tắc đó không có hằng số nào.\n\nNhững dự báo đó nhắm tới một ngày thị trường đóng cửa, và chúng **vẫn không được chấm**. Đó là sai số còn lại, và nó được **chấp nhận có chủ đích** vì nó nhỏ hơn nhiều so với thiệt hại của một lần bỏ qua sai.\n\nCùng nguyên tắc bất đối xứng này cũng xuất hiện ở `app/core/quality_gate.py`: báo động giả thì rẻ và nhìn thấy được, bỏ sót lỗi thì đắt và im lặng.\n\n> Một hệ thống nghiêm túc nói rõ điều nó **không** làm được. Giấu giới hạn còn tệ hơn là có giới hạn.",
+      "code": "backend/app/forecasting/sessions.py",
+      "tags": "trading calendar limitation lunar holiday accepted residual"
+    },
+    {
+      "term": "Các ngưỡng nhận diện ngày lễ trong lịch là gì?",
+      "answer": "Bốn ngưỡng, mỗi ngưỡng giải quyết một dạng lỗi khác nhau:\n\n- **`MIN_SESSIONS_PER_FULL_YEAR = 150`** - một năm chỉ được dùng để **nhận diện mẫu** khi nó đủ phiên để là một năm giao dịch thật. Năm đầu tiên của lịch sử thường là **năm một phần** (ingest bắt đầu giữa chừng), và một năm một phần sẽ làm mọi ngày trước khi ingest trông như một vắng mặt.\n- **`MIN_YEARS_FOR_HOLIDAY = 3`** - một ngày lễ phải xuất hiện ở **ít nhất 3 năm** khác nhau. Một lần xuất hiện có thể chỉ là thiếu dữ liệu.\n- **`MIN_SHARE_FOR_HOLIDAY = 0.8`** - ngày lễ phải phủ **ít nhất 80%** các năm áp dụng. Ngưỡng này **cố ý cao**: một ngày lễ có ngày trôi (lịch âm, hoặc \"ngày sau ngày lễ\" chỉ có ở một số năm) rơi vào cùng (tháng, ngày) chỉ ở một số năm, nên ngưỡng lỏng sẽ chấp nhận nó rồi bỏ qua những phiên **thật** ở các năm nó không áp dụng.\n- **`RECENT_YEARS_WINDOW = 6`** - ngày lễ được đánh giá trên **6 năm gần đây** nhất.\n\n> Ngưỡng cao ở đây là hệ quả trực tiếp của bất đối xứng: ưu tiên giữ phiên thật hơn là bỏ phiên giả.",
+      "code": "backend/app/forecasting/sessions.py",
+      "tags": "trading calendar holiday thresholds min years share"
+    },
+    {
+      "term": "Vì sao ngày lễ được đánh giá trên 6 năm gần nhất chứ không phải toàn bộ lịch sử?",
+      "answer": "Vì cửa sổ đó làm cho một ngày lễ **được giới thiệu muộn** hoạt động đúng.\n\nVí dụ thật: ngày lễ Nhật Bản \"Respect for the Aged Day\" chuyển sang **thứ Hai thứ ba của tháng Chín** vào năm 2019. Xét trên **toàn bộ** lịch sử, nó chỉ phủ **78%** các năm - nên một quy tắc được đánh giá trên toàn lịch sử sẽ bị **từ chối**, để lại lịch **mù** với một ngày lễ mà sàn đóng cửa **mọi năm**.\n\nNgoài ra các năm gần đây cũng là các năm **quan trọng nhất**: một dự báo nhắm tới một phiên trong tương lai gần, nên **quy ước hiện hành** phải đúng, không phải quy ước của 5 năm trước.\n\nVà một ngày lễ bị **bãi bỏ** cũng bị cùng cửa sổ này bắt: nó ngừng đóng cửa ở các năm gần đây, nên tỷ lệ phủ của nó **sụp đổ**.\n\n> Cửa sổ đánh giá không phải là lựa chọn kỹ thuật - nó là một quyết định về cái nào là điều kiện áp dụng.",
+      "code": "backend/app/forecasting/sessions.py:RECENT_YEARS_WINDOW",
+      "tags": "trading calendar recent years window introduced holiday"
+    },
+    {
+      "term": "Vì sao phiên đích đầu tiên phải vừa nằm sau phiên cuối đã biết vừa không nằm trong quá khứ?",
+      "answer": "Vì một symbol **stale** - mã có bar mới nhất cách đây vài phiên - sẽ bị gán một phiên đích **đã qua**.\n\nDòng đó không bao giờ có thể được chấm, và nó sẽ **trông như** một dự báo cho một phiên trong quá khứ - một loại dự báo vô nghĩa mà không ai hỏi.\n\nNên điều kiện là: phiên đích đầu tiên = phiên đầu tiên thỏa **cả hai**:\n\n1. Sau phiên cuối cùng đã biết.\n2. Không nằm trong quá khứ.\n\nChi tiết liên quan: `latest_settled_timestamp()` trong Bronze bỏ qua **bar đang hình thành** (bar có timestamp từ nửa đêm UTC hôm nay trở đi). Đối với crypto 24/7, bar daily của hôm nay được đóng dấu lúc 00:00Z và vẫn đang được hình thành - nó luôn mới hơn 24 giờ. Nếu tính nó là thanh watermark, BTC-USD và ETH-USD bị bỏ qua ở **mọi** lượt refresh, và bar trước nó (ngày đã chốt thật) không bao giờ được lấy lại.\n\nĐo được: bar ngày 2026-11-04 của BTC đóng băng ở 77.912 trong khi provider đã chốt ở 80.405.\n\n> Với dữ liệu tài chính, \"bar mới nhất\" và \"bar đã chốt\" là hai thứ khác nhau. Dùng nhầm là nguồn gốc của dữ liệu đúng nhưng sai thời điểm.",
+      "code": "backend/app/lakehouse/bronze.py:latest_settled_timestamp",
+      "tags": "settled timestamp forming bar crypto watermark stale symbol"
+    },
+    {
+      "term": "Bar \"đang hình thành\" (forming bar) là gì và vì sao cần phát hiện riêng?",
+      "answer": "Bar daily được đóng dấu vào **lúc mở phiên**, không phải lúc đóng phiên. Nên trong khi phiên đang chạy, bar hôm nay **chưa có giá đóng cửa thật** - giá đóng cửa của nó chỉ là giá tại thời điểm fetch.\n\nVí dụ: bar daily của ngày 2026-11-04 được lưu với close là giá lúc 14:00, trong khi phiên còn chạy tới 21:00.\n\nVì sao cần phát hiện **riêng**: một snapshot đóng băng giữa phiên **trông giống** một sự bất đồng giữa các provider, nhưng đó là một **lỗi khác**. Gộp chúng vào cùng một nhóm chẩn đoán sẽ khiến người xử lý đi tìm sai nguyên nhân.\n\nĐây là lý do `quality_gate.py` có kiểm tra thứ sáu riêng biệt: `forming_snapshots`, dùng `find_forming_snapshots()` và `forming_snapshot_reason()` từ `app/lakehouse/forming_bar.py`.\n\n> Chẩn đoán sai hướng tốn thời gian của người sửa. Tách lỗi theo **nguyên nhân**, không theo **triệu chứng**.",
+      "code": "backend/app/lakehouse/forming_bar.py",
+      "tags": "forming bar snapshot session open separate defect"
+    },
+    {
+      "term": "`session_day_of` giải quyết vấn đề gì?",
+      "answer": "Nó trích xuất **ngày giao dịch** mà một timestamp thuộc về, và đó không phải lúc nào cũng là ngày của timestamp đó.\n\nVấn đề: Gold đóng dấu bar daily vào **lúc mở phiên** (theo múi giờ của sàn), nhưng provider có thể publish một bar **sau giờ** cho cùng ngày giao dịch đó. Với múi giờ UTC+7 của VN, bar đóng 15:00 giờ VN là 08:00 UTC - nhưng timestamp UTC có thể rơi vào ngày khác.\n\nHệ quả nếu không chuẩn hoá: dự báo nhắm tới phiên ngày 13/11 được **chấm** với giá của phiên ngày 14/11 - hoặc ngược lại, dự báo không bao giờ khớp phiên nào.\n\nNguyên tắc: dự báo nhắm tới một **ngày** giao dịch, nên ngày phải được trích xuất **giống nhau ở cả hai phía** (`_session_date` bên dự báo, `session_day_of` bên scoring). Nếu hai bên dùng hai quy tắc khác nhau, mọi điểm số đều sai theo cách không nhìn thấy được.\n\n> Khi hai phía của một phép so sánh phải dùng cùng quy tắc, hãy làm cho quy tắc đó nằm ở **một** chỗ.",
+      "code": "backend/app/lakehouse/exchange_timezone.py:session_day_of",
+      "tags": "session day timezone extraction matching both sides"
+    },
+    {
+      "term": "Timezone của sàn giao dịch được xử lý thế nào?",
+      "answer": "Mỗi sàn có múi giờ riêng, và `exchange_timezone()` ánh xạ symbol tới múi giờ của sàn nó thuộc về.\n\nCác sàn trong universe:\n\n- **HOSE/HNX/UPCoM** (Việt Nam) - UTC+7\n- **US** (NYSE, Nasdaq) - UTC-5/UTC-4 theo mùa giờ tiết kiệm ánh sáng\n- **Hồng Kông** - UTC+8\n- **Hàn Quốc** - UTC+9\n- **Nhật Bản** - UTC+9\n- **Australia** - UTC+10/UTC+11\n- **Châu Âu** - theo múi giờ của từng quốc gia\n\nHệ quả thực tế: cùng một timestamp UTC có thể thuộc về **hai ngày giao dịch khác nhau** ở hai sàn. Một quy trình so sánh dữ liệu giữa VN và Mỹ phải quy về **ngày giao dịch theo sàn**, không phải theo UTC.\n\n`session_days()` sinh danh sách các ngày giao dịch trong một khoảng, dùng để dựng frame so sánh.\n\n> Múi giờ là một trong những nguồn lỗi \"số đúng, ngày sai\" âm thầm phổ biến nhất trong hệ thống tài chính đa thị trường.",
+      "code": "backend/app/lakehouse/exchange_timezone.py",
+      "tags": "exchange timezone utc session day multi market asia"
+    },
+    {
+      "term": "Hàm `canonicalize_daily_sessions()` trả về những báo cáo nào?",
+      "answer": "Hàm trả về `(frame, report)` trong đó `report` gồm:\n\n- `rows_in` - số dòng đầu vào.\n- `rows_out` - số dòng sau khi gộp.\n- `duplicate_session_rows_dropped` - số dòng bị loại vì trùng phiên.\n- `intraday_days_aggregated` - số **ngày** có dữ liệu intraday được gộp thành 1 bar.\n- `intraday_rows_aggregated` - số **dòng** intraday đã được gộp.\n\nPhân biệt giữa hai bộ đếm ngày và dòng là quan trọng: `intraday_days_aggregated = 3` với `intraday_rows_aggregated = 47` nghĩa là 3 ngày có tổng cộng 47 dòng intraday được gộp lại.\n\nLog mẫu:\n\n```\nSilver canonicalised 1210 -> 1180 daily bars (25 re-stamped rows dropped, 5 intraday days aggregated)\n```\n\nCác bộ đếm này cũng được đưa vào quality report của Silver dưới dạng trường riêng, nên có thể truy vết từ UI mà không cần đọc log.\n\n> Một hàm biến đổi dữ liệu nên **trả về** số liệu về việc nó đã làm gì, chứ không chỉ trả về kết quả.",
+      "code": "backend/app/lakehouse/session.py:canonicalize_daily_sessions",
+      "tags": "canonicalize session report counters aggregation"
+    },
+    {
+      "term": "Vì sao dự báo không bao giờ dùng `pd.infer_freq` để suy ra bước thời gian?",
+      "answer": "Vì `infer_freq` trả về `None` cho **mọi** chuỗi giá thật, và fallback là **một ngày lịch**.\n\nChuỗi giá luôn có khoảng cách **không đều** vì cuối tuần và ngày lễ. `pd.infer_freq` không đoán được chuỗi đều -> `None`. Fallback là khoảng cách trung vị = 1 ngày lịch.\n\nSau thứ Sáu là **thứ Bảy**. Đó chính xác là bug tạo ra 151 dự báo nhắm thứ Bảy ngày 2026-11-14.\n\nCách đúng: **suy ra lịch giao dịch từ lịch sử của chính symbol**, thay vì giả định một nhịp cố định.\n\n> `infer_freq` là một phép đoán hợp lý cho chuỗi tổng hợp đều. Với giá cổ phiếu, giả định sai ở đây là lỗi thiết kế, không phải lỗi cấu hình.",
+      "code": "backend/app/forecasting/sessions.py",
+      "tags": "infer_freq none weekend saturday bug calendar step"
+    },
+    {
+      "term": "`slice_window()` làm gì và vì sao nó tồn tại riêng?",
+      "answer": "Nó **cắt** một frame theo khoảng `since`/`until` sau khi đã đọc.\n\nNó tồn tại vì luồng đọc theo cửa sổ hoạt động như sau:\n\n1. Xác định **các partition có thể chứa** khoảng ngày (theo `year`/`month` trong tên key).\n2. Đọc chỉ những partition đó.\n3. Cắt chính xác theo timestamp.\n\nBước 3 là cần thiết vì phân vùng theo **tháng** rộng hơn khoảng ngày yêu cầu. Một khoảng \"từ 15/11\" có thể lấy cả partition tháng 11, rồi phải cắt bỏ các dòng trước 15/11.\n\nNó được dùng ở cả ba tầng: `BronzeLayer.read_window`, `SilverLayer.read_window`, `GoldLayer.read_window`.\n\n> Phân vùng theo tháng là tối ưu lưu trữ; cắt theo ngày là ngữ nghĩa truy vấn. Hai tầng này phải cùng tồn tại.",
+      "code": "backend/app/lakehouse/session.py:slice_window",
+      "tags": "slice window partition month semantics query"
+    },
+    {
+      "term": "`exchange_timezone` và `session_day_of` phục vụ những kiểm tra chất lượng nào?",
+      "answer": "Chúng là nền cho hai kiểm tra của Quality Gate:\n\n**1. `freshness`** - đánh giá mã có stale không. Stale được định nghĩa bằng **số phiên giao dịch** kể từ bar mới nhất, không phải số ngày lịch. Vì một mã có thể nghỉ 3 ngày cuối tuần + 1 ngày lễ mà vẫn là **hoàn toàn bình thường**.\n\n**2. `layer_agreement`** - so sánh giá giữa Bronze, Silver, Gold cho **cùng một phiên**. Muốn so sánh được, cả ba tầng phải được ánh xạ về **cùng một ngày giao dịch** - đây chính là lý do `canonicalize_daily_sessions` và `session_day_of` phải dùng chung một quy tắc.\n\nNgoài ra `session_date` được dùng trong `forecast_scoring.py` để chấm điểm đúng phiên.\n\n> Quy tắc múi giờ phải **dùng chung** giữa kiểm tra chất lượng và chấm điểm. Nếu chúng lệch nhau, điểm số sẽ sai một cách không nhìn thấy.",
+      "code": "backend/app/core/quality_gate.py",
+      "tags": "quality freshness session count layer agreement timezone"
+    },
+    {
+      "term": "Vì sao dự báo cho phiên **cuối cùng** cũng cần lịch giao dịch?",
+      "answer": "Vì có hai loại phiên cần phân biệt: phiên **đã xảy ra** (có thể chấm điểm) và phiên **chưa xảy ra** (chỉ có thể dự báo).\n\nHệ quả thực tế: một dự báo nhắm tới phiên đã xảy ra rồi là **không còn ý nghĩa** - nó là một dự báo hậu nghiệm. Hệ thống phải biết phiên đích là tương lai hay quá khứ.\n\nĐiều kiện \"phiên đích phải nằm trong tương lai\" được áp dụng ở bước chọn phiên đích đầu tiên, và đó là lý do một symbol stale không bị gán một phiên đã qua.\n\nNgoài ra, trong `forecast_scoring.py`, việc xác định \"phiên nào vừa xảy ra\" cũng dùng cùng quy tắc ngày giao dịch, để dự báo được chấm đúng phiên.\n\n> Hệ thống phải biết **hôm nay là phiên nào** - nếu không, nó không biết mình đang dự báo hay đang giải thích quá khứ.",
+      "code": "backend/app/forecasting/sessions.py",
+      "tags": "target session future past hindsight session identity"
+    },
+    {
+      "term": "Lịch giao dịch được dùng ở những nơi nào trong hệ thống?",
+      "answer": "Bốn nơi, và mỗi nơi dùng cho một mục đích khác nhau:\n\n**1. `forecasting/sessions.py`** - sinh danh sách phiên tương lai để đặt **phiên đích** cho dự báo.\n\n**2. `services/next_session_forecast.py`** - tạo dự báo cho phiên **mở tiếp theo**, cần biết chính xác phiên đó là ngày nào.\n\n**3. `services/forecast_scoring.py`** - ánh xạ giá thật trong Gold về **ngày giao dịch** để chấm đúng phiên.\n\n**4. `core/quality_gate.py`** - đánh giá `freshness` (mã stale?) và `layer_agreement` (3 tầng có cùng phiên không?).\n\nĐiểm kiến trúc đáng chú ý: cùng một module `sessions.py` phục vụ cả **dự báo** (tương lai) lẫn **chấm điểm** (quá khứ). Nếu hai bên dùng khác quy tắc, mọi điểm số đều lệch.\n\n> Một nguồn sự thật cho lịch giao dịch là điều kiện để dự báo và chấm điểm nói chuyện được với nhau.",
+      "code": "backend/app/forecasting/sessions.py",
+      "tags": "sessions module consumers forecast scoring quality gate"
+    },
+    {
+      "term": "Vì sao `latest_settled_timestamp()` phải xét **2 partition** gần nhất?",
+      "answer": "Vì partition mới nhất có thể **rỗng** hoặc thiếu.\n\nCách làm: liệt kê key partition, sort ngược (lexicographic = thời gian), rồi duyệt tối đa **2** key mới nhất. Nếu partition đầu tiên rỗng hoặc không có timestamp hợp lệ, thử partition trước đó.\n\nLý do đặc biệt với bar đang hình thành: nếu **mọi** bar trong partition mới nhất đều là bar hình thành của hôm nay, thì partition đó không có bar đã chốt nào, và ta phải nhìn sang partition trước để tìm ngày đã chốt thật gần nhất.\n\nĐây là cùng mẫu với `newest_session_close()` và `latest_timestamp()` - cả ba đều thử **2** partition gần nhất rồi fallback.\n\n> Partition rỗng là bình thường, không phải lỗi. Một hệ thống lịch sử dài hạn luôn có tháng không có giao dịch.",
+      "code": "backend/app/lakehouse/bronze.py:latest_settled_timestamp",
+      "tags": "settled timestamp partition fallback empty two newest"
+    },
+    {
+      "term": "Vì sao một mã crypto bị \"đóng băng\" dữ liệu khi watermark dùng bar đang hình thành?",
+      "answer": "Vì đây là một chuỗi lỗi đã được đo đầy đủ.\n\nChuỗi:\n\n1. Bar daily của crypto được đóng dấu lúc **00:00Z** của ngày nó phủ, nên bar lưu cho **HÔM NAY** vẫn đang hình thành. Close của nó là giá tại thời điểm fetch.\n2. Bar đó là bar **mới nhất**, và nó luôn **mới hơn 24 giờ**.\n3. Auto-refresh dùng timestamp này làm watermark và bỏ qua mọi symbol có bar mới hơn `AUTO_REFRESH_SKIP_IF_FRESH_HOURS`.\n4. Vì bar hình thành luôn có timestamp mới, **BTC-USD và ETH-USD bị bỏ qua ở MỌI lượt**.\n5. Và vì bar hình thành giữ timestamp mới, bar **trước nó** (ngày đã chốt thật) cũng không bao giờ được lấy lại.\n\nKết quả đo được: bar ngày 2026-11-04 của BTC đóng băng ở **77.912** trong khi provider đã chốt **80.405**.\n\nFix: coi bar có timestamp **từ nửa đêm UTC hôm nay trở đi** là đang hình thành, và watermark vào bar **trước** nó. Bar hình thành vẫn được ghi mỗi lượt - nó chỉ không được phép làm mã **trông** là cập nhật.\n\n> Đây là mẫu cốt lõi của hệ thống: một quy tắc hợp lý ở một bối cảnh (cổ phiếu: bar đóng dấu lúc mở phiên nên bar mới nhất luôn là phiên hôm qua, đã chốt) trở thành **sai** ở bối cảnh khác (crypto 24/7).",
+      "code": "backend/app/lakehouse/bronze.py:latest_settled_timestamp",
+      "tags": "crypto forming bar frozen watermark refresh skip"
+    },
+    {
+      "term": "Câu hỏi tự kiểm quan trọng về lịch giao dịch là gì?",
+      "answer": "Đây là câu hỏi mà mọi thay đổi về lịch giao dịch phải trả lời:\n\n**\"Nếu sàn giao dịch đóng cửa thêm một ngày, hệ thống có biết không - và nó sẽ hành xử ra sao?\"**\n\nCác kịch bản phải trả lời được:\n\n- Sàn công bố thêm một ngày lễ lâm thời -> lịch suy ra từ lịch sử **chưa biết** ngày đó, nên dự báo có thể nhắm vào một ngày đóng cửa. Hệ quả: một dòng không được chấm. Chấp nhận được.\n- Một mã ngừng giao dịch -> không có phiên tương lai nào được sinh ra, và dự báo không được tạo. Đây là hành vi **đúng**.\n- Một mã bị xoá khỏi universe nhưng vẫn có lịch sử -> lịch vẫn suy ra được từ lịch sử cũ, nhưng dự báo không nên được tạo cho nó nếu nó không còn trong universe.\n\n> Lịch giao dịch suy ra từ lịch sử có một điểm mạnh lớn: nó **tự sửa** khi lịch sử thay đổi. Nhưng nó cũng có điểm yếu: nó chỉ biết quá khứ. Mọi thay đổi phải được đánh giá qua câu hỏi này.",
+      "code": "backend/app/forecasting/sessions.py",
+      "tags": "trading calendar self check scenarios robustness"
+    }
+  ]
+}

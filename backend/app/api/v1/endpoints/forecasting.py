@@ -281,6 +281,7 @@ def forecast_accuracy(
                 "series": series,
                 "summary": summary,
                 "published_summary": _summarise(published_rows),
+                "publication_timing": repository.publication_timing_counts(symbol=symbol, model_name=model_name),
                 "per_model": per_model,
             }
         )
@@ -366,7 +367,8 @@ def _summarise(rows: list) -> dict:
         if row.reference_close is not None and float(row.reference_close) > 0
     )
     wape = None
-    if total_reference:
+    same_symbol = len({row.symbol for row in clean}) == 1
+    if total_reference and same_symbol:
         wape = 100.0 * total_abs_error / total_reference
 
     # How fresh the input data was when these forecasts were published.
@@ -390,7 +392,7 @@ def _summarise(rows: list) -> dict:
 
     return {
         "verified": len(clean),
-        "mae": sum(errors) / len(errors) if errors else None,
+        "mae": sum(errors) / len(errors) if errors and same_symbol else None,
         "mean_error_pct": sum(relative) / len(relative) if relative else None,
         "median_error_pct": median_pct,
         "wape": wape,

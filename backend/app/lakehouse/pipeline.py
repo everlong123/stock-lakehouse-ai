@@ -160,7 +160,7 @@ class LakehousePipeline:
         
         # Initialize run
         self.current_run = PipelineRun(
-            run_id=str(uuid.uuid4())[:8],
+            run_id=uuid.uuid4().hex,
             storage_backend=self.storage.backend_name,
         )
         
@@ -186,10 +186,20 @@ class LakehousePipeline:
             # Calculate quality score
             self._calculate_quality_score()
             
-            self.current_run.status = "success"
+            required_counts = [self.current_run.bronze_records]
+            if not self.config.skip_silver:
+                required_counts.append(self.current_run.silver_records)
+            if not self.config.skip_gold:
+                required_counts.append(self.current_run.gold_records)
+            self.current_run.status = (
+                "failed" if self.current_run.errors or any(count == 0 for count in required_counts)
+                else "success"
+            )
+            if self.current_run.status == "failed" and not self.current_run.errors:
+                self.current_run.errors.append("Pipeline produced no records in a required layer")
             self.current_run.completed_at = datetime.now(timezone.utc)
             
-            logger.info(f"Pipeline {self.current_run.run_id} completed successfully")
+            logger.info(f"Pipeline {self.current_run.run_id} completed with status {self.current_run.status}")
             logger.info(f"  Bronze: {self.current_run.bronze_records} records")
             logger.info(f"  Silver: {self.current_run.silver_records} records")
             logger.info(f"  Gold: {self.current_run.gold_records} records")
@@ -227,7 +237,7 @@ class LakehousePipeline:
                 )
                 
                 if frame.empty:
-                    self.current_run.warnings.append(f"No data for {symbol}")
+                    self.current_run.errors.append(f"No source data for {symbol}")
                     continue
                 
                 # Write to Bronze
@@ -269,7 +279,7 @@ class LakehousePipeline:
                 silver_frame, quality_report = self.silver.transform(bronze_frame)
                 
                 if silver_frame.empty:
-                    self.current_run.warnings.append(f"Silver empty for {symbol}")
+                    self.current_run.errors.append(f"Silver produced no data for {symbol}")
                     continue
                 
                 # Write to Silver
@@ -304,7 +314,7 @@ class LakehousePipeline:
                 gold_frame = self.gold.transform(silver_frame)
                 
                 if gold_frame.empty:
-                    self.current_run.warnings.append(f"Gold empty for {symbol}")
+                    self.current_run.errors.append(f"Gold produced no data for {symbol}")
                     continue
                 
                 # Write to Gold
@@ -322,36 +332,23 @@ class LakehousePipeline:
     
     def _calculate_quality_score(self) -> None:
         """Calculate overall quality score for the pipeline run."""
-        # If no bronze records but silver/gold have data, we're processing existing data
+        # A run without newly ingested records has not verified the provider.
         if self.current_run.bronze_records == 0:
-            if self.current_run.silver_records > 0:
-                # Using existing data
-                self.current_run.quality_score = 95.0  # Good score for existing processed data
-            else:
-                self.current_run.quality_score = 0.0
+            self.current_run.quality_score = 0.0
             return
         
         # Quality factors for fresh ingest
         error_penalty = len(self.current_run.errors) * 10
-        duplicate_rate = (
-            self.current_run.duplicates_removed / 
-            max(1, self.current_run.bronze_records) 
-        )
+        # Re-ingesting an existing date range is expected and idempotent.
+        # Storage duplicates are not invalid market data.
         invalid_rate = (
             self.current_run.invalid_records / 
-            max(1, self.current_run.silver_records) 
+            max(1, self.current_run.silver_records + self.current_run.invalid_records)
         )
         
         base_score = 100.0
         base_score -= error_penalty
-        base_score -= duplicate_rate * 20
         base_score -= invalid_rate * 30
-        
-        # Retention score
-        if self.current_run.bronze_records > 0:
-            retention = self.current_run.gold_records / self.current_run.bronze_records
-            if retention < 0.5:
-                base_score -= 20
         
         self.current_run.quality_score = max(0.0, min(100.0, base_score))
     
@@ -364,15 +361,18 @@ class LakehousePipeline:
         return {
             "symbol": symbol,
             "bronze": {
-                "records": bronze_count,
+                "records": len(self.bronze.read(symbol)) if bronze_count else 0,
+                "objects": bronze_count,
                 "exists": bronze_count > 0,
             },
             "silver": {
-                "records": silver_count,
+                "records": len(self.silver.read(symbol)) if silver_count else 0,
+                "objects": silver_count,
                 "exists": silver_count > 0,
             },
             "gold": {
-                "records": gold_count,
+                "records": len(self.gold.read(symbol)) if gold_count else 0,
+                "objects": gold_count,
                 "exists": gold_count > 0,
             },
             "storage_backend": self.storage.backend_name,

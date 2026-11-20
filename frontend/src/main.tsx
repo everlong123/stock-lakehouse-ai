@@ -6,6 +6,7 @@ import { Toaster } from "sonner";
 import App from "@/App";
 import { ErrorBoundary } from "@/components/common/ErrorBoundary";
 import { MarketProvider } from "@/hooks/useMarket";
+import { ThemeProvider } from "@/hooks/useTheme";
 import { I18nProvider } from "@/lib/i18n";
 import "@/index.css";
 
@@ -21,20 +22,25 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
       <QueryClientProvider client={queryClient}>
         <BrowserRouter>
           <I18nProvider>
-            <MarketProvider>
-              <App />
-              <Toaster
-                position="top-right"
-                toastOptions={{
-                  style: {
-                    background: "hsl(var(--surface))",
-                    border: "1px solid hsl(var(--hairline))",
-                    color: "hsl(var(--foreground))",
-                    fontFamily: '"Inter", system-ui, sans-serif',
-                  },
-                }}
-              />
-            </MarketProvider>
+            <ThemeProvider>
+              <MarketProvider>
+                <App />
+                <Toaster
+                  position="top-right"
+                  toastOptions={{
+                    style: {
+                      background: "hsl(var(--surface))",
+                      border: "1px solid hsl(var(--hairline))",
+                      color: "hsl(var(--ink))",
+                      fontFamily: '"DM Sans", system-ui, sans-serif',
+                      fontSize: "14px",
+                      borderRadius: "8px",
+                      boxShadow: "var(--shadow-lg)",
+                    },
+                  }}
+                />
+              </MarketProvider>
+            </ThemeProvider>
           </I18nProvider>
         </BrowserRouter>
       </QueryClientProvider>

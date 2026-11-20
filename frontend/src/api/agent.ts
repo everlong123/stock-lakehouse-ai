@@ -56,9 +56,13 @@ export async function fetchSystemStatus() {
 }
 
 export async function runPipeline(symbol: string, interval: string) {
-  const { data } = await api.post<ApiEnvelope<Record<string, unknown>>>("/pipeline/run", {
-    symbols: [symbol],
-    interval,
-  });
-  return data.data;
+  const { data } = await api.post<{ status: string; errors: string[] }>(
+    "/pipeline/run",
+    { symbols: [symbol], interval, lookback_days: 120 },
+    { timeout: 240000 },
+  );
+  if (data.status !== "success") {
+    throw new Error(data.errors?.[0] || `Pipeline ${data.status}`);
+  }
+  return data;
 }

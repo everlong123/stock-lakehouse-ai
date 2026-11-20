@@ -1,0 +1,246 @@
+{
+  "success": true,
+  "data": {
+    "verdict": "warning",
+    "checked_at": "2026-11-18T11:35:09.925425+00:00",
+    "elapsed_seconds": 102.17,
+    "checks": {
+      "plausibility": {
+        "status": "warning",
+        "checked": 1,
+        "failed": 0,
+        "warned": 1,
+        "reason": "",
+        "offenders": [],
+        "details": {
+          "rejected_rows": 35,
+          "reasons": {
+            "price_magnitude": 35
+          },
+          "last_rejection_at": "2026-11-16T13:10:32.502900+00:00"
+        }
+      },
+      "layer_agreement": {
+        "status": "passed",
+        "checked": 1002,
+        "failed": 0,
+        "warned": 0,
+        "reason": "",
+        "offenders": [],
+        "details": {
+          "compared_sessions": 66038,
+          "unreadable_symbols": 0,
+          "window_days": 30
+        }
+      },
+      "integrity": {
+        "status": "passed",
+        "checked": 1002,
+        "failed": 0,
+        "warned": 0,
+        "reason": "",
+        "offenders": [],
+        "details": {
+          "unreadable_symbols": 0
+        }
+      },
+      "freshness": {
+        "status": "warning",
+        "checked": 1002,
+        "failed": 0,
+        "warned": 34,
+        "reason": "",
+        "offenders": [
+          "AKRO",
+          "ALXN",
+          "ATSG",
+          "AVB",
+          "BK",
+          "BLUE",
+          "BTF",
+          "CCRN",
+          "CHK",
+          "CMA",
+          "CPRX",
+          "CTRA",
+          "DAWN",
+          "DENN",
+          "EA",
+          "EQR",
+          "EXPR",
+          "FOLD",
+          "HAB",
+          "HOLX",
+          "IPG",
+          "KLG",
+          "LTHM",
+          "NSC",
+          "PEAK",
+          "PGRE",
+          "PLL",
+          "QRVO",
+          "ROKU",
+          "SOFI",
+          "TCO",
+          "TGNA",
+          "WBA",
+          "WBD"
+        ],
+        "details": {
+          "newest_session_in_lakehouse": "2026-11-18",
+          "stale_after_days": 10,
+          "stale_symbols": 34
+        }
+      },
+      "source_agreement": {
+        "status": "passed",
+        "checked": 1002,
+        "failed": 0,
+        "warned": 0,
+        "reason": "",
+        "offenders": [],
+        "details": {
+          "multi_source_symbols": 22,
+          "compared_sessions": 21,
+          "explained_by_mid_session_snapshot": 2,
+          "tolerance": 0.01
+        }
+      },
+      "forming_snapshots": {
+        "status": "warning",
+        "checked": 1002,
+        "failed": 0,
+        "warned": 782,
+        "reason": "",
+        "offenders": [
+          "1101.TW (2026-10-27:1)",
+          "1301.TW (2026-10-27:1)",
+          "1303.TW (2026-10-27:1)",
+          "1590.TW (2026-10-27:1)",
+          "2317.TW (2026-10-27:1)",
+          "2308.TW (2026-10-27:1)",
+          "2330.TW (2026-10-27:1)",
+          "2454.TW (2026-10-27:1)",
+          "2379.TW (2026-10-27:1)",
+          "2881.TW (2026-10-27:1)",
+          "2883.TW (2026-10-27:1)",
+          "2885.TW (2026-10-27:1)",
+          "2886.TW (2026-10-27:1)",
+          "2891.TW (2026-10-27:1)",
+          "3008.TW (2026-10-27:1)",
+          "3034.TW (2026-10-27:1)",
+          "3037.TW (2026-10-27:1)",
+          "A (2026-10-26:1, 2026-10-27:1)",
+          "AAL (2026-10-21:1, 2026-10-26:1, 2026-10-27:1)",
+          "ABBN.SW (2026-10-27:1)",
+          "ABBV (2026-10-26:1, 2026-10-27:1)",
+          "AAPL (2026-10-23:1, 2026-10-26:1, 2026-10-27:1)",
+          "ABT (2026-10-26:1, 2026-10-27:1)",
+          "ABNB (2026-10-26:1, 2026-10-27:1)",
+          "ACAD (2026-10-26:1, 2026-10-27:1)",
+          "ABX.TO (2026-10-26:1)",
+          "ACHC (2026-10-26:1, 2026-10-27:1)",
+          "ACH (2026-11-16:1)",
+          "ACI (2026-10-26:1, 2026-10-27:1)",
+          "ACLS (2026-10-26:1, 2026-10-27:1)",
+          "AD.AS (2026-10-27:1)",
+          "ADBE (2026-10-26:1, 2026-10-27:1)",
+          "ADP (2026-10-26:1, 2026-10-27:1)",
+          "ADM (2026-10-26:1, 2026-10-27:1)",
+          "ADI (2026-10-26:1, 2026-10-27:1)",
+          "AEE (2026-10-26:1, 2026-10-27:1)",
+          "AEM (2026-10-26:1, 2026-10-27:1)",
+          "AEHR (2026-10-26:1, 2026-10-27:1)",
+          "AEO (2026-10-26:1, 2026-10-27:1)",
+          "AEP (2026-10-26:1, 2026-10-27:1)",
+          "AES (2026-10-26:1, 2026-10-27:1)",
+          "AFL (2026-10-26:1, 2026-10-27:1)",
+          "AGG (2026-10-26:1, 2026-10-27:1)",
+          "AI.PA (2026-10-27:1)",
+          "AJG (2026-10-26:1, 2026-10-27:1)",
+          "AG (2026-10-26:1, 2026-10-27:1)",
+          "AIR.PA (2026-10-27:1)",
+          "ALK (2026-10-26:1, 2026-10-27:1)",
+          "ALL (2026-10-26:1, 2026-10-27:1)",
+          "ALLY (2026-10-26:1, 2026-10-27:1)"
+        ],
+        "details": {
+          "frozen_sessions": 1242,
+          "symbols_with_frozen_sessions": 782
+        }
+      },
+      "provider_agreement": {
+        "status": "warning",
+        "checked": 1170,
+        "failed": 0,
+        "warned": 1,
+        "reason": "1 symbol(s) could not be checked against the provider",
+        "offenders": [],
+        "details": {
+          "provider": "yahoo_http",
+          "exact_sessions": 1167,
+          "tolerant_sessions": 0,
+          "stale_sessions": 3,
+          "provider_errors": 1,
+          "window_sessions": 30
+        }
+      }
+    },
+    "history": [
+      {
+        "checked_at": "2026-11-18T11:35:09.925425+00:00",
+        "verdict": "warning"
+      },
+      {
+        "checked_at": "2026-11-18T11:13:54.322073+00:00",
+        "verdict": "warning"
+      },
+      {
+        "checked_at": "2026-11-18T10:58:19.585212+00:00",
+        "verdict": "warning"
+      },
+      {
+        "checked_at": "2026-11-18T10:43:55.856119+00:00",
+        "verdict": "failed"
+      },
+      {
+        "checked_at": "2026-11-18T10:36:03.387421+00:00",
+        "verdict": "failed"
+      },
+      {
+        "checked_at": "2026-11-18T10:30:11.783525+00:00",
+        "verdict": "failed"
+      },
+      {
+        "checked_at": "2026-11-18T10:08:53.605702+00:00",
+        "verdict": "failed"
+      },
+      {
+        "checked_at": "2026-11-16T13:13:09.032736+00:00",
+        "verdict": "warning"
+      },
+      {
+        "checked_at": "2026-11-16T13:00:21.291997+00:00",
+        "verdict": "failed"
+      },
+      {
+        "checked_at": "2026-11-15T15:46:05.593423+00:00",
+        "verdict": "warning"
+      },
+      {
+        "checked_at": "2026-11-15T15:42:03.867250+00:00",
+        "verdict": "failed"
+      },
+      {
+        "checked_at": "2026-11-15T09:53:49.206215+00:00",
+        "verdict": "failed"
+      },
+      {
+        "checked_at": "2026-11-14T19:45:47.431486+00:00",
+        "verdict": "failed"
+      }
+    ],
+    "verdict_trend": "improving"
+  },
+  "message": null
+}

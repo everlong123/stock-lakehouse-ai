@@ -18,6 +18,7 @@ from app.core.constants import SUPPORTED_INTERVALS, currency_for_symbol
 from app.core.exceptions import DataValidationError, NotFoundError
 from app.lakehouse.bronze import BronzeLayer
 from app.lakehouse import frame_cache
+from app.lakehouse.exchange_timezone import session_day_of
 from app.lakehouse.gold import GoldLayer
 from app.lakehouse.session import as_utc_timestamp, canonicalize_daily_sessions, slice_window
 from app.lakehouse.silver import SilverLayer
@@ -379,6 +380,8 @@ class MarketService:
         last = frame.iloc[-1]
         prev_close = float(frame.iloc[-2]["close"]) if len(frame) > 1 else float(last["close"])
         change_pct = (float(last["close"]) - prev_close) / prev_close if prev_close else 0.0
+        latest_day = session_day_of(last["timestamp"], symbol)
+        age = max(0, (pd.Timestamp.now(tz="UTC").date() - latest_day).days) if latest_day else None
         return {
             "symbol": symbol.upper(),
             "timestamp": str(last["timestamp"]),
@@ -391,6 +394,9 @@ class MarketService:
             "change_pct": change_pct,
             "source_layer": last.get("layer", "gold"),
             "interval": interval,
+            "latest_session": latest_day.isoformat() if latest_day else None,
+            "age_calendar_days": age,
+            "data_status": "stale" if age is not None and age > 10 else "recent",
             # The unit of the price. Prices here are unitless, and VCB's
             # 53,500 and AAPL's 330 are both "close" - without this the
             # consumer labels every symbol as if it traded in dong.

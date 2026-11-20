@@ -1,5 +1,10 @@
-import { formatPercent, formatPrice, isUsableNumber } from "@/utils/format";
-import { changeClass } from "@/utils/format";
+import { useState } from "react";
+import { Link } from "react-router-dom";
+import { ArrowRight, ChevronDown, TrendingDown, TrendingUp } from "lucide-react";
+import { changeClass, formatPercent, formatPrice, isUsableNumber } from "@/utils/format";
+import { useI18n } from "@/lib/i18n";
+import { MODELS } from "@/utils/constants";
+import { cn } from "@/lib/utils";
 
 export interface NextSessionForecast {
   symbol: string;
@@ -11,17 +16,6 @@ export interface NextSessionForecast {
   horizon: number | null;
   source: string | null;
   source_layer: string | null;
-  /**
-   * How many trading sessions the input data lagged behind the target
-   * session when the forecast was made.
-   *
-   * WHY IT IS CARRIED HERE: the target-session rule targets the first
-   * session that is not earlier than today and not earlier than the
-   * session after the newest bar in Gold. When the ingestion is current
-   * those coincide. When the ingestion falls behind they separate, and
-   * the forecast rests on older history without saying so. 0 means the
-   * data was current; null means the lag was never measured.
-   */
   data_staleness_days?: number | null;
   created_at: string | null;
 }
@@ -29,24 +23,7 @@ export interface NextSessionForecast {
 interface NextSessionCardProps {
   forecast: NextSessionForecast | null;
   currency?: string | null;
-  /**
-   * How many models published a forecast for this session.
-   *
-   * WHY THIS IS A COUNT AND NOT A LIST: the Dashboard answers "what do
-   * we expect next" with ONE number. The full per-model comparison lives
-   * on the Models page, where the reader opens it deliberately. The count
-   * is enough to say "two models agree on this" without turning the
-   * summary card into a table.
-   */
   modelCount?: number;
-  /**
-   * The historical MAE of the model that wrote this forecast.
-   *
-   * WHY IT IS SHOWN NEXT TO THE FORECAST: a forecast without its model's
-   * track record is a number without context. The reader needs both to
-   * judge it. It also means the card displays the system's own weak
-   * spots instead of hiding them.
-   */
   historicalMae?: number | null;
   historicalDirectionalAccuracy?: number | null;
 }
@@ -54,150 +31,128 @@ interface NextSessionCardProps {
 /**
  * The next-session forecast.
  *
- * WHY THIS SHOWS A STORED NUMBER AND NOT A FRESH ONE: the card reads the
- * row the EOD batch wrote to the `predictions` table. That is the same
- * number the overnight run produced, so the page and the batch can never
- * disagree about what was forecast. A card that recomputed the forecast
- * on every render would show a different number each time the page was
- * opened, and the reader would have no way to tell which one the batch
- * had actually recorded.
- *
- * WHY IT SAYS WHEN IT WAS WRITTEN: a forecast without a date is a
- * prediction of the future made at an unknown time in the past. The
- * `created_at` line says when the batch ran, and `source` says whether it
- * was the overnight run or a manual call.
- *
- * WHY THERE IS NO NUMBER WHEN THERE IS NO FORECAST: the card renders an
- * explicit "no forecast" line. It never substitutes a moving average, a
- * last close, or a zero - a number that did not come from a model would
- * be a made-up number.
- *
- * WHY THIS CARD DOES NOT LIST EVERY MODEL: the Dashboard is the summary
- * of the CURRENT state. The per-model comparison belongs to the future
- * axis and lives on the Models page, which the card links to. One source
- * (`predictions`), two levels of detail.
+ * WHY IT IS A RAISED PANEL
+ * ------------------------
+ * It is the one card on the quote page that carries a CLAIM about the
+ * future, and it is the thing a reader opens the page to find. So it is
+ * lifted off the canvas with a shadow, and the predicted price is set in
+ * the direction colour of its own return — the reader sees "down" before
+ * they read the number.
  */
-export function NextSessionCard({
-  forecast,
-  currency,
-  modelCount,
-  historicalMae,
-  historicalDirectionalAccuracy,
-}: NextSessionCardProps) {
-  if (!forecast) {
-    return (
-      <div>
-        <div className="label">Next session forecast</div>
-        <p className="mt-2 text-small text-muted">
-          Chưa có dự báo phiên kế tiếp. Batch EOD sẽ ghi dự báo này sau khi
-          đóng cửa, hoặc gọi POST /api/v1/forecast/next-session/&lt;Mã&gt;/store.
-        </p>
-      </div>
-    );
-  }
+export function NextSessionCard({ forecast, currency, modelCount, historicalMae, historicalDirectionalAccuracy }: NextSessionCardProps) {
+  const { locale } = useI18n();
+  const vi = locale === "vi";
+  const [open, setOpen] = useState(false);
 
-  const change = forecast.predicted_return;
-  const showMae = isUsableNumber(historicalMae);
-  const showDa = isUsableNumber(historicalDirectionalAccuracy);
-  // A stale forecast is still shown in full - it was published before
-  // the target session, so it is still evidence. But the reader is told
-  // how much history it actually rested on, because a forecast made on
-  // three-session-old data and one made on current data are not the same
-  // claim.
-  const staleSessions = forecast.data_staleness_days;
-  const isStale = typeof staleSessions === "number" && staleSessions > 0;
+  const direction = isUsableNumber(forecast?.predicted_return)
+    ? forecast.predicted_return > 0
+      ? "up"
+      : forecast.predicted_return < 0
+        ? "down"
+        : "flat"
+    : "flat";
+  const DirectionIcon = direction === "up" ? TrendingUp : direction === "down" ? TrendingDown : null;
 
   return (
-    <div>
-      <div className="flex items-baseline justify-between gap-3">
-        <div className="min-w-0">
-          <div className="label">Next session forecast</div>
-          <div className="mt-1 truncate font-display text-body font-bold text-ink">
-            {forecast.target_session ?? "—"}
-          </div>
+    <section className="rounded border border-hairline bg-surface p-4 shadow-sm">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h2 className="font-display text-body font-semibold text-ink">{vi ? "Dự báo phiên kế tiếp" : "Next session forecast"}</h2>
+          <p className="mt-1 font-mono text-label text-muted">
+            {forecast?.target_session?.slice(0, 10) ?? (vi ? "Chưa có phiên dự báo" : "No forecast session")}
+          </p>
         </div>
-        <span className="shrink-0 font-mono text-label uppercase text-muted">
-          {forecast.model_name}
-        </span>
+        {forecast ? (
+          <span className="shrink-0 rounded bg-surface-2 px-2 py-1 text-label font-medium text-muted">
+            {MODELS.find((item) => item.id === forecast.model_name)?.label ?? forecast.model_name}
+          </span>
+        ) : null}
       </div>
 
-      <div className="mt-4 font-mono text-display font-semibold tabular-nums text-ink">
-        {formatPrice(forecast.predicted_close, currency)}
-      </div>
-
-      {/*
-        The data-lag notice. It appears only when the input data was
-        actually behind the market, because a badge on every forecast
-        would train the reader to ignore it.
-      */}
-      {isStale ? (
-        <p className="mt-3 border-l-2 border-negative pl-3 font-mono text-label uppercase text-negative">
-          Dữ liệu trễ {staleSessions} phiên giao dịch
+      {!forecast ? (
+        <p className="mt-5 text-small text-muted">
+          {vi ? "Chưa có dự báo được công bố cho mã này. Xem trang Dự báo để kiểm tra mô hình." : "No published forecast for this stock. Check model availability on the Forecast page."}
         </p>
-      ) : null}
-
-      <dl className="mt-4 grid grid-cols-2 gap-x-6 gap-y-3 border-t border-hairline pt-4">
-        <div className="min-w-0">
-          <dt className="label">Reference close</dt>
-          <dd className="mt-1 truncate font-mono text-small tabular-nums text-ink">
-            {formatPrice(forecast.reference_close, currency)}
-          </dd>
-        </div>
-        <div className="min-w-0">
-          <dt className="label">Expected change</dt>
-          <dd
-            className={`mt-1 truncate font-mono text-small font-semibold tabular-nums ${
-              isUsableNumber(change) ? changeClass(change) : "text-muted"
-            }`}
+      ) : (
+        <>
+          <p
+            className={cn(
+              "mt-5 font-display text-heading font-semibold tabular-nums",
+              direction === "up" ? "text-up" : direction === "down" ? "text-negative" : "text-ink",
+            )}
           >
-            {formatPercent(change)}
-          </dd>
-        </div>
-        {/* The model's historical accuracy, so the forecast is read with
-            its track record rather than on its own. */}
-        <div className="min-w-0">
-          <dt className="label">Sai số TB lịch sử</dt>
-          <dd className="mt-1 truncate font-mono text-small tabular-nums text-ink">
-            {showMae ? Number(historicalMae).toFixed(2) : "—"}
-          </dd>
-        </div>
-        <div className="min-w-0">
-          <dt className="label">Đúng hướng</dt>
-          <dd className="mt-1 truncate font-mono text-small tabular-nums text-ink">
-            {showDa ? formatPercent(historicalDirectionalAccuracy) : "—"}
-          </dd>
-        </div>
-        <div className="min-w-0">
-          <dt className="label">Source</dt>
-          <dd className="mt-1 truncate font-mono text-small text-ink">
-            {forecast.source ?? "auto_eod_batch"}
-          </dd>
-        </div>
-        <div className="min-w-0">
-          <dt className="label">Layer</dt>
-          <dd className="mt-1 truncate font-mono text-small text-ink">
-            {forecast.source_layer ?? "gold"}
-          </dd>
-        </div>
-      </dl>
+            {formatPrice(forecast.predicted_close, currency)}
+          </p>
+          <p className={cn("mt-1 flex items-center gap-1.5 font-mono text-small font-semibold tabular-nums", changeClass(forecast.predicted_return))}>
+            {DirectionIcon ? <DirectionIcon size={14} aria-hidden="true" /> : null}
+            {formatPercent(forecast.predicted_return)}{" "}
+            <span className="font-sans font-normal text-muted">
+              {vi ? "so với giá tham chiếu" : "from reference close"}
+            </span>
+          </p>
+          {typeof forecast.data_staleness_days === "number" && forecast.data_staleness_days > 0 ? (
+            <p role="status" className="mt-4 border-l-2 border-negative pl-3 text-small text-negative">
+              {vi ? `Dữ liệu đầu vào trễ ${forecast.data_staleness_days} phiên giao dịch.` : `Input data is ${forecast.data_staleness_days} trading sessions behind.`}
+            </p>
+          ) : null}
 
-      {/* The full comparison lives on the Models page. The card points at
-          it instead of repeating it, so no number appears in two places
-          for two different purposes. */}
-      {modelCount && modelCount > 1 ? (
-        <a
-          href="/forecast"
-          className="mt-4 block border-t border-hairline pt-3 font-mono text-label uppercase text-primary hover:underline"
-        >
-          {modelCount} mô hình đã dự báo phiên này · xem so sánh →
-        </a>
-      ) : null}
+          <button
+            type="button"
+            onClick={() => setOpen((value) => !value)}
+            aria-expanded={open}
+            className="mt-5 flex w-full items-center justify-between border-t border-hairline pt-3 text-small font-medium text-muted transition-colors hover:text-ink"
+          >
+            {vi ? "Độ tin cậy & nguồn" : "Accuracy & source"}
+            <ChevronDown size={15} className={cn("transition-transform duration-200", open && "rotate-180")} />
+          </button>
+          {open ? (
+            <dl className="animate-fade-in mt-3 grid grid-cols-2 gap-3 text-small">
+              <div>
+                <dt className="text-muted">{vi ? "Giá tham chiếu" : "Reference close"}</dt>
+                <dd className="font-mono text-ink">{formatPrice(forecast.reference_close, currency)}</dd>
+              </div>
+              <div>
+                <dt className="text-muted">{vi ? "Sai số TB lịch sử" : "Historical MAE"}</dt>
+                <dd className="font-mono text-ink">
+                  {isUsableNumber(historicalMae) ? Number(historicalMae).toFixed(2) : "—"}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-muted">{vi ? "Đúng hướng" : "Direction accuracy"}</dt>
+                <dd className="font-mono text-ink">
+                  {isUsableNumber(historicalDirectionalAccuracy) ? formatPercent(historicalDirectionalAccuracy) : "—"}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-muted">{vi ? "Nguồn" : "Source"}</dt>
+                <dd className="break-all text-ink">{forecast.source ?? "—"}</dd>
+              </div>
+            </dl>
+          ) : null}
+          {forecast.created_at ? (
+            <p className="mt-3 font-mono text-label text-muted">
+              {vi ? "Công bố" : "Published"}: {forecast.created_at.replace("T", " ").slice(0, 16)} UTC
+            </p>
+          ) : null}
+        </>
+      )}
 
-      {forecast.created_at ? (
-        <p className="mt-3 font-mono text-label uppercase text-muted">
-          {forecast.created_at.replace("T", " ").slice(0, 16)} UTC
-        </p>
-      ) : null}
-    </div>
+      <Link
+        to="/forecast"
+        className="mt-5 inline-flex items-center gap-2 text-small font-semibold text-primary transition-colors hover:gap-2.5"
+      >
+        {vi
+          ? modelCount && modelCount > 1
+            ? `So sánh ${modelCount} mô hình`
+            : "Xem dự báo"
+          : modelCount && modelCount > 1
+            ? `Compare ${modelCount} models`
+            : "Explore forecasts"}
+        <ArrowRight size={15} />
+      </Link>
+      <p className="mt-3 font-mono text-label text-muted">
+        {vi ? "Chỉ mang tính tham khảo, không phải khuyến nghị đầu tư." : "For reference only, not investment advice."}
+      </p>
+    </section>
   );
 }

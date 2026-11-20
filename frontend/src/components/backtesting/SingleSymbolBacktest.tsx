@@ -1,8 +1,6 @@
 import { useEffect, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { ArrowDown, ArrowUp, Loader2, Play } from "lucide-react";
-import { fetchSymbols } from "@/api/stocks";
 import { errorMessage } from "@/api/client";
 import { EquityCurve } from "@/components/charts/EquityCurve";
 import { EmptyState } from "@/components/common/EmptyState";
@@ -10,16 +8,12 @@ import { ErrorState } from "@/components/common/ErrorState";
 import { MetricCard } from "@/components/dashboard/MetricCard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { useMarket } from "@/hooks/useMarket";
 import { useBacktest } from "@/hooks/useBacktest";
+import { useI18n, t } from "@/lib/i18n";
 import { formatNumber, formatPercent, formatPrice, shortDate, currencyForSymbol } from "@/utils/format";
 import { toast } from "sonner";
-
-const DEFAULT_SYMBOLS = [
-  "AAPL", "MSFT", "GOOGL", "AMZN", "NVDA", "META", "TSLA", "AMD", "JPM", "V",
-];
 
 const tooltipStyle = {
   background: "hsl(var(--surface))",
@@ -47,22 +41,11 @@ const tooltipStyle = {
  * and switching tabs does not silently change what is being compared.
  */
 export function SingleSymbolBacktest({ strategy }: { strategy: string }) {
-  const { symbol: ctxSymbol, setSymbol } = useMarket();
-  const [localSymbol, setLocalSymbol] = useState(ctxSymbol);
-  // Sync localSymbol when ctxSymbol changes (e.g., user changes symbol from Header)
-  useEffect(() => { setLocalSymbol(ctxSymbol); setSymbol(ctxSymbol); }, [ctxSymbol]);
-  const symbol = localSymbol || ctxSymbol;
-
-  const symbolsQuery = useQuery({
-    queryKey: ["symbols"],
-    queryFn: fetchSymbols,
-    staleTime: 5 * 60 * 1000,
-  });
-  const availableSymbols = symbolsQuery.data?.symbols?.length
-    ? symbolsQuery.data.symbols
-    : DEFAULT_SYMBOLS;
-
+  const { symbol } = useMarket();
+  const { locale } = useI18n();
   const { run } = useBacktest(symbol);
+  const { reset } = run;
+  useEffect(() => { reset(); }, [symbol, strategy, reset]);
   const [capital, setCapital] = useState(10000);
   const [fee, setFee] = useState(0.001);
   const [slip, setSlip] = useState(0.0005);
@@ -86,66 +69,55 @@ export function SingleSymbolBacktest({ strategy }: { strategy: string }) {
         short_window: shortW, long_window: longW,
         rsi_period: rsiPeriod, lower_threshold: lower, upper_threshold: upper,
       });
-      toast.success("Backtest hoàn tất (lịch sử).");
+      toast.success(t("backtest.done", locale));
     } catch (error) {
-      toast.error(errorMessage(error, "Backtest thất bại."));
+      toast.error(errorMessage(error, t("backtest.run_error", locale)));
     }
   };
 
   return (
     <div className="space-y-12">
-      {/* The symbol picker belongs to this tab only, so it sits here rather
-          than in the page header - the header is shared by both tabs. */}
       <section className="rounded border border-hairline bg-surface p-4">
+        <h2 className="mb-4 font-display text-body font-semibold">
+          {`${t("backtest.form_title", locale)} ${symbol}`}
+        </h2>
         <div className="grid gap-4 md:grid-cols-4">
           <label className="block text-small">
-            <span className="label mb-1 block">Mã cổ phiếu</span>
-            <Select
-              value={symbol}
-              onChange={(e) => { setLocalSymbol(e.target.value); setSymbol(e.target.value); }}
-              className="w-full"
-            >
-              {availableSymbols.map((s) => (
-                <option key={s} value={s}>{s}</option>
-              ))}
-            </Select>
-          </label>
-          <label className="block text-small">
-            <span className="label mb-1 block">Vốn ban đầu</span>
+            <span className="label mb-1 block">{t("backtest.capital", locale)}</span>
             <Input type="number" value={capital} onChange={(e) => setCapital(Number(e.target.value))} />
           </label>
           <label className="block text-small">
-            <span className="label mb-1 block">Phí giao dịch</span>
+            <span className="label mb-1 block">{t("backtest.fee", locale)}</span>
             <Input type="number" step="0.0001" value={fee} onChange={(e) => setFee(Number(e.target.value))} />
           </label>
           <label className="block text-small">
-            <span className="label mb-1 block">Độ trượt giá</span>
+            <span className="label mb-1 block">{t("backtest.slippage", locale)}</span>
             <Input type="number" step="0.0001" value={slip} onChange={(e) => setSlip(Number(e.target.value))} />
           </label>
 
           {strategy === "ma_crossover" ? (
             <>
               <label className="block text-small">
-                <span className="label mb-1 block">Short MA</span>
+                <span className="label mb-1 block">{t("backtest.short_ma", locale)}</span>
                 <Input type="number" value={shortW} onChange={(e) => setShortW(Number(e.target.value))} />
               </label>
               <label className="block text-small">
-                <span className="label mb-1 block">Long MA</span>
+                <span className="label mb-1 block">{t("backtest.long_ma", locale)}</span>
                 <Input type="number" value={longW} onChange={(e) => setLongW(Number(e.target.value))} />
               </label>
             </>
           ) : (
             <>
               <label className="block text-small">
-                <span className="label mb-1 block">RSI period</span>
+                <span className="label mb-1 block">{t("backtest.rsi_period", locale)}</span>
                 <Input type="number" value={rsiPeriod} onChange={(e) => setRsiPeriod(Number(e.target.value))} />
               </label>
               <label className="block text-small">
-                <span className="label mb-1 block">Lower threshold</span>
+                <span className="label mb-1 block">{t("backtest.lower", locale)}</span>
                 <Input type="number" value={lower} onChange={(e) => setLower(Number(e.target.value))} />
               </label>
               <label className="block text-small">
-                <span className="label mb-1 block">Upper threshold</span>
+                <span className="label mb-1 block">{t("backtest.upper", locale)}</span>
                 <Input type="number" value={upper} onChange={(e) => setUpper(Number(e.target.value))} />
               </label>
             </>
@@ -155,18 +127,18 @@ export function SingleSymbolBacktest({ strategy }: { strategy: string }) {
               {run.isPending ? (
                 <>
                   <Loader2 size={14} className="animate-spin" />
-                  Đang chạy backtest
+                  {t("backtest.running", locale)}
                 </>
               ) : (
                 <>
                   <Play size={14} />
-                  Chạy backtest
+                  {t("backtest.run", locale)}
                 </>
               )}
             </Button>
           </div>
         </div>
-        {run.isError ? <ErrorState message={errorMessage(run.error, "Backtest thất bại.")} /> : null}
+        {run.isError ? <ErrorState message={errorMessage(run.error, t("backtest.run_error", locale))} /> : null}
       </section>
 
       {result ? (
@@ -175,16 +147,16 @@ export function SingleSymbolBacktest({ strategy }: { strategy: string }) {
           <section>
             <div className="grid grid-cols-2 gap-x-6 gap-y-6 border-y border-hairline py-6 md:grid-cols-4">
               <MetricCard
-                label="Total Return"
+                label={t("backtest.term_return", locale)}
                 value={formatPercent(result.total_return)}
               />
-              <MetricCard label="Final Value" value={formatPrice(result.final_capital, currency)} />
-              <MetricCard label="Sharpe Ratio" value={formatNumber(result.sharpe_ratio)} />
-              <MetricCard label="Max Drawdown" value={formatPercent(result.maximum_drawdown)} />
-              <MetricCard label="Win Rate" value={formatPercent(result.win_rate)} />
-              <MetricCard label="Trades" value={String(result.number_of_trades)} />
-              <MetricCard label="Profit Factor" value={formatNumber(result.profit_factor)} />
-              <MetricCard label="Initial Capital" value={formatPrice(result.initial_capital, currency)} />
+              <MetricCard label={t("backtest.final_value", locale)} value={formatPrice(result.final_capital, currency)} />
+              <MetricCard label={t("backtest.term_sharpe", locale)} value={formatNumber(result.sharpe_ratio)} />
+              <MetricCard label={t("backtest.term_drawdown", locale)} value={formatPercent(result.maximum_drawdown)} />
+              <MetricCard label={t("backtest.term_winrate", locale)} value={formatPercent(result.win_rate)} />
+              <MetricCard label={t("backtest.trades", locale)} value={String(result.number_of_trades)} />
+              <MetricCard label={t("backtest.term_profit", locale)} value={formatNumber(result.profit_factor)} />
+              <MetricCard label={t("backtest.initial_capital", locale)} value={formatPrice(result.initial_capital, currency)} />
             </div>
           </section>
 
@@ -194,23 +166,23 @@ export function SingleSymbolBacktest({ strategy }: { strategy: string }) {
           {result.benchmark ? (
             <section>
               <div className="section-head">
-                <h2 className="section-title">So sánh với mua &amp; giữ</h2>
+                <h2 className="section-title">{t("backtest.benchmark_title", locale)}</h2>
               </div>
               <div className="grid grid-cols-2 gap-x-6 gap-y-6 border-y border-hairline py-6 md:grid-cols-4">
                 <MetricCard
-                  label="Mua & giữ · Total Return"
+                  label={t("backtest.bh_return", locale)}
                   value={formatPercent(result.benchmark.total_return ?? 0)}
                 />
                 <MetricCard
-                  label="Mua & giữ · Sharpe"
+                  label={t("backtest.bh_sharpe", locale)}
                   value={formatNumber(result.benchmark.sharpe_ratio ?? 0)}
                 />
                 <MetricCard
-                  label="Mua & giữ · Max Drawdown"
+                  label={t("backtest.bh_drawdown", locale)}
                   value={formatPercent(result.benchmark.maximum_drawdown ?? 0)}
                 />
                 <MetricCard
-                  label="Chiến lược vượt baseline"
+                  label={t("backtest.excess", locale)}
                   value={
                     result.excess_return_vs_benchmark == null
                       ? "—"
@@ -219,12 +191,7 @@ export function SingleSymbolBacktest({ strategy }: { strategy: string }) {
                 />
               </div>
               <p className="mt-3 text-small text-muted">
-                Baseline "mua &amp; giữ" được mô phỏng trên{" "}
-                <span className="font-mono">cùng các phiên</span>, cùng phí giao dịch và
-                cùng độ trượt giá với chiến lược. Nếu chiến lược không vượt được đường này
-                thì đó là bằng chứng rằng việc chọn điểm vào lệnh chưa tạo ra giá trị.
-                Xem tab <span className="font-mono">Walk-forward đa mã</span> để biết kết quả
-                này có đúng trên nhiều mã hay chỉ đúng với mã này.
+                {t("backtest.benchmark_note", locale)}
               </p>
             </section>
           ) : null}
@@ -232,7 +199,7 @@ export function SingleSymbolBacktest({ strategy }: { strategy: string }) {
           <div className="grid gap-12 xl:grid-cols-2">
             <section>
               <div className="section-head">
-                <h2 className="section-title">Equity curve</h2>
+                <h2 className="section-title">{t("backtest.equity_title", locale)}</h2>
               </div>
               <div className="pt-4">
                 <EquityCurve data={result.equity_curve} benchmark={result.benchmark?.equity_curve} />
@@ -240,7 +207,7 @@ export function SingleSymbolBacktest({ strategy }: { strategy: string }) {
             </section>
             <section>
               <div className="section-head">
-                <h2 className="section-title">Drawdown</h2>
+                <h2 className="section-title">{t("backtest.drawdown_title", locale)}</h2>
               </div>
               <div className="h-72 pt-4">
                 <ResponsiveContainer>
@@ -265,9 +232,11 @@ export function SingleSymbolBacktest({ strategy }: { strategy: string }) {
 
           <section>
             <div className="section-head">
-              <h2 className="section-title">Lịch sử lệnh · {result.trades.length} lệnh</h2>
+              <h2 className="section-title">
+                {`${t("backtest.trades_title", locale)} ${result.trades.length} ${t("backtest.trades_suffix", locale)}`}
+              </h2>
             </div>
-            <div className="mt-4 max-h-[480px] overflow-auto rounded border border-hairline bg-surface">
+            <div className="mt-4 max-h-[480px] overflow-auto rounded border border-hairline bg-surface shadow-sm">
               <table className="table">
                 <thead className="sticky top-0">
                   <tr>
@@ -286,12 +255,12 @@ export function SingleSymbolBacktest({ strategy }: { strategy: string }) {
                       <td className="font-mono tabular-nums">{formatNumber(trade.quantity, 4)}</td>
                       <td className="font-mono tabular-nums text-muted">{formatNumber(trade.fees)}</td>
                       <td className="font-mono font-semibold tabular-nums">
-                        <span className={trade.pnl >= 0 ? "text-primary" : "text-negative"}>
+                        <span className={trade.pnl >= 0 ? "text-up" : "text-negative"}>
                           {formatNumber(trade.pnl)}
                         </span>
                       </td>
                       <td>
-                        <Badge variant={trade.return_pct >= 0 ? "primary" : "negative"}>
+                          <Badge variant={trade.return_pct >= 0 ? "up" : "negative"}>
                           {trade.return_pct >= 0 ? <ArrowUp size={10} /> : <ArrowDown size={10} />}
                           {formatPercent(trade.return_pct)}
                         </Badge>
@@ -304,7 +273,7 @@ export function SingleSymbolBacktest({ strategy }: { strategy: string }) {
           </section>
         </>
       ) : (
-        <EmptyState message="Chạy backtest để xem equity curve, drawdown và danh sách trades." />
+        <EmptyState message={t("backtest.empty", locale)} />
       )}
     </div>
   );

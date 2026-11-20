@@ -1,7 +1,5 @@
 """Backtesting endpoints."""
 
-from pathlib import Path
-
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
@@ -12,68 +10,79 @@ from app.services.backtest_service import BacktestService
 
 router = APIRouter(prefix="/backtests", tags=["backtesting"])
 
-# The multi-symbol walk-forward report is produced OFFLINE by
-# ``backend/scripts/run_multi_symbol_walkforward.py`` and written to
-# ``backend/data/multi_symbol_walkforward.json``.
-#
-# WHY it is not computed on demand: the run replays ~100 symbols over
-# ~37 windows each, which takes ~90 seconds of CPU. Serving that from a
-# request handler would tie up a worker for a minute and return a
-# timeout to the browser - the exact failure mode the thesis defence
-# cannot afford. The report is therefore a FILE that the endpoint
-# reads, and the endpoint says plainly when the file is missing instead
-# of inventing numbers.
-_REPORT_DIR = Path(__file__).resolve().parents[4] / "data"
-_REPORT_FILES = {
-    "ma_crossover": "multi_symbol_walkforward.json",
-    "rsi_strategy": "multi_symbol_walkforward_rsi.json",
-}
-
 
 @router.get("/multi-symbol-report")
 def multi_symbol_report(
     strategy: str = Query(default="ma_crossover"),
 ) -> dict:
-    """Return the multi-symbol walk-forward + buy-and-hold report."""
-    import json
+    """Return the multi-symbol walk-forward + buy-and-hold report.
 
-    filename = _REPORT_FILES.get(strategy)
-    if filename is None:
+    WHY IT IS NOT COMPUTED ON DEMAND
+    --------------------------------
+    The run replays ~100 symbols over ~37 windows each, which takes
+    ~75 seconds of CPU (measured 18/11/2026). Serving that from a
+    request handler would tie up a worker for a minute and return a
+    timeout to the browser - the exact failure mode the thesis defence
+    cannot afford.
+
+    So the report is PRODUCED AHEAD OF TIME and stored, and this
+    endpoint only reads it.
+
+    WHERE THE REPORT LIVES
+    ----------------------
+    In the lakehouse's ``backtests`` layer, which is MinIO in
+    production. That layer is the one place the ``scheduler`` container
+    (which runs the nightly job) and the ``backend`` container (which
+    serves this endpoint) can both reach: they share MySQL and MinIO,
+    but they do NOT share the ``data`` volume, so a file written to the
+    scheduler's filesystem would be invisible here.
+
+    The nightly job is ``run_scheduled_job.py walk-forward``. It runs the
+    SAME service the manual script runs, so the numbers on the page
+    cannot drift away from the numbers in the log.
+
+    When no report exists yet, the endpoint says so plainly and gives
+    the command that produces one. It never invents numbers.
+    """
+    from app.services.walk_forward_report_service import (
+        LOCAL_REPORT_FILES,
+        STRATEGIES,
+        read_report,
+    )
+
+    if strategy not in STRATEGIES:
         return ok(
             {
                 "available": False,
                 "reason": (
                     f"Chưa có báo cáo cho chiến lược '{strategy}'. "
-                    f"Các chiến lược có sẵn: {', '.join(sorted(_REPORT_FILES))}."
+                    f"Các chiến lược có sẵn: {', '.join(sorted(STRATEGIES))}."
                 ),
             },
             message="No report for this strategy.",
         )
 
-    path = _REPORT_DIR / filename
-    if not path.exists():
+    payload = read_report(strategy)
+    if payload is None:
         return ok(
             {
                 "available": False,
                 "strategy": strategy,
                 "reason": (
-                    "Chưa chạy báo cáo đa mã. Chạy: "
-                    f"cd backend && .venv/Scripts/python.exe scripts/run_multi_symbol_walkforward.py "
-                    f"--per-exchange 8 --strategy {strategy}"
+                    "Chưa có báo cáo đa mã. Lệnh tạo: "
+                    "cd backend && .venv/Scripts/python.exe scripts/run_multi_symbol_walkforward.py "
+                    f"--per-exchange 8 --strategy {strategy}. "
+                    "Lệnh này cũng chạy tự động mỗi tối qua cron job "
+                    "'walk-forward'."
                 ),
             },
-            message="Report file not found.",
-        )
-
-    try:
-        payload = json.loads(path.read_text(encoding="utf-8"))
-    except Exception as exc:  # noqa: BLE001
-        return ok(
-            {"available": False, "strategy": strategy, "reason": f"Không đọc được file báo cáo: {exc}"},
-            message="Unreadable report file.",
+            message="Report not found.",
         )
 
     payload["available"] = True
+    # The strategies the endpoint serves, so the UI can offer exactly the
+    # ones that are actually available rather than hard-coding a list.
+    payload["available_strategies"] = sorted(STRATEGIES)
     return ok(payload, message="Multi-symbol walk-forward report.")
 
 

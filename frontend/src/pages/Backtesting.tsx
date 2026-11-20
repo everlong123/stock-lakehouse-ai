@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { Explainer } from "@/components/common/Explainer";
-import { PageTitle } from "@/components/common/PageTitle";
+import { PageHeader } from "@/components/common/PageHeader";
 import { MultiSymbolWalkForward } from "@/components/backtesting/MultiSymbolWalkForward";
 import { SingleSymbolBacktest } from "@/components/backtesting/SingleSymbolBacktest";
 import { STRATEGIES } from "@/utils/constants";
+import { useI18n, t } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 type TabId = "single" | "population";
@@ -30,32 +31,44 @@ type TabId = "single" | "population";
  * holds the sections; this strip holds the views inside one section.
  */
 export function BacktestingPage() {
+  const { locale } = useI18n();
   const [tab, setTab] = useState<TabId>("single");
   // The strategy is page-level state so BOTH tabs measure the same rule.
   const [strategy, setStrategy] = useState("ma_crossover");
 
   return (
-    <div className="space-y-12">
-      <PageTitle
-        title="Đánh giá chiến lược"
-        subtitle="Chạy một quy tắc mua/bán trên lịch sử thật, rồi so với đường cơ sở mua và giữ trên cùng các phiên."
-        meta="05 · Models"
+    <div className="space-y-10">
+      {/*
+        ── The page header ───────────────────────────────────────────
+        The strategy is page-level state, so it is named in the header:
+        the reader can see which rule the whole page measures.
+      */}
+      <PageHeader
+        section={t("nav.models", locale)}
+        title={t("backtest.title", locale)}
+        subtitle={t("backtest.subtitle", locale)}
       />
 
       {/*
         ── The tab strip ────────────────────────────────────────────
         Two readings of the same evaluation, so they read as a switch
         inside one section rather than two links in the sitemap.
+
+        WHY THE STRIP IS ITS OWN ROW ABOVE THE STRATEGY PICKER: the
+        strategy picker is a page-level control that BOTH tabs share, so
+        it sits BELOW the switch that decides which reading is on screen.
+        Putting the picker above the tabs would make it look like it
+        belonged to the tab above it.
       */}
       <div
         role="tablist"
-        aria-label="Phạm vi đánh giá"
+        aria-label={t("backtest.scope_label", locale)}
         className="flex items-center gap-1 border-b border-hairline"
       >
         {(
           [
-            { id: "single" as TabId, label: "Một mã cổ phiếu" },
-            { id: "population" as TabId, label: "Walk-forward đa mã" },
+            { id: "single" as TabId, label: t("backtest.tab_single", locale) },
+            { id: "population" as TabId, label: t("backtest.tab_population", locale) },
           ]
         ).map((item) => (
           <button
@@ -64,13 +77,15 @@ export function BacktestingPage() {
             aria-selected={tab === item.id}
             onClick={() => setTab(item.id)}
             className={cn(
-              "-mb-px min-h-11 border-b-2 px-4 text-small font-medium transition-colors",
+              "relative -mb-px flex min-h-11 flex-col justify-center border-b-2 px-4 text-left transition-colors",
               tab === item.id
                 ? "border-primary text-ink"
                 : "border-transparent text-muted hover:text-ink",
             )}
           >
-            {item.label}
+            <span className={cn("text-small", tab === item.id && "font-semibold")}>
+              {item.label}
+            </span>
           </button>
         ))}
       </div>
@@ -83,10 +98,13 @@ export function BacktestingPage() {
       */}
       <section>
         <div className="section-head">
-          <h2 className="section-title">Chiến lược</h2>
+          <h2 className="section-title">{t("backtest.strategy_title", locale)}</h2>
+          <span className="font-mono text-label uppercase text-muted">
+            {STRATEGIES.find((s) => s.id === strategy)?.label}
+          </span>
         </div>
         <div className="pt-4">
-          <div role="radiogroup" aria-label="Chiến lược" className="flex flex-wrap gap-x-8 gap-y-4">
+          <div role="radiogroup" aria-label={t("backtest.strategy_label", locale)} className="flex flex-wrap gap-x-8 gap-y-4">
             {STRATEGIES.map((s) => {
               const active = strategy === s.id;
               return (
@@ -128,56 +146,56 @@ export function BacktestingPage() {
       {tab === "single" ? (
         <>
           <Explainer
-            title="Tab này dùng để làm gì?"
-            intro="Backtest trả lời câu hỏi: nếu bạn áp dụng một quy tắc mua/bán theo lịch sử thật, bạn sẽ có bao nhiêu tiền? Hệ thống chơi lại từng phiên một: tính tín hiệu khi đóng cửa phiên hôm đó, rồi khớp lệnh vào giá mở cửa của phiên kế tiếp — nên không bao giờ dùng thông tin của tương lai."
+            title={t("backtest.explainer_title", locale)}
+            intro={t("backtest.explainer_intro", locale)}
             items={[
               {
-                term: "MA Crossover",
-                meaning: "Mua khi đường trung bình ngắn hạn cắt lên đường trung bình dài hạn; bán khi cắt xuống.",
+                term: t("backtest.term_ma", locale),
+                meaning: t("backtest.term_ma_meaning", locale),
               },
               {
-                term: "RSI Strategy",
-                meaning: "Mua khi RSI rơi xuống dưới ngưỡng (ví dụ 30 = thị trường bị bán quá mức); bán khi RSI vượt ngưỡng trên (70).",
+                term: t("backtest.term_rsi", locale),
+                meaning: t("backtest.term_rsi_meaning", locale),
               },
               {
-                term: "Equity curve",
-                meaning: "Đường biểu diễn tổng giá trị tài khoản sau mỗi phiên. Đi lên là đang lãi, đi xuống là đang lỗ.",
+                term: t("backtest.term_equity", locale),
+                meaning: t("backtest.term_equity_meaning", locale),
               },
               {
-                term: "Total Return",
-                meaning: "Tổng lãi/lỗ tính theo phần trăm so với vốn ban đầu.",
+                term: t("backtest.term_return", locale),
+                meaning: t("backtest.term_return_meaning", locale),
               },
               {
-                term: "Max Drawdown",
-                meaning: "Mức lỗ tệ nhất tính từ đỉnh cao nhất xuống đáy thấp nhất. Càng nhỏ (ít âm) càng ổn định.",
+                term: t("backtest.term_drawdown", locale),
+                meaning: t("backtest.term_drawdown_meaning", locale),
               },
               {
-                term: "Sharpe Ratio",
-                meaning: "Lợi nhuận trên mỗi đơn vị rủi ro. Trên 1 là tốt, dưới 0 nghĩa là lãi ít hơn rủi ro.",
+                term: t("backtest.term_sharpe", locale),
+                meaning: t("backtest.term_sharpe_meaning", locale),
               },
               {
-                term: "Win Rate",
-                meaning: "Tỉ lệ % lệnh thắng. Cao không đảm bảo lãi — cần xem cả Total Return.",
+                term: t("backtest.term_winrate", locale),
+                meaning: t("backtest.term_winrate_meaning", locale),
               },
               {
-                term: "Profit Factor",
-                meaning: "Tổng lãi chia cho tổng lỗ. Trên 1 là lãi, dưới 1 là lỗ.",
+                term: t("backtest.term_profit", locale),
+                meaning: t("backtest.term_profit_meaning", locale),
               },
               {
-                term: "Transaction fee / Slippage",
-                meaning: "Chi phí mỗi lệnh và độ trượt giá so với giá mở cửa. Cả hai đều làm lợi nhuận thực tế thấp hơn.",
+                term: t("backtest.term_fees", locale),
+                meaning: t("backtest.term_fees_meaning", locale),
               },
               {
-                term: "Mua & giữ (baseline)",
-                meaning: "Kịch bản đối chứng: mua đầu kỳ và giữ đến cuối, trên cùng các phiên, cùng phí và cùng độ trượt. Nếu chiến lược không vượt được nó, thì việc chọn thời điểm vào lệnh không tạo thêm giá trị nào.",
+                term: t("backtest.term_bh", locale),
+                meaning: t("backtest.term_bh_meaning", locale),
               },
             ]}
             steps={[
-              "Chọn mã cổ phiếu và chiến lược muốn thử.",
-              "Đặt vốn ban đầu, phí giao dịch và độ trượt giá.",
-              "Bấm Chạy backtest để xem kết quả.",
-              "Đổi tham số (Short MA / Long MA hoặc ngưỡng RSI) rồi chạy lại để so sánh.",
-              "Sang tab 'Walk-forward đa mã' để biết kết quả này có đúng trên nhiều mã không.",
+              t("backtest.step_1", locale),
+              t("backtest.step_2", locale),
+              t("backtest.step_3", locale),
+              t("backtest.step_4", locale),
+              t("backtest.step_5", locale),
             ]}
           />
           <SingleSymbolBacktest strategy={strategy} />

@@ -1,0 +1,131 @@
+{
+  "deck": "05-technical-analysis",
+  "notes": [
+    {
+      "term": "RSI được tính thế nào và ngưỡng 30/70 có ý nghĩa gì?",
+      "answer": "RSI (Relative Strength Index) đo **mức độ mạnh yếu** của đà tăng so với đà giảm trong `period` phiên gần nhất.\n\nCông thức chuẩn (Wilder):\n\n- `avg_gain` = trung bình lãi trong `period` phiên\n- `avg_loss` = trung bình lỗ trong `period` phiên\n- `RS = avg_gain / avg_loss`\n- `RSI = 100 - (100 / (1 + RS))`\n\nÝ nghĩa:\n\n- **Trên 70** - quá mua (overbought): thị trường đã tăng nhiều, thường được hiểu là có thể điều chỉnh.\n- **Dưới 30** - quá bán (oversold): thị trường đã giảm nhiều, thường được hiểu là có thể hồi phục.\n- **Trung tính quanh 50**.\n\nĐiểm quan trọng về diễn giải: RSI trên 70 **không** phải tín hiệu bán, và RSI dưới 30 **không** phải tín hiệu mua. Trong xu hướng mạnh, RSI có thể **giữ** ở vùng cực trị rất lâu. Đó là lý do chiến lược RSI trong hệ thống dùng **giao cắt ngưỡng** chứ không dùng trạng thái tuyệt đối.\n\n> RSI đo **động lượng**, không đo xu hướng. Một cổ phiếu có thể giảm mạnh trong khi RSI vẫn ở 60.",
+      "code": "backend/app/indicators/rsi.py",
+      "tags": "rsi relative strength index overbought oversold momentum"
+    },
+    {
+      "term": "SMA và EMA khác nhau thế nào?",
+      "answer": "Cùng tính trung bình một cửa sổ, khác ở **trọng số**:\n\n- **SMA** (Simple Moving Average) - trọng số **bằng nhau** cho mọi phiên trong cửa sổ. `rolling(window).mean()`. Đơn giản, chậm, ổn định.\n- **EMA** (Exponential Moving Average) - trọng số **giảm dần theo tuổi**, phiên mới có trọng số lớn hơn. Công thức đệ quy: `EMA_t = alpha * price_t + (1-alpha) * EMA_{t-1}`, với `alpha = 2/(N+1)`. Trong code dùng `ewm(span=N, adjust=False).mean()`.\n\nHệ quả thực tế: EMA **bám giá** chặt hơn và phản ứng nhanh hơn; SMA mượt hơn và chậm hơn.\n\nTrong hệ thống:\n\n- SMA: `sma_5`, `sma_10`, `sma_20`, `sma_50`\n- EMA: `ema_12`, `ema_26` (cặp chuẩn của MACD)\n\nLưu ý: `adjust=False` là bắt buộc cho EMA kiểu này. Với `adjust=True`, pandas tính theo trọng số chuẩn hoá, cho kết quả khác ở các phiên đầu - và khác với cách tính tay phổ biến.",
+      "code": "backend/app/indicators/{sma,ema}.py",
+      "tags": "sma ema moving average weighting adjust false"
+    },
+    {
+      "term": "MACD được tính thế nào và MACD histogram nói gì?",
+      "answer": "MACD (Moving Average Convergence Divergence) gồm ba phần:\n\n- **MACD line** = `EMA12 - EMA26` - chênh lệch giữa EMA ngắn và dài.\n- **Signal line** = `EMA9` của MACD line.\n- **Histogram** = `MACD - Signal`.\n\nCách đọc:\n\n- MACD **trên** signal (histogram dương) - động lượng tăng trộn, xu hướng tăng có xác nhận.\n- MACD **dưới** signal (histogram âm) - động lượng giảm, xu hướng giảm có xác nhận.\n- **Giao cắch** (crossover) là tín hiệu được dùng.\n\nHistogram **thu hẹp** (âm dần về 0) trong khi MACD vẫn âm nghĩa là đà giảm **đang mất đà** - dấu hiệu sớm của đảo chiều, sớm hơn hẳn lúc giao cắch xảy ra.\n\nMACD là chỉ báo **trễ**: do là sự khác biệt của hai EMA, nó xác nhận xu hướng sau khi xu hướng đã hình thành. Vì vậy nó được dùng **kết hợp** với chỉ báo dẫn dắt, không đứng một mình.",
+      "code": "backend/app/indicators/macd.py",
+      "tags": "macd histogram signal line ema crossover"
+    },
+    {
+      "term": "Bollinger Bands và ý nghĩa của độ rộng dải?",
+      "answer": "Bollinger Bands gồm ba đường:\n\n- **Giữa** = SMA 20\n- **Trên** = SMA20 + 2 * độ lệch chuẩn 20 phiên\n- **Dưới** = SMA20 - 2 * độ lệch chuẩn 20 phiên\n\nÝ nghĩa:\n\n- Giá chạm dải **trên** - có thể quá mua trong ngắn hạn.\n- Giá chạm dải **dưới** - có thể quá bán.\n- Dải **co lại** (độ rộng thấp) = biến động thấp, thị trường đang chờ **bùng nổ** theo một hướng - đây là tín hiệu nén (squeeze).\n- Dải **giãn ra** = biến động tăng.\n\nĐiểm hay nhất của Bollinger là **độ rộng dải** chính là một chỉ báo: nó chuẩn hoá độ rộng theo mức giá, nên so sánh được giữa các mã và các thời kỳ giá khác nhau.\n\n> Bollinger là hệ thống bao quanh giá. Nó không dự đoán hướng - nó đo **mức độ bất thường** của giá so với trạng thái bình thường gần đây.",
+      "code": "backend/app/indicators/bollinger.py",
+      "tags": "bollinger bands squeeze volatility standard deviation"
+    },
+    {
+      "term": "ATR đo gì và vì sao dùng để đặt stop-loss?",
+      "answer": "ATR (Average True Range) đo **biên độ** (volatility), không đo hướng.\n\nTrue Range của một phiên = max của ba khoảng cách:\n\n- `high - low` (biên độ trong phiên)\n- `|high - close_{t-1}|` (gap lên)\n- `|low - close_{t-1}|` (gap xuống)\n\nATR = trung bình động của True Range trong `period` phiên (mặc định 14).\n\nVì sao dùng cho stop-loss: stop-loss cố định theo **số tiền** không có ý nghĩa giữa các mã và các thời kỳ. Một stop 2 USD là rộng với cổ phiếu 5 USD và chặt với cổ phiếu 300 USD. Stop theo **bội số ATR** (`2 * ATR`) thì **tự co giãn** theo biến động thực tế.\n\nCột `atr_percent` = `ATR / close * 100` cho phép so sánh biến động **tương đối** giữa các mã.\n\n> ATR là câu trả lời cho \"cổ phiếu này đang ổn định hay đang loạn?\" - một câu hỏi mà RSI, MACD, SMA đều không trả lời được.",
+      "code": "backend/app/features/advanced_features.py:atr",
+      "tags": "atr average true range volatility stop loss"
+    },
+    {
+      "term": "ADX đo gì và vì sao cần cả `plus_di` và `minus_di`?",
+      "answer": "ADX (Average Directional Index) đo **cường độ xu hướng**, không đo hướng. Nó trả lời \"xu hướng mạnh hay yếu?\", không phải \"xu hướng đi lên hay đi xuống?\".\n\nCách tính:\n\n- `+DM` / `-DM`: chuyển động tăng/giảm có định hướng.\n- `+DI` = 100 * trung bình(+DM) / ATR\n- `-DI` = 100 * trung bình(-DM) / ATR\n- `DX` = 100 * |+DI - -DI| / (+DI + -DI)\n- `ADX` = trung bình động của DX\n\nVì sao cần cả `+DI` và `-DI`: ADX chỉ nói \"có xu hướng mạnh\". `+DI` và `-DI` cho biết **hướng**. ADX = 30 với `+DI > -DI` là xu hướng tăng mạnh; ADX = 30 với `-DI > +DI` là xu hướng giảm mạnh.\n\nDiễn giải ngưỡng:\n\n- **ADX < 20** - không có xu hướng (range).\n- **ADX > 25** - xu hướng mạnh.\n- **ADX > 50** - xu hướng rất mạnh.\n\nTrong hệ thống, `trend_strength` phân loại kết hợp ADX với vị trí giá so với `sma_20` thành 4 nhóm: `strong_uptrend`, `strong_downtrend`, `weak_uptrend`, `weak_downtrend`.",
+      "code": "backend/app/features/advanced_features.py:adx",
+      "tags": "adx directional index trend strength plus_di minus_di"
+    },
+    {
+      "term": "Stochastic Oscillator %K và %D khác nhau thế nào?",
+      "answer": "Stochastic đo **vị trí giá đóng cửa trong khoảng high-low của cửa sổ gần nhất**.\n\n- `%K` = 100 * (close - lowest_low) / (highest_high - lowest_low), với `k_period = 14`.\n- `%D` = trung bình động 3 phiên của `%K`.\n\nÝ nghĩa:\n\n- **Trên 80** - giá đóng cửa ở vùng cao của khoảng, thường được đọc là quá mua.\n- **Dưới 20** - giá đóng cửa ở vùng thấp, thường được đọc là quá bán.\n- **Giao cắch %K/%D** là tín hiệu.\n\nĐiểm mạnh: Stochastic phản ứng **nhanh hơn RSI** ở các đảo chiều ngắn hạn, vì nó so sánh giá với khoảng cửa sổ thay vì so sánh lãi với lỗ.\n\nĐiểm yếu: ở xu hướng mạnh, Stochastic **dính** vùng cực trị rất lâu - cùng nhược điểm với RSI. Cả hai đều là chỉ báo dao động, và cả hai đều không đo xu hướng.\n\n> Cùng một nguyên tắc cho cả hai: trong xu hướng, chỉ báo dao động báo \"quá mua\" suốt thời gian xu hướng đó còn tiếp diễn.",
+      "code": "backend/app/features/advanced_features.py:stochastic_oscillator",
+      "tags": "stochastic oscillator k d overbought range position"
+    },
+    {
+      "term": "CCI (Commodity Channel Index) khác RSI như thế nào?",
+      "answer": "Cả hai đều là chỉ báo dao động đo động lượng, nhưng đo theo hai cách khác nhau.\n\n**CCI** dùng **Typical Price** = (high + low + close) / 3, rồi so với trung bình động của chính nó, chuẩn hoá theo **mean deviation** (độ lệch tuyệt đối trung bình):\n\n```\nCCI = (TP - SMA(TP)) / (0.015 * mean_deviation)\n```\n\nHệ số **0.015** là hằng số chuẩn hoá, chọn để phần lớn giá trị nằm trong khoảng **-100 đến +100**.\n\n**RSI** dùng tỷ lệ lãi/lỗ trong cửa sổ.\n\nKhác biệt thực tế:\n\n- CCI phản ứng **nhanh hơn** và có thể vượt ±100 thường xuyên hơn.\n- RSI được chuẩn hoá **cố định** trong [0, 100], nên dễ diễn giải hơn và so sánh giữa các mã dễ hơn.\n- CCI nhạy với **cả độ biến động lẫn xu hướng**, nên trong xu hướng mạnh nó cũng dính vùng cực trị.\n\n> Cùng giống RSI: giá trị cực trị trong một xu hướng mạnh là **thông tin về xu hướng**, không phải tín hiệu đảo chiều.",
+      "code": "backend/app/features/advanced_features.py:cci",
+      "tags": "cci commodity channel index typical price deviation"
+    },
+    {
+      "term": "Williams %R liên hệ gì với Stochastic?",
+      "answer": "Chúng là **cùng một phép tính** với dấu khác nhau và đảo thang đo:\n\n- **Stochastic %K** = 100 * (close - lowest_low) / (highest_high - lowest_low) → khoảng [0, 100]\n- **Williams %R** = -100 * (highest_high - close) / (highest_high - lowest_low) → khoảng [-100, 0]\n\nVề mặt toán học: `Williams %R = Stochastic %K - 100`.\n\nVì vậy ngưỡng đọc cũng dịch theo:\n\n- Stochastic: trên 80 = quá mua, dưới 20 = quá bán.\n- Williams %R: dưới -80 = quá mua, trên -20 = quá bán.\n\nCả hai dùng `period = 14` mặc định.\n\nĐiểm cần nhớ: Williams %R là chỉ báo **dao động**, nên nó **luôn** dao động giữa -100 và 0 trong một xu hướng mạnh. Việc nó ở -20 không có nghĩa là nó sẽ đảo chiều.\n\n> Biết quan hệ giữa hai chỉ báo tiết kiệm việc học hai cái và giúp tránh nhầm chúng là hai ý tưởng độc lập.",
+      "code": "backend/app/features/advanced_features.py:williams_r",
+      "tags": "williams r stochastic relationship oscillator"
+    },
+    {
+      "term": "Keltner Channel khác Bollinger Band ở chỗ nào?",
+      "answer": "Cả hai đều là dải bao quanh giá, nhưng chúng đo **biến động** khác nhau:\n\n- **Bollinger**: độ lệch chuẩn (standard deviation) của **giá đóng cửa**.\n- **Keltner**: **ATR** (average true range) của **high/low/close**.\n\nCấu hình Keltner trong hệ thống:\n\n- `ema_close` = EMA 20 của close (đường giữa)\n- `atr` = True Range trung bình động (EMA)\n- `kc_upper` = `ema_close + 2 * atr`\n- `kc_lower` = `ema_close - 2 * atr`\n- `kc_width` = `(kc_upper - kc_lower) / kc_middle * 100`\n\nHệ quả thực tế:\n\n- Bollinger **nhạy với biến động giá** - dải nở khi giá biến động, dải hẹp khi giá ổn định.\n- Keltner **ít nhạy hơn** vì ATR tính cả khoảng trong phiên (high-low), nên dải thường hẹp hơn và bám giá sát hơn.\n- Bollinger dải nở ra ngoài giá khi có **spike**; Keltner ít bị ảnh hưởng bởi một phiên biến động đột ngột.\n\n> Hai dải khác nhau trả lời hai câu hỏi khác nhau: Bollinger hỏi \"giá có bất thường so với phân bố giá không?\", Keltner hỏi \"giá có nằm ngoài vùng dao động bình thường không?\".",
+      "code": "backend/app/features/advanced_features.py:keltner_channel",
+      "tags": "keltner channel bollinger difference atr ema"
+    },
+    {
+      "term": "Aroon Indicator đo gì và vì sao nó bị ảnh hưởng bởi rò rỉ dữ liệu?",
+      "answer": "Aroon đo **vị trí thời gian** của đỉnh gần nhất trong cửa sổ, không đo mức độ biến động.\n\n- `aroon_up` = vị trí (theo %) của **đỉnh cao nhất** trong `period + 1` phiên gần nhất.\n- `aroon_down` = vị trí của **đáy thấp nhất** trong cửa sổ.\n- `aroon_osc` = `aroon_up - aroon_down`.\n\nDiễn giải:\n\n- `aroon_up = 100` - đỉnh cao nhất xảy ra **hôm nay**.\n- `aroon_up = 0` - đỉnh cao nhất xảy ra `period` phiên trước.\n- `aroon_osc > 0` - xu hướng tăng, `aroon_osc < 0` - xu hướng giảm.\n\nĐiểm kỹ thuật quan trọng: Aroon dùng `rolling(...).apply(lambda x: np.argmax(x))` - tức **argmax** trên cửa sổ. Đây là lý do tầng Silver **bắt buộc** phải gộp về đúng 1 bar/phiên: nếu một phiên có hai dòng, argmax sẽ tìm đúng vị trí trong danh sách dòng chứ không phải trong danh sách phiên, làm **lệch toàn bộ** chỉ báo.\n\nCùng lý do đó áp dụng cho Stochastic, Williams %R và CCI.",
+      "code": "backend/app/features/advanced_features.py:aroon",
+      "tags": "aroon oscillator argmax window position session"
+    },
+    {
+      "term": "Ichimoku Cloud gồm những thành phần nào và đường nào bị dịch?",
+      "answer": "Ichimoku Kinko Hyo có 5 thành phần:\n\n- **Tenkan-sen** (9 phiên) = (cao nhất 9 + thấp nhất 9) / 2 - đường chuyển động nhanh.\n- **Kijun-sen** (26 phiên) = (cao nhất 26 + thấp nhất 26) / 2 - đường cơ sở.\n- **Senkou Span A** = (Tenkan + Kijun) / 2 - **dịch trước 26 phiên**.\n- **Senkou Span B** = (cao nhất 52 + thấp nhất 52) / 2 - **dịch trước 26 phiên**.\n- **Chikou Span** = close **dịch sau 26 phiên**.\n\nĐiểm dễ nhầm nhất: hai đường Senkou (tạo thành đám mây) được **vẽ 26 phiên trước**, còn Chikou được vẽ **26 phiên sau**.\n\nCách dùng:\n\n- Giá **trên đám mây** - xu hướng tăng.\n- Giá **dưới đám mây** - xu hướng giảm.\n- Tenkan **vượt** Kijun - tín hiệu tăng; Kijun vượt Tenkan - tín hiệu giảm.\n\n> Vì `chikou_span = close.shift(-kijun_period)` dùng `shift(-26)`, đây là một trong số ít chỗ trong hệ thống **nhìn về tương lai** - và nó là **cố ý** (để vẽ đúng hình học), không phải rò rỉ dữ liệu, vì nó không đưa vào tập feature dùng để train.",
+      "code": "backend/app/features/advanced_features.py:ichimoku",
+      "tags": "ichimoku tenkan kijun senkou chikou cloud"
+    },
+    {
+      "term": "Supertrend hoạt động thế nào và khác ATR ở chỗ nào?",
+      "answer": "Supertrend là chỉ báo **xu hướng** được xây trên nền ATR.\n\nCách tính:\n\n1. `hl2` = (high + low) / 2\n2. `upper_band` = `hl2 + 3 * ATR`\n3. `lower_band` = `hl2 - 3 * ATR`\n4. Trạng thái `direction` (1 = tăng, -1 = giảm) được quyết định bằng cách so giá đóng cửa với dải của phiên trước:\n   - `close > upper_band[t-1]` -> chuyển sang tăng.\n   - `close < lower_band[t-1]` -> chuyển sang giảm.\n   - Nếu trong dải -> giữ trạng thái trước, và dải được **siết** (không cho mở rộng ngược hướng).\n5. Giá trị hiển thị: `supertrend = lower_band` khi tăng, `upper_band` khi giảm.\n\nKhác biệt với ATR thuần: ATR đo **biên độ**, Supertrend đo **xu hướng có điều kiện biến động**. Nó cho tín hiệu đảo chiều rõ ràng khi giá phá dải - đó là lý do nó được coi là \"một dải Bollinger được lọc bằng xu hướng\".\n\nCột `trend_direction` cho phép dùng trực tiếp như một tín hiệu 1/-1.",
+      "code": "backend/app/features/advanced_features.py:supertrend",
+      "tags": "supertrend atr bands trend direction signal"
+    },
+    {
+      "term": "OBV và VWAP đo gì và khác nhau ra sao?",
+      "answer": "Cả hai đều dùng **volume**, nhưng đo hai thứ khác nhau.\n\n**OBV** (On-Balance Volume) là một **dòng tiền tích luỹ**:\n\n- Giá tăng -> `OBV += volume`\n- Giá giảm -> `OBV -= volume`\n- Giá bằng -> `OBV` giữ nguyên\n\nCột `obv_change` = `pct_change()` của OBV.\n\nÝ nghĩa: OBV tăng mạnh **trước** khi giá tăng là dấu hiệu tích luỹ (accumulation) - dòng tiền vào mạnh hơn thị trường chưa phản ứng.\n\n**VWAP** (Volume Weighted Average Price) là **mức giá trung bình gia quyền theo volume**:\n\n```\nVWAP = cumsum(TP * volume) / cumsum(volume),  với TP = (high+low+close)/3\n```\n\nÝ nghĩa: VWAP là mức giá \"công bằng\" của phiên - cột `vwap_deviation` cho biết giá đang cao hay thấp hơn mức trung bình có xét khối lượng.\n\nKhác biệt cốt lõi: OBV là **dòng** (đo dòng tiền tích luỹ), VWAP là **mức** (đo giá trung bình). OBV không có nghĩa là về mặt pháp lý; VWAP là mức giá tham chiếu thực tế cho lệnh lớn.",
+      "code": "backend/app/features/advanced_features.py:obv",
+      "tags": "obv vwap volume money flow price average"
+    },
+    {
+      "term": "MFI (Money Flow Index) khác RSI ở chỗ nào?",
+      "answer": "Cả hai đều trong khoảng [0, 100] và đều đo động lượng, nhưng MFI có **yếu tố volume**.\n\nCách tính MFI:\n\n1. `typical_price` = (high + low + close) / 3\n2. `money_flow` = `typical_price * volume`\n3. Tách thành `positive_flow` (typical price tăng) và `negative_flow` (typical price giảm).\n4. `positive_mf` / `negative_mf` = tổng động trong 14 phiên.\n5. `MFI = 100 - (100 / (1 + positive_mf / negative_mf))`\n\nCông thức trông giống RSI nhưng có `volume` trong tử số.\n\nKhác biệt thực tế: RSI chỉ dựa trên **giá**, nên có thể cho tín hiệu quá bán trong một phiên giảm sâu nhưng thanh khoản cạn (tín hiệu giả). MFI cần **cả volume xác nhận**, nên tín hiệu của nó bền hơn trong bối cảnh đó.\n\n> Cùng công thức hình thức, khác dữ liệu đầu vào, khác cả chất lượng tín hiệu. Đó là lý do phải hiểu **từng chỉ báo** chứ không chỉ biết tên.",
+      "code": "backend/app/features/advanced_features.py:mfi",
+      "tags": "mfi money flow index volume rsi difference"
+    },
+    {
+      "term": "Các mẫu nến được nhận diện trong hệ thống và định nghĩa ra sao?",
+      "answer": "`detect_candlestick_patterns()` nhận diện 6 mẫu, tất cả đều là cột **0/1** (nhị phân):\n\n- **`candle_doji`** - thân nhỏ: `body_size < range_size * 0.1` (thân dưới 10% biên độ phiên).\n- **`candle_hammer`** - đảo chiều tăng: bóng dưới > 2 * thân, bóng trên < 0.3 * thân, và thân là **dương**.\n- **`candle_shooting_star`** - đảo chiều giảm: bóng trên > 2 * thân, bóng dưới < 0.3 * thân, và thân là **âm**.\n- **`candle_bullish_engulfing`** - phiên trước thân **âm**, phiên hiện tại thân **dương**, và thân hiện tại **nuốt** thân trước (`close > open.shift(1)` và `open < close.shift(1)`).\n- **`candle_bearish_engulfing`** - ngược lại.\n- **`candle_large_body`** - thân lớn hơn trung vị thân 20 phiên: `body_size > body_size.rolling(20).median()`.\n\nThành phần: `body = close - open`, `body_size = |body|`, `range_size = high - low`, `upper_shadow = high - max(open, close)`, `lower_shadow = min(open, close) - low`.\n\nĐiểm kỹ thuật: `candle_large_body` so sánh với **trung vị** chứ không phải trung bình - trung vị bền hơn trước giá trị ngoại lệ.\n\n> Mẫu nến là thông tin **mờ** trên dữ liệu daily. Chúng được dùng như **đặc trưng phụ** cho mô hình, không phải là tín hiệu giao dịch độc lập.",
+      "code": "backend/app/features/advanced_features.py:detect_candlestick_patterns",
+      "tags": "candlestick patterns doji hammer engulfing shadow"
+    },
+    {
+      "term": "Tín hiệu tổng hợp (composite signals) trong Gold được tính thế nào?",
+      "answer": "`add_composite_signals()` gộp ba chỉ báo thành một tín hiệu số:\n\n**1. Tín hiệu xu hướng (SMA)**: +1 khi `close > sma_20` **và** `sma_20 > sma_50` (xu hướng tăng), -1 khi điều kiện ngược lại, 0 nếu không rõ ràng.\n\n**2. Tín hiệu RSI**: +1 khi `rsi_14 < 30` (quá bán = mua), -1 khi `rsi_14 > 70` (quá mua = bán). Chú ý dấu: RSI thấp là **tín hiệu tăng** vì nó bắt nghịch.\n\n**3. Tín hiệu MACD**: +1 khi `macd > macd_signal`, -1 khi ngược lại.\n\n**Tín hiệu động lượng** = `(sma_trend + rsi_signal + macd_signal) / 3` → giá trị trong khoảng **[-1, +1]**.\n\n**Phân loại cường độ xu hướng** (`trend_strength`): ADX > 25 -> `strong_uptrend`/`strong_downtrend` (tuỳ vị trí giá so với `sma_20`); ADX <= 25 -> `weak_uptrend`/`weak_downtrend`.\n\nĐiểm thiết kế tốt: việc chia cho 3 chuẩn hoá tín hiệu về cùng thang đo, nên không chỉ báo nào chi phối.",
+      "code": "backend/app/features/advanced_features.py:add_composite_signals",
+      "tags": "composite signals momentum trend strength adx"
+    },
+    {
+      "term": "Volume Profile Features trong Gold tính những gì?",
+      "answer": "`add_volume_profile_features()` bổ sung các đặc trưng volume:\n\n- `volume_ma_5`, `volume_ma_20` - trung bình động volume.\n- `volume_ratio` = `volume / volume_ma_20` - volume so với mặt bằng trung bình.\n- `volume_spike` = 1 khi `volume > 2 * volume_ma_20` - phát hiện đột biến thanh khoản.\n- `price_in_range` = `(close - low) / (high - low + 1e-10)` - vị trí giá đóng cửa trong biên độ phiên. Hệ số `1e-10` tránh chia 0 khi high == low.\n- `vwap_position` = `(close - vwap) / vwap * 100` - lệch so với VWAP.\n- `poc_proximity` = `|close - SMA20| / std(SMA20)` - khoảng cách tới giá trị trung bình tính theo độ lệch chuẩn, tức **chuẩn hoá theo biến động**.\n\nVề mặt kỹ thuật, hàm dùng `typical_price` (high+low+close)/3 để tính VWAP nội bộ.\n\n> `poc_proximity` là ví dụ hay về chuẩn hoá: cùng một khái niệm (\"xa giá trung bình\") nhưng được chia cho độ lệch chuẩn để so sánh được giữa lúc thị trường sóng yên và lúc biến động mạnh.",
+      "code": "backend/app/features/advanced_features.py:add_volume_profile_features",
+      "tags": "volume profile vwap spike ratio poc proximity"
+    },
+    {
+      "term": "Dịch vụ chỉ báo (`indicators/service.py`) cấu hình những tham số nào?",
+      "answer": "`IndicatorConfig` là cấu hình tập trung cho toàn bộ chỉ báo:\n\n- `sma_periods` - các kỳ SMA (5, 10, 20, 50).\n- `ema_periods` - các kỳ EMA (12, 26).\n- `rsi_period` = 14.\n- `macd_fast`, `macd_slow`, `macd_signal` (12, 26, 9).\n- `bollinger_period` = 20, `bollinger_std` = 2.\n- `atr_period` = 14.\n- `adx_period` = 14.\n- `aroon_period` = 25.\n- `stochastic_k_period` = 14, `stochastic_d_period` = 3.\n- `cci_period` = 20.\n- `williams_period` = 14.\n- `keltner_period` = 20, `keltner_multiplier` = 2.0.\n- `supertrend_period` = 10, `supertrend_multiplier` = 3.0.\n- `mfi_period` = 14.\n- `ichimoku_tenkan` = 9, `ichimoku_kijun` = 26, `ichimoku_senkou_b` = 52.\n\nMột cấu hình dùng chung có nghĩa: cột trong Gold, giá trị trên UI, và giá trị trong backtest là **cùng một thứ**.\n\n> Cấu hình tập trung là điều kiện để \"chỉ báo trên dashboard\" và \"chỉ báo trong backtest\" không trở thành hai thứ khác nhau.",
+      "code": "backend/app/indicators/service.py:IndicatorConfig",
+      "tags": "indicator config periods centralized parameters"
+    },
+    {
+      "term": "Vì sao chỉ báo phải là causal thì mới dùng được cho dự báo?",
+      "answer": "Vì chỉ báo nhìn về tương lai tạo **look-ahead leakage** - dạng rò rỉ thông tin làm mô hình trông giỏi hơn thực tế.\n\nCụ thể trong hệ thống:\n\n- Mọi `rolling` đều **không** dùng `center=True` - luôn nhìn về quá khứ.\n- Các chỉ báo argmax (Aroon, Stochastic, Williams %R) dùng cửa sổ kết thúc tại phiên hiện tại.\n- `chikou_span = close.shift(-kijun_period)` là ngoại lệ **duy nhất**, và nó **không** được đưa vào tập feature dùng để train - nó chỉ để vẽ đúng hình học Ichimoku.\n\nNếu một chỉ báo nhìn tương lai lọt vào tập feature, walk-forward sẽ cho kết quả đẹp giả và toàn bộ phần đánh giá mô hình trở nên vô nghĩa.\n\n> Kiểm tra nhanh: nếu một chỉ báo thay đổi khi bạn thêm dữ liệu mới vào cuối, nó đang nhìn tương lai.",
+      "code": "backend/app/features/advanced_features.py",
+      "tags": "causal indicators look-ahead leakage rolling window"
+    },
+    {
+      "term": "Vì sao giá trị NaN ở đầu chuỗi là chuyện bình thường và không phải lỗi?",
+      "answer": "Vì một chỉ báo cửa sổ N phiên **không thể** có giá trị ở N-1 phiên đầu tiên - chưa đủ dữ liệu quá khứ.\n\nVí dụ: SMA 50 cần 50 phiên, nên 49 phiên đầu là NaN. RSI 14 cần 14 phiên. LSTM với `sequence_length = 60` bỏ qua 59 dòng đầu.\n\nĐiều này có hai hệ quả được xử lý có chủ đích:\n\n1. **Trong walk-forward**, đó là lý do phải có **warmup context** - nếu không, chỉ báo NaN khiến chiến lược không bao giờ giao dịch.\n2. **Trong dự báo đệ quy**, `_recompute_indicators()` tính lại chỉ báo trên **toàn bộ frame** chứ không chỉ vài bước dự báo, để cửa sổ trượt vẫn đúng (SMA 50 cần 50 phiên ngữ cảnh).\n\nNaN ở đầu là **hệ quả đúng** của việc không nhìn tương lai. Điều đáng lo là NaN ở **giữa** hoặc cuối chuỗi - đó mới là dấu hiệu lỗi dữ liệu.",
+      "code": "backend/app/forecasting/multistep.py:_recompute_indicators",
+      "tags": "nan warmup indicator lookback insufficient data"
+    }
+  ]
+}

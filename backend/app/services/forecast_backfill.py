@@ -112,7 +112,9 @@ def backfill_symbol(
         session = get_session_factory()()
 
     try:
-        model = load_model(symbol, model_name)
+        from app.forecasting.model_registry import load_evaluation_model
+
+        model = load_evaluation_model(symbol, model_name)
         registry = load_registry_record(symbol, model_name)
         gold = GoldLayer().read(symbol)
         if gold.empty:
@@ -128,7 +130,7 @@ def backfill_symbol(
         repository = PredictionRepository(session)
         stored = 0
         for point in points:
-            target = _session_date(point.get("timestamp"))
+            target = _session_date(point.get("timestamp"), symbol)
             actual = point.get("actual")
             predicted = point.get("predicted")
             if target is None or actual is None or predicted is None:
@@ -157,7 +159,7 @@ def backfill_symbol(
         # The outcome columns are written by the scoring pass, not by the
         # forecast upsert, so the backfilled scores are applied explicitly.
         for point in points:
-            target = _session_date(point.get("timestamp"))
+            target = _session_date(point.get("timestamp"), symbol)
             actual = point.get("actual")
             predicted = point.get("predicted")
             if target is None or actual is None or predicted is None:
@@ -245,10 +247,10 @@ def _holdout_window(registry: dict[str, Any]) -> tuple[Any, Any]:
             return None
         return None if pd.isna(stamp) else stamp
 
-    return (_parse(registry.get("test_start")), _parse(registry.get("test_end")))
+    return (_parse(registry.get("test_target_start") or registry.get("test_start")), _parse(registry.get("test_target_end") or registry.get("test_end")))
 
 
-def _session_date(timestamp: Any) -> Any:
+def _session_date(timestamp: Any, symbol: str | None = None) -> Any:
     if not timestamp:
         return None
     try:
@@ -257,7 +259,8 @@ def _session_date(timestamp: Any) -> Any:
         stamp = pd.Timestamp(timestamp)
         if stamp.tzinfo is None:
             stamp = stamp.tz_localize("UTC")
-        return stamp.date()
+        from app.lakehouse.exchange_timezone import session_day_of
+        return session_day_of(stamp, symbol)
     except Exception:  # noqa: BLE001
         return None
 

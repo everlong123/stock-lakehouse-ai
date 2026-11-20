@@ -329,11 +329,16 @@ function renderBlock(block: Block, idx: number): ReactNode {
   switch (block.kind) {
     case "heading": {
       const safe = escapeHtml(block.text);
+      // WHY THE THREE HEADING SIZES ARE ALL "body": the design system has
+      // exactly five type sizes, and a markdown H1 inside a chat bubble is
+      // a section title, not a page title. Mapping it to `text-heading`
+      // (24px) would make one line of the agent's answer the largest
+      // thing on screen and break the bubble's rhythm.
       const className =
         block.level === 1
-          ? "text-base font-semibold text-ink"
+          ? "text-body font-semibold text-ink"
           : block.level === 2
-            ? "text-sm font-semibold text-ink"
+            ? "text-body font-semibold text-ink"
             : "text-small font-semibold text-ink";
       return (
         <div key={idx} className={className}>
@@ -354,7 +359,7 @@ function renderBlock(block: Block, idx: number): ReactNode {
       return (
         <blockquote
           key={idx}
-          className="border-l-2 border-muted-foreground/40 pl-3 text-muted"
+          className="border-l-2 border-hairline pl-3 text-muted"
         >
           {renderInline(escapeHtml(block.text))}
         </blockquote>

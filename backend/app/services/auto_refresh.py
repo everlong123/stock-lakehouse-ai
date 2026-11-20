@@ -32,7 +32,7 @@ import pandas as pd
 from app.core.config import settings
 from app.core.heavy_worker import run_in_process
 from app.core.logging_config import get_logger
-from app.core.constants import CRYPTO_SYMBOLS, GLOBAL_SYMBOLS, VN_SYMBOLS
+from app.core.constants import CRYPTO_SYMBOLS, GLOBAL_SYMBOLS, MARKET_INDEXES, VN_SYMBOLS
 from app.core.request_gate import wait_while_user_active
 from app.data_sources.factory import get_data_provider
 from app.lakehouse.bronze import BronzeLayer
@@ -233,6 +233,10 @@ class AutoRefreshService:
     """Background service that incrementally updates the lakehouse on startup + schedule."""
 
     def __init__(self) -> None:
+        self._run_lock = threading.Lock()
+        self.running = False
+        self.last_started_at: datetime | None = None
+        self.progress: dict = {}
         self._enabled = _env_bool("AUTO_REFRESH_ENABLED", settings.auto_refresh_enabled)
         self._on_start = _env_bool("AUTO_REFRESH_ON_START", True)
         self._interval_seconds = _env_int("AUTO_REFRESH_INTERVAL_SECONDS", 6 * 3600)
@@ -257,6 +261,8 @@ class AutoRefreshService:
             for s in VN_SYMBOLS:
                 merged.setdefault(s, None)
             for s in CRYPTO_SYMBOLS:
+                merged.setdefault(s, None)
+            for s in MARKET_INDEXES:
                 merged.setdefault(s, None)
             self._symbols = list(merged)
 
@@ -323,6 +329,19 @@ class AutoRefreshService:
                 logger.exception("AutoRefreshService periodic run failed: %s", exc)
 
     def run_once(self, symbols: Iterable[str] | None = None) -> dict:
+        """Serialize refresh passes and expose whether work is in progress."""
+        if not self._run_lock.acquire(blocking=False):
+            return {"skipped": True, "reason": "refresh_already_running"}
+        self.running = True
+        self.last_started_at = datetime.now(timezone.utc)
+        self.progress = {}
+        try:
+            return self._run_once(symbols)
+        finally:
+            self.running = False
+            self._run_lock.release()
+
+    def _run_once(self, symbols: Iterable[str] | None = None) -> dict:
         """Run one full incremental refresh pass. Returns summary dict."""
         started = datetime.now(timezone.utc)
         provider = get_data_provider()
@@ -361,11 +380,12 @@ class AutoRefreshService:
         _silver = SilverLayer()
         silver_done, gold_done = 0, 0
         predicted_done = 0
+        rebuild_errors: list[dict] = []
         _counts_lock = threading.Lock()
 
         def _rebuild_layers(sym: str, res: dict) -> None:
             """Bring Silver+Gold in line with Bronze for one symbol, inline."""
-            nonlocal silver_done, gold_done
+            nonlocal silver_done, gold_done, predicted_done
             if self._stop_event.is_set() or res.get("error"):
                 return
             # A Silver+Gold rebuild rewrites ~121 monthly partitions per layer.
@@ -448,8 +468,8 @@ class AutoRefreshService:
                     # hold an after-hours bar at 20:00 UTC for a session that
                     # Gold stamps at 13:30, and comparing those raw values
                     # would rebuild the symbol on every pass forever.
-                    bronze_day = session_date(bronze_ts, symbol)
-                    gold_day = session_date(gold_ts, symbol)
+                    bronze_day = session_date(bronze_ts, sym)
+                    gold_day = session_date(gold_ts, sym)
                     needs_rebuild = bronze_day is not None and (
                         gold_day is None or gold_day < bronze_day
                     )
@@ -528,6 +548,9 @@ class AutoRefreshService:
                     silver_done += 1
             except Exception as exc:
                 logger.warning("AutoRefresh silver rebuild failed for %s: %s", sym, exc)
+                with _counts_lock:
+                    rebuild_errors.append({"symbol": sym, "stage": "silver", "error": str(exc)})
+                return
             try:
                 run_in_process(
                     rebuild_gold_job,
@@ -539,6 +562,9 @@ class AutoRefreshService:
                     gold_done += 1
             except Exception as exc:
                 logger.warning("AutoRefresh gold rebuild failed for %s: %s", sym, exc)
+                with _counts_lock:
+                    rebuild_errors.append({"symbol": sym, "stage": "gold", "error": str(exc)})
+                return
             # Drop the memoised frame for THIS symbol so the UI immediately
             # serves the rows we just wrote instead of a pre-ingest snapshot.
             # Done per symbol (not once at the end) so pages opened mid-pass
@@ -574,7 +600,7 @@ class AutoRefreshService:
                         horizon=1,
                         source="auto_eod_batch",
                     )
-                    if forecast.get("available"):
+                    if forecast.get("stored"):
                         with _counts_lock:
                             predicted_done += 1
                     else:
@@ -635,6 +661,7 @@ class AutoRefreshService:
                     rebuild_pool.submit(_rebuild_layers, sym, results[idx])
                 )
                 completed += 1
+                self.progress = {"symbols_total": len(target_symbols), "fetched": completed, "silver_rebuilt": silver_done, "gold_rebuilt": gold_done}
                 if completed % self._batch_size == 0:
                     logger.info(
                         "AutoRefresh progress: %d/%d symbols processed (silver=%d gold=%d)",
@@ -668,7 +695,8 @@ class AutoRefreshService:
             "silver_rebuilt": silver_done,
             "gold_rebuilt": gold_done,
             "next_session_forecasts": predicted_done,
-            "errors": [r for r in results if r.get("error")],
+            "errors": [r for r in results if r.get("error")] + rebuild_errors,
+            "provider_empty_symbols": [r["symbol"] for r in results if r.get("reason") == "provider returned empty frame"],
         }
         self._last_run_at = finished
         self._last_summary = summary

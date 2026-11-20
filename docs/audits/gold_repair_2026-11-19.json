@@ -1,0 +1,6230 @@
+{
+  "phase": "gold",
+  "model": "linear_regression",
+  "updated_at_utc": "2026-11-18T21:51:12.314174+00:00",
+  "total": 1037,
+  "results": [
+    {
+      "symbol": "AAL",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "A",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2537
+    },
+    {
+      "symbol": "AAPL",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "ABBV",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "ABNB",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 1492
+    },
+    {
+      "symbol": "ABT",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "ACAD",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "ACHC",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "ACI",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 1608
+    },
+    {
+      "symbol": "ACLS",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "ADBE",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "ADI",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "ADM",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "ADP",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "AEE",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "AEHR",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "AEM",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "AEO",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "AEP",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "AES",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "AFL",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "AG",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "AGG",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "AJG",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "ALB",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "ALK",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "ALL",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "ALLE",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "ALLY",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "AZN",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2527
+    },
+    {
+      "symbol": "AMAT",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "AMD",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "AMGN",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "AMP",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "AMT",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "AMZN",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "AN",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "ANET",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "ANF",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "AON",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "AOS",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "APA",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "APD",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "AR",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "ARCB",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "ARKF",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 1960
+    },
+    {
+      "symbol": "ARE",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "ARKK",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "ARKW",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "ARM",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 799
+    },
+    {
+      "symbol": "ARVN",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2047
+    },
+    {
+      "symbol": "ASML",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "ATO",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "AU",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "AVB",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 1
+    },
+    {
+      "symbol": "AVA",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "AVGO",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "AWK",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "AWR",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "AXP",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "AYI",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "AZO",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "BA",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "BAC",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "BAX",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "BBIO",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 1860
+    },
+    {
+      "symbol": "BBWI",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "BBY",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "BDN",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "BDX",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "BEAM",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 1706
+    },
+    {
+      "symbol": "BG",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "BIIB",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "BIL",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "BIO",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "BIP",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "BITO",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 1276
+    },
+    {
+      "symbol": "BITX",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 854
+    },
+    {
+      "symbol": "BITQ",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 1388
+    },
+    {
+      "symbol": "BJRI",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2530
+    },
+    {
+      "symbol": "BNY",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2513
+    },
+    {
+      "symbol": "BKH",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2536
+    },
+    {
+      "symbol": "BKNG",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2530
+    },
+    {
+      "symbol": "BLDR",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2530
+    },
+    {
+      "symbol": "BLK",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2530
+    },
+    {
+      "symbol": "BLMN",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2530
+    },
+    {
+      "symbol": "BMRN",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "BND",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "BNDX",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "BNTX",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 1787
+    },
+    {
+      "symbol": "BP",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "BRO",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "BRX",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "BTF",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 1254
+    },
+    {
+      "symbol": "BSX",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "BURL",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "BXP",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "C",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "CAG",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "CAKE",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "CAR",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "CAT",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "CBOE",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "CBRL",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "CC",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "CCEP",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "CCI",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "CCJ",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "CDE",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "CDNS",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "CELH",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "CF",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "CFG",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "CHD",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "CHE",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "EXE",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 1451
+    },
+    {
+      "symbol": "CHRW",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "CHTR",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "CINF",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "CL",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "CLH",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "CMCSA",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "CME",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "CMG",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2626
+    },
+    {
+      "symbol": "CMI",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "CMS",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "CNP",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "CNX",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "COF",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "COP",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "COR",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "COST",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "CPB",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "CPRI",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "CPT",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "CRM",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "CRSP",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2535
+    },
+    {
+      "symbol": "CRWD",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 1871
+    },
+    {
+      "symbol": "CSCO",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "CSX",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "CTO",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "CUZ",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "CVX",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "CWT",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "D",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "DAL",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "DASH",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 1493
+    },
+    {
+      "symbol": "DD",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "DDOG",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 1802
+    },
+    {
+      "symbol": "DE",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "DEI",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "DELL",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "DG",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "DGX",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "DHR",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "DIA",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "DIN",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "DIS",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "DLR",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "DLTR",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "DOC",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "DOCS",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 1358
+    },
+    {
+      "symbol": "DOCU",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2153
+    },
+    {
+      "symbol": "DOV",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "DOW",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 1929
+    },
+    {
+      "symbol": "DPZ",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "DRI",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "DTE",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "DUK",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "EA",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 1
+    },
+    {
+      "symbol": "DVN",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "EAT",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "EBAY",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "ECL",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "ED",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "EEM",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "EFA",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "EIX",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "ELAN",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2052
+    },
+    {
+      "symbol": "EMR",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "ENB",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "ENSG",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "ENTG",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "EOG",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "EPD",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "EQIX",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "EQR",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 1
+    },
+    {
+      "symbol": "EQNR",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "EQT",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "ERIE",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "ES",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "ESS",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "ESTC",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2041
+    },
+    {
+      "symbol": "ETHE",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 1869
+    },
+    {
+      "symbol": "ETN",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "ETR",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "ETSY",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2543
+    },
+    {
+      "symbol": "EW",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2543
+    },
+    {
+      "symbol": "EXC",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2543
+    },
+    {
+      "symbol": "EXEL",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "EXP",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "EXPE",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "EXR",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "F",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "FAF",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "FANG",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "FAST",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "FATE",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "FCX",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "FDX",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "FE",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "FICO",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "FITB",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "FLO",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "FNF",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "FNKO",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2273
+    },
+    {
+      "symbol": "FNV",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "FORM",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "FOX",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 1934
+    },
+    {
+      "symbol": "FOXA",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 1935
+    },
+    {
+      "symbol": "FROG",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 1552
+    },
+    {
+      "symbol": "FRT",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "FTNT",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "GBTC",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "GD",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "GE",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "GILD",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "GLBE",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 1388
+    },
+    {
+      "symbol": "GIS",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "GLD",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2530
+    },
+    {
+      "symbol": "GM",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2530
+    },
+    {
+      "symbol": "GNRC",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2530
+    },
+    {
+      "symbol": "GOLD",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2530
+    },
+    {
+      "symbol": "GOOG",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "GOOGL",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2530
+    },
+    {
+      "symbol": "GS",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "GTLB",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 1280
+    },
+    {
+      "symbol": "GTY",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "HALO",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "HAS",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "HBAN",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2543
+    },
+    {
+      "symbol": "HD",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2543
+    },
+    {
+      "symbol": "HDV",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2543
+    },
+    {
+      "symbol": "HEI",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2543
+    },
+    {
+      "symbol": "HIG",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2543
+    },
+    {
+      "symbol": "HL",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "HIW",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "HPE",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "HON",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "HPQ",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "HQY",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "HR",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "HRB",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "HRL",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "HST",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "HWM",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2526
+    },
+    {
+      "symbol": "HSY",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "IBM",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "HYG",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "ICE",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "ICL",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "ICLR",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "IDXX",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "IEF",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "ILMN",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "IMVT",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 1864
+    },
+    {
+      "symbol": "INCY",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "INTC",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "INTU",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "IOVA",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2543
+    },
+    {
+      "symbol": "OMC",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2543
+    },
+    {
+      "symbol": "IRON",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 1576
+    },
+    {
+      "symbol": "IR",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2394
+    },
+    {
+      "symbol": "ISRG",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "ITW",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "JACK",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "IWM",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "JAZZ",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "JBHT",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "JBLU",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "JNJ",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "JPM",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "KDP",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "KEY",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "KGC",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "KHC",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "KIM",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "KLAC",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "KMI",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "KMX",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "KNX",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "KO",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "KR",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "KRYS",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2304
+    },
+    {
+      "symbol": "KRC",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "KYMR",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 1569
+    },
+    {
+      "symbol": "LAC",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 787
+    },
+    {
+      "symbol": "KSS",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "LCID",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 1550
+    },
+    {
+      "symbol": "LH",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "LI",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 1585
+    },
+    {
+      "symbol": "LIN",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "LLY",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "LMT",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "LNT",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "LOW",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "LQD",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "LRCX",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "LUV",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "LYFT",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 1922
+    },
+    {
+      "symbol": "LYV",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "M",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "MA",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "MAA",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "MAC",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "MAS",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2530
+    },
+    {
+      "symbol": "MBLY",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 1020
+    },
+    {
+      "symbol": "MAT",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2530
+    },
+    {
+      "symbol": "MCD",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "MCHP",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "MEDP",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2530
+    },
+    {
+      "symbol": "MDT",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2530
+    },
+    {
+      "symbol": "MET",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "MELI",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2530
+    },
+    {
+      "symbol": "META",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "MGEE",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "MGNX",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "MGM",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "MLM",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "MKTX",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "MNDY",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 1368
+    },
+    {
+      "symbol": "MMM",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "MNST",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "MO",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "MOS",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "MPC",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "MPLX",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "MPWR",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "MRK",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "MRNA",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 1998
+    },
+    {
+      "symbol": "MS",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "MSFT",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "MSI",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "MTB",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "MTCH",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "MTD",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "MTDR",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "MTUM",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "MU",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "MUB",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "NBIX",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "NDAQ",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "NEE",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "NEM",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "NEO",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "NET",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 1806
+    },
+    {
+      "symbol": "NFG",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "NFLX",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "NGL",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "NHI",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "NIO",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2058
+    },
+    {
+      "symbol": "NI",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "NJR",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "NKE",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "NNN",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "NOC",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "NOW",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "NRG",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "NSC",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2596
+    },
+    {
+      "symbol": "NTLA",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "NTR",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2233
+    },
+    {
+      "symbol": "NTRA",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "NTRS",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "NVAX",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "NVDA",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2545
+    },
+    {
+      "symbol": "NVMI",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "NWE",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2541
+    },
+    {
+      "symbol": "NWS",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "NWSA",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "O",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "OC",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "OCGN",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "ODFL",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "OGE",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "OGS",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "OHI",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "OKE",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "OKTA",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2418
+    },
+    {
+      "symbol": "OMC",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2543
+    },
+    {
+      "symbol": "ON",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2530
+    },
+    {
+      "symbol": "OR",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2530
+    },
+    {
+      "symbol": "ORCL",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2530
+    },
+    {
+      "symbol": "ORLY",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2530
+    },
+    {
+      "symbol": "OUT",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2530
+    },
+    {
+      "symbol": "OVV",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2530
+    },
+    {
+      "symbol": "OXY",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2530
+    },
+    {
+      "symbol": "PAA",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2530
+    },
+    {
+      "symbol": "PAAS",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "PARA",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 1448
+    },
+    {
+      "symbol": "PANW",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "PAYC",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "PBR",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "PCAR",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "PCG",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "DOC",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "PEG",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "PEP",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "PFE",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "PFGC",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "PG",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "PGR",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "PH",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "PINS",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 1908
+    },
+    {
+      "symbol": "PLTR",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 1542
+    },
+    {
+      "symbol": "PLD",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "PNC",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "PM",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "PNR",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "PNW",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "POWL",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "POST",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "PPG",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "PPL",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "PR",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "PRGO",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "PRME",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 1024
+    },
+    {
+      "symbol": "PRU",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "PSA",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "PSNL",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 1865
+    },
+    {
+      "symbol": "PSX",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "PTCT",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "PTGX",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "PVH",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "PYPL",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "PZZA",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "QCOM",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "QQQ",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "QRVO",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2512
+    },
+    {
+      "symbol": "QSR",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "QUAL",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "RARE",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "RBLX",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 1432
+    },
+    {
+      "symbol": "REG",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "REGN",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "REXR",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "RF",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "RGLD",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "RIGL",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "RIVN",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 1261
+    },
+    {
+      "symbol": "RJF",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "RL",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "ROKU",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2289
+    },
+    {
+      "symbol": "ROP",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "ROST",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "RRC",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "RSG",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "RTX",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "RVMD",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 1701
+    },
+    {
+      "symbol": "S",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 1354
+    },
+    {
+      "symbol": "SAP",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "SBUX",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "SCHD",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "SCHW",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "SHEL",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "SHOP",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "SHW",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2537
+    },
+    {
+      "symbol": "SHY",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2537
+    },
+    {
+      "symbol": "SJM",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "SKT",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "SLB",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "SLG",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "SLV",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "SNAP",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2444
+    },
+    {
+      "symbol": "SNDR",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2419
+    },
+    {
+      "symbol": "SNOW",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 1552
+    },
+    {
+      "symbol": "SNPS",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2530
+    },
+    {
+      "symbol": "SO",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2530
+    },
+    {
+      "symbol": "SOXL",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2530
+    },
+    {
+      "symbol": "SPB",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2530
+    },
+    {
+      "symbol": "SPG",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2530
+    },
+    {
+      "symbol": "SPGI",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2530
+    },
+    {
+      "symbol": "SPOT",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2171
+    },
+    {
+      "symbol": "SPXU",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "SPY",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "SQM",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "SQQQ",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "SR",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "SRE",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "SSRM",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "STLA",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "STM",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "STT",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "SWK",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "SWKS",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "SWX",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "SYF",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "SYK",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "SYY",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "T",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "TARS",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 1530
+    },
+    {
+      "symbol": "TDG",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "TDY",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "TEAM",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "TFC",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "TGT",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "TGTX",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "TIP",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "TJX",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "TLT",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "TMO",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "TMUS",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "TPL",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "TPR",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "TQQQ",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "TROX",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "TRP",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "TRV",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "TSLA",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "TSM",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "TSN",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "TTD",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "TTE",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "TW",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 1918
+    },
+    {
+      "symbol": "TWLO",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "TXN",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "TXRH",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "TXT",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "U",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 1550
+    },
+    {
+      "symbol": "UAL",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "UBER",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 1893
+    },
+    {
+      "symbol": "UCTT",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "UDR",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "ULTA",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "UNFI",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "UNG",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "UNH",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "UNP",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "UPRO",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "UPS",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "URA",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "URBN",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "USB",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "USFD",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "USMV",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "USO",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "UTHR",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "UVV",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "UUUU",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "V",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "VEA",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "VEEV",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "VFC",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "VICI",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2233
+    },
+    {
+      "symbol": "VIG",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "VLO",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "VMC",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "VNO",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "VNOM",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "VOO",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "VRSK",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "VRTX",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "VTEB",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "VTI",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "VTR",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "VTV",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "VUG",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "VWO",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "VZ",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "WAT",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "WCN",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "WDAY",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "WEC",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "WELL",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "WERN",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "WEST",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 1276
+    },
+    {
+      "symbol": "WFC",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "WING",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "WM",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "WMB",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "WOLF",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 288
+    },
+    {
+      "symbol": "WMT",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "WPM",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "WRB",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "WTW",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "XEL",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "XOM",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "XPEV",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 1565
+    },
+    {
+      "symbol": "XPO",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "XRAY",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "XYL",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "YELP",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "YPF",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "YUM",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "ZBH",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "ZION",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "ZM",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 1908
+    },
+    {
+      "symbol": "ZS",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2182
+    },
+    {
+      "symbol": "ZTS",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "ADS.DE",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2563
+    },
+    {
+      "symbol": "ALV.DE",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2563
+    },
+    {
+      "symbol": "BAS.DE",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2563
+    },
+    {
+      "symbol": "BAYN.DE",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2563
+    },
+    {
+      "symbol": "BMW.DE",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2563
+    },
+    {
+      "symbol": "BNR.DE",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2563
+    },
+    {
+      "symbol": "CON.DE",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2563
+    },
+    {
+      "symbol": "DB1.DE",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2563
+    },
+    {
+      "symbol": "DBK.DE",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2563
+    },
+    {
+      "symbol": "DHL.DE",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2563
+    },
+    {
+      "symbol": "DTE.DE",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2563
+    },
+    {
+      "symbol": "EOAN.DE",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2563
+    },
+    {
+      "symbol": "FRE.DE",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2563
+    },
+    {
+      "symbol": "HEIA.AS",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2573
+    },
+    {
+      "symbol": "HEN3.DE",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2563
+    },
+    {
+      "symbol": "IFX.DE",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2563
+    },
+    {
+      "symbol": "LIN.DE",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2563
+    },
+    {
+      "symbol": "MBG.DE",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2563
+    },
+    {
+      "symbol": "MRK.DE",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2563
+    },
+    {
+      "symbol": "MTX.DE",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2563
+    },
+    {
+      "symbol": "P911.DE",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 1053
+    },
+    {
+      "symbol": "MUV2.DE",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2563
+    },
+    {
+      "symbol": "PAH3.DE",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2563
+    },
+    {
+      "symbol": "QIA.DE",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2563
+    },
+    {
+      "symbol": "RWE.DE",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2563
+    },
+    {
+      "symbol": "SAP.DE",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2563
+    },
+    {
+      "symbol": "SIE.DE",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2563
+    },
+    {
+      "symbol": "VOW3.DE",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2563
+    },
+    {
+      "symbol": "VNA.DE",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2563
+    },
+    {
+      "symbol": "ZAL.DE",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2563
+    },
+    {
+      "symbol": "AI.PA",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2581
+    },
+    {
+      "symbol": "AIR.PA",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2581
+    },
+    {
+      "symbol": "BNP.PA",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2581
+    },
+    {
+      "symbol": "BN.PA",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2581
+    },
+    {
+      "symbol": "CAP.PA",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2581
+    },
+    {
+      "symbol": "CA.PA",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2581
+    },
+    {
+      "symbol": "DG.PA",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2581
+    },
+    {
+      "symbol": "CS.PA",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2581
+    },
+    {
+      "symbol": "ENGI.PA",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2581
+    },
+    {
+      "symbol": "EL.PA",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2581
+    },
+    {
+      "symbol": "EN.PA",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2581
+    },
+    {
+      "symbol": "GLE.PA",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2581
+    },
+    {
+      "symbol": "HO.PA",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2581
+    },
+    {
+      "symbol": "MC.PA",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2581
+    },
+    {
+      "symbol": "ML.PA",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2581
+    },
+    {
+      "symbol": "OR.PA",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2581
+    },
+    {
+      "symbol": "PUB.PA",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2581
+    },
+    {
+      "symbol": "RNO.PA",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2581
+    },
+    {
+      "symbol": "SAN.PA",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2581
+    },
+    {
+      "symbol": "SAF.PA",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2581
+    },
+    {
+      "symbol": "STLAM.MI",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2553
+    },
+    {
+      "symbol": "SGO.PA",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2581
+    },
+    {
+      "symbol": "SU.PA",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2581
+    },
+    {
+      "symbol": "TTE.PA",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2581
+    },
+    {
+      "symbol": "VIV.PA",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2581
+    },
+    {
+      "symbol": "VIE.PA",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2581
+    },
+    {
+      "symbol": "SHEL.L",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2547
+    },
+    {
+      "symbol": "AZN.L",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2547
+    },
+    {
+      "symbol": "HSBA.L",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2546
+    },
+    {
+      "symbol": "BP.L",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2546
+    },
+    {
+      "symbol": "ULVR.L",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2547
+    },
+    {
+      "symbol": "DGE.L",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2546
+    },
+    {
+      "symbol": "GSK.L",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2547
+    },
+    {
+      "symbol": "RIO.L",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2546
+    },
+    {
+      "symbol": "BARC.L",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2546
+    },
+    {
+      "symbol": "LSEG.L",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2547
+    },
+    {
+      "symbol": "LLOY.L",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2547
+    },
+    {
+      "symbol": "NG.L",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2547
+    },
+    {
+      "symbol": "REL.L",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2547
+    },
+    {
+      "symbol": "TSCO.L",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2547
+    },
+    {
+      "symbol": "VOD.L",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2546
+    },
+    {
+      "symbol": "ASML.AS",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2580
+    },
+    {
+      "symbol": "AD.AS",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2580
+    },
+    {
+      "symbol": "INGA.AS",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2580
+    },
+    {
+      "symbol": "UNA.AS",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 1526
+    },
+    {
+      "symbol": "PHIA.AS",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2580
+    },
+    {
+      "symbol": "SAN.MC",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2578
+    },
+    {
+      "symbol": "IBE.MC",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2578
+    },
+    {
+      "symbol": "ITX.MC",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2578
+    },
+    {
+      "symbol": "TEF.MC",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2578
+    },
+    {
+      "symbol": "ENI.MI",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2561
+    },
+    {
+      "symbol": "ISP.MI",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2561
+    },
+    {
+      "symbol": "ENEL.MI",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2561
+    },
+    {
+      "symbol": "RACE.MI",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2561
+    },
+    {
+      "symbol": "NESN.SW",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2533
+    },
+    {
+      "symbol": "NOVN.SW",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2533
+    },
+    {
+      "symbol": "RO.SW",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2526
+    },
+    {
+      "symbol": "UBSG.SW",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2533
+    },
+    {
+      "symbol": "ABBN.SW",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2533
+    },
+    {
+      "symbol": "7203.T",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2485
+    },
+    {
+      "symbol": "6758.T",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2482
+    },
+    {
+      "symbol": "9984.T",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2482
+    },
+    {
+      "symbol": "8306.T",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2482
+    },
+    {
+      "symbol": "6861.T",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2482
+    },
+    {
+      "symbol": "7974.T",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2482
+    },
+    {
+      "symbol": "9433.T",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2482
+    },
+    {
+      "symbol": "8035.T",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2482
+    },
+    {
+      "symbol": "4063.T",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2482
+    },
+    {
+      "symbol": "6501.T",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2482
+    },
+    {
+      "symbol": "7267.T",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2482
+    },
+    {
+      "symbol": "7751.T",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2482
+    },
+    {
+      "symbol": "6902.T",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2482
+    },
+    {
+      "symbol": "6367.T",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2482
+    },
+    {
+      "symbol": "7741.T",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2482
+    },
+    {
+      "symbol": "4502.T",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2482
+    },
+    {
+      "symbol": "4503.T",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2482
+    },
+    {
+      "symbol": "2802.T",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2482
+    },
+    {
+      "symbol": "2914.T",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2480
+    },
+    {
+      "symbol": "3407.T",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2482
+    },
+    {
+      "symbol": "4452.T",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2482
+    },
+    {
+      "symbol": "9020.T",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2482
+    },
+    {
+      "symbol": "9022.T",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2482
+    },
+    {
+      "symbol": "6098.T",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2482
+    },
+    {
+      "symbol": "4661.T",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2482
+    },
+    {
+      "symbol": "6954.T",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2482
+    },
+    {
+      "symbol": "6981.T",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2482
+    },
+    {
+      "symbol": "6594.T",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2482
+    },
+    {
+      "symbol": "9432.T",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2482
+    },
+    {
+      "symbol": "9434.T",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 1928
+    },
+    {
+      "symbol": "4689.T",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2482
+    },
+    {
+      "symbol": "3659.T",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2482
+    },
+    {
+      "symbol": "9983.T",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2482
+    },
+    {
+      "symbol": "3382.T",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2482
+    },
+    {
+      "symbol": "8411.T",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2482
+    },
+    {
+      "symbol": "8316.T",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2482
+    },
+    {
+      "symbol": "6752.T",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2482
+    },
+    {
+      "symbol": "7269.T",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2482
+    },
+    {
+      "symbol": "8801.T",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2482
+    },
+    {
+      "symbol": "0700.HK",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2482
+    },
+    {
+      "symbol": "9988.HK",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 1717
+    },
+    {
+      "symbol": "9618.HK",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 1579
+    },
+    {
+      "symbol": "3690.HK",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2007
+    },
+    {
+      "symbol": "1810.HK",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2060
+    },
+    {
+      "symbol": "0941.HK",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2482
+    },
+    {
+      "symbol": "1299.HK",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2482
+    },
+    {
+      "symbol": "0005.HK",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2482
+    },
+    {
+      "symbol": "0001.HK",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2482
+    },
+    {
+      "symbol": "0016.HK",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2482
+    },
+    {
+      "symbol": "0027.HK",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2482
+    },
+    {
+      "symbol": "0066.HK",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2482
+    },
+    {
+      "symbol": "0388.HK",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2482
+    },
+    {
+      "symbol": "1398.HK",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2482
+    },
+    {
+      "symbol": "0939.HK",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2482
+    },
+    {
+      "symbol": "3988.HK",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2482
+    },
+    {
+      "symbol": "2628.HK",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2482
+    },
+    {
+      "symbol": "0823.HK",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2461
+    },
+    {
+      "symbol": "2388.HK",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2482
+    },
+    {
+      "symbol": "0023.HK",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2482
+    },
+    {
+      "symbol": "BABA",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2534
+    },
+    {
+      "symbol": "JD",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2534
+    },
+    {
+      "symbol": "PDD",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2091
+    },
+    {
+      "symbol": "BIDU",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2534
+    },
+    {
+      "symbol": "XPEV",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 1565
+    },
+    {
+      "symbol": "NIO",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2058
+    },
+    {
+      "symbol": "LI",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 1585
+    },
+    {
+      "symbol": "TME",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 1995
+    },
+    {
+      "symbol": "BILI",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2174
+    },
+    {
+      "symbol": "NTES",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2534
+    },
+    {
+      "symbol": "ZTO",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2529
+    },
+    {
+      "symbol": "YUMC",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2534
+    },
+    {
+      "symbol": "EDU",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2534
+    },
+    {
+      "symbol": "TAL",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2533
+    },
+    {
+      "symbol": "KC",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 1642
+    },
+    {
+      "symbol": "VIPS",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2533
+    },
+    {
+      "symbol": "FUTU",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 1937
+    },
+    {
+      "symbol": "TIGR",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 1929
+    },
+    {
+      "symbol": "YMM",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 1359
+    },
+    {
+      "symbol": "ACH",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2532
+    },
+    {
+      "symbol": "NOAH",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2533
+    },
+    {
+      "symbol": "INFY",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2533
+    },
+    {
+      "symbol": "WIT",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2533
+    },
+    {
+      "symbol": "IBN",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2533
+    },
+    {
+      "symbol": "HDB",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2310
+    },
+    {
+      "symbol": "RDY",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2533
+    },
+    {
+      "symbol": "TTMI",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2527
+    },
+    {
+      "symbol": "SIFY",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2533
+    },
+    {
+      "symbol": "MMYT",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2533
+    },
+    {
+      "symbol": "VALE",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2533
+    },
+    {
+      "symbol": "ITUB",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2533
+    },
+    {
+      "symbol": "BBD",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2533
+    },
+    {
+      "symbol": "PBR",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "ABBV",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "EMBJ",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2526
+    },
+    {
+      "symbol": "BSBR",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2533
+    },
+    {
+      "symbol": "UGP",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2533
+    },
+    {
+      "symbol": "LMT",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "STNE",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2027
+    },
+    {
+      "symbol": "SHOP",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "RY.TO",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2529
+    },
+    {
+      "symbol": "TD.TO",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2529
+    },
+    {
+      "symbol": "ENB.TO",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2529
+    },
+    {
+      "symbol": "BNS.TO",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2529
+    },
+    {
+      "symbol": "BMO.TO",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2529
+    },
+    {
+      "symbol": "CP.TO",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2529
+    },
+    {
+      "symbol": "CNR.TO",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2529
+    },
+    {
+      "symbol": "SU.TO",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2529
+    },
+    {
+      "symbol": "L.TO",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2529
+    },
+    {
+      "symbol": "BAM.TO",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 995
+    },
+    {
+      "symbol": "MFC.TO",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2529
+    },
+    {
+      "symbol": "FNV.TO",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2529
+    },
+    {
+      "symbol": "ABX.TO",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2529
+    },
+    {
+      "symbol": "GOLD",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2530
+    },
+    {
+      "symbol": "TRI.TO",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2529
+    },
+    {
+      "symbol": "WCN.TO",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2529
+    },
+    {
+      "symbol": "QSR.TO",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2529
+    },
+    {
+      "symbol": "MG.TO",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2529
+    },
+    {
+      "symbol": "BHP.AX",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2551
+    },
+    {
+      "symbol": "CBA.AX",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2551
+    },
+    {
+      "symbol": "CSL.AX",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2551
+    },
+    {
+      "symbol": "NAB.AX",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2551
+    },
+    {
+      "symbol": "WBC.AX",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2551
+    },
+    {
+      "symbol": "ANZ.AX",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2551
+    },
+    {
+      "symbol": "WES.AX",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2551
+    },
+    {
+      "symbol": "MQG.AX",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2551
+    },
+    {
+      "symbol": "FMG.AX",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2551
+    },
+    {
+      "symbol": "TLS.AX",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2551
+    },
+    {
+      "symbol": "WOW.AX",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2551
+    },
+    {
+      "symbol": "COL.AX",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2024
+    },
+    {
+      "symbol": "IAG.AX",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2551
+    },
+    {
+      "symbol": "JHX.AX",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2551
+    },
+    {
+      "symbol": "STO.AX",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2551
+    },
+    {
+      "symbol": "NCMI",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2526
+    },
+    {
+      "symbol": "WDS.AX",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2543
+    },
+    {
+      "symbol": "RIO.AX",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2551
+    },
+    {
+      "symbol": "TWE.AX",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2551
+    },
+    {
+      "symbol": "REA.AX",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2551
+    },
+    {
+      "symbol": "005930.KS",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2466
+    },
+    {
+      "symbol": "000660.KS",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2466
+    },
+    {
+      "symbol": "035420.KS",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2466
+    },
+    {
+      "symbol": "051910.KS",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2466
+    },
+    {
+      "symbol": "005380.KS",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2466
+    },
+    {
+      "symbol": "006400.KS",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2466
+    },
+    {
+      "symbol": "035720.KS",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2466
+    },
+    {
+      "symbol": "028260.KS",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2466
+    },
+    {
+      "symbol": "068270.KS",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2466
+    },
+    {
+      "symbol": "003550.KS",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2466
+    },
+    {
+      "symbol": "015760.KS",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2466
+    },
+    {
+      "symbol": "033780.KS",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2466
+    },
+    {
+      "symbol": "096770.KS",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2466
+    },
+    {
+      "symbol": "017670.KS",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2466
+    },
+    {
+      "symbol": "066570.KS",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2466
+    },
+    {
+      "symbol": "003490.KS",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2466
+    },
+    {
+      "symbol": "034730.KS",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2466
+    },
+    {
+      "symbol": "032830.KS",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2466
+    },
+    {
+      "symbol": "009150.KS",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2466
+    },
+    {
+      "symbol": "010950.KS",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2466
+    },
+    {
+      "symbol": "2330.TW",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2449
+    },
+    {
+      "symbol": "2317.TW",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2449
+    },
+    {
+      "symbol": "2454.TW",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2449
+    },
+    {
+      "symbol": "2308.TW",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2449
+    },
+    {
+      "symbol": "2881.TW",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2449
+    },
+    {
+      "symbol": "2882.TW",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2449
+    },
+    {
+      "symbol": "2885.TW",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2449
+    },
+    {
+      "symbol": "2886.TW",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2449
+    },
+    {
+      "symbol": "2891.TW",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2449
+    },
+    {
+      "symbol": "2883.TW",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2449
+    },
+    {
+      "symbol": "1101.TW",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2449
+    },
+    {
+      "symbol": "1301.TW",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2449
+    },
+    {
+      "symbol": "1303.TW",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2449
+    },
+    {
+      "symbol": "1326.TW",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2449
+    },
+    {
+      "symbol": "1590.TW",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2449
+    },
+    {
+      "symbol": "2379.TW",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2449
+    },
+    {
+      "symbol": "3008.TW",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2449
+    },
+    {
+      "symbol": "3034.TW",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2449
+    },
+    {
+      "symbol": "3037.TW",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2449
+    },
+    {
+      "symbol": "3711.TW",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2449
+    },
+    {
+      "symbol": "XLK",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2533
+    },
+    {
+      "symbol": "XLF",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2533
+    },
+    {
+      "symbol": "XLE",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2533
+    },
+    {
+      "symbol": "XLV",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2533
+    },
+    {
+      "symbol": "XLY",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2533
+    },
+    {
+      "symbol": "XLP",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2533
+    },
+    {
+      "symbol": "XLI",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2533
+    },
+    {
+      "symbol": "XLU",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2533
+    },
+    {
+      "symbol": "XLB",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2533
+    },
+    {
+      "symbol": "XLRE",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2533
+    },
+    {
+      "symbol": "XLC",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2117
+    },
+    {
+      "symbol": "VGT",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2533
+    },
+    {
+      "symbol": "VHT",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2533
+    },
+    {
+      "symbol": "VFH",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2533
+    },
+    {
+      "symbol": "VDE",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2533
+    },
+    {
+      "symbol": "VCR",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2533
+    },
+    {
+      "symbol": "VDC",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2533
+    },
+    {
+      "symbol": "VIS",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2533
+    },
+    {
+      "symbol": "VPU",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2533
+    },
+    {
+      "symbol": "VAW",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2533
+    },
+    {
+      "symbol": "VNQ",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2533
+    },
+    {
+      "symbol": "ARKK",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "ARKW",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "SOXL",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2530
+    },
+    {
+      "symbol": "SOXS",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2533
+    },
+    {
+      "symbol": "TQQQ",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "SQQQ",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "UVXY",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2533
+    },
+    {
+      "symbol": "VXX",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2217
+    },
+    {
+      "symbol": "GLD",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2530
+    },
+    {
+      "symbol": "SLV",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "USO",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "UNG",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "DBA",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2533
+    },
+    {
+      "symbol": "DBC",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2533
+    },
+    {
+      "symbol": "BNO",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2533
+    },
+    {
+      "symbol": "AGG",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "TLT",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "SHY",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2537
+    },
+    {
+      "symbol": "IEF",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "LQD",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "HYG",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "JNK",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2533
+    },
+    {
+      "symbol": "MUB",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "BIL",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "TIP",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "SCHD",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "VYM",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2533
+    },
+    {
+      "symbol": "DGRO",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2533
+    },
+    {
+      "symbol": "SPYV",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2533
+    },
+    {
+      "symbol": "QUAL",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "MTUM",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "VLUE",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2533
+    },
+    {
+      "symbol": "USMV",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "VTV",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "VUG",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "IVW",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2533
+    },
+    {
+      "symbol": "IWF",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2533
+    },
+    {
+      "symbol": "IWD",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2533
+    },
+    {
+      "symbol": "IWB",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2533
+    },
+    {
+      "symbol": "IWM",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2544
+    },
+    {
+      "symbol": "IWO",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2533
+    },
+    {
+      "symbol": "IWN",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2533
+    },
+    {
+      "symbol": "IWS",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2533
+    },
+    {
+      "symbol": "IWP",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2533
+    },
+    {
+      "symbol": "IWR",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2533
+    },
+    {
+      "symbol": "ACB",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 1442
+    },
+    {
+      "symbol": "IWV",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2533
+    },
+    {
+      "symbol": "AKRO",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 100
+    },
+    {
+      "symbol": "ALXN",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 100
+    },
+    {
+      "symbol": "ATSG",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 100
+    },
+    {
+      "symbol": "BCM",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 1380
+    },
+    {
+      "symbol": "BFC",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2446
+    },
+    {
+      "symbol": "BK",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 5
+    },
+    {
+      "symbol": "BLUE",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 100
+    },
+    {
+      "symbol": "BID",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 3092
+    },
+    {
+      "symbol": "BMP",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2446
+    },
+    {
+      "symbol": "CCRN",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 100
+    },
+    {
+      "symbol": "CHK",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 100
+    },
+    {
+      "symbol": "BTC-USD",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 3618
+    },
+    {
+      "symbol": "CMA",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 100
+    },
+    {
+      "symbol": "CII",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2440
+    },
+    {
+      "symbol": "CPRX",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 100
+    },
+    {
+      "symbol": "COIN",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 1408
+    },
+    {
+      "symbol": "CTR",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 1169
+    },
+    {
+      "symbol": "CTRA",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 100
+    },
+    {
+      "symbol": "DAWN",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 100
+    },
+    {
+      "symbol": "CTG",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 4047
+    },
+    {
+      "symbol": "DENN",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 110
+    },
+    {
+      "symbol": "DCM",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2445
+    },
+    {
+      "symbol": "DGC",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 1530
+    },
+    {
+      "symbol": "DHA",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2419
+    },
+    {
+      "symbol": "DIG",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2439
+    },
+    {
+      "symbol": "DPM",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2443
+    },
+    {
+      "symbol": "DXG",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2443
+    },
+    {
+      "symbol": "EIB",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2436
+    },
+    {
+      "symbol": "EXPR",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 110
+    },
+    {
+      "symbol": "FOLD",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 100
+    },
+    {
+      "symbol": "ETH-USD",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 3297
+    },
+    {
+      "symbol": "GAS",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2445
+    },
+    {
+      "symbol": "FPT",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 4097
+    },
+    {
+      "symbol": "GVR",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 1617
+    },
+    {
+      "symbol": "GMD",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2443
+    },
+    {
+      "symbol": "HAB",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 85
+    },
+    {
+      "symbol": "HCM",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2442
+    },
+    {
+      "symbol": "HDG",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2438
+    },
+    {
+      "symbol": "HOLX",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 100
+    },
+    {
+      "symbol": "HNG",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2498
+    },
+    {
+      "symbol": "HPG",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 4096
+    },
+    {
+      "symbol": "HQC",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2418
+    },
+    {
+      "symbol": "IDC",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 1728
+    },
+    {
+      "symbol": "IPG",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 100
+    },
+    {
+      "symbol": "HSG",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2442
+    },
+    {
+      "symbol": "KBC",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2436
+    },
+    {
+      "symbol": "KDH",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2441
+    },
+    {
+      "symbol": "KLG",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 4
+    },
+    {
+      "symbol": "LDG",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2413
+    },
+    {
+      "symbol": "LIX",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2311
+    },
+    {
+      "symbol": "LTHM",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 100
+    },
+    {
+      "symbol": "LPB",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 1461
+    },
+    {
+      "symbol": "MBB",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2438
+    },
+    {
+      "symbol": "MSB",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 1430
+    },
+    {
+      "symbol": "MWG",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 3006
+    },
+    {
+      "symbol": "MSN",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 4034
+    },
+    {
+      "symbol": "NKG",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2437
+    },
+    {
+      "symbol": "NLG",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2435
+    },
+    {
+      "symbol": "OCB",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 1405
+    },
+    {
+      "symbol": "NVL",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2381
+    },
+    {
+      "symbol": "PEAK",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2
+    },
+    {
+      "symbol": "PGRE",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 100
+    },
+    {
+      "symbol": "PC1",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2423
+    },
+    {
+      "symbol": "PGS",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2174
+    },
+    {
+      "symbol": "PLL",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 100
+    },
+    {
+      "symbol": "PHR",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2433
+    },
+    {
+      "symbol": "PLX",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2318
+    },
+    {
+      "symbol": "POW",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 1890
+    },
+    {
+      "symbol": "PNJ",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2419
+    },
+    {
+      "symbol": "PVB",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2508
+    },
+    {
+      "symbol": "PVC",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2505
+    },
+    {
+      "symbol": "PVD",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2421
+    },
+    {
+      "symbol": "PVE",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 893
+    },
+    {
+      "symbol": "PVS",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2507
+    },
+    {
+      "symbol": "PVT",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2425
+    },
+    {
+      "symbol": "REE",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2426
+    },
+    {
+      "symbol": "PXS",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2524
+    },
+    {
+      "symbol": "SAB",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2399
+    },
+    {
+      "symbol": "SBT",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2424
+    },
+    {
+      "symbol": "SHB",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2199
+    },
+    {
+      "symbol": "SGT",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2140
+    },
+    {
+      "symbol": "SOFI",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 1466
+    },
+    {
+      "symbol": "SSI",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2426
+    },
+    {
+      "symbol": "STB",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2426
+    },
+    {
+      "symbol": "SZC",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 1883
+    },
+    {
+      "symbol": "TCO",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 100
+    },
+    {
+      "symbol": "TGNA",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 100
+    },
+    {
+      "symbol": "TCB",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2045
+    },
+    {
+      "symbol": "TNH",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 1422
+    },
+    {
+      "symbol": "TPB",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2073
+    },
+    {
+      "symbol": "TSC",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2412
+    },
+    {
+      "symbol": "VCI",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2264
+    },
+    {
+      "symbol": "VCB",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 4090
+    },
+    {
+      "symbol": "VCS",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2508
+    },
+    {
+      "symbol": "VGC",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 1796
+    },
+    {
+      "symbol": "VIB",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 1465
+    },
+    {
+      "symbol": "VHM",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2049
+    },
+    {
+      "symbol": "VJC",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2344
+    },
+    {
+      "symbol": "VIC",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 3544
+    },
+    {
+      "symbol": "VNM",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2607
+    },
+    {
+      "symbol": "VPB",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2233
+    },
+    {
+      "symbol": "VRE",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2173
+    },
+    {
+      "symbol": "WBA",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 100
+    },
+    {
+      "symbol": "VTO",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2386
+    },
+    {
+      "symbol": "WBD",
+      "phase": "gold",
+      "status": "repaired",
+      "rows": 2511
+    }
+  ]
+}

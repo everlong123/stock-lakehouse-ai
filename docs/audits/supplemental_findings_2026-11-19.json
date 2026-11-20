@@ -1,0 +1,1884 @@
+{
+  "started_at_utc": "2026-11-19T06:49:09.422936+00:00",
+  "updated_at_utc": "2026-11-19T06:58:38.452098+00:00",
+  "summary": {
+    "listed_symbols": 1002,
+    "completed_symbols": 1002,
+    "latest_status": {
+      "readable": 1002
+    },
+    "source_layers": {
+      "gold": 1002
+    },
+    "latest_timestamp_dates": {
+      "2020-12-29": 1,
+      "2021-06-15": 1,
+      "2021-07-28": 1,
+      "2023-02-13": 1,
+      "2023-10-02": 1,
+      "2024-01-04": 1,
+      "2024-10-04": 1,
+      "2025-04-11": 1,
+      "2025-06-02": 1,
+      "2025-08-28": 1,
+      "2025-08-29": 1,
+      "2025-11-26": 1,
+      "2025-12-09": 1,
+      "2025-12-18": 1,
+      "2026-01-30": 1,
+      "2026-03-20": 1,
+      "2026-04-07": 1,
+      "2026-04-23": 1,
+      "2026-04-27": 1,
+      "2026-05-06": 1,
+      "2026-06-10": 1,
+      "2026-07-16": 1,
+      "2026-07-22": 1,
+      "2026-08-04": 1,
+      "2026-08-14": 1,
+      "2026-08-17": 1,
+      "2026-10-02": 1,
+      "2026-10-05": 1,
+      "2026-10-16": 2,
+      "2026-10-21": 1,
+      "2026-11-03": 1,
+      "2026-11-05": 1,
+      "2026-11-06": 1,
+      "2026-11-13": 2,
+      "2026-11-17": 6,
+      "2026-11-18": 960
+    },
+    "forecast_status": {
+      "arima": {
+        "available": 42,
+        "unavailable": 32
+      },
+      "linear_regression": {
+        "available": 764,
+        "unavailable": 238
+      },
+      "lstm": {
+        "available": 43,
+        "unavailable": 30
+      }
+    },
+    "requests_checked": 2151,
+    "latency_p50_seconds": 0.406,
+    "latency_p95_seconds": 2.797
+  },
+  "unavailable_categories": {
+    "linear_regression": {
+      "missing_model": 28,
+      "stale_data": 206,
+      "blocked_quality": 4
+    },
+    "lstm": {
+      "stale_data": 30
+    },
+    "arima": {
+      "stale_data": 32
+    }
+  },
+  "unavailable": [
+    {
+      "symbol": "AVB",
+      "model": "linear_regression",
+      "category": "missing_model",
+      "reason": "No trained linear_regression model found for AVB."
+    },
+    {
+      "symbol": "BKH",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "BTF",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 20 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "CMG",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "EA",
+      "model": "linear_regression",
+      "category": "missing_model",
+      "reason": "No trained linear_regression model found for EA."
+    },
+    {
+      "symbol": "EQR",
+      "model": "linear_regression",
+      "category": "missing_model",
+      "reason": "No trained linear_regression model found for EQR."
+    },
+    {
+      "symbol": "MRNA",
+      "model": "linear_regression",
+      "category": "blocked_quality",
+      "reason": "MRNA cannot be trained on this window: suspected scale discontinuity (span 4.38x; the detector also checks local jumps). A reverse split, a provider unit change or an actual market jump requires investigation. Verify the source, re-ingest inconsistent data, or explicitly select a recent stable training window. No prices were altered."
+    },
+    {
+      "symbol": "NSC",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 10 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "NWE",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 3 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "PARA",
+      "model": "linear_regression",
+      "category": "blocked_quality",
+      "reason": "PARA cannot be trained on this window: suspected scale discontinuity (span 24.08x; the detector also checks local jumps). A reverse split, a provider unit change or an actual market jump requires investigation. Verify the source, re-ingest inconsistent data, or explicitly select a recent stable training window. No prices were altered."
+    },
+    {
+      "symbol": "QRVO",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 33 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "ROKU",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 8 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "ROKU",
+      "model": "lstm",
+      "category": "stale_data",
+      "reason": "Input data is 8 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "7203.T",
+      "model": "arima",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "7203.T",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "7203.T",
+      "model": "lstm",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "6758.T",
+      "model": "arima",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "6758.T",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "6758.T",
+      "model": "lstm",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "9984.T",
+      "model": "arima",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "9984.T",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "9984.T",
+      "model": "lstm",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "8306.T",
+      "model": "arima",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "8306.T",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "8306.T",
+      "model": "lstm",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "6861.T",
+      "model": "arima",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "6861.T",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "6861.T",
+      "model": "lstm",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "7974.T",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "9433.T",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "8035.T",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "4063.T",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "6501.T",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "7267.T",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "7751.T",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "6902.T",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "6367.T",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "7741.T",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "4502.T",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "4503.T",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "2802.T",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "2914.T",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "3407.T",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "4452.T",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "9020.T",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "9022.T",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "6098.T",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "4661.T",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "6954.T",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "6981.T",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "6594.T",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "9432.T",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "9434.T",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "4689.T",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "3659.T",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "9983.T",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "3382.T",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "8411.T",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "8316.T",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "6752.T",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "7269.T",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "8801.T",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "0700.HK",
+      "model": "arima",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "0700.HK",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "0700.HK",
+      "model": "lstm",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "9988.HK",
+      "model": "arima",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "9988.HK",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "9988.HK",
+      "model": "lstm",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "3690.HK",
+      "model": "arima",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "3690.HK",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "3690.HK",
+      "model": "lstm",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "9618.HK",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "1810.HK",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "0941.HK",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "1299.HK",
+      "model": "arima",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "1299.HK",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "1299.HK",
+      "model": "lstm",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "0005.HK",
+      "model": "arima",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "0005.HK",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "0005.HK",
+      "model": "lstm",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "0001.HK",
+      "model": "arima",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "0001.HK",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "0001.HK",
+      "model": "lstm",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "0016.HK",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "0027.HK",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "0066.HK",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "0388.HK",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "1398.HK",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "0939.HK",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "3988.HK",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "2628.HK",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "0823.HK",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "2388.HK",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "0023.HK",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "ACH",
+      "model": "arima",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "ACH",
+      "model": "linear_regression",
+      "category": "blocked_quality",
+      "reason": "ACH cannot be trained on this window: suspected scale discontinuity (span 2.81x; the detector also checks local jumps). A reverse split, a provider unit change or an actual market jump requires investigation. Verify the source, re-ingest inconsistent data, or explicitly select a recent stable training window. No prices were altered."
+    },
+    {
+      "symbol": "HDB",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "EMBJ",
+      "model": "linear_regression",
+      "category": "blocked_quality",
+      "reason": "EMBJ cannot be trained on this window: suspected scale discontinuity (span 1.12x; the detector also checks local jumps). A reverse split, a provider unit change or an actual market jump requires investigation. Verify the source, re-ingest inconsistent data, or explicitly select a recent stable training window. No prices were altered."
+    },
+    {
+      "symbol": "BHP.AX",
+      "model": "arima",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "BHP.AX",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "BHP.AX",
+      "model": "lstm",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "CBA.AX",
+      "model": "arima",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "CBA.AX",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "CBA.AX",
+      "model": "lstm",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "CSL.AX",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "NAB.AX",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "WBC.AX",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "ANZ.AX",
+      "model": "arima",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "ANZ.AX",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "ANZ.AX",
+      "model": "lstm",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "WES.AX",
+      "model": "arima",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "WES.AX",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "WES.AX",
+      "model": "lstm",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "MQG.AX",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "FMG.AX",
+      "model": "arima",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "FMG.AX",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "FMG.AX",
+      "model": "lstm",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "TLS.AX",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "WOW.AX",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "COL.AX",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "IAG.AX",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "JHX.AX",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "STO.AX",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "WDS.AX",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "RIO.AX",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "TWE.AX",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "REA.AX",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "005930.KS",
+      "model": "arima",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "005930.KS",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "005930.KS",
+      "model": "lstm",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "000660.KS",
+      "model": "arima",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "000660.KS",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "000660.KS",
+      "model": "lstm",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "035420.KS",
+      "model": "arima",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "035420.KS",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "035420.KS",
+      "model": "lstm",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "051910.KS",
+      "model": "arima",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "051910.KS",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "051910.KS",
+      "model": "lstm",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "005380.KS",
+      "model": "arima",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "005380.KS",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "005380.KS",
+      "model": "lstm",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "006400.KS",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "035720.KS",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "028260.KS",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "068270.KS",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "003550.KS",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "015760.KS",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "033780.KS",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "096770.KS",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "017670.KS",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "066570.KS",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "003490.KS",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "034730.KS",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "032830.KS",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "009150.KS",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "010950.KS",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "2330.TW",
+      "model": "arima",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "2330.TW",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "2330.TW",
+      "model": "lstm",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "2317.TW",
+      "model": "arima",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "2317.TW",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "2317.TW",
+      "model": "lstm",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "2454.TW",
+      "model": "arima",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "2454.TW",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "2454.TW",
+      "model": "lstm",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "2308.TW",
+      "model": "arima",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "2308.TW",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "2308.TW",
+      "model": "lstm",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "2881.TW",
+      "model": "arima",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "2881.TW",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "2881.TW",
+      "model": "lstm",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "2882.TW",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "2885.TW",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "2886.TW",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "2891.TW",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "2883.TW",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "1101.TW",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "1301.TW",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "1303.TW",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "1326.TW",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "1590.TW",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "2379.TW",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "3008.TW",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "3034.TW",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "3037.TW",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "3711.TW",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "ACB",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "AKRO",
+      "model": "linear_regression",
+      "category": "missing_model",
+      "reason": "No trained linear_regression model found for AKRO."
+    },
+    {
+      "symbol": "ALXN",
+      "model": "linear_regression",
+      "category": "missing_model",
+      "reason": "No trained linear_regression model found for ALXN."
+    },
+    {
+      "symbol": "ATSG",
+      "model": "linear_regression",
+      "category": "missing_model",
+      "reason": "No trained linear_regression model found for ATSG."
+    },
+    {
+      "symbol": "BCM",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "BFC",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "BID",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "BK",
+      "model": "linear_regression",
+      "category": "missing_model",
+      "reason": "No trained linear_regression model found for BK."
+    },
+    {
+      "symbol": "BLUE",
+      "model": "linear_regression",
+      "category": "missing_model",
+      "reason": "No trained linear_regression model found for BLUE."
+    },
+    {
+      "symbol": "BMP",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "BTC-USD",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "CCRN",
+      "model": "linear_regression",
+      "category": "missing_model",
+      "reason": "No trained linear_regression model found for CCRN."
+    },
+    {
+      "symbol": "CHK",
+      "model": "linear_regression",
+      "category": "missing_model",
+      "reason": "No trained linear_regression model found for CHK."
+    },
+    {
+      "symbol": "CII",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "CMA",
+      "model": "linear_regression",
+      "category": "missing_model",
+      "reason": "No trained linear_regression model found for CMA."
+    },
+    {
+      "symbol": "CPRX",
+      "model": "linear_regression",
+      "category": "missing_model",
+      "reason": "No trained linear_regression model found for CPRX."
+    },
+    {
+      "symbol": "CTG",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "CTR",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "CTRA",
+      "model": "linear_regression",
+      "category": "missing_model",
+      "reason": "No trained linear_regression model found for CTRA."
+    },
+    {
+      "symbol": "DAWN",
+      "model": "linear_regression",
+      "category": "missing_model",
+      "reason": "No trained linear_regression model found for DAWN."
+    },
+    {
+      "symbol": "DCM",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "DENN",
+      "model": "linear_regression",
+      "category": "missing_model",
+      "reason": "No trained linear_regression model found for DENN."
+    },
+    {
+      "symbol": "DGC",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "DHA",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "DIG",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "DPM",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "DXG",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "EIB",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "ETH-USD",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "EXPR",
+      "model": "linear_regression",
+      "category": "missing_model",
+      "reason": "No trained linear_regression model found for EXPR."
+    },
+    {
+      "symbol": "FOLD",
+      "model": "linear_regression",
+      "category": "missing_model",
+      "reason": "No trained linear_regression model found for FOLD."
+    },
+    {
+      "symbol": "FPT",
+      "model": "arima",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "FPT",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "FPT",
+      "model": "lstm",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "GAS",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "GMD",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "GVR",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "HAB",
+      "model": "linear_regression",
+      "category": "missing_model",
+      "reason": "No trained linear_regression model found for HAB."
+    },
+    {
+      "symbol": "HCM",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "HDG",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "HNG",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "HOLX",
+      "model": "linear_regression",
+      "category": "missing_model",
+      "reason": "No trained linear_regression model found for HOLX."
+    },
+    {
+      "symbol": "HPG",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "HQC",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "HSG",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "IDC",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "IPG",
+      "model": "linear_regression",
+      "category": "missing_model",
+      "reason": "No trained linear_regression model found for IPG."
+    },
+    {
+      "symbol": "KBC",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "KDH",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "KLG",
+      "model": "linear_regression",
+      "category": "missing_model",
+      "reason": "No trained linear_regression model found for KLG."
+    },
+    {
+      "symbol": "LDG",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "LIX",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "LPB",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "LTHM",
+      "model": "linear_regression",
+      "category": "missing_model",
+      "reason": "No trained linear_regression model found for LTHM."
+    },
+    {
+      "symbol": "MBB",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "MSB",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "MSN",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "MWG",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "NKG",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "NLG",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "NVL",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "OCB",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "PC1",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "PEAK",
+      "model": "linear_regression",
+      "category": "missing_model",
+      "reason": "No trained linear_regression model found for PEAK."
+    },
+    {
+      "symbol": "PGRE",
+      "model": "linear_regression",
+      "category": "missing_model",
+      "reason": "No trained linear_regression model found for PGRE."
+    },
+    {
+      "symbol": "PGS",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 2 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "PHR",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "PLL",
+      "model": "linear_regression",
+      "category": "missing_model",
+      "reason": "No trained linear_regression model found for PLL."
+    },
+    {
+      "symbol": "PLX",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "PNJ",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "POW",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "PVB",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "PVC",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "PVD",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "PVE",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 4 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "PVS",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "PVT",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "PXS",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "REE",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "SAB",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "SBT",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "SGT",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 2 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "SHB",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "SOFI",
+      "model": "arima",
+      "category": "stale_data",
+      "reason": "Input data is 11 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "SOFI",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 11 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "SOFI",
+      "model": "lstm",
+      "category": "stale_data",
+      "reason": "Input data is 11 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "SSI",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "STB",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "SZC",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "TCB",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "TCO",
+      "model": "linear_regression",
+      "category": "missing_model",
+      "reason": "No trained linear_regression model found for TCO."
+    },
+    {
+      "symbol": "TGNA",
+      "model": "linear_regression",
+      "category": "missing_model",
+      "reason": "No trained linear_regression model found for TGNA."
+    },
+    {
+      "symbol": "TNH",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "TPB",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "TSC",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "VCB",
+      "model": "arima",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "VCB",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "VCI",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "VCS",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "VGC",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "VHM",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "VIB",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "VIC",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "VJC",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "VNM",
+      "model": "arima",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "VNM",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "VPB",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "VRE",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "VTO",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 1 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "WBA",
+      "model": "linear_regression",
+      "category": "missing_model",
+      "reason": "No trained linear_regression model found for WBA."
+    },
+    {
+      "symbol": "WBD",
+      "model": "arima",
+      "category": "stale_data",
+      "reason": "Input data is 33 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "WBD",
+      "model": "linear_regression",
+      "category": "stale_data",
+      "reason": "Input data is 33 trading session(s) behind. Refresh the data before forecasting."
+    },
+    {
+      "symbol": "WBD",
+      "model": "lstm",
+      "category": "stale_data",
+      "reason": "Input data is 33 trading session(s) behind. Refresh the data before forecasting."
+    }
+  ]
+}

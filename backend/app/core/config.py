@@ -9,6 +9,8 @@ from typing import Literal
 
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from sqlalchemy.engine import make_url
+from ipaddress import IPv4Address
 
 
 BACKEND_ROOT = Path(__file__).resolve().parents[2]
@@ -51,7 +53,7 @@ class Settings(BaseSettings):
         protected_namespaces=("settings_",),
     )
 
-    app_name: str = "Stock Lakehouse AI"
+    app_name: str = "StockVision AI"
     app_env: Literal["development", "production", "test"] = "development"
     app_debug: bool = True
 
@@ -275,7 +277,17 @@ class Settings(BaseSettings):
 @lru_cache
 def get_settings() -> Settings:
     """Return a cached Settings instance."""
-    return Settings()
+    config = Settings()
+    # The Windows launcher supplies the current WSL address. WSL changes this
+    # address after shutdown; keep the configured ports and credentials.
+    wsl_ip = os.environ.get("STOCK_LH_WSL_IP") if os.name == "nt" else None
+    if wsl_ip:
+        host = str(IPv4Address(wsl_ip))
+        config.mysql_host = host
+        config.database_url = make_url(config.database_url).set(host=host).render_as_string(hide_password=False)
+        _, separator, port = config.minio_endpoint.rpartition(":")
+        config.minio_endpoint = f"{host}:{port}" if separator else host
+    return config
 
 
 settings = get_settings()

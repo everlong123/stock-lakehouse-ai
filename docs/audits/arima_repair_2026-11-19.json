@@ -1,0 +1,35 @@
+{
+  "phase": "models",
+  "model": "arima",
+  "updated_at_utc": "2026-11-18T21:34:08.484302+00:00",
+  "total": 3,
+  "results": [
+    {
+      "symbol": "AAPL",
+      "model": "arima",
+      "phase": "models",
+      "status": "repaired",
+      "model_version": "2ab1db82d64c4a0091efff1945990b4f",
+      "mae": 2.994274695260353,
+      "test_points": 383
+    },
+    {
+      "symbol": "MSFT",
+      "model": "arima",
+      "phase": "models",
+      "status": "repaired",
+      "model_version": "66d5dce8b33f4b10b5f9e5eb18c607e6",
+      "mae": 5.665892305909555,
+      "test_points": 383
+    },
+    {
+      "symbol": "FPT",
+      "model": "arima",
+      "phase": "models",
+      "status": "repaired",
+      "model_version": "e222242b14bf4dc5b6c974198b869c70",
+      "mae": 1114.9451860481229,
+      "test_points": 616
+    }
+  ]
+}

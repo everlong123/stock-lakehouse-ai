@@ -1,0 +1,125 @@
+{
+  "deck": "04-backtesting",
+  "notes": [
+    {
+      "term": "Walk-forward validation giải quyết điểm yếu gì của simple train-test split?",
+      "answer": "Ba điểm yếu cốt lõi:\n\n1. **Tránh overfit vào một khoảng thời gian cụ thể** - một mô hình có thể may mắn khớp trên đúng đoạn thị trường đó.\n2. **Mô phỏng triển khai thực tế** - mô hình được retrain định kỳ, không phải train một lần rồi dùng mãi.\n3. **Ước lượng hiệu suất thực tế hơn** - nhiều cửa sổ cho một bức tranh có tính đại diện hơn một lần split.\n\nPhương pháp:\n\n1. Chia dữ liệu thành các cửa sổ trượt.\n2. Mỗi cửa sổ: train trên `train_period`, test trên `test_period`.\n3. Trượt cửa sổ và lặp.\n4. Tổng hợp kết quả qua tất cả cửa sổ.\n\n> Walk-forward nghiêm ngặt hơn backtest đơn giản: nó trả lời \"chiến lược có **giữ được** khi đưa ra ngoài mẫu không?\", không chỉ \"nó đã làm tốt trên mẫu nào?\".",
+      "code": "backend/app/backtesting/walk_forward.py",
+      "tags": "walk-forward validation overfitting train-test split"
+    },
+    {
+      "term": "Vì sao cửa sổ train phải CỐ ĐỊNH chứ không được mở rộng dần?",
+      "answer": "Vì cửa sổ train mở rộng **phá vỡ ý nghĩa** của tỷ lệ overfitting.\n\nBản cũ: cửa sổ train luôn bắt đầu từ phiên đầu tiên của lịch sử, nên nó **lớn dần** theo mỗi bước: cửa sổ 0 train trên 180 ngày, cửa sổ 175 train trên 10 năm.\n\nTỷ lệ overfitting là `avg_train_return / avg_test_return`, và nó chỉ có nghĩa nếu hai bên đo trên các khoảng **tương đương**. Lợi nhuận train 10 năm và lợi nhuận test 1 tháng không tương đương - tỷ lệ ra **790**, một con số vô nghĩa.\n\nVới cửa sổ train cố định, cả hai bên đo trên cùng độ dài thời gian, nên tỷ lệ trở nên **đọc được**: gần 1.0 nghĩa là chiến lược generalize được; giá trị lớn nghĩa là nó chỉ hoạt động trên đúng kỳ đã fit.\n\n> Khi một con số không đọc được, đó không phải là con số dở - đó là một phép so sánh sai.",
+      "code": "backend/app/backtesting/walk_forward.py:_generate_windows",
+      "tags": "walk-forward fixed train window overfitting ratio"
+    },
+    {
+      "term": "Tỷ lệ overfitting được annualise như thế nào và vì sao?",
+      "answer": "Cả hai vế được **annualise về 365 ngày** trước khi chia:\n\n```\ntrain_factor = 365 / train_period_days   # 365/180 ≈ 2.03\ntest_factor  = 365 / test_period_days    # 365/30  ≈ 12.17\nannualised_train = avg_train * train_factor\nannualised_test  = avg_test  * test_factor\noverfitting_ratio = annualised_train / annualised_test\n```\n\nLý do: cửa sổ train mặc định dài 180 ngày (6 tháng) và cửa sổ test dài 30 ngày (1 tháng). Chia trực tiếp lợi nhuận thô sẽ so một lợi nhuận 6 tháng với một lợi nhuận 1 tháng, nên tỷ lệ bị **phóng to** bởi chênh lệch độ dài và không đọc được.\n\nSau khi annualise, tỷ lệ trả lời đúng câu hỏi: **chiến lược có giữ được ngoài mẫu không, hay chỉ hoạt động trên kỳ đã fit?**\n\nGhi chú quan trọng từ disclaimer của module: tỷ lệ này **chỉ là mô tả**, không chứng minh quá khớp, và **không ổn định** khi mẫu số gần 0.",
+      "code": "backend/app/backtesting/walk_forward.py:WalkForwardValidator.run",
+      "tags": "walk-forward annualised overfitting ratio"
+    },
+    {
+      "term": "Vì sao cửa sổ test cần WARMUP CONTEXT từ đuôi tập train?",
+      "answer": "Vì chỉ báo cần **lịch sử**. MA Crossover cần SMA 50 phiên; một cửa sổ test 30 ngày chỉ chứa ~22 phiên, nên SMA dài là **NaN ở mọi dòng** của cửa sổ test và chiến lược không bao giờ phát tín hiệu.\n\nHiệu ứng nhìn thấy được: **mọi** cửa sổ báo 0 giao dịch, 0 lợi nhuận, 0 consistency, 0 overfitting ratio - toàn bộ kết quả walk-forward là một mảng số 0 không nói gì về chiến lược.\n\nFix: nối các dòng warmup (đuôi tập train) vào trước frame test **khi sinh tín hiệu**, rồi chỉ chấm điểm các dòng test.\n\nĐiều này **không rò rỉ tương lai**: các dòng warmup nằm nghiêm ngặt trong quá khứ, là những dòng chiến lược đã được train, và vốn tài chỉ được đánh dấu trên các dòng test. Nó đúng là điều xảy ra trong thực tế, nơi chỉ báo của bar đầu tiên của tháng được tính từ các bar trước đó.\n\n> Warmup là thứ mà một backtest nghiệp dương thiếu, và thiếu nó tạo ra kết quả \"0 giao dịch\" tưởng như khách quan.",
+      "code": "backend/app/backtesting/walk_forward.py:_test_on_window",
+      "tags": "walk-forward warmup context indicator lookback"
+    },
+    {
+      "term": "Vì sao cửa sổ test ngắn hơn `min_test_bars` bị BỎ QUA chứ không bị báo lỗi?",
+      "answer": "Vì bản cũ vẫn phát ra cửa sổ đó, rồi vòng lặp đánh dấu `passed = False` với lỗi \"Insufficient bars in window\". Hệ quả: **phần đuôi** của lịch sử - những cửa sổ **mới nhất**, đúng thứ người đọc quan tâm nhất - bị trả về là thất bại. Trên AAPL có **17 trong 176** cửa sổ ở trạng thái đó.\n\nFix: cửa sổ bị **skip**, không phải báo lỗi.\n\nVà dùng `continue` chứ không dùng `break` là cố ý: cửa sổ test 30 ngày chứa ~21 phiên, và quanh ngày lễ có thể rớt xuống 19 - dưới ngưỡng tối thiểu 20. Nếu `break` ở đó, mọi cửa sổ sau cửa sổ ngắn đầu tiên sẽ bị bỏ - **165 trong 176** cửa sổ - chỉ còn lại 11 cửa sổ cũ nhất.\n\n> Một `break` sai chỗ đã xoá 94% bằng chứng của toàn bộ phép kiểm chứng.",
+      "code": "backend/app/backtesting/walk_forward.py:_generate_windows",
+      "tags": "walk-forward skip short window min_test_bars continue"
+    },
+    {
+      "term": "Baseline mua & giữ được đo thế nào trong walk-forward?",
+      "answer": "Được đo trên **cùng các bar test**, với **cùng phí giao dịch** và **cùng cơ chế thực thi bar kế tiếp** - đây là phép so sánh chặt nhất có sẵn.\n\nĐối với **mỗi cửa sổ**, `run_buy_and_hold()` tính:\n\n- `test_benchmark_return`\n- `test_benchmark_sharpe`\n- `test_excess_return` = lợi nhuận chiến lược - lợi nhuận baseline\n\nChênh lệch được ghi **theo từng cửa sổ**, không phải chỉ trung bình. Lý do: một chiến lược thắng lớn ở 3 cửa sổ và thua nặng ở 7 cửa sổ **không phải** chiến lược vượt trội baseline - đó là chiến lược mà trung bình của nó **che giấu sự bất ổn của chính nó**.\n\nHệ quả báo cáo:\n\n- `avg_benchmark_return`, `avg_benchmark_sharpe`, `avg_benchmark_max_drawdown`\n- `avg_excess_return` - trung bình của chênh lệch **ghép cặp** (paired)\n- `excess_return_consistency` - tỷ lệ cửa sổ có excess return > 0\n- `windows_compared` - số cửa sổ thực sự được so sánh",
+      "code": "backend/app/backtesting/benchmark.py:run_buy_and_hold",
+      "tags": "walk-forward benchmark buy and hold excess return paired"
+    },
+    {
+      "term": "Vì sao chênh lệch so với baseline phải là PAIRED difference?",
+      "answer": "Vì hai bên được đo trên **đúng những bar giống nhau**, nên hiệu số giữa chúng **không bị nhiễu** bởi việc thị trường biến động khác nhau giữa hai khoảng thời gian riêng biệt.\n\nNếu so sánh \"lợi nhuận chiến lược ở cửa sổ 3\" với \"lợi nhuận mua & giữ ở cửa sổ 7\", phần chênh lệch chứa cả hiệu ứng thị trường của việc chọn sai cửa sổ, không chỉ hiệu ứng kỹ năng.\n\nCông thức: `avg_excess_return = mean_windows(strategy_return_w - benchmark_return_w)`.\n\n> Khi hai thứ được đo trên cùng đơn vị và cùng mẫu, hiệu số của chúng là con số sạch. Khi không, nó luôn bị nhiễu.",
+      "code": "backend/app/backtesting/walk_forward.py",
+      "tags": "paired difference excess return benchmark noise"
+    },
+    {
+      "term": "Backtest engine thực thi lệnh như thế nào và vì sao có `shift(1)`?",
+      "answer": "Quy trình:\n\n1. Chiến lược sinh tín hiệu từ frame giá (`generate_signals`).\n2. `execution_signal = signals.shift(1).fillna(0)` - tín hiệu được **trễ một phiên**.\n3. `simulate()` chạy vòng lặp vốn: áp dụng tín hiệu, cập nhật vốn, ghi lại equity curve.\n4. `compute_metrics()` tính số liệu từ equity curve và các giao dịch đã đóng.\n\nVì sao `shift(1)`: tín hiệu hôm nay chỉ biết được **sau khi** phiên hôm nay đóng cửa. Thực thi ở giá đóng cửa của phiên hôm nay là **look-ahead leakage** trong backtest - một dạng rò rỉ thông tin khiến mọi chiến lược trông thành công.\n\n> Backtest không có `shift(1)` là thứ khiến toàn bộ ngành backtest tự dựa dẫm. Nó là dòng code một chữ, và nó là toàn bộ sự khác biệt giữa nghiên cứu và giả.\n\nChi phí giao dịch và slippage cũng được tính: `transaction_fee` (mặc định 0.001) và `slippage` (mặc định 0.0005) là **tham số bắt buộc**, không phải tuỳ chọn.",
+      "code": "backend/app/backtesting/simulator.py",
+      "tags": "backtest execution shift 1 slippage fee leakage"
+    },
+    {
+      "term": "Bảy metric mà `compute_metrics()` trả về là gì?",
+      "answer": "Từ `app/backtesting/metrics.py`:\n\n- **`total_return`** = `(final_capital / initial_capital) - 1`\n- **`final_capital`** = vốn cuối từ equity curve\n- **`win_rate`** = tỷ lệ giao dịch có PnL > 0\n- **`sharpe_ratio`** = `sqrt(252) * mean(returns) / std(returns)` (252 = số phiên giao dịch mỗi năm)\n- **`maximum_drawdown`** = độ sâu giảm từ đỉnh equity (`(equity - cummax) / cummax`, lấy min)\n- **`number_of_trades`** = số giao dịch đã đóng\n- **`profit_factor`** = `gross_profit / gross_loss`\n\nChi tiết: `profit_factor` bị **chặn ở 99.99** khi chia cho 0 với lợi nhuận dương (tránh `inf` không serialize được). Nếu không có lợi nhuận gì, trả 0.\n\n`drawdown_series()` trả về chuỗi drawdown theo timestamp để vẽ biểu đồ.\n\n> Sharpe dùng `sqrt(periods_per_year)` - đó là lý do không thể so sánh trực tiếp Sharpe của một chiến lược daily với một chiến lược hourly mà không annualise cả hai.",
+      "code": "backend/app/backtesting/metrics.py:compute_metrics",
+      "tags": "backtest metrics sharpe drawdown profit factor win rate"
+    },
+    {
+      "term": "Hai chiến lược trong hệ thống là gì và logic của chúng?",
+      "answer": "**MA Crossover** (`ma_crossover.py`): tín hiệu dựa trên **giao cắt** của hai đường trung bình động. Tham số: kỳ SMA ngắn và dài (mặc định 50 và 200 - cặp kinh điển của Donchian).\n\n**RSI Strategy** (`rsi_strategy.py`): mua khi RSI **xuống dưới** ngưỡng dưới (mặc định 30 - quá bán), bán khi RSI **vượt quá** ngưỡng trên (mặc định 70 - quá mua). Tham số: `rsi_period` (14), `lower_threshold` (30), `upper_threshold` (70).\n\nCả hai đều chỉ giữ **tín hiệu giao cắt**, không giữ tín hiệu lặp lại. Lý do: giữ tín hiệu sẽ tạo lệnh mua liên tục ở mọi bar, biến chiến lược thành một chiến lược DCA (mua đều) với phí giao dịch cao.\n\nCả hai kế thừa `BaseStrategy` với `generate_signals(frame) -> pd.Series` trong đó 1.0 = long, -1.0 = short, 0.0 = trung lập.",
+      "code": "backend/app/backtesting/strategies/",
+      "tags": "strategies ma crossover rsi thresholds crossings"
+    },
+    {
+      "term": "Vì sao RSI strategy được viết lại bằng numpy thay vì pandas?",
+      "answer": "Vì đây là **đoạn code nóng nhất** của toàn bộ đường agent.\n\nWalk-forward validator gọi `generate_signals` **hai lần** mỗi cửa sổ (train + test) trên ~175 cửa sổ. Bản pandas gốc xâu chuỗi `replace` → `ffill` → `shift` → `where` → `fillna` → `clip`, và **mỗi bước cấp phát một Series mới và một BlockManager mới**.\n\nProfiling: **2.0s trong tổng 4.5s** của một lần chạy walk-forward nằm trong đúng hàm này. Và vì nó là Python thuần, nó **tranh chấp GIL** với lượt background refresh - chính điều đó biến một backtest 2s thành timeout 75s.\n\nBản numpy tạo ra tín hiệu **BIT-IDENTICAL** (được kiểm chứng bởi golden test `scripts/_canonical_golden.py` và phép so sánh golden của walk-forward) nhưng chỉ cấp phát vài mảng thay vì hàng chục đối tượng pandas.\n\n> Tối ưu hiệu quả nhất thường là đổi cách biểu diễn dữ liệu, không phải viết lại thuật toán.",
+      "code": "backend/app/backtesting/strategies/rsi_strategy.py",
+      "tags": "rsi strategy numpy optimization GIL performance"
+    },
+    {
+      "term": "Cách tính \"tín hiệu trước\" trong RSI strategy numpy giải quyết NaN thế nào?",
+      "answer": "`previous` = tín hiệu khác 0 **gần nhất** nằm **trước** dòng hiện tại.\n\nBản gốc: `previous = signal.replace(0.0, np.nan).ffill().shift(1)` - mang tín hiệu khác 0 gần nhất tới trước, rồi dịch một dòng.\n\nBản numpy dùng vòng lặp với biến `last` khởi tạo `np.nan`:\n\n```python\nprevious = np.full(size, np.nan, dtype=float)\nlast = np.nan\nfor index in range(size):\n    previous[index] = last\n    value = signal[index]\n    if value != 0.0:\n        last = value\n```\n\nChi tiết tinh tế cần nhớ: NaN trong `previous` nghĩa là \"chưa có vị thế trước đó\", và `.ne` của pandas coi NaN **khác** mọi số - nên một dòng không có tín hiệu trước **luôn** được tính là một lần giao cắt. Bản numpy giữ đúng hành vi đó vì `signal != previous` với `previous = nan` cho ra True.\n\nSau đó: `crossings = np.where(signal != previous, signal, 0.0)`, `nan_to_num`, `clip(-1, 1)`.",
+      "code": "backend/app/backtesting/strategies/rsi_strategy.py",
+      "tags": "rsi previous signal nan crossing numpy logic"
+    },
+    {
+      "term": "Các tham số mặc định của WalkForwardValidator là gì?",
+      "answer": "Từ `__init__`:\n\n- `train_period_days = 180` (6 tháng training)\n- `test_period_days = 30` (1 tháng testing)\n- `step_days = 20` (trượt 20 ngày mỗi lần lặp)\n- `min_train_bars = 60` (tối thiểu 60 bar để cửa sổ train dùng được)\n- `min_test_bars = 20` (tối thiểu 20 bar để cửa sổ test dùng được)\n\nNgoài ra trong `run()`:\n\n- `initial_capital = 10_000.0`\n- `transaction_fee = 0.001` (0.1%)\n- `slippage = 0.0005` (0.05%)\n\nTỷ lệ trượt `step_days / test_period_days = 20/30` nghĩa là các cửa sổ test **chồng lấn nhau** - đây là chủ ý, để có nhiều quan sát hơn, nhưng phải được **nói ra** trong disclaimer vì nó làm các cửa sổ không độc lập thống kê.",
+      "code": "backend/app/backtesting/walk_forward.py:WalkForwardValidator.__init__",
+      "tags": "walk-forward parameters defaults train test step days"
+    },
+    {
+      "term": "Disclaimer của walk-forward nói gì và tại sao phải có?",
+      "answer": "Disclaimer nhúng trong kết quả (tiếng Việt) trả lời ba điều:\n\n1. **Walk-forward nghiêm ngặt hơn simple backtest**: mỗi cửa sổ có train period và test period; bộ tham số **cố định** được đo trên các cửa sổ liên tiếp; giai đoạn trước cung cấp warmup.\n2. **Nhưng vẫn là dữ liệu lịch sử**, không đảm bảo tương lai. Tỷ lệ lợi nhuận train/test **chỉ là mô tả**, không chứng minh quá khớp, và **không ổn định** khi mẫu số gần 0. Các cửa sổ **có thể phụ thuộc**; thống kê mô tả không thay thế kiểm định độ bất định.\n3. **Kết quả mang tính tham khảo, không phải khuyến nghị đầu tư**.\n\nĐiểm quan trọng: disclaimer nằm **trong payload trả về**, không phải ở đâu đó trong tài liệu. Người đọc UI thấy nó **cùng lúc** với con số.\n\n> Điều kiện tiên quyết của một disclaimer là nó phải xuất hiện **cùng lúc** với dữ liệu, không phải ở trang cuối tài liệu mà không ai đọc.",
+      "code": "backend/app/backtesting/walk_forward.py:_build_disclaimer",
+      "tags": "walk-forward disclaimer limitations transparency"
+    },
+    {
+      "term": "Vì sao walk-forward dùng chung cache đọc frame với phần còn lại của API?",
+      "answer": "Vì `_load_data()` gọi `_load_symbol_frame(symbol)` từ `app/services/market_service.py` - cùng một hàm memoised mà mọi endpoint khác dùng.\n\nLý do: một lần chạy walk-forward không nên **tải lại** toàn bộ lịch sử ~121 partition của mã từ MinIO trong khi lượt auto-refresh đang tranh giành cùng các kết nối đó.\n\nLợi ích kép: vốn tài được tính trên **cùng** dữ liệu mà API phục vụ, nên backtest và dashboard không thể lệch nhau do đọc hai nguồn khác nhau.\n\nSau khi tải, frame được:\n\n- Lọc theo `start_date` / `end_date` nếu có.\n- `dropna(subset=['open','high','low','close'])` để loại dòng thiếu giá.\n- `reset_index(drop=True)`.\n\n> Tái sử dụng cache không chỉ là tối ưu - nó là một loại **bảo đảm tính nhất quán**.",
+      "code": "backend/app/backtesting/walk_forward.py:_load_data",
+      "tags": "walk-forward shared cache data consistency market service"
+    },
+    {
+      "term": "Backtest lưu kết quả ở đâu và các bảng metadata liên quan là gì?",
+      "answer": "Kết quả backtest được lưu vào:\n\n- **MinIO bucket `stock-backtests`** - artifact kết quả.\n- **MySQL bảng `backtest_runs`** - metadata nghiệp vụ, được truy cập qua `app/database/repositories/backtest_repository.py`.\n\nHệ thống phân tách rõ hai loại lưu trữ:\n\n- **MinIO** cho dữ liệu lớn, phân vùng, không cần truy vấn.\n- **MySQL** cho metadata nghiệp vụ cần truy vấn, lập chỉ mục, liên kết.\n\nEndpoint `GET /api/v1/backtests/history` trả về lịch sử backtest.\n\n> Cùng một nguyên tắc cho cả hệ thống: dữ liệu lớn vào object storage, metadata vào database quan hệ. Trộn hai loại đó là nguồn gốc của nhiều bài toán hiệu năng.",
+      "code": "backend/app/database/repositories/backtest_repository.py",
+      "tags": "backtest storage minio mysql metadata repository"
+    },
+    {
+      "term": "Tại sao backtesting chỉ dùng dữ liệu lịch sử và không phải giao dịch thật?",
+      "answer": "Vì đây là **dự án nghiên cứu học thuật** và disclaimer của dự án nêu rõ:\n\n- Không giao dịch chứng khoán thật.\n- Không tự động đặt lệnh mua/bán.\n- Không cam kết lợi nhuận.\n- Không khẳng định LSTM là mô hình tốt nhất.\n- Backtesting chỉ đánh giá **hiệu suất lịch sử giả định**, không phải dự đoán tương lai.\n\nĐiều này cũng được nhúng vào **từng endpoint**: mô tả của `POST /api/v1/forecast/train` là *\"Model trained on a chronological split. Metrics are not a profit guarantee.\"*, và tool `run_backtest` của AI Agent có mô tả *\"Chạy backtest lịch sử MA Crossover hoặc RSI. Không phải giao dịch thật.\"*\n\n> Ràng buộc được nói ở **nơi con số xuất hiện** thì có tác dụng. Ràng buộc chỉ nói ở README thì không.",
+      "code": "backend/app/api/v1/endpoints/forecasting.py",
+      "tags": "backtest academic disclaimer no real trading"
+    },
+    {
+      "term": "Backtest đa mã (multi-symbol) khác backtest một mã như thế nào?",
+      "answer": "Backtest đa mã chạy cùng một chiến lược trên **nhiều symbol** và so sánh kết quả giữa các mã.\n\nĐiểm khó nhất: **hiệu suất tương đối** mới là thứ so sánh được giữa các mã, vì `total_return` tuyệt đối nằm trong đơn vị tiền của từng mã. Giống hệt lý do Directional Accuracy dẫn đầu báo cáo độ chính xác.\n\nVề mặt kỹ thuật, backtest một mã trả về `sharpe_ratio` và `return_consistency` (tỷ lệ cửa sổ có lợi nhuận dương) - hai chỉ số **không phụ thuộc thang giá**, nên chúng là đơn vị so sánh mặc định cho nghiên cứu đa mã.\n\nScript `run_multi_symbol_walkforward.py` là công cụ vận hành cho việc này.",
+      "code": "backend/scripts/run_multi_symbol_walkforward.py",
+      "tags": "multi-symbol backtest sharpe consistency comparison"
+    },
+    {
+      "term": "Vì sao `overfitting_ratio` bằng None chứ không phải 0 khi mẫu số bằng 0?",
+      "answer": "Vì `0` là một **con số có nghĩa** - nó nói \"tỷ lệ bằng không\", trong khi `None` nói \"không tính được\". Trộn hai thứ đó là dạng bịa dữ liệu tinh vi: giao diện có thể render `None` thành `0.00`.\n\nĐiều kiện trong code:\n\n```python\noverfitting_ratio = (\n    annualised_train / annualised_test\n    if annualised_test not in (0, 0.0) and annualised_test\n    else None\n)\n```\n\nCùng nguyên tắc áp dụng cho `avg_test_return`, `avg_benchmark_return`... khi không có cửa sổ nào dùng được: trả `None`, không trả `0`.\n\n> Quy tắc chung của hệ thống: khi không có số liệu, hiển thị `—` kèm lý do, không phải `0.00%`.",
+      "code": "backend/app/backtesting/walk_forward.py",
+      "tags": "none vs zero missing metric honesty display"
+    },
+    {
+      "term": "Cấu trúc dữ liệu một cửa sổ walk-forward chứa những trường nào?",
+      "answer": "`WalkForwardWindow` (dataclass) chứa:\n\n- `window_id`, `train_start`, `train_end`, `test_start`, `test_end`\n- `train_return`\n- `test_return`, `test_sharpe`, `test_max_drawdown`, `test_win_rate`, `test_num_trades`\n- `test_benchmark_return`, `test_benchmark_sharpe`, `test_excess_return`\n- `passed` (bool) và `error` (str | None)\n\n`WalkForwardResult` (dataclass) chứa phần tổng hợp: `total_windows`, `passed_windows`, `failed_windows`, các trung bình và độ lệch chuẩn train/test, `return_consistency`, `overfitting_ratio`, các chỉ số benchmark, `avg_excess_return`, `excess_return_consistency`, `windows_compared`, danh sách `windows` và `disclaimer`.\n\nKhi serialize ra JSON, mỗi cửa sổ biến `train_period` / `test_period` thành chuỗi `\"YYYY-MM-DD to YYYY-MM-DD\"` để dễ đọc.\n\n> Dataclass cho phép code ghi rõ **tất cả** trường ngay tại khai báo, thay vì phải nhớ các key khi build dict thủ công.",
+      "code": "backend/app/backtesting/walk_forward.py:WalkForwardWindow",
+      "tags": "walk-forward dataclass window result structure"
+    }
+  ]
+}

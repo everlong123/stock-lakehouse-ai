@@ -104,8 +104,8 @@ class WalkForwardValidator:
 
     Methodology:
     - Rolling window approach with fixed train/test periods
-    - For each window: train strategy parameters on train period, test on test period
-    - This mimics real-world deployment where you continuously retrain
+    - For each window: score the fixed strategy on the reference and test periods
+    - The reference period supplies indicator warmup, not parameter optimisation
     """
 
     def __init__(
@@ -203,7 +203,7 @@ class WalkForwardValidator:
                     results.append(window)
                     continue
 
-                # Train phase: find best parameters on train data
+                # Reference phase: evaluate the supplied fixed parameters.
                 train_result = self._train_on_window(
                     train_data, strategy_name, initial_capital, transaction_fee, slippage, parameters
                 )
@@ -212,7 +212,7 @@ class WalkForwardValidator:
                 if train_result is not None:
                     train_returns.append(train_result["total_return"])
 
-                # Test phase: apply trained parameters to test data
+                # Test phase: apply the same fixed parameters to later data.
                 #
                 # The test window gets a WARMUP CONTEXT: the tail of the
                 # training window, so the indicators the strategy needs
@@ -554,15 +554,15 @@ WALK-FORWARD VALIDATION - PHƯƠNG PHÁP ĐÁNH GIÁ
 
 Walk-forward validation là phương pháp nghiêm ngặt hơn simple backtest:
 - Mỗi window có train period (huấn luyện) và test period (kiểm tra)
-- Tham số chiến lược được "huấn luyện" trên train, đánh giá trên test
-- Kết quả là TRUNG BÌNH của nhiều windows, giảm overfitting
+- Bộ tham số cố định được đo trên các cửa sổ liên tiếp; giai đoạn trước cung cấp warmup
+- Báo cáo phân phối và so sánh với mua & giữ trên cùng phiên kiểm tra
 
 Tuy nhiên:
 - Kết quả vẫn dựa trên DỮ LIỆU LỊCH SỬ, không đảm bảo tương lai
-- "Overfitting ratio" gần 1.0 là tốt; >2.0 có thể là overfitting
-- "Return consistency" cao (>70%) cho thấy chiến lược ổn định hơn
+- Tỉ số lợi nhuận train/test chỉ là mô tả, không chứng minh quá khớp và bất ổn khi mẫu số gần 0
+- Các cửa sổ có thể phụ thuộc; thống kê mô tả không thay thế kiểm định độ bất định
 
-ĐÂY CHỈ LÀ NGHIÊN CỨU HỌC THUẬT, KHÔNG PHẢI KHUYẾN NGHỊ ĐẦU TƯ.
+KẾT QUẢ MANG TÍNH THAM KHẢO, KHÔNG PHẢI KHUYẾN NGHỊ ĐẦU TƯ.
 """
 
     @staticmethod

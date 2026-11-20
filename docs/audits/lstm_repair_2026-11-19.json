@@ -1,0 +1,35 @@
+{
+  "phase": "models",
+  "model": "lstm",
+  "updated_at_utc": "2026-11-18T21:42:37.584015+00:00",
+  "total": 3,
+  "results": [
+    {
+      "symbol": "AAPL",
+      "model": "lstm",
+      "phase": "models",
+      "status": "repaired",
+      "model_version": "d782763026804b9aadd55705c2c3dfa5",
+      "mae": 3.276358528711185,
+      "test_points": 320
+    },
+    {
+      "symbol": "MSFT",
+      "model": "lstm",
+      "phase": "models",
+      "status": "repaired",
+      "model_version": "2ad0f656d6d94e99b339fb1b494ee790",
+      "mae": 6.218845293994616,
+      "test_points": 320
+    },
+    {
+      "symbol": "FPT",
+      "model": "lstm",
+      "phase": "models",
+      "status": "repaired",
+      "model_version": "9674e160deec42fca5f0da31cd5e916f",
+      "mae": 1463.0883537335367,
+      "test_points": 553
+    }
+  ]
+}

@@ -1,0 +1,583 @@
+{
+  "summary": {
+    "listed_symbols": 1002,
+    "completed_symbols": 1002,
+    "latest_status": {
+      "readable": 1002
+    },
+    "source_layers": {
+      "gold": 1002
+    },
+    "latest_timestamp_dates": {
+      "2020-12-29": 1,
+      "2021-06-15": 1,
+      "2021-07-28": 1,
+      "2023-02-13": 1,
+      "2023-10-02": 1,
+      "2024-01-04": 1,
+      "2024-10-04": 1,
+      "2025-04-11": 1,
+      "2025-06-02": 1,
+      "2025-08-28": 1,
+      "2025-08-29": 1,
+      "2025-11-26": 1,
+      "2025-12-09": 1,
+      "2025-12-18": 1,
+      "2026-01-30": 1,
+      "2026-03-20": 1,
+      "2026-04-07": 1,
+      "2026-04-23": 1,
+      "2026-04-27": 1,
+      "2026-05-06": 1,
+      "2026-06-10": 1,
+      "2026-07-16": 1,
+      "2026-07-22": 1,
+      "2026-08-04": 1,
+      "2026-08-14": 1,
+      "2026-08-17": 1,
+      "2026-10-02": 1,
+      "2026-10-05": 1,
+      "2026-10-16": 2,
+      "2026-10-21": 1,
+      "2026-11-03": 1,
+      "2026-11-05": 1,
+      "2026-11-06": 1,
+      "2026-11-13": 2,
+      "2026-11-17": 414,
+      "2026-11-18": 552
+    },
+    "forecast_status": {
+      "arima": {
+        "available": 73,
+        "stale_inputs": 2
+      },
+      "linear_regression": {
+        "available": 973,
+        "unavailable": 29,
+        "stale_inputs": 8,
+        "nonpositive_or_nonfinite": 5
+      },
+      "lstm": {
+        "available": 72,
+        "stale_inputs": 3
+      }
+    },
+    "requests_checked": 2149,
+    "latency_p50_seconds": 0.282,
+    "latency_p95_seconds": 1.75
+  },
+  "session_dates": {
+    "2020-12-29": 1,
+    "2021-06-15": 1,
+    "2021-07-28": 1,
+    "2023-02-13": 1,
+    "2023-10-02": 1,
+    "2024-01-04": 1,
+    "2024-10-04": 1,
+    "2025-04-11": 1,
+    "2025-06-02": 1,
+    "2025-08-28": 1,
+    "2025-08-29": 1,
+    "2025-11-26": 1,
+    "2025-12-09": 1,
+    "2025-12-18": 1,
+    "2026-01-30": 1,
+    "2026-03-20": 1,
+    "2026-04-07": 1,
+    "2026-04-23": 1,
+    "2026-04-27": 1,
+    "2026-05-06": 1,
+    "2026-06-10": 1,
+    "2026-07-16": 1,
+    "2026-07-22": 1,
+    "2026-08-04": 1,
+    "2026-08-14": 1,
+    "2026-08-17": 1,
+    "2026-10-02": 1,
+    "2026-10-05": 1,
+    "2026-10-16": 2,
+    "2026-10-21": 1,
+    "2026-11-03": 1,
+    "2026-11-05": 1,
+    "2026-11-06": 1,
+    "2026-11-13": 2,
+    "2026-11-17": 414,
+    "2026-11-18": 552
+  },
+  "missing": [
+    {
+      "symbol": "AVB",
+      "model": "linear_regression",
+      "reason": "No trained linear_regression model found for AVB."
+    },
+    {
+      "symbol": "EA",
+      "model": "linear_regression",
+      "reason": "No trained linear_regression model found for EA."
+    },
+    {
+      "symbol": "EQR",
+      "model": "linear_regression",
+      "reason": "No trained linear_regression model found for EQR."
+    },
+    {
+      "symbol": "WOLF",
+      "model": "linear_regression",
+      "reason": "No trained linear_regression model found for WOLF."
+    },
+    {
+      "symbol": "AKRO",
+      "model": "linear_regression",
+      "reason": "No trained linear_regression model found for AKRO."
+    },
+    {
+      "symbol": "ALXN",
+      "model": "linear_regression",
+      "reason": "No trained linear_regression model found for ALXN."
+    },
+    {
+      "symbol": "ATSG",
+      "model": "linear_regression",
+      "reason": "No trained linear_regression model found for ATSG."
+    },
+    {
+      "symbol": "BK",
+      "model": "linear_regression",
+      "reason": "No trained linear_regression model found for BK."
+    },
+    {
+      "symbol": "BLUE",
+      "model": "linear_regression",
+      "reason": "No trained linear_regression model found for BLUE."
+    },
+    {
+      "symbol": "CCRN",
+      "model": "linear_regression",
+      "reason": "No trained linear_regression model found for CCRN."
+    },
+    {
+      "symbol": "CHK",
+      "model": "linear_regression",
+      "reason": "No trained linear_regression model found for CHK."
+    },
+    {
+      "symbol": "CMA",
+      "model": "linear_regression",
+      "reason": "No trained linear_regression model found for CMA."
+    },
+    {
+      "symbol": "CPRX",
+      "model": "linear_regression",
+      "reason": "No trained linear_regression model found for CPRX."
+    },
+    {
+      "symbol": "CTRA",
+      "model": "linear_regression",
+      "reason": "No trained linear_regression model found for CTRA."
+    },
+    {
+      "symbol": "DAWN",
+      "model": "linear_regression",
+      "reason": "No trained linear_regression model found for DAWN."
+    },
+    {
+      "symbol": "DENN",
+      "model": "linear_regression",
+      "reason": "No trained linear_regression model found for DENN."
+    },
+    {
+      "symbol": "EXPR",
+      "model": "linear_regression",
+      "reason": "No trained linear_regression model found for EXPR."
+    },
+    {
+      "symbol": "FOLD",
+      "model": "linear_regression",
+      "reason": "No trained linear_regression model found for FOLD."
+    },
+    {
+      "symbol": "HAB",
+      "model": "linear_regression",
+      "reason": "No trained linear_regression model found for HAB."
+    },
+    {
+      "symbol": "HOLX",
+      "model": "linear_regression",
+      "reason": "No trained linear_regression model found for HOLX."
+    },
+    {
+      "symbol": "IPG",
+      "model": "linear_regression",
+      "reason": "No trained linear_regression model found for IPG."
+    },
+    {
+      "symbol": "KLG",
+      "model": "linear_regression",
+      "reason": "No trained linear_regression model found for KLG."
+    },
+    {
+      "symbol": "LTHM",
+      "model": "linear_regression",
+      "reason": "No trained linear_regression model found for LTHM."
+    },
+    {
+      "symbol": "PEAK",
+      "model": "linear_regression",
+      "reason": "No trained linear_regression model found for PEAK."
+    },
+    {
+      "symbol": "PGRE",
+      "model": "linear_regression",
+      "reason": "No trained linear_regression model found for PGRE."
+    },
+    {
+      "symbol": "PLL",
+      "model": "linear_regression",
+      "reason": "No trained linear_regression model found for PLL."
+    },
+    {
+      "symbol": "TCO",
+      "model": "linear_regression",
+      "reason": "No trained linear_regression model found for TCO."
+    },
+    {
+      "symbol": "TGNA",
+      "model": "linear_regression",
+      "reason": "No trained linear_regression model found for TGNA."
+    },
+    {
+      "symbol": "WBA",
+      "model": "linear_regression",
+      "reason": "No trained linear_regression model found for WBA."
+    }
+  ],
+  "invalid_using_system_guard": [
+    {
+      "symbol": "PARA",
+      "model": "linear_regression",
+      "reference": 0.0729999989271164,
+      "predicted": 279013.5398040164,
+      "target": "2026-11-18",
+      "staleness": 0
+    },
+    {
+      "symbol": "SPXU",
+      "model": "linear_regression",
+      "reference": 39.029998779296875,
+      "predicted": -39.35910938968391,
+      "target": "2026-11-18",
+      "staleness": 0
+    },
+    {
+      "symbol": "SQQQ",
+      "model": "linear_regression",
+      "reference": 46.95000076293945,
+      "predicted": -458.0390799522138,
+      "target": "2026-11-18",
+      "staleness": 0
+    },
+    {
+      "symbol": "SOXS",
+      "model": "linear_regression",
+      "reference": 58.77000045776367,
+      "predicted": -277289577.52789706,
+      "target": "2026-11-18",
+      "staleness": 0
+    },
+    {
+      "symbol": "UVXY",
+      "model": "linear_regression",
+      "reference": 22.68000030517578,
+      "predicted": -28501.897381957227,
+      "target": "2026-11-18",
+      "staleness": 0
+    },
+    {
+      "symbol": "VXX",
+      "model": "linear_regression",
+      "reference": 22.139999389648438,
+      "predicted": -52.26401510377377,
+      "target": "2026-11-18",
+      "staleness": 0
+    }
+  ],
+  "large_changes_for_review": [],
+  "stale_forecasts": [
+    {
+      "symbol": "BTF",
+      "model": "linear_regression",
+      "reference": 21.96739959716797,
+      "predicted": 22.522084617717525,
+      "target": "2026-11-18",
+      "staleness": 19
+    },
+    {
+      "symbol": "NSC",
+      "model": "linear_regression",
+      "reference": 60000.0,
+      "predicted": 60123.56727451714,
+      "target": "2026-11-18",
+      "staleness": 8
+    },
+    {
+      "symbol": "NWE",
+      "model": "linear_regression",
+      "reference": 84.91000366210938,
+      "predicted": 84.86514384390532,
+      "target": "2026-11-18",
+      "staleness": 2
+    },
+    {
+      "symbol": "QRVO",
+      "model": "linear_regression",
+      "reference": 114.16999816894531,
+      "predicted": 114.44088031251465,
+      "target": "2026-11-18",
+      "staleness": 31
+    },
+    {
+      "symbol": "ROKU",
+      "model": "linear_regression",
+      "reference": 160.52000427246094,
+      "predicted": 160.43002831594174,
+      "target": "2026-11-18",
+      "staleness": 7
+    },
+    {
+      "symbol": "ROKU",
+      "model": "lstm",
+      "reference": 160.52000427246094,
+      "predicted": 158.23213655319233,
+      "target": "2026-11-18",
+      "staleness": 7
+    },
+    {
+      "symbol": "PVE",
+      "model": "linear_regression",
+      "reference": 1500.0,
+      "predicted": 1472.4046485351596,
+      "target": "2026-11-18",
+      "staleness": 2
+    },
+    {
+      "symbol": "SOFI",
+      "model": "arima",
+      "reference": 16.770000457763672,
+      "predicted": 16.76560243891795,
+      "target": "2026-11-18",
+      "staleness": 10
+    },
+    {
+      "symbol": "SOFI",
+      "model": "linear_regression",
+      "reference": 16.770000457763672,
+      "predicted": 16.752802292968397,
+      "target": "2026-11-18",
+      "staleness": 10
+    },
+    {
+      "symbol": "SOFI",
+      "model": "lstm",
+      "reference": 16.770000457763672,
+      "predicted": 16.940742166232848,
+      "target": "2026-11-18",
+      "staleness": 10
+    },
+    {
+      "symbol": "WBD",
+      "model": "arima",
+      "reference": 30.940000534057617,
+      "predicted": 30.94190453691149,
+      "target": "2026-11-18",
+      "staleness": 32
+    },
+    {
+      "symbol": "WBD",
+      "model": "linear_regression",
+      "reference": 30.940000534057617,
+      "predicted": 31.048018588894493,
+      "target": "2026-11-18",
+      "staleness": 32
+    },
+    {
+      "symbol": "WBD",
+      "model": "lstm",
+      "reference": 30.940000534057617,
+      "predicted": 30.925239834995317,
+      "target": "2026-11-18",
+      "staleness": 32
+    }
+  ],
+  "latest_older_than_10_days_relative_to_2026_11_18": [
+    {
+      "symbol": "AVB",
+      "session": "2026-08-14",
+      "close": 184.05999755859375
+    },
+    {
+      "symbol": "BTF",
+      "session": "2026-10-21",
+      "close": 21.96739959716797
+    },
+    {
+      "symbol": "EA",
+      "session": "2026-08-04",
+      "close": 209.6999969482422
+    },
+    {
+      "symbol": "EQR",
+      "session": "2026-08-17",
+      "close": 63.65999984741211
+    },
+    {
+      "symbol": "NSC",
+      "session": "2026-11-05",
+      "close": 60000.0
+    },
+    {
+      "symbol": "QRVO",
+      "session": "2026-10-05",
+      "close": 114.16999816894531
+    },
+    {
+      "symbol": "ROKU",
+      "session": "2026-11-06",
+      "close": 160.52000427246094
+    },
+    {
+      "symbol": "AKRO",
+      "session": "2025-12-09",
+      "close": 54.65
+    },
+    {
+      "symbol": "ALXN",
+      "session": "2021-07-28",
+      "close": 182.5
+    },
+    {
+      "symbol": "ATSG",
+      "session": "2025-04-11",
+      "close": 22.48
+    },
+    {
+      "symbol": "BK",
+      "session": "2026-06-10",
+      "close": 15.01
+    },
+    {
+      "symbol": "BLUE",
+      "session": "2025-06-02",
+      "close": 4.97
+    },
+    {
+      "symbol": "CCRN",
+      "session": "2026-07-22",
+      "close": 13.25
+    },
+    {
+      "symbol": "CHK",
+      "session": "2024-10-04",
+      "close": 81.46
+    },
+    {
+      "symbol": "CMA",
+      "session": "2026-01-30",
+      "close": 88.67
+    },
+    {
+      "symbol": "CPRX",
+      "session": "2026-07-16",
+      "close": 31.49
+    },
+    {
+      "symbol": "CTRA",
+      "session": "2026-05-06",
+      "close": 32.56
+    },
+    {
+      "symbol": "DAWN",
+      "session": "2026-04-23",
+      "close": 21.53
+    },
+    {
+      "symbol": "DENN",
+      "session": "2026-10-16",
+      "close": 6.25
+    },
+    {
+      "symbol": "EXPR",
+      "session": "2026-10-16",
+      "close": 0.0002
+    },
+    {
+      "symbol": "FOLD",
+      "session": "2026-04-27",
+      "close": 14.49
+    },
+    {
+      "symbol": "HAB",
+      "session": "2021-06-15",
+      "close": 75160.0
+    },
+    {
+      "symbol": "HOLX",
+      "session": "2026-04-07",
+      "close": 76.01
+    },
+    {
+      "symbol": "IPG",
+      "session": "2025-11-26",
+      "close": 24.57
+    },
+    {
+      "symbol": "KLG",
+      "session": "2023-10-02",
+      "close": 13.35
+    },
+    {
+      "symbol": "LTHM",
+      "session": "2024-01-04",
+      "close": 16.51
+    },
+    {
+      "symbol": "PEAK",
+      "session": "2023-02-13",
+      "close": 26.49
+    },
+    {
+      "symbol": "PGRE",
+      "session": "2025-12-18",
+      "close": 6.6
+    },
+    {
+      "symbol": "PLL",
+      "session": "2025-08-29",
+      "close": 7.25
+    },
+    {
+      "symbol": "SOFI",
+      "session": "2026-11-03",
+      "close": 16.770000457763672
+    },
+    {
+      "symbol": "TCO",
+      "session": "2020-12-29",
+      "close": 42.99
+    },
+    {
+      "symbol": "TGNA",
+      "session": "2026-03-20",
+      "close": 20.03
+    },
+    {
+      "symbol": "WBA",
+      "session": "2025-08-28",
+      "close": 11.98
+    },
+    {
+      "symbol": "WBD",
+      "session": "2026-10-02",
+      "close": 30.940000534057617
+    }
+  ]
+}

@@ -77,11 +77,9 @@ def build_next_session_forecast(
 
     ``data_staleness_days`` says how many trading sessions the input
     data lagged behind the target session when the forecast was made. 0
-    means the data was current; a higher number means the ingestion had
-    fallen behind, and the forecast was made on older history. It is
-    reported rather than used as a gate, because a forecast made on
-    stale data is still a valid forward forecast - the reader is given
-    the number and decides what to do with it.
+    means the data was current; a higher number means the ingestion has
+    fallen behind. Stale inputs make the next-session forecast unavailable
+    until the missing sessions have been ingested.
 
     When the symbol has no trained model, the payload carries
     ``available: False`` and a reason. It does NOT contain a price.
@@ -134,6 +132,7 @@ def build_next_session_forecast(
                 "symbol": symbol,
                 "model_name": model_name,
                 "reason": point.get("reason", "The model could not produce a forecast."),
+                "data_staleness_days": point.get("data_staleness_days"),
                 "generated_at": datetime.now(timezone.utc).isoformat(),
             }
         predicted_close = float(point["predicted_close"])
@@ -167,6 +166,9 @@ def build_next_session_forecast(
         "model_name": model_name,
         "target_session": target_session.isoformat() if target_session else None,
         "target_timestamp": point.get("timestamp"),
+        "target_open_at": point.get("target_open_at"),
+        "input_data_end": point.get("input_data_end"),
+        "model_version": point.get("model_version"),
         "reference_close": reference_close,
         "predicted_close": predicted_close,
         "predicted_return": predicted_return,
@@ -236,6 +238,9 @@ def store_next_session_forecast(
                 "source": source,
                 "source_layer": forecast.get("source_layer", "gold"),
                 "data_staleness_days": forecast.get("data_staleness_days"),
+                "target_open_at": forecast.get("target_open_at"),
+                "input_data_end": forecast.get("input_data_end"),
+                "model_version": forecast.get("model_version"),
             }
         )
         if owns_session:

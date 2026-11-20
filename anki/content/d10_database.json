@@ -1,0 +1,173 @@
+{
+  "deck": "10-database-ledger",
+  "notes": [
+    {
+      "term": "Hệ thống dùng cơ sở dữ liệu nào và lý do chọn MySQL 8?",
+      "answer": "Dự án dùng **MySQL 8** làm cơ sở dữ liệu quan hệ, kết nối qua SQLAlchemy 2.x với driver `pymysql`.\n\nLý do chọn:\n\n- Phù hợp với vai trò **ledger giao dịch**: dữ liệu có schema, cần truy vấn theo index, cần transaction và upsert chuẩn.\n- Dữ liệu **OHLCV lớn** không nằm ở đây mà nằm ở object storage (MinIO/Parquet). MySQL chỉ giữ phần **trạng thái và kết quả**: forecast đã publish, điểm số, lịch sử hội thoại, log pipeline.\n- Có sẵn trong Docker Compose (`mysql:8`, cổng host **3307**) nên không thêm hạ tầng mới.\n\n> Ranh giới quan trọng: MySQL giữ *kết quả có cấu trúc*, MinIO giữ *dữ liệu thời gian*. Trộn hai loại này vào cùng một chỗ là nguồn gốc của rất nhiều sự cố hiệu năng.",
+      "code": "backend/app/database/session.py",
+      "tags": "database mysql sqlalchemy session"
+    },
+    {
+      "term": "Cấu hình engine và session factory của SQLAlchemy trong dự án gồm gì?",
+      "answer": "`get_engine()` tạo engine một lần (lazy singleton) với:\n\n- `pool_pre_ping=True` - kiểm tra kết nối sống trước khi dùng, tránh lỗi `MySQL server has gone away` sau thời gian idle.\n- `pool_recycle=3600` - thu hồi connection sau 1 giờ, tránh bị MySQL kill vì timeout mặc định.\n- `connect_args={'connect_timeout': 10}` - không treo vô hạn khi DB không phản hồi.\n- `echo=False` - không log SQL ra console.\n\n`get_session_factory()` tạo `sessionmaker` với `autoflush=False`, `autocommit=False`, `expire_on_commit=False`.\n\n> `expire_on_commit=False` quan trọng: nếu bật, sau `commit()` mọi object đã load sẽ bị đánh dấu hết hạn và phải truy vấn lại khi truy cập — tốn vô ích trong các endpoint chỉ đọc.",
+      "code": "backend/app/database/session.py:get_engine",
+      "tags": "database engine pool session factory"
+    },
+    {
+      "term": "Dependency `get_db()` của FastAPI quản lý transaction theo cách nào?",
+      "answer": "`get_db()` là generator dependency được `yield` ra cho FastAPI:\n\n1. Tạo session từ factory.\n2. `yield session` - endpoint dùng session.\n3. Khi endpoint trả về bình thường -> `session.commit()`.\n4. Khi endpoint ném exception -> `session.rollback()` rồi `raise` lại.\n5. `finally` -> `session.close()`.\n\nKết quả: **mỗi request là một transaction**. Endpoint đọc thì commit rỗng vẫn an toàn; endpoint ghi thì hoặc ghi trọn vẹn, hoặc không ghi gì cả.\n\n> Đây là ranh giới transaction duy nhất của ứng dụng. Mọi logic nhiều bước phải nằm trong một request handler, không được tự mở transaction lồng nhau.",
+      "code": "backend/app/database/session.py:get_db",
+      "tags": "database transaction dependency fastapi"
+    },
+    {
+      "term": "Cơ chế kiểm tra kết nối MySQL được cache lại như thế nào?",
+      "answer": "`check_database_connection()` chạy `SELECT 1` trên một connection mới.\n\nKết quả được cache trong dict `_DB_HEALTH_CACHE` với timestamp, và **chỉ dùng lại trong 5 giây**.\n\nLý do cache: endpoint `/api/v1/health` được gọi liên tục bởi trang SystemStatus. Nếu mỗi lần gọi đều mở connection và chạy query, nó sẽ tự nó trở thành tải.\n\nLý do giới hạn 5 giây: cache lâu hơn sẽ báo *healthy* khi DB vừa chết - người dùng thấy trang báo \"OK\" rồi mới nhận ra mọi thứ chết. Vài giây trễ là đánh đổi chấp nhận được giữa tải và độ chính xác.\n\n> `require_database()` là biến thể ném ra `DatabaseError` thay vì trả `False` - dùng bởi những endpoint bắt buộc cần DB.",
+      "code": "backend/app/database/session.py:check_database_connection",
+      "tags": "database health check cache"
+    },
+    {
+      "term": "Bảng `predictions` giữ những cột nào và ý nghĩa từng nhóm?",
+      "answer": "Bảng `predictions` giữ **một dòng cho mỗi (symbol, model_name, target_session)**.\n\nNhóm định danh:\n- `symbol`, `model_name`, `target_session` - khoá nghiệp vụ, đều có index.\n- `target_open_at` - thời điểm phiên đích mở cửa (dùng để chứng minh forecast được publish *trước* khi phiên xảy ra).\n- `input_data_end` - thời điểm dữ liệu đầu vào kết thúc.\n- `model_version`, `source_layer` - truy vết mô hình và tầng dữ liệu.\n\nNhóm giá trị dự báo:\n- `reference_close` - giá đóng cửa phiên *trước* phiên đích (mốc neo).\n- `predicted_close`, `predicted_return`, `horizon` - giá dự báo, lợi nhuận tương đối, tầm nhìn theo phiên.\n- `data_staleness_days` - số phiên mà dữ liệu Gold mới nhất bị trễ so với phiên đích.\n\nNhóm kết quả (ghi sau, ban đầu đều NULL):\n- `actual_close`, `abs_error`, `error_pct`, `direction_correct`, `scored_at`.",
+      "code": "backend/app/database/models/prediction.py",
+      "tags": "database predictions table schema ledger"
+    },
+    {
+      "term": "Vì sao `actual_close` NULL khác hẳn với `actual_close = 0`?",
+      "answer": "NULL nghĩa là **chưa chấm điểm**, còn 0 nghĩa là **đã chấm và sai hoàn toàn**. Hai việc này khác nhau về bản chất.\n\nMột forecast chưa từng được đối chiếu với thực tế **không phải là một forecast sai** - nó là một forecast **chưa xác minh**. Nếu lưu 0 thay cho NULL, báo cáo độ chính xác sẽ đếm nó là một dự đoán sai và làm giảm điểm số của mô hình một cách không trung thực.\n\nVì vậy toàn bộ query tổng hợp đều lọc `actual_close IS NOT NULL`, và những dòng chưa chấm được đếm riêng (`unscored`) thay vì bị coi là thất bại.\n\n> Nguyên tắc chung của dự án: NULL = chưa biết, 0 = biết và bằng không. Không bao giờ dùng 0 để đại diện cho 'chưa có'.",
+      "code": "backend/app/database/models/prediction.py",
+      "tags": "database null semantics forecast scoring"
+    },
+    {
+      "term": "Upsert của `PredictionRepository` xử lý trường hợp chạy lại batch EOD thế nào?",
+      "answer": "`upsert()` tìm dòng theo khoá `(symbol, model_name, target_session)` với `with_for_update()`, rồi:\n\n- **Không có dòng** -> tạo mới.\n- **Có dòng, payload không đổi** -> trả về nguyên trạng, không ghi. Một lần retry không phải một lần publish mới.\n- **Có dòng, payload đổi** -> ghi bản cũ vào bảng `prediction_revisions`, rồi cập nhật dòng hiện tại.\n- **Có dòng, đã chấm điểm (`actual_close` khác NULL)** -> ném `ValueError`: một forecast đã có kết quả là bất biến.\n\nNgoài ra có hai chốt chặn:\n\n- Nếu `source == 'backfill_walk_forward'` mà dòng cũ có nguồn khác -> giữ dòng cũ. Một lần backfill lịch sử không được đè lên một publication thật.\n- Nếu `target_open_at` đã qua -> ném `ValueError`. Không publish dự báo cho một phiên đã xảy ra.\n\n> Chi tiết quan trọng: các cột kết quả (`actual_close`...) **cố ý không nằm trong** `_FORECAST_FIELDS`, nên chạy lại forecast không bao giờ xoá điểm đã tính.",
+      "code": "backend/app/database/repositories/prediction_repository.py:upsert",
+      "tags": "database upsert idempotency prediction repository"
+    },
+    {
+      "term": "Bảng `prediction_revisions` giữ gì và vì sao cần append-only?",
+      "answer": "`prediction_revisions` lưu **bản sao của forecast trước khi bị sửa**.\n\nCột chính:\n- `prediction_id` - dòng forecast bị sửa (có index).\n- `symbol`, `model_name`, `target_session` - bản sao để truy vấn độc lập.\n- `issued_at` - thời điểm bản gốc được publish.\n- `archived_at` - thời điểm bản gốc bị thay thế (`server_default=now()`).\n- `payload` - JSON chứa toàn bộ giá trị của các cột cũ, đã chuyển `date`/`datetime` sang chuỗi ISO.\n\nTính **append-only**: bảng chỉ thêm, không sửa, không xoá.\n\nLý do: nếu một forecast bị sửa sai, cần truy lại bản gốc để biết lúc đó hệ thống đã nói gì. Đây là cơ sở của mọi điều tra khiếu nại về chất lượng dự báo.\n\n> Chi tiết kỹ thuật: khi tạo snapshot, các cột có giá trị NULL bị loại khỏi payload, và mọi `date`/`datetime` được `isoformat()` vì cột JSON của MySQL không serialize được datetime của Python.",
+      "code": "backend/app/database/models/prediction_revision.py",
+      "tags": "database prediction revisions audit trail append-only"
+    },
+    {
+      "term": "Hai cột `issued_at` và `archived_at` trong `prediction_revisions` khác nhau thế nào?",
+      "answer": "`issued_at` là **thời điểm bản gốc được publish** - nó là một phần của lịch sử nghiệp vụ, nên phải lấy từ dữ liệu (`record.created_at` hoặc thời điểm hiện tại nếu thiếu).\n\n`archived_at` là **thời điểm bản gốc bị thay thế** - nó là mốc kỹ thuật của hệ thống, nên dùng `server_default=func.now()` để database tự đóng dấu.\n\nSự phân biệt này cho phép tính được: một forecast đã tồn tại trong bao lâu trước khi bị sửa, và toàn bộ timeline các lần publish.\n\n> Nếu cả hai đều lấy từ `now()` thì mất thông tin 'lúc đó nó đã publish từ khi nào' - và đó mới chính là thông tin quan trọng nhất khi điều tra.",
+      "code": "backend/app/database/models/prediction_revision.py",
+      "tags": "database revisions issued archived timestamp"
+    },
+    {
+      "term": "Vì sao `created_at` của forecast phải được set bằng Python chứ không dùng `onupdate`?",
+      "answer": "Cột `created_at` được khai báo với `server_default=func.now()`. Cột có **server default** thì **không kích hoạt `onupdate`**.\n\nNếu dựa vào `onupdate`, cột sẽ không đổi khi bản ghi được update -> một batch chạy lại với dữ liệu mới hơn sẽ để lại dòng vẫn giữ thời điểm publish **cũ**, và người đọc không có cách nào biết forecast đã được làm lại.\n\nVì vậy `upsert()` set `record.created_at = issued_at` bằng Python.\n\n> Chi tiết quan trọng: `issued_at` cắt bỏ **microsecond** (`microsecond=0`). Cột là `DateTime` không có fractional seconds, nên MySQL lưu whole-second và làm tròn khi đọc lại - viết microsecond sẽ khiến giá trị trong bộ nhớ và giá trị đọc từ DB **không bằng nhau**.",
+      "code": "backend/app/database/repositories/prediction_repository.py:upsert",
+      "tags": "database created_at onupdate server_default precision"
+    },
+    {
+      "term": "`created_at` của một forecast đóng vai trò gì trong việc chứng minh publication trước phiên?",
+      "answer": "Đây là cơ chế **chống hậu nghiệm** của dự án.\n\nQuery `published_scored_series()` lọc đúng ba điều kiện:\n- `actual_close IS NOT NULL` - đã chấm điểm.\n- `source != 'backfill_walk_forward'` - không phải số backfill lịch sử.\n- `created_at < target_open_at` - **được publish trước khi phiên đích mở cửa**.\n\nChỉ những dòng thỏa cả ba mới được coi là bằng chứng mạnh nhất: hệ thống đã nói trước, và điều đó đã được kiểm chứng bằng giá thật.\n\n`publication_timing_counts()` đếm riêng: bao nhiêu dòng publish muộn (`created_at >= target_open_at`) và bao nhiêu không xác định (`target_open_at IS NULL`) - vì không có mốc mở cửa thì không kết luận được là muộn hay không.\n\n> Chính vì vậy một forecast bị backfill từ ngày hôm qua **không thể** được dùng làm bằng chứng: nó vi phạm điều kiện thứ ba.",
+      "code": "backend/app/database/repositories/prediction_repository.py:published_scored_series",
+      "tags": "database publication timing no hindsight ledger"
+    },
+    {
+      "term": "Vì sao báo cáo độ chính xác dùng median thay vì mean cho sai số tương đối?",
+      "answer": "Mean của sai số tương đối bị kéo lệch bởi vài dòng sai khổng lồ. Số đo ngày 15/11/2026:\n\n- Mean sai số tuyệt đối trên **44.676** dòng đã xác minh: **26,385%**.\n- Median cùng bộ dữ liệu: **1,15%**.\n- Nguyên nhân: một mã (`PARA`) chiếm **99,993%** tổng khối lượng sai số, vì lịch sử của nó trộn hai thang giá (bốn lần chia ngược) và mô hình ở mức giá ngoại suy ra khỏi cuối chuỗi.\n\nMedian là con số mô tả một forecast **điển hình**, nên đó là con số dẫn đầu báo cáo.\n\n> Bài học: khi phân phối có đuôi dài, median mô tả thực tế tốt hơn mean - nhưng mean vẫn được giữ lại vì câu hỏi 'mô hình hơi/thấp hơn thực tế trung bình không' vẫn đáng trả lời.",
+      "code": "backend/app/database/repositories/prediction_repository.py:median_error_pct",
+      "tags": "database median error robust statistics outliers"
+    },
+    {
+      "term": "WAPE được dùng để làm gì và tính thế nào?",
+      "answer": "**WAPE** = Weighted Absolute Percentage Error:\n\n`wape = 100 * sum(|error|) / sum(reference_close)`\n\nNó chuẩn hoá theo **tổng tiền** mà các forecast nói về, nên:\n\n- Cổ penny không thể chi phối chỉ số.\n- Cổ đắt không thể dìm chỉ số.\n\nSo sánh:\n\n- **MAE** - sai số tuyệt đối, không chuẩn hoá: chỉ so sánh được trong cùng một mã.\n- **mean_error_pct** - sai số tương đối có dấu, cho biết thiên lệch hệ thống.\n- **median_error_pct** - sai số tương đối tuyệt đối, mô tả forecast điển hình.\n- **WAPE** - sai số tương đối có trọng số theo vốn, so sánh được giữa các mã.\n\n> Ở phạm vi toàn cục, MAE và WAPE bị **bỏ qua** và kèm `aggregation_note`: đơn vị giá khác nhau giữa các mã nên trung bình chúng là vô nghĩa. Thay vào đó dùng sai số tương đối.",
+      "code": "backend/app/database/repositories/prediction_repository.py:accuracy_summary",
+      "tags": "database wape mae accuracy metrics"
+    },
+    {
+      "term": "Vì sao dùng `GREATEST` mà không dùng `LEAST` khi tính tỉ lệ giữa forecast và reference?",
+      "answer": "Tỉ lệ phải **ít nhất bằng 1** để 'gấp 100 lần xa' mang cùng nghĩa ở cả hai chiều.\n\n`LEAST(a/b, b/a)` trả về giá trị **nhỏ hơn**, nên một forecast lớn gấp một triệu lần vẫn cho tỉ lệ `1/1.000.000` - tức là **vượt qua** mọi kiểm tra `<= 100`.\n\nĐó chính xác là lỗi đã xảy ra ngày 15/11/2026: `PARA` được dự báo ở 242,751 trong khi reference là 0,072, tỉ lệ tính bằng `LEAST` ra 0,0000003 - 'dưới 100' một cách thoải mái, và dòng đó vẫn nằm trong số liệu sạch.\n\n`GREATEST` lấy giá trị lớn hơn: 1,0 nghĩa là forecast bằng reference, 100 nghĩa là lệch một trăm lần theo bất kỳ hướng nào.\n\n> Bài học chung: khi so sánh tỉ lệ hai đại lượng, phải nghĩ đến cả hai chiều - nếu không, một nửa của không gian lỗi sẽ lọt qua mọi ngưỡng.",
+      "code": "backend/app/database/repositories/prediction_repository.py:_reference_ratio",
+      "tags": "database greatest least ratio bug impossible price"
+    },
+    {
+      "term": "Các dòng 'bất khả thi' bị loại khỏi số liệu sạch thì có bị giấu đi không?",
+      "answer": "Không. Chúng được **đếm và công bố**.\n\n`count_impossible()` đếm các dòng có:\n- `reference_close <= 0`, hoặc\n- `actual_close <= 0`, hoặc\n- `predicted_close <= 0`, hoặc\n- tỉ lệ vượt `MAX_PREDICTION_REFERENCE_FACTOR`.\n\nKết quả trả về trong `accuracy_summary` dưới khoá `excluded_impossible`.\n\nLý do phải công bố: một báo cáo giấu luôn các dòng lỗi sẽ giấu luôn **chính sự cố mà báo cáo sinh ra ra để phát hiện**. Người đọc cần biết 'số liệu này dựa trên 44.676 dòng sạch, và có 19 dòng bất khả thi bị loại'.\n\n> Nguyên tắc của dự án: loại bỏ một dòng dữ liệu là một **quyết định**, và mọi quyết định đều phải đi kèm số lượng bị ảnh hưởng.",
+      "code": "backend/app/database/repositories/prediction_repository.py:count_impossible",
+      "tags": "database excluded impossible transparency reporting"
+    },
+    {
+      "term": "`data_staleness_days` đo cái gì và vì sao NULL không được coi là 0?",
+      "answer": "Nó đo **số phiên giao dịch mà bar Gold mới nhất bị trễ** so với phiên đích của forecast.\n\n- `0` - forecast được làm trên dữ liệu đến đúng phiên ngay trước phiên đích.\n- `1` - quá trình ingest đã bỏ sót một phiên.\n- Lớn hơn - càng xa.\n\nMột forecast trên dữ liệu cũ **vẫn là forecast forward hợp lệ** (nó được publish trước khi phiên đích xảy ra), nhưng người đọc phải **nhìn thấy** nó dựa trên bao nhiêu lịch sử. Bỏ qua phiên âm thầm còn tệ hơn một số sai: forecast nhắm vào phiên xa hơn mà không ghi gì lên dòng đó.\n\nNULL nghĩa là **dòng được ghi trước khi cột này tồn tại** - độ trễ chưa được ghi nhận. Nó **không phải 0** (0 là một phép đo) và cũng không phải 'chất lượng không xác định'.\n\nVì vậy báo cáo tách riêng `staleness_measured` và `staleness_unrecorded`.\n\n> Số liệu này được **báo cáo**, không dùng làm bộ lọc: loại các dòng cũ sẽ âm thầm thu nhỏ mẫu số mà độ chính xác được tính trên.",
+      "code": "backend/app/database/repositories/prediction_repository.py:accuracy_summary",
+      "tags": "database staleness days data freshness ledger"
+    },
+    {
+      "term": "Vì sao `score()` không tạo dòng forecast mới khi không tìm thấy dòng nào?",
+      "answer": "Khi không có dòng forecast, `score()` trả về `None` thay vì tạo một dòng.\n\nLý do: **một điểm số không có dự báo phía trước là vô nghĩa**. Nếu tạo dòng lúc chấm điểm thì dòng đó sẽ mang giá trị forecast *lúc scoring* - tức là đã biết giá thực tế rồi. Đó chính là **hậu nghiệm**, và nó sẽ làm cho điểm số trông đẹp một cách giả dối.\n\nNgoài ra, `score()` không lấy giá trị `predicted_close` từ payload của caller mà **tính sai số từ forecast đã lưu trong DB**. Lý do: caller có thể mang theo một dự báo cũ hoặc đụng độ (ví dụ một dòng backfill trùng phiên), và nếu tin caller thì điểm số sẽ được tính trên một dự báo không phải dự báo đã publish.\n\n> Đây là cùng nguyên tắc với việc chỉ query `published_scored_series()`: mọi bằng chứng về chất lượng phải truy được về một publication thật.",
+      "code": "backend/app/database/repositories/prediction_repository.py:score",
+      "tags": "database scoring no hindsight ledger score"
+    },
+    {
+      "term": "Chuỗi Alembic trong dự án gồm những migration nào?",
+      "answer": "Chuỗi hiện tại (8 migration, `down_revision` nối tiếp):\n\n1. `0001_initial` - schema nền: `users`, `pipeline_runs`, `model_runs`, `backtest_runs`.\n2. `0002_predictions` - bảng `predictions` và chỉ số.\n3. `0003_agent_mediumtext` - đổi cột nội dung hội thoại từ `TEXT` sang `MEDIUMTEXT` (nội dung tool-calling dài hơn giới hạn 64KB của `TEXT`).\n4. `0004_prediction_scoring` - thêm các cột kết quả: `actual_close`, `abs_error`, `error_pct`, `direction_correct`, `scored_at`.\n5. `0005_prediction_staleness` - thêm `data_staleness_days`.\n6. `0006_prediction_revisions` - bảng `prediction_revisions`.\n7. `0007_forecast_provenance` - thêm `model_version`, `source_layer`, `input_data_end`.\n8. `0008_prediction_precision` - đổi 6 cột giá từ `Float` sang `Double`.\n\n> Migration `0008` có lý do kỹ thuật cụ thể: `FLOAT` của MySQL chỉ giữ khoảng 7 chữ số có nghĩa, nên một giá dự báo ở mức 4.096,123456 sẽ bị cắt còn 4.096,12 - mỗi lần đọc lại là một sai sóc khác nhau so với giá trị đã ghi.",
+      "code": "backend/alembic/versions/0008_prediction_precision.py",
+      "tags": "database alembic migrations schema evolution"
+    },
+    {
+      "term": "Vì sao cột giá trong bảng `predictions` phải đổi từ `Float` sang `Double`?",
+      "answer": "MySQL `FLOAT` là số thực 4 byte, chỉ giữ **khoảng 7 chữ số có nghĩa**. `DOUBLE` là 8 byte với **15-16 chữ số**.\n\nVấn đề thực tế: giá dự báo của một cổ giá trị hàng nghìn với nhiều chữ số thập phân sẽ bị cắt bớt khi lưu. Giá trị đọc lại **không bằng** giá trị đã ghi, nên:\n\n- Sai số tính toán trên bản đọc lại khác sai số trên bản gốc.\n- Vòng lặp `upsert` so sánh `payload` với `record` sẽ thấy khác biệt ở chữ số cuối và **coi là đã thay đổi**, tạo revision vô nghĩa mỗi lần chạy.\n\nMigration `0008_prediction_precision` đổi cả 6 cột: `reference_close`, `predicted_close`, `predicted_return`, `actual_close`, `abs_error`, `error_pct`.\n\n> Quy tắc: cột lưu **tiền tệ** hoặc **tỉ lệ tài chính** phải là `DOUBLE`. `FLOAT` chỉ hợp với dữ liệu thống kê thô đã làm tròn sẵn.",
+      "code": "backend/alembic/versions/0008_prediction_precision.py",
+      "tags": "database float double precision money column"
+    },
+    {
+      "term": "Các bảng còn lại trong schema và chức năng của từng bảng?",
+      "answer": "Ngoài `predictions` và `prediction_revisions`, schema còn có:\n\n- **`users`** - tài khoản người dùng (đăng nhập, phân quyền).\n- **`pipeline_runs`** - nhật ký mỗi lần chạy pipeline: trạng thái, thời gian bắt đầu/kết thúc, số bản ghi xử lý, thông báo lỗi. Đây là bảng mà trang SystemStatus đọc.\n- **`model_runs`** - lịch sử train mô hình: tên mô hình, version, siêu tham số, metric đánh giá, đường dẫn artifact trên MinIO.\n- **`backtest_runs`** - lịch sử backtest: chiến lược, cửa sổ train/test, kết quả Sharpe, drawdown, lợi nhuận vượt Buy & Hold.\n- **`agent_conversations`** - hội thoại của AI Agent: câu hỏi, câu trả lời, các tool đã gọi, trạng thái. Cột nội dung là `MEDIUMTEXT`.\n\n> Mô hình chung: **dữ liệu thời gian lớn ở MinIO, kết quả và trạng thái có schema ở MySQL**. Mỗi lần chạy batch đều để lại một dòng log trong bảng tương ứng, để sau này trả lời được 'lần chạy này sinh ra cái gì, lúc nào, với dữ liệu nào'.",
+      "code": "backend/app/database/models/__init__.py",
+      "tags": "database tables schema pipeline model backtest conversations"
+    },
+    {
+      "term": "Repository pattern trong dự án giải quyết vấn đề gì?",
+      "answer": "Mỗi bảng có một repository riêng trong `app/database/repositories/`:\n\n- `PredictionRepository` - forecast và điểm số.\n- `PipelineRepository` - log pipeline run.\n- `ModelRepository` - lịch sử model run.\n- `BacktestRepository` - kết quả backtest.\n- `ConversationRepository` - hội thoại agent.\n\nGiá trị thực tế nằm ở chỗ **SQL phức tạp nằm đúng một chỗ**:\n\n- `accuracy_summary()` dùng một `SELECT` với 12 hàm tổng hợp - thay vì kéo hàng chục nghìn dòng về Python rồi tính tay.\n- `median_error_pct()` dùng `ORDER BY ABS(error_pct) ASC` với `OFFSET`/`LIMIT` để lấy giá trị giữa **ngay trong SQL**.\n- `published_scored_series()` gom ba điều kiện lọc phức tạp vào một query, được dùng lại ở nhiều endpoint.\n\n> Hệ quả: endpoint không bao giờ chứa SQL thô, và câu hỏi 'báo cáo này tính như thế nào' chỉ cần sửa một chỗ.",
+      "code": "backend/app/database/repositories/",
+      "tags": "database repository pattern sql aggregation"
+    },
+    {
+      "term": "Vì sao `score()` import `score_forecast` bên trong hàm thay vì ở đầu module?",
+      "answer": "Để tránh **circular import**.\n\nSơ đồ phụ thuộc:\n\n- `prediction_repository` cần `score_forecast` (từ `app.services.forecast_scoring`).\n- `forecast_scoring` cần `Prediction` (từ `app.database.models.prediction`) để đọc `reference_close` và `predicted_close`.\n\nNếu `prediction_repository` import `forecast_scoring` ở đầu module, và `forecast_scoring` import model ở đầu module, thì vòng import sẽ khóa.\n\nImport cục bộ bên trong hàm giải quyết chu trình: khi hàm được gọi thì cả hai module đã nạp xong.\n\n> Đây là lý do Python cho phép import bên trong hàm. Nó không phải phong cách xấu - ở đây nó là giải pháp cho một vấn đề cấu trúc cụ thể.",
+      "code": "backend/app/database/repositories/prediction_repository.py:score",
+      "tags": "database circular import lazy import python"
+    },
+    {
+      "term": "Chuẩn hoá timestamp của forecast diễn ra thế nào trước khi lưu?",
+      "answer": "Hàm `_utc_naive()` chuẩn hoá mọi timestamp về **UTC naive** (không có timezone):\n\n1. Nếu là chuỗi -> `datetime.fromisoformat(value.replace('Z', '+00:00'))`.\n2. Nếu có `tzinfo` -> `astimezone(UTC)`.\n3. Bỏ `tzinfo`.\n\nÁp dụng cho `target_open_at` và `input_data_end`.\n\nLý do bỏ timezone: cột trong MySQL là `DateTime` (không có timezone), nên lưu một datetime có tz-aware sẽ khiến driver phụ thuộc vào timezone của server MySQL. Chuyển về UTC naive trước khi ghi làm cho giá trị **không phụ thuộc múi giờ** của bất kỳ máy nào đang chạy.\n\n> Cùng lý do đó, `created_at` cũng bỏ microsecond: cột lưu whole-second, viết microsecond sẽ bị làm tròn khi đọc lại và giá trị trong bộ nhớ sẽ khác giá trị trong DB.",
+      "code": "backend/app/database/repositories/prediction_repository.py:_utc_naive",
+      "tags": "database timezone utc naive normalization"
+    },
+    {
+      "term": "Các lớp bảo vệ dữ liệu được đặt ngay trong `upsert()` của prediction vì sao?",
+      "answer": "Vì `upsert()` là **con đường ghi duy nhất** vào bảng `predictions`. Đây là chỗ duy nhất mà một forecast giả có thể lọt vào.\n\nHai lớp kiểm tra:\n\n**1. Symbol giả** - `is_fabricated_symbol()` dùng **denylist tiền tố** (`TST`, `TEST`, `MOCK`...). Ngày 15/11/2026 bảng chứa **200 dòng** cho `TST0`..`TST199` - giá bịa dưới một cái nhãn có nghĩa 'hệ thống đã publish cái này', và không gì trong bảng phân biệt được chúng với forecast thật.\n\n**2. Giá bất khả thi** - `is_impossible_price()` chặn giá âm. Ngày 15/11/2026 ledger có **19** dòng như vậy: `LCID` ở -4,09; `SOXS` ở -359.121.248 - sinh ra từ mô hình ở mức giá được fit trên lịch sử trộn hai thang giá.\n\n> Một giá âm không phải là 'sai số lớn' - nó là giá trị mà **không sàn giao dịch nào có thể in ra**, và nó làm hỏng mọi phép trung bình tính trên bảng.",
+      "code": "backend/app/database/repositories/prediction_repository.py:upsert",
+      "tags": "database integrity fabricated symbol impossible price guard"
+    },
+    {
+      "term": "Tại sao bảng forecast phải lưu `source` (`auto_eod_batch` / `manual_api`) ?",
+      "answer": "Để người đọc biết con số đang xem **đến từ đâu**.\n\n- `auto_eod_batch` - batch EOD tự động chạy đêm, publish trước khi phiên mở cửa. Đây là bằng chứng mạnh nhất.\n- `manual_api` - người dùng bấm nút trên UI, tức là publish **sau** khi phiên đã mở cửa hoặc thậm chí đã đóng. Đây là số liệu hậu nghiệm.\n- `backfill_walk_forward` - số được dựng lại từ walk-forward trên lịch sử. Cần thiết để lấy mẫu đủ lớn, nhưng **không** được tính vào bằng chứng publication.\n\nBa nguồn này có giá trị bằng chứng khác nhau, nên phải được phân biệt bằng một cột, chứ không gộp làm một.\n\n> Cùng nguyên tắc với cột `source` trong Bronze: mọi dòng đều phải trả lời được 'ai đã tạo ra nó'.",
+      "code": "backend/app/database/models/prediction.py",
+      "tags": "database source provenance auto batch manual api backfill"
+    },
+    {
+      "term": "Vì sao `wape` và `mae` chỉ được trả về khi truy vấn theo một mã cụ thể?",
+      "answer": "Vì **đơn vị giá khác nhau giữa các mã**.\n\nMAE là sai số tuyệt đối: một mã ở mức 4.096 đóng cửa sẽ cho MAE tính bằng hàng trăm, còn một mã ở mức 12 đóng cửa sẽ cho MAE tính bằng hàng chục. Trung bình hai con số đó là vô nghĩa - nó không mô tả bất kỳ mã nào.\n\nWAPE có chuẩn hoá theo tổng reference nên nhìn chung an toàn hơn, nhưng vẫn bị chi phối bởi các mã vốn lớn trong tập. Ở phạm vi toàn cục, báo cáo chỉ dùng **sai số tương đối** (`mean_error_pct`, `median_error_pct`) vì chúng không phụ thuộc thang giá.\n\nKhi bỏ qua, API trả kèm `aggregation_note`:\n\n> Global metrics use relative errors; MAE/WAPE are omitted because price units differ across symbols.\n\n> Nguyên tắc: số liệu không có nghĩa thì **không trả về**, kèm lý do - chứ không trả về một con số trông có vẻ đáng tin.",
+      "code": "backend/app/database/repositories/prediction_repository.py:accuracy_summary",
+      "tags": "database aggregation note price units mae wape scope"
+    },
+    {
+      "term": "Vì sao `unscored()` sắp xếp theo `target_session` tăng dần và giới hạn 5000 dòng?",
+      "answer": "Đây là query mà **vòng lặp chấm điểm** đi qua.\n\n- **Sắp xếp tăng dần theo `target_session`** - phiên cũ nhất được chấm trước. Điều này đảm bảo `scored_at` và `actual_close` được ghi theo thứ tự thời gian thực, và nếu batch bị gián đoạn thì các phiên cũ đã đóng vẫn được chấm trước khi đến phiên mới.\n- **Giới hạn 5000** - chặn một lần ghi quá lớn. Nếu hệ thống bị dừng lâu và tích tụ hàng chục nghìn phiên chưa chấm, một lần ghi duy nhất sẽ quá nặng cho transaction và dễ bị timeout.\n\n> Giới hạn ở đây là **tính bất biến của vòng lặp**, không phải giới hạn bộ nhớ: lần chạy sau lấy tiếp 5000 dòng chưa chấm kế tiếp.",
+      "code": "backend/app/database/repositories/prediction_repository.py:unscored",
+      "tags": "database unscored batch limit ordering"
+    },
+    {
+      "term": "Vì sao `for_symbol_and_session()` tồn tại khi đã có `latest_for_symbol()`?",
+      "answer": "Hai query phục vụ hai nhu cầu khác nhau:\n\n- `latest_for_symbol(symbol)` - **một** dòng: dự báo mới nhất của mã đó, bất kể model nào. Đây là thứ Dashboard hiển thị.\n- `for_symbol_and_session(symbol, target_session)` - **tất cả** model cho **một** phiên đích, sắp xếp theo `model_name`.\n\nCần hàm thứ hai vì batch đêm có thể publish **một dự báo cho mỗi model** trên cùng một phiên. Người đọc muốn so sánh các model cạnh nhau thì phải lấy chúng **cùng lúc**.\n\nLợi ích thực tế: trang Dự báo hiển thị chúng cạnh nhau, Dashboard hiển thị dự báo tốt nhất - và **cả hai đọc cùng một bảng**. Không có bản sao thứ hai của dự báo ở đâu cả.\n\n> Nếu mỗi model được gọi một query riêng, số query sẽ nhân với số model, và hai màn hình có thể hiển thị dữ liệu lệch nhau nếu giữa hai lần gọi có một dòng mới được publish.",
+      "code": "backend/app/database/repositories/prediction_repository.py:for_symbol_and_session",
+      "tags": "database query comparison multiple models single session"
+    }
+  ]
+}

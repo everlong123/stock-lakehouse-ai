@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 from app.core.logging_config import get_logger
 from app.database.repositories.model_repository import ModelRepository
 from app.database.session import check_database_connection
-from app.forecasting.model_registry import list_trained_models
+from app.forecasting.model_registry import list_trained_models, model_directory
 from app.forecasting.predictor import predict_symbol
 from app.forecasting.trainer import train_model
 
@@ -43,7 +43,7 @@ class ForecastingService:
 
     def compare(self, symbol: str, db: Session | None = None) -> dict[str, Any]:
         records = list_trained_models(symbol)
-        if db is not None and check_database_connection():
+        if not records and db is not None and check_database_connection():
             try:
                 db_rows = ModelRepository(db).comparison_rows(symbol)
                 if db_rows:
@@ -62,10 +62,17 @@ class ForecastingService:
                     ]
             except Exception as exc:
                 logger.warning("Could not read model_runs from MySQL: %s", exc)
+        common, baseline, points = _common_session_metrics(symbol, records)
         return {
             "symbol": symbol.upper(),
-            "models": records,
-            "note": "Comparison uses hold-out metrics. A lower error does not guarantee a better live forecast.",
+            "models": common or records,
+            "baseline": baseline,
+            "comparison_points": points,
+            "comparison_scope": "common_target_sessions" if common else "individual_splits",
+            "note": (
+                f"Các mô hình và baseline giữ nguyên giá được chấm trên cùng {points} phiên đích."
+                if common else "Chưa có đủ artifact độc lập để so trên cùng phiên. Không xếp hạng từ các tập kiểm tra khác nhau; hãy huấn luyện lại mô hình."
+            ),
         }
 
     def _persist(self, result: dict[str, Any], db: Session | None) -> None:
@@ -101,6 +108,48 @@ def _as_dt(value) -> datetime | None:
     if isinstance(value, datetime):
         return value.replace(tzinfo=None)
     return pd_to_datetime(value)
+
+
+def _common_session_metrics(symbol: str, records: list[dict]) -> tuple[list[dict], dict | None, int]:
+    """Compare independent predictions on the intersection of target sessions."""
+    import numpy as np
+    import pandas as pd
+
+    from app.forecasting.evaluator import evaluate_forecast
+    from app.lakehouse.gold import GoldLayer
+
+    if not records or any(r.get("metrics_source") != "independent_chronological_holdout" for r in records):
+        return [], None, 0
+    try:
+        frames = {}
+        for record in records:
+            name = record["model_name"]
+            frame = pd.read_parquet(model_directory(symbol, name) / "predictions.parquet")
+            frame["timestamp"] = pd.to_datetime(frame["timestamp"], utc=True)
+            frames[name] = frame.drop_duplicates("timestamp").set_index("timestamp")
+        shared = next(iter(frames.values())).index
+        for frame in frames.values():
+            shared = shared.intersection(frame.index)
+        gold = GoldLayer().read(symbol).sort_values("timestamp").copy()
+        gold["timestamp"] = pd.to_datetime(gold["timestamp"], utc=True)
+        reference = gold.set_index("timestamp")["close"].shift(1)
+        shared = shared.intersection(reference.dropna().index).sort_values()
+        if len(shared) < 2:
+            return [], None, 0
+        actual = next(iter(frames.values())).loc[shared, "actual"].to_numpy(dtype=float)
+        for frame in frames.values():
+            if not np.allclose(frame.loc[shared, "actual"].to_numpy(dtype=float), actual):
+                return [], None, 0
+        previous = reference.loc[shared].to_numpy(dtype=float)
+        compared = [
+            {**record, **evaluate_forecast(actual, frames[record["model_name"]].loc[shared, "predicted"].to_numpy(dtype=float), previous), "test_points": len(shared)}
+            for record in records
+        ]
+        baseline = {"model_name": "naive", **evaluate_forecast(actual, previous, previous)}
+        return compared, baseline, len(shared)
+    except Exception as exc:
+        logger.warning("Cannot align comparison for %s: %s", symbol, exc)
+        return [], None, 0
 
 
 def pd_to_datetime(value) -> datetime | None:

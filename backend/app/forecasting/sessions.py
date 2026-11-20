@@ -87,6 +87,7 @@ from datetime import date, datetime, timedelta, timezone
 from typing import Any, Iterable, Sequence
 
 import pandas as pd
+from app.lakehouse.exchange_timezone import exchange_timezone
 
 #: A year is only used to RECOGNISE a pattern when it holds enough
 #: sessions to be a real year of trading. The first year of a symbol's
@@ -725,7 +726,7 @@ class TradingCalendar:
         cursor = after + timedelta(days=1)
         if floor is not None and floor > cursor:
             cursor = floor
-        for _ in range(MAX_SEARCH_DAYS):
+        for _ in range(max(MAX_SEARCH_DAYS, count * 7 + MAX_SEARCH_DAYS)):
             if self.is_session(cursor) and (floor is None or cursor >= floor):
                 found.append(cursor)
                 if len(found) >= count:
@@ -758,7 +759,12 @@ def build_calendar(gold: pd.DataFrame) -> TradingCalendar:
     """The trading calendar of a symbol, read from its Gold frame."""
     if gold is None or gold.empty or "timestamp" not in gold.columns:
         return TradingCalendar(frozenset(), frozenset(), frozenset(), {}, ())
-    return TradingCalendar.from_history(gold["timestamp"].tolist())
+    symbol = str(gold["symbol"].iloc[-1]) if "symbol" in gold.columns else ""
+    zone = exchange_timezone(symbol)
+    stamps = pd.to_datetime(gold["timestamp"], utc=True)
+    if zone:
+        stamps = stamps.dt.tz_convert(zone)
+    return TradingCalendar.from_history(stamps.tolist())
 
 
 def future_session_timestamps(
@@ -780,20 +786,37 @@ def future_session_timestamps(
     anchor_stamp = pd.Timestamp(anchor)
     if anchor_stamp.tzinfo is None:
         anchor_stamp = anchor_stamp.tz_localize("UTC")
+    original_tz = anchor_stamp.tz
+    symbol = str(gold["symbol"].iloc[-1]) if "symbol" in gold.columns else ""
+    zone = exchange_timezone(symbol)
+    if zone:
+        anchor_stamp = anchor_stamp.tz_convert(zone)
 
     calendar = build_calendar(gold)
     anchor_day = anchor_stamp.date()
 
     if floor is None:
         floor = _today()
+        # A next-session forecast must be issued before its session opens.
+        # The daily bar stamp supplies that market's opening convention.
+        now = _now()
+        if zone:
+            now = pd.Timestamp(now).tz_convert(zone)
+            floor = now.date()
+        if floor == now.date() and _combine(anchor_stamp, floor) <= now:
+            floor += timedelta(days=1)
 
     days = calendar.next_sessions(anchor_day, count, floor=floor)
-    return [_combine(anchor_stamp, day) for day in days]
+    return [_combine(anchor_stamp, day).tz_convert(original_tz) for day in days]
 
 
 def _today() -> date:
     """The current UTC day - the earliest session a forecast may target."""
-    return datetime.now(timezone.utc).date()
+    return _now().date()
+
+
+def _now() -> datetime:
+    return datetime.now(timezone.utc)
 
 
 def _combine(anchor: pd.Timestamp, day: date) -> pd.Timestamp:

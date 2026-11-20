@@ -1,0 +1,60 @@
+{
+  "phase": "models",
+  "model": "linear_regression",
+  "updated_at_utc": "2026-11-18T21:48:35.174808+00:00",
+  "total": 6,
+  "results": [
+    {
+      "symbol": "PARA",
+      "model": "linear_regression",
+      "phase": "models",
+      "status": "failed",
+      "reason": "PARA cannot be trained on this window: suspected scale discontinuity (span 24.08x; the detector also checks local jumps). A reverse split, a provider unit change or an actual market jump requires investigation. Verify the source, re-ingest inconsistent data, or explicitly select a recent stable training window. No prices were altered."
+    },
+    {
+      "symbol": "SPXU",
+      "model": "linear_regression",
+      "phase": "models",
+      "status": "repaired",
+      "model_version": "b68a8b4bc0da48af8be91994d3d3c71c",
+      "mae": 1.0412303742293352,
+      "test_points": 39
+    },
+    {
+      "symbol": "SQQQ",
+      "model": "linear_regression",
+      "phase": "models",
+      "status": "repaired",
+      "model_version": "698855670e89446ba3fe88bcc7a884de",
+      "mae": 1.738889258277276,
+      "test_points": 39
+    },
+    {
+      "symbol": "SOXS",
+      "model": "linear_regression",
+      "phase": "models",
+      "status": "repaired",
+      "model_version": "a705ad7d52494a668950bff0129bcbcf",
+      "mae": 6.491486327915017,
+      "test_points": 39
+    },
+    {
+      "symbol": "UVXY",
+      "model": "linear_regression",
+      "phase": "models",
+      "status": "repaired",
+      "model_version": "92f1d0c9b98a40419cc98757d9ab2c7c",
+      "mae": 1.4317630349389412,
+      "test_points": 39
+    },
+    {
+      "symbol": "VXX",
+      "model": "linear_regression",
+      "phase": "models",
+      "status": "repaired",
+      "model_version": "94c42f865e0e4624a2f671eccc7b4add",
+      "mae": 1.0888656174483917,
+      "test_points": 39
+    }
+  ]
+}

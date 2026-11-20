@@ -1,57 +1,8 @@
-"""The universe-wide nightly forecast pass.
+"""Publish next-session forecasts in bounded groups, then score due targets.
 
-WHY THIS FILE EXISTS
---------------------
-The EOD batch could only forecast the 18 symbols that already had a
-trained model on disk. Everything else was invisible to the forecasting
-system - which meant the "next-session forecast" was a demo for a
-curated list rather than a feature of the platform.
-
-This module produces a forecast for EVERY symbol that has usable Gold
-history and a trained model. It is the piece that turns the forecasting
-system from a per-ticker tool into a platform capability.
-
-WHAT IT DOES, IN ORDER
-----------------------
-  1. **Train** the symbols that need it (see `universe_training.py`).
-     A symbol whose model has not reached its newest Gold session is
-     retrained, because a model anchored on a stale price produces a
-     forecast that is wrong by the whole gap.
-  2. **Forecast** the next session for every symbol that has a model.
-  3. **Store** each forecast in the `predictions` table.
-  4. **Score** the forecasts whose target session has already happened,
-     against the real close read from Gold.
-
-STEP 4 IS THE POINT OF THE WHOLE LOOP
--------------------------------------
-Steps 1-3 publish forecasts. Step 4 is what turns them into evidence.
-Without it, the system's accuracy can only ever be measured on a
-backtest - on sessions that had already happened when the model was
-built. With it, the table accumulates a record of what the system
-actually predicted and how it actually turned out.
-
-THE COST, MEASURED
-------------------
-On this machine on 13/11/2026, with ~897 symbols in Gold:
-
-    Gold read ................. 0.41 s per symbol
-    train linear_regression ... 0.45 s per symbol
-    light forecast ............ 0.02 s per symbol
-
-So a full pass over the universe costs roughly:
-    training  (stale symbols only) ... ~7 minutes for the whole universe
-    forecasting ..................... ~18 seconds
-    scoring  (one Gold read per symbol, shared with the forecast)
-
-The forecast and the score SHARE the Gold read, which is why the scoring
-step is nearly free: the data is already in memory.
-
-WHY THE FORECAST AND THE SCORE SHARE ONE GOLD READ
----------------------------------------------------
-The forecast needs the newest session (to predict the next one) and the
-score needs the sessions that have already happened (to verify the older
-forecasts). Both come from the same frame. Reading Gold twice would
-double the dominant cost of the whole pass.
+Each group's Gold frames are held directly until all its models have run;
+shared cache TTL expiry cannot trigger another universe-wide download.
+Training is optional and separate from routine scheduled publication.
 """
 
 from __future__ import annotations
@@ -59,6 +10,7 @@ from __future__ import annotations
 import os
 import time
 from dataclasses import dataclass, field
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Any
 
 from app.core.logging_config import get_logger
@@ -71,13 +23,14 @@ logger = get_logger(__name__)
 
 #: How many symbols' Gold frames are read at the same time.
 #:
-#: WHY 8: the reads are MinIO round-trips and they overlap almost
+#: Four outer reads limit contention with each storage reader's own pool.
+#: The reads are MinIO round-trips and they overlap almost
 #: perfectly, so the pass is latency-bound. Eight keeps the server
 #: comfortably busy - the read path in the storage backend already uses
 #: 6 threads per symbol, and MinIO resets connections when it is
 #: overloaded (measured 22 resets during a 30-symbol browse on
 #: 2026-11-03), so the number is deliberately not higher.
-_READ_WORKERS = int(os.getenv("UNIVERSE_READ_WORKERS", "8"))
+_READ_WORKERS = int(os.getenv("UNIVERSE_READ_WORKERS", "4"))
 
 
 @dataclass
@@ -118,7 +71,7 @@ def _has_model(symbol: str, model_name: str) -> bool:
 def run_universe_forecast(
     symbols: list[str] | None = None,
     model_name: str | list[str] = "linear_regression",
-    train: bool = True,
+    train: bool = False,
     retrain_stale: bool = True,
     store: bool = True,
 ) -> UniverseForecastSummary:
@@ -168,7 +121,10 @@ def run_universe_forecast(
         # only trained for the symbols they were already prepared for,
         # because training LSTM for a thousand symbols would take hours.
         for name in model_names:
-            training = train_universe(symbols=symbols, model_name=name)
+            training_symbols = symbols
+            if symbols is None and name != "linear_regression":
+                training_symbols = [symbol for symbol in list_gold_symbols() if _has_model(symbol, name)]
+            training = train_universe(symbols=training_symbols, model_name=name)
             summary.trained += len(training.trained)
             summary.training_skipped += len(training.skipped)
             summary.training_failed += len(training.failed)
@@ -196,57 +152,13 @@ def run_universe_forecast(
     layer = GoldLayer()
     repository = PredictionRepository(session) if session is not None else None
 
-    # The pass wants EVERY symbol in memory at once, which is more than
-    # the cache's default bound (256 symbols, sized for a browsing
-    # session). The bound is raised for the duration of the pass and
-    # restored afterwards, so the batch does not permanently hold the
-    # whole lakehouse.
+    # Hold a bounded group of frames directly. Cache TTL expiry must not
+    # force the batch to download the whole universe a second time.
     previous_bound = frame_cache.GLOBAL_CACHE.max_symbols
-    frame_cache.GLOBAL_CACHE.resize(max(previous_bound, len(target) + 16))
-
     try:
-        # ── Warm the Gold cache CONCURRENTLY ──────────────────────────────
-        #
-        # WHY: reading a symbol from MinIO costs ~0.5 s (measured 13/11/2026
-        # on this machine) because the symbol's ~121 monthly parquet
-        # partitions are downloaded one round-trip at a time. At 973
-        # symbols, reading them serially was ~8 minutes of the pass - and
-        # the forecast itself is only 0.06 s per symbol. The reads are
-        # independent and side-effect free, so they overlap almost
-        # perfectly: the pass is latency-bound, not CPU-bound.
-        #
-        # Warming the cache FIRST also means the scoring pass at the end
-        # of this function reads the same frames from memory instead of
-        # downloading every symbol's history a second time.
-        read_started = time.perf_counter()
-        warmed = frame_cache.warm_cache(
-            "gold",
-            target,
-            reader=layer.read,
-            workers=_READ_WORKERS,
-        )
-        read_elapsed = time.perf_counter() - read_started
-        logger.info(
-            "Universe forecast: warmed %s/%s Gold frames in %.1fs (%s failed)",
-            warmed["cached"],
-            warmed["requested"],
-            read_elapsed,
-            warmed["failed"],
-        )
-
-        for symbol in target:
+        for symbol, gold in _forecast_frames(layer, target):
             symbol = symbol.upper()
-
-            # The Gold frame comes from the cache the warm-up filled. It is
-            # read ONCE and shared by every model, because the download is
-            # the expensive part and the models all need the same history.
-            try:
-                gold = layer.read(symbol)
-                if gold.empty:
-                    summary.forecast_failed += 1
-                    continue
-            except Exception as exc:  # noqa: BLE001
-                logger.warning("Universe forecast failed for %s: %s", symbol, exc)
+            if gold is None or gold.empty:
                 summary.forecast_failed += 1
                 continue
 
@@ -278,9 +190,16 @@ def run_universe_forecast(
                             "horizon": 1,
                             "source": "auto_eod_batch",
                             "source_layer": "gold",
+                            "data_staleness_days": point.get("data_staleness_days"),
+                            "target_open_at": point.get("target_open_at"),
+                            "input_data_end": point.get("input_data_end"),
+                            "model_version": point.get("model_version"),
                         }
                         try:
-                            repository.upsert(payload)
+                            with session.begin_nested():
+                                repository.upsert(payload)
+                            if owns_session:
+                                session.commit()
                             summary.stored += 1
                         except Exception as exc:  # noqa: BLE001
                             logger.warning(
@@ -315,14 +234,7 @@ def run_universe_forecast(
 
     # ── 4. Score the forecasts that can now be verified ─────────────────
     #
-    # WHY THE SCORING PASS RUNS BEFORE THE CACHE BOUND IS RESTORED
-    # --------------------------------------------------------------
-    # The scoring pass reads the same Gold frames the forecast pass
-    # just warmed. Restoring the bound first would EVICT most of those
-    # frames (the batch raised it to hold the whole universe, the
-    # default is sized for a browsing session), and the scoring pass
-    # would then download every symbol's history a second time - the
-    # exact cost the warm-up exists to avoid.
+    # The scoring pass only reads symbols with due, unscored targets.
     try:
         from app.services.forecast_scoring import score_all
 
@@ -348,3 +260,22 @@ def run_universe_forecast(
         summary.elapsed_seconds,
     )
     return summary
+
+
+def _forecast_frames(layer, symbols, batch_size: int = 32):
+    """Read each symbol once per bounded group, independent of cache TTL."""
+    with ThreadPoolExecutor(max_workers=_READ_WORKERS) as pool:
+        for offset in range(0, len(symbols), batch_size):
+            group = symbols[offset:offset + batch_size]
+            frames = {}
+            pending = {pool.submit(layer.read, symbol): symbol for symbol in group}
+            for future in as_completed(pending):
+                symbol = pending[future]
+                try:
+                    frames[symbol] = future.result()
+                except Exception as exc:
+                    logger.warning("Cannot read forecast input for %s: %s", symbol, exc)
+                    frames[symbol] = None
+            for symbol in group:
+                yield symbol, frames[symbol]
+            logger.info("Universe forecast progress: %s/%s symbols processed", min(offset + len(group), len(symbols)), len(symbols))

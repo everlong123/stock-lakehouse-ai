@@ -1311,7 +1311,7 @@ Hỏi: "Nếu em chạy lại hôm mai, kết quả có giống hôm nay không?
 │ Dữ liệu THẬT         │ services/market_service  │ NotFoundError thay vì    │
 │ (không giả)          │ .py                      │ dữ liệu mẫu              │
 ├──────────────────────┼──────────────────────────┼──────────────────────────┤
-│ Kiểm thử tự động     │ tests/ (37 file)         │ 561/561 PASS             │
+│ Kiểm thử tự động     │ tests/ (40 file)         │ 603/603 PASS             │
 └──────────────────────┴──────────────────────────┴──────────────────────────┘
 ```
 
@@ -1467,9 +1467,10 @@ không tự tính lại. Nhờ vậy con số trên web và con số trong sổ 
 
 > **Đo ngày 13/11/2026:** `predictions` có **977** dòng nguồn `auto_eod_batch`
 > (trong đó **4** dòng đã chấm điểm), **45.240** dòng nguồn
-> `backfill_walk_forward`, **1** dòng nguồn `manual_api`. Bảng kiểm chứng hiện
-> ở trang `/market` (panel "Kiểm chứng dự báo"), không phải ở trang
-> `/forecast` — trang đó đo mô hình trên tập hold-out, khác đối tượng đo.
+> `backfill_walk_forward`, **1** dòng nguồn `manual_api`.
+> **Cập nhật giao diện 19/11/2026:** bảng "Kiểm chứng dự báo" đã chuyển sang
+> `/forecast`, cùng trang với thử mô hình. Kiểm chứng các dự báo đã lưu và
+> đánh giá mô hình trên tập hold-out vẫn là hai phép đo riêng.
 
 ---
 

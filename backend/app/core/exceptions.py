@@ -41,10 +41,25 @@ class DatabaseError(StockLakehouseError):
 
 
 class ModelTrainingError(StockLakehouseError):
-    """Raised when model training cannot complete."""
+    """Raised when model training cannot complete.
+
+    WHY 422 AND NOT 500
+    -------------------
+    Every reason this error is raised is a statement about the REQUEST, not
+    about the server: the symbol holds no Gold data, the model family is not
+    supported, or the stored history mixes price scales and cannot train a
+    price-level model. None of them is a malfunction of the API, so none of
+    them may be reported as one.
+
+    The status code matters to the reader of the response: a 500 says "the
+    server broke, retry", while a 422 says "this input cannot be trained,
+    fix the input". On 18/11/2026 the scale-contamination refusal was
+    reported as a 500, which is the wrong signal for a symbol that will
+    never train until its history is re-ingested.
+    """
 
     def __init__(self, message: str) -> None:
-        super().__init__(message, status_code=500)
+        super().__init__(message, status_code=422)
 
 
 class PredictionError(StockLakehouseError):

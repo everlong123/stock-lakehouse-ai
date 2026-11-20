@@ -8,18 +8,25 @@ import { cn } from "@/lib/utils";
  * active, good) or `negative` (failed, falling). Everything else is a
  * neutral tag with no semantic weight and stays `muted`. A badge palette
  * of five colours turns every chip into a competing accent.
+ *
+ * WHY THERE IS A SEPARATE `up` VARIANT: `primary` is the app's own
+ * accent (the logo, the active tab, the primary button). A badge that
+ * says "this trade closed up" is a DIRECTION, not an app state, so it
+ * takes the direction colour - the same blue the candle chart uses for a
+ * rising bar. One meaning, one colour, everywhere.
  */
 export function Badge({
   variant = "default",
   className,
   ...props
 }: HTMLAttributes<HTMLSpanElement> & {
-  variant?: "default" | "primary" | "negative";
+  variant?: "default" | "primary" | "negative" | "up";
 }) {
   const styles = {
     default: "border border-hairline bg-surface-2 text-muted",
     primary: "border border-primary/30 bg-primary/10 text-primary",
     negative: "border border-negative/30 bg-negative/10 text-negative",
+    up: "border border-up/30 bg-up/10 text-up",
   };
   return (
     <span

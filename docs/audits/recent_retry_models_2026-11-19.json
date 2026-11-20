@@ -1,0 +1,432 @@
+{
+  "phase": "models",
+  "model": "linear_regression",
+  "updated_at_utc": "2026-11-18T21:55:10.605598+00:00",
+  "total": 48,
+  "results": [
+    {
+      "symbol": "BBIO",
+      "model": "linear_regression",
+      "phase": "models",
+      "status": "repaired",
+      "model_version": "9d19a2498a1a4f67962ac4b4b8c93203",
+      "mae": 1.1763509454907553,
+      "test_points": 39
+    },
+    {
+      "symbol": "APA",
+      "model": "linear_regression",
+      "phase": "models",
+      "status": "repaired",
+      "model_version": "d45cc4387705459090ec9ec80106346d",
+      "mae": 0.9744181946855967,
+      "test_points": 39
+    },
+    {
+      "symbol": "BJRI",
+      "model": "linear_regression",
+      "phase": "models",
+      "status": "repaired",
+      "model_version": "b10f3197a9644fc384c106742dcf151d",
+      "mae": 1.5762346627523371,
+      "test_points": 39
+    },
+    {
+      "symbol": "BLMN",
+      "model": "linear_regression",
+      "phase": "models",
+      "status": "repaired",
+      "model_version": "e8d83b0566c14bd586ce7b890c356229",
+      "mae": 0.44940656514452354,
+      "test_points": 39
+    },
+    {
+      "symbol": "CAR",
+      "model": "linear_regression",
+      "phase": "models",
+      "status": "repaired",
+      "model_version": "e7561dfe3b374f63bc477ccc98faa15d",
+      "mae": 16.015136883004683,
+      "test_points": 39
+    },
+    {
+      "symbol": "CPRI",
+      "model": "linear_regression",
+      "phase": "models",
+      "status": "repaired",
+      "model_version": "5ce3fc073f614413b37427a552a7ec6d",
+      "mae": 0.6384735213215448,
+      "test_points": 39
+    },
+    {
+      "symbol": "DIN",
+      "model": "linear_regression",
+      "phase": "models",
+      "status": "repaired",
+      "model_version": "83b840505b0b4bc99cd11f3acf19852b",
+      "mae": 0.8672688911241244,
+      "test_points": 39
+    },
+    {
+      "symbol": "EAT",
+      "model": "linear_regression",
+      "phase": "models",
+      "status": "repaired",
+      "model_version": "668a4a11726f48c4a7740a87d13cb30d",
+      "mae": 7.642808367281846,
+      "test_points": 39
+    },
+    {
+      "symbol": "FANG",
+      "model": "linear_regression",
+      "phase": "models",
+      "status": "repaired",
+      "model_version": "5d219b6cd8e04658a3e83ec4f26b943c",
+      "mae": 3.312796026194775,
+      "test_points": 39
+    },
+    {
+      "symbol": "JACK",
+      "model": "linear_regression",
+      "phase": "models",
+      "status": "repaired",
+      "model_version": "e6534df3a02b4f918500b1ac1fea1887",
+      "mae": 0.35701269102621047,
+      "test_points": 39
+    },
+    {
+      "symbol": "KDP",
+      "model": "linear_regression",
+      "phase": "models",
+      "status": "repaired",
+      "model_version": "3d09496402c7433ca63a916024ae3048",
+      "mae": 0.7123173511263209,
+      "test_points": 39
+    },
+    {
+      "symbol": "MAC",
+      "model": "linear_regression",
+      "phase": "models",
+      "status": "repaired",
+      "model_version": "17b2b0ea87774d2e8e9e6cc35ab3a20d",
+      "mae": 0.7414396561912645,
+      "test_points": 39
+    },
+    {
+      "symbol": "MGNX",
+      "model": "linear_regression",
+      "phase": "models",
+      "status": "repaired",
+      "model_version": "c949f9b362d7487a963fb4c6882f3f3a",
+      "mae": 0.1871838365313355,
+      "test_points": 39
+    },
+    {
+      "symbol": "MGM",
+      "model": "linear_regression",
+      "phase": "models",
+      "status": "repaired",
+      "model_version": "3358a3de10ba4954b54d1b4ec5efd3d9",
+      "mae": 1.7893078881975395,
+      "test_points": 39
+    },
+    {
+      "symbol": "MRNA",
+      "model": "linear_regression",
+      "phase": "models",
+      "status": "failed",
+      "reason": "MRNA cannot be trained on this window: suspected scale discontinuity (span 4.38x; the detector also checks local jumps). A reverse split, a provider unit change or an actual market jump requires investigation. Verify the source, re-ingest inconsistent data, or explicitly select a recent stable training window. No prices were altered."
+    },
+    {
+      "symbol": "MTUM",
+      "model": "linear_regression",
+      "phase": "models",
+      "status": "repaired",
+      "model_version": "e2133f8d08964c83ba1ccdd44093bb81",
+      "mae": 1.7485372814583224,
+      "test_points": 39
+    },
+    {
+      "symbol": "MTDR",
+      "model": "linear_regression",
+      "phase": "models",
+      "status": "repaired",
+      "model_version": "408851a4e71142a581022763190be56c",
+      "mae": 1.1340725059333305,
+      "test_points": 39
+    },
+    {
+      "symbol": "NGL",
+      "model": "linear_regression",
+      "phase": "models",
+      "status": "repaired",
+      "model_version": "df7b36cfede240b880164c4ed3f35d85",
+      "mae": 0.4664937281098604,
+      "test_points": 39
+    },
+    {
+      "symbol": "NVAX",
+      "model": "linear_regression",
+      "phase": "models",
+      "status": "repaired",
+      "model_version": "929d152968b54b19b4bfd493b0487fd4",
+      "mae": 0.5567087850039701,
+      "test_points": 39
+    },
+    {
+      "symbol": "OCGN",
+      "model": "linear_regression",
+      "phase": "models",
+      "status": "repaired",
+      "model_version": "b08bf06598f34914b46336e559962c84",
+      "mae": 0.06763070651036698,
+      "test_points": 39
+    },
+    {
+      "symbol": "OKE",
+      "model": "linear_regression",
+      "phase": "models",
+      "status": "repaired",
+      "model_version": "45435285a9ce4409b874e2ec7be68f3e",
+      "mae": 1.3494784016906891,
+      "test_points": 39
+    },
+    {
+      "symbol": "OVV",
+      "model": "linear_regression",
+      "phase": "models",
+      "status": "repaired",
+      "model_version": "c51153310a324aa8a5073f52567320cc",
+      "mae": 1.078830528336848,
+      "test_points": 39
+    },
+    {
+      "symbol": "OXY",
+      "model": "linear_regression",
+      "phase": "models",
+      "status": "repaired",
+      "model_version": "716dddbe04404bc3be917be03c02c642",
+      "mae": 1.1110353198116454,
+      "test_points": 39
+    },
+    {
+      "symbol": "PAA",
+      "model": "linear_regression",
+      "phase": "models",
+      "status": "repaired",
+      "model_version": "f85c35f86aa9454ab7c43f7a743acd4e",
+      "mae": 0.30567092115972316,
+      "test_points": 39
+    },
+    {
+      "symbol": "PARA",
+      "model": "linear_regression",
+      "phase": "models",
+      "status": "failed",
+      "reason": "PARA cannot be trained on this window: suspected scale discontinuity (span 24.08x; the detector also checks local jumps). A reverse split, a provider unit change or an actual market jump requires investigation. Verify the source, re-ingest inconsistent data, or explicitly select a recent stable training window. No prices were altered."
+    },
+    {
+      "symbol": "PFGC",
+      "model": "linear_regression",
+      "phase": "models",
+      "status": "repaired",
+      "model_version": "4cde1600606341f293945aa5547493fd",
+      "mae": 2.0243922006378026,
+      "test_points": 39
+    },
+    {
+      "symbol": "PCG",
+      "model": "linear_regression",
+      "phase": "models",
+      "status": "repaired",
+      "model_version": "f056f3c7a7a944e3af4a84b4f0bb2b64",
+      "mae": 0.3465918131834451,
+      "test_points": 39
+    },
+    {
+      "symbol": "PTGX",
+      "model": "linear_regression",
+      "phase": "models",
+      "status": "repaired",
+      "model_version": "7e2e9513d3f44ef2bd193e4483ae958b",
+      "mae": 3.541275099033404,
+      "test_points": 39
+    },
+    {
+      "symbol": "PR",
+      "model": "linear_regression",
+      "phase": "models",
+      "status": "repaired",
+      "model_version": "83483fd70f5042ff9e1d169590499070",
+      "mae": 0.5733945004341972,
+      "test_points": 39
+    },
+    {
+      "symbol": "QUAL",
+      "model": "linear_regression",
+      "phase": "models",
+      "status": "repaired",
+      "model_version": "115bc9d79bd64515bfdce3837db78037",
+      "mae": 0.4040445695580618,
+      "test_points": 39
+    },
+    {
+      "symbol": "SOXL",
+      "model": "linear_regression",
+      "phase": "models",
+      "status": "repaired",
+      "model_version": "7ab90dae2f51476faff7ccf919033146",
+      "mae": 11.496365456305492,
+      "test_points": 39
+    },
+    {
+      "symbol": "SQQQ",
+      "model": "linear_regression",
+      "phase": "models",
+      "status": "repaired",
+      "model_version": "8834b804958443119920594236f7b58b",
+      "mae": 1.738889258277276,
+      "test_points": 39
+    },
+    {
+      "symbol": "USFD",
+      "model": "linear_regression",
+      "phase": "models",
+      "status": "repaired",
+      "model_version": "ca4208260129415ba7a0f9a22aa11ae9",
+      "mae": 1.4206142033673534,
+      "test_points": 39
+    },
+    {
+      "symbol": "VNOM",
+      "model": "linear_regression",
+      "phase": "models",
+      "status": "repaired",
+      "model_version": "24abe77ddc444d7f96a07236635d7b96",
+      "mae": 0.9803779064080771,
+      "test_points": 39
+    },
+    {
+      "symbol": "VTR",
+      "model": "linear_regression",
+      "phase": "models",
+      "status": "repaired",
+      "model_version": "5dfb45e0387649c58080bf6bfb99b20f",
+      "mae": 1.0055026149930268,
+      "test_points": 39
+    },
+    {
+      "symbol": "YPF",
+      "model": "linear_regression",
+      "phase": "models",
+      "status": "repaired",
+      "model_version": "b7b49b88ddc14695ac495002848c6d66",
+      "mae": 1.10267739989113,
+      "test_points": 39
+    },
+    {
+      "symbol": "VIV.PA",
+      "model": "linear_regression",
+      "phase": "models",
+      "status": "repaired",
+      "model_version": "f1702723ed7d403d89e806e12d54a15f",
+      "mae": 0.03658624331816561,
+      "test_points": 39
+    },
+    {
+      "symbol": "EDU",
+      "model": "linear_regression",
+      "phase": "models",
+      "status": "repaired",
+      "model_version": "088f0c33d3c14e54873a61c255174e77",
+      "mae": 1.2120400182373798,
+      "test_points": 39
+    },
+    {
+      "symbol": "TAL",
+      "model": "linear_regression",
+      "phase": "models",
+      "status": "repaired",
+      "model_version": "cea895f02fbb4861b2440218af5a0d5f",
+      "mae": 0.3715858040994948,
+      "test_points": 39
+    },
+    {
+      "symbol": "TIGR",
+      "model": "linear_regression",
+      "phase": "models",
+      "status": "repaired",
+      "model_version": "ea115ac1b429406d95ffbf694e491893",
+      "mae": 0.16691368255275774,
+      "test_points": 39
+    },
+    {
+      "symbol": "ACH",
+      "model": "linear_regression",
+      "phase": "models",
+      "status": "failed",
+      "reason": "ACH cannot be trained on this window: suspected scale discontinuity (span 2.81x; the detector also checks local jumps). A reverse split, a provider unit change or an actual market jump requires investigation. Verify the source, re-ingest inconsistent data, or explicitly select a recent stable training window. No prices were altered."
+    },
+    {
+      "symbol": "EMBJ",
+      "model": "linear_regression",
+      "phase": "models",
+      "status": "failed",
+      "reason": "EMBJ cannot be trained on this window: suspected scale discontinuity (span 1.12x; the detector also checks local jumps). A reverse split, a provider unit change or an actual market jump requires investigation. Verify the source, re-ingest inconsistent data, or explicitly select a recent stable training window. No prices were altered."
+    },
+    {
+      "symbol": "NCMI",
+      "model": "linear_regression",
+      "phase": "models",
+      "status": "repaired",
+      "model_version": "9fdc7753a80a40a0a078a28e40e977c1",
+      "mae": 0.09661192532440727,
+      "test_points": 39
+    },
+    {
+      "symbol": "SOXS",
+      "model": "linear_regression",
+      "phase": "models",
+      "status": "repaired",
+      "model_version": "396c582739104a4d9de8ed93fc0ba4ad",
+      "mae": 6.491486327915017,
+      "test_points": 39
+    },
+    {
+      "symbol": "UVXY",
+      "model": "linear_regression",
+      "phase": "models",
+      "status": "repaired",
+      "model_version": "4d601d22fc364482aff21d756d0e7c3b",
+      "mae": 1.4317630349389412,
+      "test_points": 39
+    },
+    {
+      "symbol": "NVL",
+      "model": "linear_regression",
+      "phase": "models",
+      "status": "repaired",
+      "model_version": "c23ad5101b13419f905fc9e4fa0f9551",
+      "mae": 295.3909853097937,
+      "test_points": 39
+    },
+    {
+      "symbol": "WOLF",
+      "model": "linear_regression",
+      "phase": "models",
+      "status": "repaired",
+      "model_version": "eaed44982499405cb2e4ced92f9398cc",
+      "mae": 1.8025096763174286,
+      "test_points": 37
+    },
+    {
+      "symbol": "PXS",
+      "model": "linear_regression",
+      "phase": "models",
+      "status": "repaired",
+      "model_version": "fc9358054cac42b3b55ca38399ec6a67",
+      "mae": 0.28127120178707354,
+      "test_points": 39
+    }
+  ]
+}

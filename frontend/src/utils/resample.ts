@@ -31,16 +31,27 @@
  */
 
 import { OHLCVPoint } from "@/types/stock";
-import { isUsableNumber, toFinite } from "@/utils/format";
+import { isUsableNumber, toFinite, tradingDay } from "@/utils/format";
 
 /** Granularity of a bar series. */
 export type BarInterval = "1d" | "1w" | "1mo";
 
 export const BAR_INTERVAL_LABELS: Record<BarInterval, string> = {
-  "1d": "1D",
-  "1w": "1W",
-  "1mo": "1M",
+  "1d": "Ngày",
+  "1w": "Tuần",
+  "1mo": "Tháng",
 };
+
+/** Label daily timestamps as sessions, never as intraday observations. */
+export function barPeriodLabel(timestamp: string, interval: BarInterval, locale: "vi" | "en" = "vi"): string {
+  if (interval === "1w") {
+    return `${locale === "vi" ? "Tuần từ" : "Week of"} ${weekKey(timestamp)}`;
+  }
+  if (interval === "1mo") {
+    return `${locale === "vi" ? "Tháng" : "Month"} ${monthKey(timestamp)}`;
+  }
+  return `${locale === "vi" ? "Phiên" : "Session"} ${tradingDay(timestamp)}`;
+}
 
 /** A bar whose OHLC values are all finite - safe to draw. */
 export type SolidBar = OHLCVPoint & {

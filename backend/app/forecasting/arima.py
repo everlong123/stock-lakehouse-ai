@@ -150,7 +150,8 @@ class ARIMAForecastModel(BaseForecastModel):
             # BEFORE the one being predicted, so it is `close` shifted by
             # one. The first row has no predecessor inside the hold-out
             # frame, so it is dropped.
-            shifted = np.concatenate([[np.nan], close[:-1]])
+            predecessor = float(self.history[-1]) if len(self.history) else np.nan
+            shifted = np.concatenate([[predecessor], close[:-1]])
             usable = np.isfinite(shifted[:n])
             if usable.sum() >= 2:
                 previous = shifted[:n][usable]

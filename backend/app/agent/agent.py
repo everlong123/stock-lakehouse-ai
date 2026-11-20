@@ -6,6 +6,7 @@ import json
 import os
 import re
 import time
+from functools import lru_cache
 from typing import Any
 
 from app.agent.llm_client import LLMClient
@@ -15,6 +16,7 @@ from app.agent.tool_registry import execute_tool, openai_tools
 from app.core.constants import ALL_SYMBOLS, GLOBAL_SYMBOLS
 from app.core.exceptions import AgentError, StockLakehouseError
 from app.core.logging_config import get_logger
+from app.services.symbol_catalog import stored_symbols
 
 logger = get_logger(__name__)
 
@@ -82,6 +84,23 @@ def _trim_tool_result(tool_name: str, result: Any) -> Any:
     return trimmed
 
 
+# WHY THE TREND CODE NEEDS A SENTENCE HERE: `describe_indicators` returns
+# structured facts (a code plus the numbers behind it) so that the same
+# observation can be written in Vietnamese or English by whoever shows it.
+# The agent speaks Vietnamese, so it writes the sentence itself rather than
+# printing the machine key.
+_TREND_SENTENCES = {
+    "uptrend": "Giá nằm trên SMA20 và SMA20 trên SMA50 (cấu trúc xu hướng tăng).",
+    "downtrend": "Giá nằm dưới SMA20 và SMA20 dưới SMA50 (cấu trúc xu hướng giảm).",
+    "mixed": "Các đường trung bình đan xen, không có cấu trúc xu hướng rõ ràng.",
+    "insufficient": "Chưa đủ dữ liệu để mô tả xu hướng.",
+}
+
+
+def _describe_trend(code: str | None) -> str:
+    return _TREND_SENTENCES.get(code or "", _TREND_SENTENCES["insufficient"])
+
+
 class StockAnalysisAgent:
     """Never fabricates prices, indicators, forecasts, or backtest metrics."""
 
@@ -97,8 +116,14 @@ class StockAnalysisAgent:
         return self._local_reply(user_message, default_symbol)
 
     def _llm_reply(self, user_message: str, default_symbol: str | None) -> dict[str, Any]:
+        requested_symbol = _extract_symbol(user_message, default_symbol)
         messages: list[dict[str, Any]] = [
             {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "system", "content": (
+                f"Resolved instrument for this request: {requested_symbol}. "
+                "For financial facts, use the tools to verify availability; "
+                "do not infer that a ticker is unavailable from your own knowledge."
+            )},
             {"role": "user", "content": user_message},
         ]
         tool_trace: list[dict[str, Any]] = []
@@ -184,10 +209,10 @@ class StockAnalysisAgent:
                             args["symbol"] = mentioned
                         elif not _is_valid_ticker(args.get("symbol")) or not _wants_symbol_resolution(user_message):
                             args["symbol"] = default_symbol or "AAPL"
-                    elif default_symbol:
-                        args["symbol"] = default_symbol
+                    elif call["name"] == "get_market_summary":
+                        args["symbol"] = _extract_symbol(user_message, default_symbol)
                     result = execute_tool(call["name"], args)
-                    error = None
+                    error = result.get("error") if isinstance(result, dict) else None
                 except StockLakehouseError as exc:
                     result = {"error": exc.message}
                     error = exc.message
@@ -216,12 +241,21 @@ class StockAnalysisAgent:
             if text and not content:
                 content = text
 
+        if not tool_trace and _has_finance_intent(user_message.lower()):
+            # The model may decline an archived ticker or quote a remembered
+            # price without consulting storage. The local router verifies it.
+            return self._local_reply(user_message, default_symbol)
+
         if not content:
             # Model didn't produce text after seeing tool results.
             # Synthesise a brief answer from the tool traces instead of
             # failing silently.
             tool_names = [t["tool_name"] for t in tool_trace]
-            if "forecast_stock" in tool_names:
+            if any(t.get("error") for t in tool_trace):
+                content = _render_local_answer(
+                    user_message, {t["tool_name"]: t["tool_result"] for t in tool_trace}
+                )
+            elif "forecast_stock" in tool_names:
                 ft = next(t for t in tool_trace if t["tool_name"] == "forecast_stock")
                 r = ft.get("tool_result") or {}
                 metrics = r.get("metrics") or {}
@@ -234,6 +268,11 @@ class StockAnalysisAgent:
                     f"Directional Accuracy={metrics.get('directional_accuracy', 'N/A')}%. "
                     f"{r.get('disclaimer', '')}"
                 )
+                if r.get("error") or not r.get("forecast_available"):
+                    content = (
+                        f"Chưa có dự báo tương lai cho **{result_symbol}**: "
+                        f"{r.get('error') or r.get('forecast_reason') or 'Không có điểm dự báo hợp lệ.'}"
+                    )
             elif "run_backtest" in tool_names:
                 bt = next(t for t in tool_trace if t["tool_name"] == "run_backtest")
                 r = bt.get("tool_result") or {}
@@ -249,12 +288,15 @@ class StockAnalysisAgent:
             elif "calculate_indicators" in tool_names:
                 ci = next(t for t in tool_trace if t["tool_name"] == "calculate_indicators")
                 r = ci.get("tool_result") or {}
+                # The summary carries FACTS (`code` + numbers), not a sentence,
+                # so the trend line is written here in the agent's language.
+                trend = (r.get("summary") or {}).get("trend") or {}
                 content = (
                     f"Chỉ báo kỹ thuật: "
                     f"RSI={r.get('rsi')}, MACD={r.get('macd')}, "
                     f"SMA20={r.get('sma_20')}, SMA50={r.get('sma_50')}, "
                     f"EMA12={r.get('ema_12')}, EMA26={r.get('ema_26')}. "
-                    f"{r.get('summary', {}).get('trend', '')}"
+                    f"{_describe_trend(trend.get('code'))}"
                 )
             elif "compare_models" in tool_names:
                 cm = next(t for t in tool_trace if t["tool_name"] == "compare_models")
@@ -363,7 +405,10 @@ class StockAnalysisAgent:
         elif any(word in text for word in ["dự báo", "forecast", "lstm", "arima", "linear"]):
             model = "lstm" if "lstm" in text else "arima" if "arima" in text else "linear_regression"
             plan.append(("forecast_stock", {"symbol": symbol, "model_name": model}))
-        elif any(word in text for word in ["backtest", "walk-forward", "walkforward"]):
+        elif any(word in text for word in ["walk-forward", "walkforward"]):
+            strategy = "rsi_strategy" if "rsi" in text else "ma_crossover"
+            plan.append(("run_walk_forward", {"symbol": symbol, "strategy": strategy}))
+        elif "backtest" in text:
             strategy = "rsi_strategy" if "rsi" in text else "ma_crossover"
             plan.append(("run_backtest", {"symbol": symbol, "strategy": strategy}))
         elif any(
@@ -386,7 +431,7 @@ class StockAnalysisAgent:
         for name, args in plan:
             try:
                 result = execute_tool(name, args)
-                error = None
+                error = result.get("error") if isinstance(result, dict) else None
             except StockLakehouseError as exc:
                 result = {"error": exc.message}
                 error = exc.message
@@ -479,7 +524,7 @@ def _wants_symbol_resolution(message: str) -> bool:
     user is clearly asking for market data.
     """
     upper = message.upper()
-    if any(re.search(rf"\b{re.escape(s)}\b", upper) for s in ALL_SYMBOLS):
+    if any(_mentions_symbol(upper, s) for s in ALL_SYMBOLS):
         return True
     return _has_finance_intent(message.lower())
 
@@ -487,7 +532,7 @@ def _wants_symbol_resolution(message: str) -> bool:
 def _is_valid_ticker(symbol: object) -> bool:
     """Check whether a string is a real, supported ticker — not a noise word.
 
-    We require membership in ALL_SYMBOLS rather than a loose shape check.
+    We require membership in ALL_SYMBOLS or the stored catalog rather than a loose shape check.
     The shape check let prose words like "AI" (from "con AI này") or "CON" pass,
     which made tools run against symbols the lakehouse has never ingested.
 
@@ -515,13 +560,13 @@ def _is_valid_ticker(symbol: object) -> bool:
         return False
     if s in ALL_SYMBOLS:
         return True
-    return False
+    return s in stored_symbols()
 
 
 def _extract_symbol(text: str, default_symbol: str | None) -> str:
     """Extract a ticker from a Vietnamese / English user question.
 
-    We only ever return a symbol the lakehouse actually supports. Earlier
+    We only ever return a configured symbol or a ticker verified in storage. Earlier
     versions fell back to "any 2-5 char uppercase token", which mis-read prose
     ("con AI này" -> AI, "cảm giác" -> CON) and fired tools against symbols
     that were never ingested. Better to fall back to the user's selection.
@@ -535,15 +580,26 @@ def _extract_symbol(text: str, default_symbol: str | None) -> str:
     """
     upper = text.upper()
 
-    # Sort by length descending so longer tickers match first. "MA Crossover"
-    # otherwise fires MA (Mastercard) before TSLA — short symbols are noise
-    # inside compound words (MA, ON, SO, TD, …). We only trust longer names.
-    for symbol in sorted(ALL_SYMBOLS, key=len, reverse=True):
-        if re.search(rf"\b{re.escape(symbol)}\b", upper):
+    # MA is also Mastercard's ticker. In a strategy name it must not win
+    # over a shorter requested ticker such as A, F or V.
+    upper = re.sub(r"\bMA\s+CROSS\s*OVER\b", " ", upper)
+
+    # Archived/new tickers have the same priority as configured instruments.
+    # Otherwise a short configured ticker in prose ("so", "on") can beat
+    # the actual longer ticker such as WBA from the storage inventory.
+    configured = set(ALL_SYMBOLS)
+    known = configured | set(stored_symbols())
+    for symbol in sorted(known, key=lambda s: (-len(s), s)):
+        if _mentions_symbol(upper, symbol):
             return symbol
 
     fallback = (default_symbol or "AAPL").upper()
-    return fallback if fallback in ALL_SYMBOLS else "AAPL"
+    return fallback if fallback in known else "AAPL"
+
+
+@lru_cache(maxsize=2048)
+def _ticker_pattern(symbol: str) -> re.Pattern[str]:
+    return re.compile(rf"(?<![\w.^=\-]){re.escape(symbol.upper())}(?![\w.^=\-])")
 
 
 def _mentions_symbol(text: str, symbol: str) -> bool:
@@ -555,7 +611,9 @@ def _mentions_symbol(text: str, symbol: str) -> bool:
     fallback cannot distinguish "asked about AAPL" from "asked about
     something else".
     """
-    return bool(re.search(rf"\b{re.escape(symbol)}\b", text.upper()))
+    # Indexes can start with '^'; ticker punctuation also belongs to the
+    # token so a short ticker cannot match inside a different instrument.
+    return bool(_ticker_pattern(symbol).search(text.upper()))
 
 
 def _answered_symbol(
@@ -833,7 +891,7 @@ def _render_project_answer(question: str, tool_name: str, result: dict[str, Any]
 
     lines: list[str] = [
         "Trả lời dựa trên dữ liệu runtime của hệ thống (tool calling) + PROJECT_CONTEXT.",
-        "Lưu ý: đây là prototype nghiên cứu, không phải tư vấn đầu tư.",
+        "Phân tích mang tính tham khảo, không phải tư vấn đầu tư.",
         "",
     ]
 
@@ -841,15 +899,13 @@ def _render_project_answer(question: str, tool_name: str, result: dict[str, Any]
         total = result.get("total_symbols", 0)
         regions = result.get("regions", {})
         lines.append(
-            f"Hệ thống đang theo dõi **{total} mã**, phân bổ như sau:"
+            f"Hệ thống cấu hình **{total} mã duy nhất**, các nhóm như sau:"
         )
         lines.append(f"- US (blue-chips/mid-cap): {regions.get('us', 0)} mã")
         lines.append(f"- Toàn cầu (GLOBAL_SYMBOLS): {regions.get('global', 0)} mã")
         lines.append(f"- Chỉ số thị trường: {regions.get('market_indexes', 0)} mã")
         lines.append(f"- Crypto: {regions.get('crypto', 0)} mã")
-        vn_list = regions.get("vn_symbols_sample", [])
-        if vn_list:
-            lines.append(f"- Việt Nam: {', '.join(vn_list)}")
+        lines.append(f"- Việt Nam: {regions.get('vn', 0)} mã")
         if result.get("us_symbols_total"):
             lines.append("")
             lines.append(f"Một số mã US mẫu: {', '.join(result.get('sample_us_symbols', [])[:15])}")
@@ -905,7 +961,7 @@ def _render_project_answer(question: str, tool_name: str, result: dict[str, Any]
 
     elif tool_name == "get_system_architecture":
         runtime = result.get("runtime", {})
-        lines.append(f"**{result.get('project_name', 'Stock Lakehouse AI')}** — {result.get('purpose', '')}")
+        lines.append(f"**{result.get('project_name', 'StockVision AI')}** — {result.get('purpose', '')}")
         layers = result.get("layers", {})
         for name, info in layers.items():
             lines.append(f"- **{name.upper()}**: {info.get('description', '')}")
@@ -1011,7 +1067,7 @@ def _project_suggestions() -> list[str]:
 def _render_local_answer(question: str, collected: dict[str, Any]) -> str:
     lines = [
         "Đây là câu trả lời dựa trên dữ liệu thật từ backend (tool calling).",
-        "Kết quả chỉ phục vụ nghiên cứu học thuật, không phải khuyến nghị đầu tư.",
+        "Phân tích và dự báo mang tính tham khảo, không phải khuyến nghị đầu tư.",
         "",
     ]
     for name, result in collected.items():
@@ -1023,9 +1079,30 @@ def _render_local_answer(question: str, collected: dict[str, Any]) -> str:
                 f"RSI={result.get('rsi')}, MACD={result.get('macd')}, "
                 f"SMA20={result.get('sma_20')}, SMA50={result.get('sma_50')}."
             )
+            # The summary holds structured facts, so each group is written
+            # out rather than dumped as a Python dict — the model reads
+            # "trend: uptrend" as noise, but reads the sentence as a fact.
             summary = result.get("summary") or {}
-            for key, value in summary.items():
-                lines.append(f"{key}: {value}")
+            for key in ("trend", "momentum", "volatility"):
+                fact = summary.get(key) or {}
+                if key == "trend":
+                    lines.append(f"Xu hướng: {_describe_trend(fact.get('code'))}")
+                elif key == "momentum" and fact.get("rsi") is not None:
+                    zone = {
+                        "rsi_elevated": "vùng cao",
+                        "rsi_depressed": "vùng thấp",
+                        "rsi_mid": "vùng trung tính",
+                    }.get(fact.get("code"), "chưa đủ dữ liệu")
+                    lines.append(f"Động lượng: RSI {fact['rsi']} ở {zone}.")
+                elif key == "volatility" and fact.get("width") is not None:
+                    position = {
+                        "bb_above": "trên dải Bollinger trên",
+                        "bb_below": "dưới dải Bollinger dưới",
+                        "bb_inside": "trong dải Bollinger",
+                    }.get(fact.get("code"), "chưa đủ dữ liệu")
+                    lines.append(
+                        f"Biến động: giá đóng cửa {position}, độ rộng dải {fact['width']}."
+                    )
         elif name == "run_backtest":
             lines.append(
                 f"Backtest {result.get('strategy')} cho {result.get('symbol')}: "
@@ -1036,7 +1113,21 @@ def _render_local_answer(question: str, collected: dict[str, Any]) -> str:
                 f"Trades={result.get('number_of_trades')}."
             )
             lines.append(result.get("disclaimer", ""))
+        elif name == "run_walk_forward":
+            summary = result.get("summary") or {}
+            lines.append(
+                f"Walk-forward {result.get('strategy')} cho {result.get('symbol')}: "
+                f"{summary.get('total_windows', 0)} cửa sổ, "
+                f"lợi nhuận test trung bình={summary.get('avg_test_return')}, "
+                f"lợi nhuận buy-and-hold trung bình={summary.get('avg_benchmark_return')}."
+            )
         elif name == "forecast_stock":
+            if not result.get("forecast_available"):
+                lines.append(
+                    f"Chưa có dự báo tương lai cho {result.get('symbol')}: "
+                    f"{result.get('forecast_reason') or 'Không có điểm dự báo hợp lệ.'}"
+                )
+                continue
             metrics = result.get("metrics") or {}
             lines.append(
                 f"Dự báo {result.get('model_name')} cho {result.get('symbol')}: "
@@ -1044,7 +1135,10 @@ def _render_local_answer(question: str, collected: dict[str, Any]) -> str:
                 f"MAPE={metrics.get('mape')}, Directional Accuracy={metrics.get('directional_accuracy')}."
             )
             if result.get("latest_predicted") is not None:
-                lines.append(f"Giá trị dự báo gần nhất: {result['latest_predicted']:.4f}.")
+                lines.append(
+                    f"Giá dự báo cho phiên {result.get('target_timestamp')}: "
+                    f"{result['latest_predicted']:.4f}."
+                )
             lines.append(result.get("disclaimer", ""))
         elif name == "compare_models":
             lines.append(f"So sánh mô hình cho {result.get('symbol')}:")
@@ -1062,7 +1156,7 @@ def _render_local_answer(question: str, collected: dict[str, Any]) -> str:
                 f"{result.get('symbol')} close={close}, change={change}, volume={result.get('volume')}."
             )
         elif name == "get_fundamental_metrics":
-            sym = result.get("symbol", symbol)
+            sym = result.get("symbol") or "mã được hỏi"
             metrics = result.get("metrics") or {}
             if metrics:
                 # Surface the most thesis-relevant ratios first; keep the

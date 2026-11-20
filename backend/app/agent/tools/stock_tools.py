@@ -39,7 +39,10 @@ class IndicatorOutput(BaseModel):
     macd: float | None
     sma_20: float | None
     sma_50: float | None
-    summary: dict[str, str]
+    # The structured facts from `describe_indicators`: three groups, each a
+    # `code` plus the numbers it rests on. It is NOT prose — the frontend
+    # writes the sentence in the reader's language, and so does the agent.
+    summary: dict[str, dict[str, Any]]
 
 
 class ForecastInput(BaseModel):
@@ -55,6 +58,10 @@ class ForecastOutput(BaseModel):
     model_name: str
     metrics: dict[str, Any]
     latest_predicted: float | None
+    forecast_available: bool
+    forecast_reason: str | None = None
+    target_timestamp: str | None = None
+    horizon: int
     disclaimer: str
 
 
@@ -158,14 +165,22 @@ def calculate_indicators(symbol: str, lookback_bars: int = 60) -> dict[str, Any]
 def forecast_stock(symbol: str, model_name: str = "linear_regression", horizon: int = 5) -> dict[str, Any]:
     symbol = _normalize_symbol(symbol)
     result = ForecastingService().predict(symbol, model_name, horizon)
-    latest_predicted = None
-    if result.get("predictions"):
-        latest_predicted = result["predictions"][-1].get("predicted")
+    # Historical holdout points share this array with future points.
+    # A historical estimate must never stand in for a rejected forecast.
+    future = [
+        point for point in result.get("predictions", [])
+        if point.get("actual") is None and point.get("predicted") is not None
+    ] if result.get("forecast_available") else []
+    latest = future[-1] if future else {}
     payload = ForecastOutput(
         symbol=symbol,
         model_name=model_name,
         metrics=result.get("metrics") or {},
-        latest_predicted=latest_predicted,
+        latest_predicted=latest.get("predicted"),
+        forecast_available=bool(future),
+        forecast_reason=result.get("forecast_reason"),
+        target_timestamp=latest.get("timestamp"),
+        horizon=horizon,
         disclaimer=result.get("disclaimer", ""),
     )
     return payload.model_dump()

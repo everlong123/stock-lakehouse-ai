@@ -1,10 +1,28 @@
-# Stock Lakehouse AI
+# StockVision AI
 
-Nền tảng prototype khóa luận tốt nghiệp:
+## Khởi động nhanh trên máy Windows này
+
+Cần WSL2 `Ubuntu-24.04` có Docker Engine, Python virtualenv tại
+`backend/.venv` và Node dependencies tại `frontend/node_modules`.
+Từ thư mục gốc, chạy `powershell -ExecutionPolicy Bypass -File .\start-all.ps1`,
+sau đó mở http://127.0.0.1:5173. Script chỉ báo thành công khi API, MySQL,
+MinIO và frontend đã sẵn sàng; khi lỗi, xem cửa sổ backend/frontend và mã thoát.
+Launcher tự lấy IP WSL hiện tại khi khởi động backend.
+Dừng bằng `powershell -ExecutionPolicy Bypass -File .\stop-all.ps1`.
+
+Kiểm tra luồng dữ liệu một mã: `POST /api/v1/pipeline/run` với
+`{"symbols":["AAPL"],"interval":"1d","lookback_days":120}`. Kết quả
+phải có `status=success` và số bản ghi Bronze/Silver/Gold lớn hơn 0.
+Dự báo có thể xem qua `POST /api/v1/forecast/predict` và web `/forecast`.
+Trang `/system` cho biết cảnh báo chất lượng dữ liệu và nguồn cập nhật.
+
+Nền tảng phân tích thị trường, dự báo chứng khoán và đánh giá chiến lược với trợ lý AI, được phát triển trong khuôn khổ khóa luận tốt nghiệp:
 
 **Xây dựng nền tảng Data Lakehouse phân tích và dự báo chứng khoán ứng dụng học sâu và AI Agent.**
 
-Toàn bộ dữ liệu OHLCV trong project là dữ liệu thật từ các nguồn free (Yahoo Finance, Finnhub, Alpha Vantage, SSI iBoard cho cổ phiếu Việt Nam). Pipeline Bronze - Silver - Gold chạy trên MinIO (S3-compatible), catalog quản lý schema bằng Apache Iceberg REST. Backend FastAPI expose dữ liệu + model + backtest, frontend React/Vite hiển thị dashboard, và AI Agent dùng Gemini Free API để trả lời câu hỏi tự nhiên qua tool calling vào chính backend.
+OHLCV được nạp từ các nhà cung cấp thị trường (Yahoo Finance, Finnhub, Alpha Vantage, SSI iBoard). Pipeline Bronze - Silver - Gold lưu Parquet trên MinIO (S3-compatible); metadata nghiệp vụ lưu trong MySQL. Iceberg đã được gỡ khỏi triển khai hiện tại. Backend FastAPI phục vụ dữ liệu, mô hình và backtest; frontend React/Vite hiển thị dashboard và AI Agent gọi công cụ backend.
+
+> Trạng thái triển khai và giới hạn kiểm chứng: xem [báo cáo sửa lỗi và kiểm tra lại](docs/audits/KET_QUA_SUA_LOI_2026-11-19.md). Đây là prototype theo kiến trúc medallion; không cung cấp giao dịch bảng ACID hay time-travel. Không phải mọi mã lịch sử đều còn nguồn cập nhật hoặc đủ điều kiện dự báo.
 
 ---
 
@@ -28,14 +46,14 @@ Toàn bộ dữ liệu OHLCV trong project là dữ liệu thật từ các ngu�
 | **ORM / Migration** | SQLAlchemy 2, Alembic | Metadata MySQL + schema version |
 | **Metadata DB** | MySQL 8 (`stock_lakehouse`) | Lưu `users`, `pipeline_runs`, `model_runs`, `backtest_runs`, `agent_conversations` |
 | **Object Storage** | MinIO (S3-compatible) | Bucket `stock-bronze`, `stock-silver`, `stock-gold`, `stock-models`, `stock-backtests` |
-| **Lakehouse format** | Apache Parquet + Apache Iceberg (REST catalog) | Partition theo `symbol/year/month`, time-travel |
+| **Định dạng lưu trữ** | Apache Parquet trên MinIO | Partition theo `symbol/year/month`; chưa có table snapshot/time-travel |
 | **Ingest** | Cron-driven batch (`backend/crontab`) | Đọc thẳng từ provider, ghi vào Bronze |
 | **ML / Forecasting** | scikit-learn, statsmodels (ARIMA), PyTorch (LSTM) | Train/predict LR, ARIMA, LSTM |
 | **Backtest** | Engine tự viết (`app/backtesting/`) | MA Crossover, RSI Strategy, baseline mua & giữ, walk-forward |
 | **AI Agent** | Gemini Free API (`gemini-2.0-flash-exp`) + tool router | Tool calling vào backend thật |
 | **Data sources** | yfinance, Finnhub, Alpha Vantage, SSI iBoard | Multi-provider + failover |
 | **Frontend** | React 18, Vite 5, TypeScript, TailwindCSS, TanStack Query, Recharts, Lucide | Dashboard, dữ liệu thị trường, kỹ thuật, dự báo, đánh giá chiến lược, agent (7 trang) |
-| **Container** | Docker Compose | mysql, minio, iceberg-rest, scheduler |
+| **Container** | Docker Compose | mysql, minio, backend, frontend, scheduler theo profile |
 
 ---
 
@@ -87,8 +105,8 @@ stock-lakehouse-ai/
 
 ```bash
 # tại thư mục gốc stock-lakehouse-ai/
-docker compose up -d
-docker compose ps
+docker compose --profile infra up -d
+docker compose --profile infra ps
 ```
 
 Sau ~20-30 giây, 2 container hạ tầng sau phải ở trạng thái `running`/`healthy`:
@@ -186,7 +204,6 @@ Vite đã được cấu hình proxy `/api/v1` -> `http://127.0.0.1:8000`, nên 
 | Backend Swagger | http://127.0.0.1:8000/docs | - |
 | Backend Health | http://127.0.0.1:8000/api/v1/health | - |
 | MinIO Console | http://127.0.0.1:9001 | minioadmin / minioadmin |
-| Iceberg REST | http://127.0.0.1:8181/v1/config | - |
 
 ---
 
@@ -366,6 +383,7 @@ Verified datasets (snapshot 2026-09-30):
 | [docs/tech_stack_matrix.md](docs/tech_stack_matrix.md) | Map công nghệ -> file implementation |
 | [docs/NGHIEN_CUU_DA_MA_WALK_FORWARD.md](docs/NGHIEN_CUU_DA_MA_WALK_FORWARD.md) | Nghiên cứu walk-forward đa mã chi tiết |
 | [docs/QA_KIEM_THU_CHUYEN_SAU.md](docs/QA_KIEM_THU_CHUYEN_SAU.md) | Nhật ký QA: triệu chứng -> nguyên nhân -> fix -> bằng chứng |
+| [docs/ANKI_FLASHCARDS.md](docs/ANKI_FLASHCARDS.md) | **Bộ thẻ ôn tập Anki** — 12 bộ, 285 thẻ, mỗi thẻ trỏ tới file thật trong dự án |
 | [docs/OPERATIONS_RAM.md](docs/OPERATIONS_RAM.md) | Ghi chú vận hành: giải phóng RAM sau khi dừng WSL/Docker |
 | [backend/scripts/README.md](backend/scripts/README.md) | **86 script vận hành**: dùng script nào khi nào |
 

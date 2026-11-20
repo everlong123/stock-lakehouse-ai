@@ -31,7 +31,7 @@ def directional_accuracy(y_true: np.ndarray, y_pred: np.ndarray, previous: np.nd
     previous = np.asarray(previous, dtype=float).reshape(-1)
     actual_dir = np.sign(y_true - previous)
     pred_dir = np.sign(y_pred - previous)
-    mask = actual_dir != 0
+    mask = np.isfinite(y_true) & np.isfinite(y_pred) & np.isfinite(previous) & (actual_dir != 0)
     if mask.sum() == 0:
         return 0.0
     return float(np.mean(actual_dir[mask] == pred_dir[mask]))
